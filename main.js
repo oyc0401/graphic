@@ -3,9 +3,11 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 40; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 0.01; // 강도: +이면 정방향, -이면 역방향
 
+
+let hadMax=false;
 function applyPixelFlow(canvas, ctx, points) {
     const width = canvas.width;
     const height = canvas.height;
@@ -17,15 +19,6 @@ function applyPixelFlow(canvas, ctx, points) {
     // 변위 맵 초기화
     const displaceX = new Float32Array(width * height);
     const displaceY = new Float32Array(width * height);
-
-    // 어떤 획집합에 속해있는지 담고있는 함수.
-    // 이후에 획집합이 1차이가 난다면 이후에 적용된 획집합이 넣어진다.
-    const unionFind = new Float32Array(width * height).fill(-10);
-    const overlaps = new Float32Array(width * height);
-
-    // 변위 맵 초기화
-    const sumX = new Float32Array(width * height);
-    const sumY = new Float32Array(width * height);
 
     // 모든 선분에 대해 변위 계산
     for (let i = 0; i < points.length - 1; i++) {
@@ -68,65 +61,28 @@ function applyPixelFlow(canvas, ctx, points) {
                 if (dist < EFFECT_RADIUS) {
                     const effectFactor =
                         (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
-                    const offsetX = effectFactor * unitX * EFFECT_RADIUS;
-                    const offsetY = effectFactor * unitY * EFFECT_RADIUS;
-                    if (i - unionFind[index] == 1) {
-                        // 이전과 같은 집합.
-                        unionFind[index] = i;
 
-                        // 변위 합 저장
-                        sumX[index] += offsetX;
-                        sumY[index] += offsetY;
-                        overlaps[index]++;
-                    } else {
-                        if (overlaps[index]) {
-                            //이전 평균은 배열에 반영.
-                            displaceX[index] += sumX[index] / overlaps[index];
-                            displaceY[index] += sumY[index] / overlaps[index];
-                        }
+                    const offsetX = effectFactor * dx * 0.4;
+                    const offsetY = effectFactor * dy * 0.4;
 
-                        // 새로운 집합 생성.
-                        unionFind[index] = i;
-                        overlaps[index] = 1;
+                    const maxoffsetX = effectFactor * unitX *10;
+                    const maxoffsetY = effectFactor * unitY * 10 ;
 
-                        // 변위 누적
-                        sumX[index] = offsetX;
-                        sumY[index] = offsetY;
-                    }
-                } else {
-                    if (overlaps[index]) {
-                        displaceX[index] += sumX[index] / overlaps[index];
-                        displaceY[index] += sumY[index] / overlaps[index];
-                        overlaps[index] = 0;
+                    // 변위 누적
+                    displaceX[index] += smallerAbs(offsetX, maxoffsetX);
+                    displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+
+                    if (Math.abs(offsetX) > Math.abs(maxoffsetX)) {
+                        hadMax=true;
+                      
                     }
                 }
             }
         }
     }
 
-    // 적용되지 못한 벡터들 적용.
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            // if (sumX[index] != 0) {
-            const index = y * width + x;
-            if (overlaps[index]) {
-                displaceX[index] += sumX[index] / overlaps[index];
-                displaceY[index] += sumY[index] / overlaps[index];
-            }
-
-            // }
-        }
-    }
-
     // 새로운 이미지 데이터 생성
     const newImageData = new Uint8ClampedArray(originalData.length);
-
-    //console.log(displaceX)
-
-    // displaceX는 해당 픽셀의 변화한 위치 담고있는 배열이다.
-    // (2,2)에서 (2.3,2.3)이 되었다면.
-    // (2,2), (2,3), (3,2), (3,3)의 색을 모두 가져와 평균을 낸다.
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -157,10 +113,6 @@ function applyPixelFlow(canvas, ctx, points) {
                 return [0, 0, 0, 0];
             };
 
-            if (index == 28) {
-                console.log("now!");
-            }
-
             const c00 = getColor(floorX, floorY);
             const c10 = getColor(ceilX, floorY);
             const c01 = getColor(floorX, ceilY);
@@ -188,28 +140,25 @@ function applyPixelFlow(canvas, ctx, points) {
 
     ctx.putImageData(new ImageData(newImageData, width, height), 0, 0);
 }
+const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
 // 초기화
 window.onload = async () => {
     try {
-        //const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
-        const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
         applyPixelFlow(canvas, ctx, [
-            { x: 50, y: 100 },
-            { x: 200, y: 200 },
-             { x: 220, y: 300 },
-            //    { x: 120, y: 300 },
-            //  { x: 50, y: 100 },
+            // { x: 50, y: 100 },
             // { x: 200, y: 200 },
+            //  { x: 300, y: 170 },
         ]);
-        drawHelperLine(ctx,[
-            { x: 50, y: 100 },
-            { x: 200, y: 200 },
-             { x: 220, y: 300 },
-            //    { x: 120, y: 300 },
-            //  { x: 50, y: 100 },
+        drawHelperLine(ctx, [
+            // { x: 100, y: 100 },
+            // { x: 110, y: 110 },
+            // { x: 120, y: 120 },
+            // { x: 150, y: 150 },
             // { x: 200, y: 200 },
         ]);
     } catch (error) {
@@ -217,6 +166,12 @@ window.onload = async () => {
     }
     //animate();
 };
+
+// { x: 100, y: 100 },
+// { x: 110, y: 110 },
+// { x: 120, y: 120 },
+// { x: 150, y: 150 },
+// { x: 200, y: 200 },
 
 // { x: 50, y: 100 },
 // { x: 200, y: 200 },
@@ -245,7 +200,7 @@ function drawHelperLine(ctx, points) {
         const r = Math.round(255 * (1 - ratio)); // Red decreases
         const g = 0; // Green remains 0
         const b = Math.round(255 * ratio); // Blue increases
-        return `rgba(${r},${g},${b},0.5`;
+        return `rgba(${r},${g},${b},0.05)`;
     };
 
     // Draw lines between consecutive points
@@ -257,7 +212,7 @@ function drawHelperLine(ctx, points) {
         ctx.moveTo(start.x, start.y); // Move to the start point
         ctx.lineTo(end.x, end.y); // Draw a line to the end point
         ctx.lineWidth = 1; // Set line width
-        ctx.strokeStyle = "rgba(0,0,255,0.5)"; // Set line color to blue
+        ctx.strokeStyle = "rgba(0,255,0,0.05)"; // Set line color to blue
         ctx.stroke(); // Render the line
     }
 
@@ -290,3 +245,39 @@ function drawImageToCanvas(img) {
     helper_canvas.height = canvas.height;
     ctx.drawImage(img, 0, 0);
 }
+
+// 마우스 위치를 저장할 배열
+const positions = [];
+let isTracking = false; // 스페이스바 누름 상태
+
+// 마우스 움직임 기록
+document.addEventListener("mousemove", (event) => {
+    if (isTracking) {
+        const { clientX, clientY } = event;
+
+        // 현재 좌표를 배열에 저장
+        positions.push({ x: clientX, y: clientY });
+    }
+});
+
+// 스페이스바 눌렀을 때 추적 시작
+document.addEventListener("pointerdown", (event) => {
+    isTracking = true;
+    positions.length = 0; // 이전 데이터 초기화
+    console.log("Tracking 시작...");
+});
+
+// 스페이스바 뗐을 때 추적 종료 및 로그 출력
+document.addEventListener("pointerup", (event) => {
+    isTracking = false;
+    console.log("Tracking 종료. 기록된 좌표:");
+    // console.log(positions);
+
+    applyPixelFlow(canvas, ctx, positions);
+    // drawHelperLine(ctx, positions);
+if(hadMax){
+     console.log("max!");
+    hadMax=false;
+}
+ 
+});
