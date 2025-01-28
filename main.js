@@ -4,10 +4,9 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 0.01; // 강도: +이면 정방향, -이면 역방향
+const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
-
-let hadMax=false;
+let hadMax = false;
 function applyPixelFlow(canvas, ctx, points) {
     const width = canvas.width;
     const height = canvas.height;
@@ -62,19 +61,18 @@ function applyPixelFlow(canvas, ctx, points) {
                     const effectFactor =
                         (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
 
-                    const offsetX = effectFactor * dx * 0.4;
-                    const offsetY = effectFactor * dy * 0.4;
+                    const offsetX = (effectFactor * dx) / 2;
+                    const offsetY = (effectFactor * dy) / 2;
 
-                    const maxoffsetX = effectFactor * unitX *10;
-                    const maxoffsetY = effectFactor * unitY * 10 ;
+                    const maxoffsetX = effectFactor * unitX * 10;
+                    const maxoffsetY = effectFactor * unitY * 10;
 
                     // 변위 누적
                     displaceX[index] += smallerAbs(offsetX, maxoffsetX);
                     displaceY[index] += smallerAbs(offsetY, maxoffsetY);
 
                     if (Math.abs(offsetX) > Math.abs(maxoffsetX)) {
-                        hadMax=true;
-                      
+                        hadMax = true;
                     }
                 }
             }
@@ -145,8 +143,8 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
-        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
         applyPixelFlow(canvas, ctx, [
@@ -275,9 +273,8 @@ document.addEventListener("pointerup", (event) => {
 
     applyPixelFlow(canvas, ctx, positions);
     // drawHelperLine(ctx, positions);
-if(hadMax){
-     console.log("max!");
-    hadMax=false;
-}
- 
+    if (hadMax) {
+        console.log("max!");
+        hadMax = false;
+    }
 });
