@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 5; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 40; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
 
 function applyPixelFlow(canvas, ctx, points) {
@@ -192,25 +192,25 @@ function applyPixelFlow(canvas, ctx, points) {
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
-        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
         applyPixelFlow(canvas, ctx, [
             { x: 50, y: 100 },
             { x: 200, y: 200 },
              { x: 220, y: 300 },
-               { x: 120, y: 300 },
-             { x: 50, y: 100 },
-            { x: 200, y: 200 },
+            //    { x: 120, y: 300 },
+            //  { x: 50, y: 100 },
+            // { x: 200, y: 200 },
         ]);
         drawHelperLine(ctx,[
             { x: 50, y: 100 },
             { x: 200, y: 200 },
              { x: 220, y: 300 },
-               { x: 120, y: 300 },
-             { x: 50, y: 100 },
-            { x: 200, y: 200 },
+            //    { x: 120, y: 300 },
+            //  { x: 50, y: 100 },
+            // { x: 200, y: 200 },
         ]);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
