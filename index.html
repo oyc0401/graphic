@@ -5,162 +5,27 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>픽셀 유동화</title>
         <style>
+            body{
+                position: relative;
+                margin: 0;;
+            }
             canvas {
-                border: 2px dashed #aaa;
                 cursor: crosshair;
                 transition: border-color 0.3s;
+                image-rendering: pixelated;
+                position: absolute;
+                left:0;
+                top:0;
+            }
+
+            .helper-canvas{
+                z-index: 1;
             }
         </style>
     </head>
     <body>
         <canvas id="canvas"></canvas>
-
-        <script>
-            // 설정값
-            const EFFECT_RADIUS = 60;
-            const EFFECT_STRENGTH = 0.5;
-            const DRAG_SENSITIVITY = 0.5;
-
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
-
-            let isDragging = false;
-            let mouseX = 0,
-                mouseY = 0;
-            let prevMouseX = 0,
-                prevMouseY = 0;
-            let currentImage = null;
-
-            // 이미지 로드 함수
-            function loadImageFromURL(url) {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => resolve(img);
-                    img.onerror = reject;
-                    img.src = url;
-                });
-            }
-
-            // 캔버스에 이미지 그리기
-            function drawImageToCanvas(img) {
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                ctx.drawImage(img, 0, 0);
-                currentImage = img;
-            }
-
-            // 색상 블렌딩 함수
-            function blendColors(srcColor, dstColor, alpha = 0.5) {
-                return [
-                    srcColor[0] * (1 - alpha) + dstColor[0] * alpha,
-                    srcColor[1] * (1 - alpha) + dstColor[1] * alpha,
-                    srcColor[2] * (1 - alpha) + dstColor[2] * alpha,
-                    srcColor[3] * (1 - alpha) + dstColor[3] * alpha,
-                ];
-            }
-
-            // 픽셀 유동화 효과
-            function applyPixelFlow() {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const tempData = new Uint8Array(imageData.data); // 원본 이미지 데이터 복사
-
-                const dx = prevMouseX - mouseX;
-                const dy = prevMouseY - mouseY;
-
-                for (let y = 0; y < canvas.height; y++) {
-                    for (let x = 0; x < canvas.width; x++) {
-                        const distance = Math.hypot(x - mouseX, y - mouseY);
-                        if (distance > EFFECT_RADIUS) continue;
-
-                        const force = (1 - distance / EFFECT_RADIUS) * EFFECT_STRENGTH;
-                        const offsetX = Math.round(x + dx * force * DRAG_SENSITIVITY);
-                        const offsetY = Math.round(y + dy * force * DRAG_SENSITIVITY);
-
-                        if (
-                            offsetX >= 0 &&
-                            offsetX < canvas.width &&
-                            offsetY >= 0 &&
-                            offsetY < canvas.height
-                        ) {
-                            const srcIdx = (y * canvas.width + x) * 4;
-                            const dstIdx = (offsetY * canvas.width + offsetX) * 4;
-
-                            // 원본 픽셀 색상
-                            const srcColor = [
-                                tempData[srcIdx],
-                                tempData[srcIdx + 1],
-                                tempData[srcIdx + 2],
-                                tempData[srcIdx + 3],
-                            ];
-
-                            // 이동할 위치의 픽셀 색상
-                            const dstColor = [
-                                imageData.data[dstIdx],
-                                imageData.data[dstIdx + 1],
-                                imageData.data[dstIdx + 2],
-                                imageData.data[dstIdx + 3],
-                            ];
-
-                            // 색상 블렌딩
-                            const blendedColor = blendColors(srcColor, dstColor, EFFECT_STRENGTH);
-
-                            // 블렌딩된 색상으로 픽셀 설정
-                            imageData.data[srcIdx] = blendedColor[0];
-                            imageData.data[srcIdx + 1] = blendedColor[1];
-                            imageData.data[srcIdx + 2] = blendedColor[2];
-                            imageData.data[srcIdx + 3] = blendedColor[3];
-                        }
-                    }
-                }
-                ctx.putImageData(imageData, 0, 0);
-            }
-
-            // 애니메이션 루프
-            function animate() {
-                if (isDragging) {
-                    applyPixelFlow();
-                    prevMouseX = mouseX;
-                    prevMouseY = mouseY;
-                }
-                requestAnimationFrame(animate);
-            }
-
-            // 마우스 이벤트
-            canvas.addEventListener("mousedown", (e) => {
-                isDragging = true;
-                updateMousePosition(e);
-            });
-
-            canvas.addEventListener("mousemove", (e) => {
-                updateMousePosition(e);
-            });
-
-            canvas.addEventListener("mouseup", () => {
-                isDragging = false;
-            });
-
-            canvas.addEventListener("mouseout", () => {
-                isDragging = false;
-            });
-
-            function updateMousePosition(e) {
-                const rect = canvas.getBoundingClientRect();
-                prevMouseX = mouseX;
-                prevMouseY = mouseY;
-                mouseX = e.clientX - rect.left;
-                mouseY = e.clientY - rect.top;
-            }
-
-            // 초기화
-            window.onload = async () => {
-                try {
-                    const img = await loadImageFromURL("cat.webp"); // 프로젝트 폴더 내 image.jpg 경로
-                    drawImageToCanvas(img);
-                } catch (error) {
-                    console.error("이미지 로드 실패:", error);
-                }
-                animate();
-            };
-        </script>
+<canvas id='helper-canvas'></canvas>
+        <script src='main.js'></script>
     </body>
 </html>
