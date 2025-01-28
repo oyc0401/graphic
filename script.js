@@ -1,16 +1,20 @@
 // 1. WebGL 컨텍스트 가져오기
 const canvas = document.getElementById('canvas');
-const gl = canvas.getContext('2d');
+const ctx = canvas.getContext('2d');
 
-gl.fillStyle='rgb(150,0,0)';
-gl.fillRect(20,20,40,40);
-gl.fillRect(180,180,40,40);
+  ctx.fillStyle='rgb(150,0,0)';
+  ctx.fillRect(20,20,40,40);
+  ctx.fillRect(180,180,40,40);
 
-gl.fillStyle='rgb(150,65,0)';
-gl.beginPath();
-gl.arc (100, 100, 20, 0, Math.PI*2, false );
-gl.stroke(); 
-gl.fill();
+  ctx.strokeStyle='rgb(150,20,0)';
+  ctx.lineWidth = 15;
+ctx.lineCap="round";
+ctx.lineJoin="round";
+  ctx.beginPath();
+ctx.moveTo(20, 20);
+  ctx.lineTo(50,120)
+ ctx.lineTo(90,80)
+ctx.stroke(); 
 
 const cvs=change_color(canvas,
              0,0,
@@ -22,8 +26,8 @@ const cvs=change_color(canvas,
              [150,255,56,255]);
 
 const canvas2d = document.getElementById('2d-canvas');
-const ctx = canvas2d.getContext('2d');
-ctx.drawImage(cvs,0,0)
+const img_ctx = canvas2d.getContext('2d');
+img_ctx.drawImage(cvs,0,0)
 
 
 /**
