@@ -6,19 +6,19 @@ const ctx = canvas.getContext("2d");
 const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
 
-// 여러 선을 기반으로 하는 픽셀 유동화
 function applyPixelFlow(canvas, ctx, points) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 초기 픽셀 데이터를 가져옴
-    let imageData = ctx.getImageData(0, 0, width, height);
-    let data = imageData.data;
+    // 원본 이미지 데이터 가져오기
+    const originalImageData = ctx.getImageData(0, 0, width, height);
+    const originalData = originalImageData.data;
 
-    // 새로운 픽셀 데이터를 위한 버퍼 (복사본 생성)
-    let newImageData = new Uint8ClampedArray(data);
+    // 변위 맵 초기화
+    const displaceX = new Float32Array(width * height);
+    const displaceY = new Float32Array(width * height);
 
-    // Iterate through each consecutive pair of points
+    // 모든 선분에 대해 변위 계산
     for (let i = 0; i < points.length - 1; i++) {
         const start = points[i];
         const end = points[i + 1];
@@ -27,137 +27,111 @@ function applyPixelFlow(canvas, ctx, points) {
         const x1 = end.x;
         const y1 = end.y;
 
-        // 선의 길이와 방향 벡터 계산
         const dx = x1 - x0;
         const dy = y1 - y0;
         const length = Math.sqrt(dx * dx + dy * dy);
 
-        // 선이 없는 경우 다음 선으로 건너뜀
         if (length === 0) {
-            console.warn(`점 ${i}와 점 ${i + 1}가 동일합니다. 선을 정의할 수 없습니다.`);
+            console.warn(`점 ${i}와 점 ${i + 1}가 동일합니다.`);
             continue;
         }
 
-        // 선의 단위 벡터
         const unitX = dx / length;
         const unitY = dy / length;
 
-        // Iterate through each pixel
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                const index = (y * width + x) * 4;
+                const index = y * width + x;
 
-                // 픽셀과 선 사이의 최소 거리 계산
+                // 선분과의 거리 계산
                 const px = x - x0;
                 const py = y - y0;
-
-                // 선 위에서 픽셀과 가장 가까운 점의 위치 파라미터 t
                 const t = (px * unitX + py * unitY) / length;
-
-                // t를 [0,1] 범위로 클램핑
                 const clampedT = Math.max(0, Math.min(1, t));
 
-                // 가장 가까운 점의 좌표
                 const closestX = x0 + clampedT * unitX * length;
                 const closestY = y0 + clampedT * unitY * length;
 
-                // 픽셀과 가장 가까운 점 사이의 거리
                 const distX = x - closestX;
                 const distY = y - closestY;
                 const dist = Math.sqrt(distX * distX + distY * distY);
 
                 if (dist < EFFECT_RADIUS) {
-                    // 효과 강도 계산
-                    const effectFactor =
-                        (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
-
-                    // 왜곡 좌표 계산 (소수점 포함)
+                    const effectFactor = (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
                     const offsetX = effectFactor * unitX * EFFECT_RADIUS;
                     const offsetY = effectFactor * unitY * EFFECT_RADIUS;
-                    const newX = x + offsetX;
-                    const newY = y + offsetY;
 
-                    // 양선형 보간법 적용
-                    const floorX = Math.floor(newX);
-                    const floorY = Math.floor(newY);
-                    const ceilX = Math.ceil(newX);
-                    const ceilY = Math.ceil(newY);
-
-                    const tX = newX - floorX; // X축 보간 비율
-                    const tY = newY - floorY; // Y축 보간 비율
-
-                    // 주변 픽셀 색상 가져오기 (RGBA)
-                    const getColor = (xx, yy) => {
-                        if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
-                            const idx = (yy * width + xx) * 4;
-                            return [
-                                data[idx],
-                                data[idx + 1],
-                                data[idx + 2],
-                                data[idx + 3],
-                            ];
-                        }
-                        return [0, 0, 0, 0]; // 캔버스 바깥 영역은 투명
-                    };
-
-                    const color00 = getColor(floorX, floorY);
-                    const color10 = getColor(ceilX, floorY);
-                    const color01 = getColor(floorX, ceilY);
-                    const color11 = getColor(ceilX, ceilY);
-
-                    // 보간 계산
-                    const interpolate = (c00, c10, c01, c11, tX, tY) => {
-                        const r =
-                            c00[0] * (1 - tX) * (1 - tY) +
-                            c10[0] * tX * (1 - tY) +
-                            c01[0] * (1 - tX) * tY +
-                            c11[0] * tX * tY;
-                        const g =
-                            c00[1] * (1 - tX) * (1 - tY) +
-                            c10[1] * tX * (1 - tY) +
-                            c01[1] * (1 - tX) * tY +
-                            c11[1] * tX * tY;
-                        const b =
-                            c00[2] * (1 - tX) * (1 - tY) +
-                            c10[2] * tX * (1 - tY) +
-                            c01[2] * (1 - tX) * tY +
-                            c11[2] * tX * tY;
-                        const a =
-                            c00[3] * (1 - tX) * (1 - tY) +
-                            c10[3] * tX * (1 - tY) +
-                            c01[3] * (1 - tX) * tY +
-                            c11[3] * tX * tY;
-
-                        return [r, g, b, a];
-                    };
-
-                    const [r, g, b, a] = interpolate(
-                        color00,
-                        color10,
-                        color01,
-                        color11,
-                        tX,
-                        tY,
-                    );
-
-                    // 결과를 새로운 이미지 데이터에 저장
-                    // 평균 또는 합산을 통해 여러 선의 영향을 받을 수 있도록 조정 가능
-                    newImageData[index] = r;
-                    newImageData[index + 1] = g;
-                    newImageData[index + 2] = b;
-                    newImageData[index + 3] = a;
+                    // 변위 누적
+                    displaceX[index] += offsetX;
+                    displaceY[index] += offsetY;
                 }
             }
         }
-
-        // 업데이트된 이미지 데이터를 현재 데이터로 설정
-        imageData = new ImageData(newImageData, width, height);
-        data = imageData.data;
     }
 
-    // 최종 결과를 캔버스에 적용
-    ctx.putImageData(imageData, 0, 0);
+    // 새로운 이미지 데이터 생성
+    const newImageData = new Uint8ClampedArray(originalData.length);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
+            const totalDx = displaceX[index];
+            const totalDy = displaceY[index];
+            const newX = x + totalDx;
+            const newY = y + totalDy;
+
+            // 양선형 보간
+            const floorX = Math.floor(newX);
+            const floorY = Math.floor(newY);
+            const ceilX = Math.ceil(newX);
+            const ceilY = Math.ceil(newY);
+            const tx = newX - floorX;
+            const ty = newY - floorY;
+
+            const getColor = (xx, yy) => {
+                if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
+                    const idx = (yy * width + xx) * 4;
+                    return [
+                        originalData[idx],
+                        originalData[idx + 1],
+                        originalData[idx + 2],
+                        originalData[idx + 3],
+                    ];
+                }
+                return [0, 0, 0, 0];
+            };
+
+            const c00 = getColor(floorX, floorY);
+            const c10 = getColor(ceilX, floorY);
+            const c01 = getColor(floorX, ceilY);
+            const c11 = getColor(ceilX, ceilY);
+
+            const interpolate = (c1, c2, c3, c4, tx, ty) => [
+                (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) + (c3[0] * (1 - tx) + c4[0] * tx) * ty,
+                (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) + (c3[1] * (1 - tx) + c4[1] * tx) * ty,
+                (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) + (c3[2] * (1 - tx) + c4[2] * tx) * ty,
+                (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) + (c3[3] * (1 - tx) + c4[3] * tx) * ty,
+            ];
+
+            const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
+            const newIndex = index * 4;
+            newImageData[newIndex] = r;
+            newImageData[newIndex + 1] = g;
+            newImageData[newIndex + 2] = b;
+            newImageData[newIndex + 3] = a;
+        }
+    }
+
+    ctx.putImageData(new ImageData(newImageData, width, height), 0, 0);
 }
+
+
+
+
+
+
+
+
 
 // 초기화
 window.onload = async () => {
@@ -169,19 +143,33 @@ window.onload = async () => {
         applyPixelFlow(canvas, ctx, [
             { x: 50, y: 100 },
             { x: 200, y: 200 },
-             { x: 300, y: 170 },
+             { x: 220, y: 300 },
+               { x: 120, y: 300 },
+             { x: 50, y: 100 },
+            
         ]);
         drawHelperLine(ctx,[
             { x: 50, y: 100 },
             { x: 200, y: 200 },
-             { x: 300, y: 170 },
-            
+             { x: 220, y: 300 },
+               { x: 120, y: 300 },
+             { x: 50, y: 100 },
         ]);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
     //animate();
 };
+
+// { x: 50, y: 100 },
+// { x: 200, y: 200 },
+//  { x: 300, y: 170 },
+
+// { x: 50, y: 100 },
+// { x: 200, y: 200 },
+//  { x: 220, y: 300 },
+//    { x: 120, y: 300 },
+//  { x: 50, y: 100 },
 
 const helper_canvas = document.getElementById("helper-canvas");
 const helper_ctx = canvas.getContext("2d");
