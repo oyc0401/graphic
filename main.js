@@ -3,16 +3,11 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 효과 반경
-const MAGNIFY_STRENGTH = 0.5; // 확대 강도, +이면 축소, -이면 확대
+const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 0.5; // 강도
 
 // 두 점을 기반으로 하는 픽셀 유동화
-// dx dy는 단위 벡터이다.
-// function applyPixelFlow(canvas, ctx, x0, y0, y1, x1, dx, dy)
-function applyPixelFlow(canvas, ctx, x0, y0, dx, dy) {
-    const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
-    const MAGNIFY_STRENGTH = 0.5; // 강도
-
+function applyPixelFlow(canvas, ctx, x0, y0, x1, y1) {
     const width = canvas.width;
     const height = canvas.height;
 
@@ -23,19 +18,51 @@ function applyPixelFlow(canvas, ctx, x0, y0, dx, dy) {
     // 새로운 픽셀 데이터를 위한 버퍼
     const newImageData = new Uint8ClampedArray(data);
 
+    // 선의 길이와 방향 벡터 계산
+    const lineDX = x1 - x0;
+    const lineDY = y1 - y0;
+    const lineLength = Math.sqrt(lineDX * lineDX + lineDY * lineDY);
+
+    // 선이 없는 경우 함수 종료
+    if (lineLength === 0) {
+        console.warn("두 점이 동일합니다. 선을 정의할 수 없습니다.");
+        return;
+    }
+
+    // 선의 단위 벡터
+    const lineUnitX = lineDX / lineLength;
+    const lineUnitY = lineDY / lineLength;
+
+    // 역 단위벡터 구하기
+    const dx = - lineUnitX;
+    const dy = - lineUnitY;
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const index = (y * width + x) * 4;
 
-            // 현재 픽셀과 중심 사이의 거리 계산
-            const distX = x - x0;
-            const distY = y - y0;
+            // 픽셀과 선 사이의 최소 거리 계산
+            const px = x - x0;
+            const py = y - y0;
+
+            // 선 위에서 픽셀과 가장 가까운 점의 위치 파라미터 t
+            const t = (px * lineUnitX + py * lineUnitY) / lineLength;
+
+            // t를 [0,1] 범위로 클램핑
+            const clampedT = Math.max(0, Math.min(1, t));
+
+            // 가장 가까운 점의 좌표
+            const closestX = x0 + clampedT * lineUnitX * lineLength;
+            const closestY = y0 + clampedT * lineUnitY * lineLength;
+
+            // 픽셀과 가장 가까운 점 사이의 거리
+            const distX = x - closestX;
+            const distY = y - closestY;
             const dist = Math.sqrt(distX * distX + distY * distY);
 
             if (dist < EFFECT_RADIUS) {
                 // 효과 강도 계산
-                const effectFactor =
-                    (1 - dist / EFFECT_RADIUS) * MAGNIFY_STRENGTH;
+                const effectFactor = (1 - dist / EFFECT_RADIUS) * MAGNIFY_STRENGTH;
 
                 // 왜곡 좌표 계산 (소수점 포함)
                 const offsetX = effectFactor * dx * EFFECT_RADIUS;
@@ -132,18 +159,9 @@ window.onload = async () => {
         const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
         //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
-
-        let dx = -10;
-        let dy = -10;
-        // 벡터의 길이 계산
-        const length = Math.sqrt(dx * dx + dy * dy);
-
-        // 벡터 정규화
-        const unitDx = dx / length;
-        const unitDy = dy / length;
-
-        applyPixelFlow(canvas, ctx, 100, 100, unitDx, unitDy);
-        drawHelperLine(ctx, 100, 100, 200, 150);
+        
+        applyPixelFlow(canvas, ctx, 50, 100,200, 150);
+        drawHelperLine(ctx, 50, 100,200, 150);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
