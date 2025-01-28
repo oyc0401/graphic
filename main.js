@@ -3,176 +3,161 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// Define the applyPixelFlow function (as defined above)
-const EFFECT_RADIUS = 20; // Twisting effect radius
-const MAGNIFY_STRENGTH = 0.5; // Strength: positive for forward, negative for reverse
+const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
 
+// 여러 선을 기반으로 하는 픽셀 유동화
 function applyPixelFlow(canvas, ctx, points) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Get original pixel data
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
+    // 초기 픽셀 데이터를 가져옴
+    let imageData = ctx.getImageData(0, 0, width, height);
+    let data = imageData.data;
 
-    // Buffer for new pixel data
-    const newImageData = new Uint8ClampedArray(data);
+    // 새로운 픽셀 데이터를 위한 버퍼 (복사본 생성)
+    let newImageData = new Uint8ClampedArray(data);
 
-    // Iterate through each pixel
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            let totalOffsetX = 0;
-            let totalOffsetY = 0;
+    // Iterate through each consecutive pair of points
+    for (let i = 0; i < points.length - 1; i++) {
+        const start = points[i];
+        const end = points[i + 1];
+        const x0 = start.x;
+        const y0 = start.y;
+        const x1 = end.x;
+        const y1 = end.y;
 
-            // Iterate through each consecutive pair of points (each line)
-            for (let i = 0; i < points.length - 1; i++) {
-                const start = points[i];
-                const end = points[i + 1];
-                const x0 = start.x;
-                const y0 = start.y;
-                const x1 = end.x;
-                const y1 = end.y;
+        // 선의 길이와 방향 벡터 계산
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const length = Math.sqrt(dx * dx + dy * dy);
 
-                const dx = x1 - x0;
-                const dy = y1 - y0;
-                const length = Math.sqrt(dx * dx + dy * dy);
+        // 선이 없는 경우 다음 선으로 건너뜀
+        if (length === 0) {
+            console.warn(`점 ${i}와 점 ${i + 1}가 동일합니다. 선을 정의할 수 없습니다.`);
+            continue;
+        }
 
-                if (length === 0) continue; // Skip zero-length lines
+        // 선의 단위 벡터
+        const unitX = dx / length;
+        const unitY = dy / length;
 
-                const unitX = dx / length;
-                const unitY = dy / length;
+        // Iterate through each pixel
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = (y * width + x) * 4;
 
+                // 픽셀과 선 사이의 최소 거리 계산
                 const px = x - x0;
                 const py = y - y0;
 
+                // 선 위에서 픽셀과 가장 가까운 점의 위치 파라미터 t
                 const t = (px * unitX + py * unitY) / length;
+
+                // t를 [0,1] 범위로 클램핑
                 const clampedT = Math.max(0, Math.min(1, t));
 
+                // 가장 가까운 점의 좌표
                 const closestX = x0 + clampedT * unitX * length;
                 const closestY = y0 + clampedT * unitY * length;
 
+                // 픽셀과 가장 가까운 점 사이의 거리
                 const distX = x - closestX;
                 const distY = y - closestY;
                 const dist = Math.sqrt(distX * distX + distY * distY);
 
                 if (dist < EFFECT_RADIUS) {
-                    // Calculate effect factor based on distance
-                    const effectFactor = (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
+                    // 효과 강도 계산
+                    const effectFactor =
+                        (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
 
-                    // Calculate offsets
+                    // 왜곡 좌표 계산 (소수점 포함)
                     const offsetX = effectFactor * unitX * EFFECT_RADIUS;
                     const offsetY = effectFactor * unitY * EFFECT_RADIUS;
+                    const newX = x + offsetX;
+                    const newY = y + offsetY;
 
-                    // Accumulate the offsets
-                    totalOffsetX += offsetX;
-                    totalOffsetY += offsetY;
+                    // 양선형 보간법 적용
+                    const floorX = Math.floor(newX);
+                    const floorY = Math.floor(newY);
+                    const ceilX = Math.ceil(newX);
+                    const ceilY = Math.ceil(newY);
+
+                    const tX = newX - floorX; // X축 보간 비율
+                    const tY = newY - floorY; // Y축 보간 비율
+
+                    // 주변 픽셀 색상 가져오기 (RGBA)
+                    const getColor = (xx, yy) => {
+                        if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
+                            const idx = (yy * width + xx) * 4;
+                            return [
+                                data[idx],
+                                data[idx + 1],
+                                data[idx + 2],
+                                data[idx + 3],
+                            ];
+                        }
+                        return [0, 0, 0, 0]; // 캔버스 바깥 영역은 투명
+                    };
+
+                    const color00 = getColor(floorX, floorY);
+                    const color10 = getColor(ceilX, floorY);
+                    const color01 = getColor(floorX, ceilY);
+                    const color11 = getColor(ceilX, ceilY);
+
+                    // 보간 계산
+                    const interpolate = (c00, c10, c01, c11, tX, tY) => {
+                        const r =
+                            c00[0] * (1 - tX) * (1 - tY) +
+                            c10[0] * tX * (1 - tY) +
+                            c01[0] * (1 - tX) * tY +
+                            c11[0] * tX * tY;
+                        const g =
+                            c00[1] * (1 - tX) * (1 - tY) +
+                            c10[1] * tX * (1 - tY) +
+                            c01[1] * (1 - tX) * tY +
+                            c11[1] * tX * tY;
+                        const b =
+                            c00[2] * (1 - tX) * (1 - tY) +
+                            c10[2] * tX * (1 - tY) +
+                            c01[2] * (1 - tX) * tY +
+                            c11[2] * tX * tY;
+                        const a =
+                            c00[3] * (1 - tX) * (1 - tY) +
+                            c10[3] * tX * (1 - tY) +
+                            c01[3] * (1 - tX) * tY +
+                            c11[3] * tX * tY;
+
+                        return [r, g, b, a];
+                    };
+
+                    const [r, g, b, a] = interpolate(
+                        color00,
+                        color10,
+                        color01,
+                        color11,
+                        tX,
+                        tY,
+                    );
+
+                    // 결과를 새로운 이미지 데이터에 저장
+                    // 평균 또는 합산을 통해 여러 선의 영향을 받을 수 있도록 조정 가능
+                    newImageData[index] = r;
+                    newImageData[index + 1] = g;
+                    newImageData[index + 2] = b;
+                    newImageData[index + 3] = a;
                 }
             }
-
-            // Calculate the magnitude of the total offset
-            const magnitude = Math.sqrt(totalOffsetX * totalOffsetX + totalOffsetY * totalOffsetY);
-
-            if (magnitude > 0) {
-                // Determine the maximum allowed magnitude
-                const maxMagnitude = MAGNIFY_STRENGTH * EFFECT_RADIUS;
-
-                // If the total magnitude exceeds the maximum, scale it down
-                let finalOffsetX = totalOffsetX;
-                let finalOffsetY = totalOffsetY;
-
-                if (magnitude > maxMagnitude) {
-                    const scale = maxMagnitude / magnitude;
-                    finalOffsetX *= scale;
-                    finalOffsetY *= scale;
-                }
-
-                const newX = x + finalOffsetX;
-                const newY = y + finalOffsetY;
-
-                // Bilinear interpolation
-                const floorX = Math.floor(newX);
-                const floorY = Math.floor(newY);
-                const ceilX = Math.ceil(newX);
-                const ceilY = Math.ceil(newY);
-
-                const tX = newX - floorX;
-                const tY = newY - floorY;
-
-                // Helper function to get pixel color with boundary checks
-                const getColor = (xx, yy) => {
-                    if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
-                        const idx = (yy * width + xx) * 4;
-                        return [
-                            data[idx],
-                            data[idx + 1],
-                            data[idx + 2],
-                            data[idx + 3],
-                        ];
-                    }
-                    return [0, 0, 0, 0]; // Transparent for out-of-bounds
-                };
-
-                const color00 = getColor(floorX, floorY);
-                const color10 = getColor(ceilX, floorY);
-                const color01 = getColor(floorX, ceilY);
-                const color11 = getColor(ceilX, ceilY);
-
-                // Bilinear interpolation function
-                const interpolate = (c00, c10, c01, c11, tX, tY) => {
-                    const r =
-                        c00[0] * (1 - tX) * (1 - tY) +
-                        c10[0] * tX * (1 - tY) +
-                        c01[0] * (1 - tX) * tY +
-                        c11[0] * tX * tY;
-                    const g =
-                        c00[1] * (1 - tX) * (1 - tY) +
-                        c10[1] * tX * (1 - tY) +
-                        c01[1] * (1 - tX) * tY +
-                        c11[1] * tX * tY;
-                    const b =
-                        c00[2] * (1 - tX) * (1 - tY) +
-                        c10[2] * tX * (1 - tY) +
-                        c01[2] * (1 - tX) * tY +
-                        c11[2] * tX * tY;
-                    const a =
-                        c00[3] * (1 - tX) * (1 - tY) +
-                        c10[3] * tX * (1 - tY) +
-                        c01[3] * (1 - tX) * tY +
-                        c11[3] * tX * tY;
-
-                    return [r, g, b, a];
-                };
-
-                const [r, g, b, a] = interpolate(
-                    color00,
-                    color10,
-                    color01,
-                    color11,
-                    tX,
-                    tY,
-                );
-
-                // Assign the new color to the new image data buffer
-                const index = (y * width + x) * 4;
-                newImageData[index] = r;
-                newImageData[index + 1] = g;
-                newImageData[index + 2] = b;
-                newImageData[index + 3] = a;
-            }
-            // If magnitude is 0, retain the original pixel (already in newImageData)
         }
+
+        // 업데이트된 이미지 데이터를 현재 데이터로 설정
+        imageData = new ImageData(newImageData, width, height);
+        data = imageData.data;
     }
 
-    // Apply the modified image data back to the canvas
-    ctx.putImageData(new ImageData(newImageData, width, height), 0, 0);
+    // 최종 결과를 캔버스에 적용
+    ctx.putImageData(imageData, 0, 0);
 }
-
-
-
-
-
-
-
 
 // 초기화
 window.onload = async () => {
@@ -183,14 +168,13 @@ window.onload = async () => {
 
         applyPixelFlow(canvas, ctx, [
             { x: 50, y: 100 },
-            { x: 100, y: 190 },
-            { x: 200, y: 170 },
- 
+            { x: 200, y: 200 },
+             { x: 300, y: 170 },
         ]);
         drawHelperLine(ctx,[
             { x: 50, y: 100 },
-            { x: 100, y: 190 },
-            { x: 200, y: 170 },
+            { x: 200, y: 200 },
+             { x: 300, y: 170 },
             
         ]);
     } catch (error) {
