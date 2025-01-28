@@ -49,15 +49,20 @@
                 currentImage = img;
             }
 
+            // 색상 블렌딩 함수
+            function blendColors(srcColor, dstColor, alpha = 0.5) {
+                return [
+                    srcColor[0] * (1 - alpha) + dstColor[0] * alpha,
+                    srcColor[1] * (1 - alpha) + dstColor[1] * alpha,
+                    srcColor[2] * (1 - alpha) + dstColor[2] * alpha,
+                    srcColor[3] * (1 - alpha) + dstColor[3] * alpha,
+                ];
+            }
+
             // 픽셀 유동화 효과
             function applyPixelFlow() {
-                const imageData = ctx.getImageData(
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height,
-                );
-                const tempData = new Uint8Array(imageData.data);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const tempData = new Uint8Array(imageData.data); // 원본 이미지 데이터 복사
 
                 const dx = prevMouseX - mouseX;
                 const dy = prevMouseY - mouseY;
@@ -67,14 +72,9 @@
                         const distance = Math.hypot(x - mouseX, y - mouseY);
                         if (distance > EFFECT_RADIUS) continue;
 
-                        const force =
-                            (1 - distance / EFFECT_RADIUS) * EFFECT_STRENGTH;
-                        const offsetX = Math.round(
-                            x + dx * force * DRAG_SENSITIVITY,
-                        );
-                        const offsetY = Math.round(
-                            y + dy * force * DRAG_SENSITIVITY,
-                        );
+                        const force = (1 - distance / EFFECT_RADIUS) * EFFECT_STRENGTH;
+                        const offsetX = Math.round(x + dx * force * DRAG_SENSITIVITY);
+                        const offsetY = Math.round(y + dy * force * DRAG_SENSITIVITY);
 
                         if (
                             offsetX >= 0 &&
@@ -83,13 +83,32 @@
                             offsetY < canvas.height
                         ) {
                             const srcIdx = (y * canvas.width + x) * 4;
-                            const dstIdx =
-                                (offsetY * canvas.width + offsetX) * 4;
+                            const dstIdx = (offsetY * canvas.width + offsetX) * 4;
 
-                            imageData.data.set(
-                                tempData.subarray(dstIdx, dstIdx + 4),
-                                srcIdx,
-                            );
+                            // 원본 픽셀 색상
+                            const srcColor = [
+                                tempData[srcIdx],
+                                tempData[srcIdx + 1],
+                                tempData[srcIdx + 2],
+                                tempData[srcIdx + 3],
+                            ];
+
+                            // 이동할 위치의 픽셀 색상
+                            const dstColor = [
+                                imageData.data[dstIdx],
+                                imageData.data[dstIdx + 1],
+                                imageData.data[dstIdx + 2],
+                                imageData.data[dstIdx + 3],
+                            ];
+
+                            // 색상 블렌딩
+                            const blendedColor = blendColors(srcColor, dstColor, EFFECT_STRENGTH);
+
+                            // 블렌딩된 색상으로 픽셀 설정
+                            imageData.data[srcIdx] = blendedColor[0];
+                            imageData.data[srcIdx + 1] = blendedColor[1];
+                            imageData.data[srcIdx + 2] = blendedColor[2];
+                            imageData.data[srcIdx + 3] = blendedColor[3];
                         }
                     }
                 }
