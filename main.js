@@ -3,23 +3,27 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
-const PADDING = 1; // 보간을 위한 추가 패딩
+
 
 let lastIndex = 0;
 
 function applyPixelFlow(canvas, ctx, points) {
-    const width = canvas.width;
-    const height = canvas.height;
+    const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+    const MAGNIFY_STRENGTH = 0.3; // 강도: +이면 정방향, -이면 역방향
+    const PADDING = 1; // 보간을 위한 추가 패딩
+    
+    const canvas_width = canvas.width;
+    const canvas_height = canvas.height;
+
+    const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
     if (points.length - lastIndex - 1 === 0) {
         return;
     }
 
     // 초기 바운딩 박스 설정
-    let minX = width;
-    let minY = height;
+    let minX = canvas_width;
+    let minY = canvas_height;
     let maxX = 0;
     let maxY = 0;
 
@@ -36,24 +40,19 @@ function applyPixelFlow(canvas, ctx, points) {
     // 패딩 추가 및 캔버스 경계를 벗어나지 않도록 클램핑
     minX = Math.max(Math.floor(minX - EFFECT_RADIUS - PADDING), 0);
     minY = Math.max(Math.floor(minY - EFFECT_RADIUS - PADDING), 0);
-    maxX = Math.min(Math.ceil(maxX + EFFECT_RADIUS + PADDING), width);
-    maxY = Math.min(Math.ceil(maxY + EFFECT_RADIUS + PADDING), height);
+    maxX = Math.min(Math.ceil(maxX + EFFECT_RADIUS + PADDING), canvas_width);
+    maxY = Math.min(Math.ceil(maxY + EFFECT_RADIUS + PADDING), canvas_height);
 
-    const regionWidth = maxX - minX;
-    const regionHeight = maxY - minY;
+    const width = maxX - minX;
+    const height = maxY - minY;
 
     // 영역 이미지 데이터 가져오기
-    const regionImageData = ctx.getImageData(
-        minX,
-        minY,
-        regionWidth,
-        regionHeight,
-    );
+    const regionImageData = ctx.getImageData(minX, minY, width, height);
     const originalPixels = regionImageData.data;
 
     // 변위 맵 초기화
-    const displacementX = new Float32Array(regionWidth * regionHeight);
-    const displacementY = new Float32Array(regionWidth * regionHeight);
+    const displaceX = new Float32Array(width * height);
+    const displaceY = new Float32Array(width * height);
 
     // 모든 선분에 대해 변위 계산
     for (let i = lastIndex; i < points.length - 1; i++) {
@@ -99,7 +98,7 @@ function applyPixelFlow(canvas, ctx, points) {
             for (let x = segmentMinX; x < segmentMaxX; x++) {
                 const relativeX = x - minX;
                 const relativeY = y - minY;
-                const pixelIndex = relativeY * regionWidth + relativeX;
+                const pixelIndex = relativeY * width + relativeX;
 
                 // 선분과의 거리 계산
                 const dx = x - x0;
@@ -125,14 +124,8 @@ function applyPixelFlow(canvas, ctx, points) {
                     const maxOffsetY = effectFactor * unitY * 10;
 
                     // 변위 누적 (절댓값이 작은 값을 선택)
-                    displacementX[pixelIndex] += smallerAbs(
-                        offsetX,
-                        maxOffsetX,
-                    );
-                    displacementY[pixelIndex] += smallerAbs(
-                        offsetY,
-                        maxOffsetY,
-                    );
+                    displaceX[pixelIndex] += smallerAbs(offsetX, maxOffsetX);
+                    displaceY[pixelIndex] += smallerAbs(offsetY, maxOffsetY);
                 }
             }
         }
@@ -143,11 +136,11 @@ function applyPixelFlow(canvas, ctx, points) {
     // 새로운 영역 이미지 데이터 생성
     const newImageDataArray = new Uint8ClampedArray(originalPixels.length);
 
-    for (let y = 0; y < regionHeight; y++) {
-        for (let x = 0; x < regionWidth; x++) {
-            const pixelIndex = y * regionWidth + x;
-            const totalOffsetX = displacementX[pixelIndex];
-            const totalOffsetY = displacementY[pixelIndex];
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const pixelIndex = y * width + x;
+            const totalOffsetX = displaceX[pixelIndex];
+            const totalOffsetY = displaceY[pixelIndex];
             const newX = x + totalOffsetX;
             const newY = y + totalOffsetY;
 
@@ -160,22 +153,17 @@ function applyPixelFlow(canvas, ctx, points) {
             const ty = newY - floorY;
 
             const getColor = (xx, yy) => {
-                // 기존 패딩을 추가했기 때문에 추가적인 패딩 없이 안전하게 접근 가능
-                if (
-                    xx >= 0 &&
-                    xx < regionWidth &&
-                    yy >= 0 &&
-                    yy < regionHeight
-                ) {
-                    const idx = (yy * regionWidth + xx) * 4;
-                    return [
-                        originalPixels[idx],
-                        originalPixels[idx + 1],
-                        originalPixels[idx + 2],
-                        originalPixels[idx + 3],
-                    ];
-                }
-                return [0, 0, 0, 0];
+                // 좌표를 영역 내로 클램핑
+                const clampedX = Math.max(0, Math.min(xx, width - 1));
+                const clampedY = Math.max(0, Math.min(yy, height - 1));
+
+                const idx = (clampedY * width + clampedX) * 4;
+                return [
+                    originalPixels[idx],
+                    originalPixels[idx + 1],
+                    originalPixels[idx + 2],
+                    originalPixels[idx + 3],
+                ];
             };
 
             const color00 = getColor(floorX, floorY);
@@ -211,15 +199,9 @@ function applyPixelFlow(canvas, ctx, points) {
     }
 
     // 수정된 영역 이미지를 캔버스에 다시 그리기
-    const finalImageData = new ImageData(
-        newImageDataArray,
-        regionWidth,
-        regionHeight,
-    );
+    const finalImageData = new ImageData(newImageDataArray, width, height);
     ctx.putImageData(finalImageData, minX, minY);
 }
-
-const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
 // 초기화
 window.onload = async () => {
