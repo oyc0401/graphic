@@ -7,6 +7,8 @@ const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let hadMax = false;
+
+let lastIndex=0;
 function applyPixelFlow(canvas, ctx, points) {
     const width = canvas.width;
     const height = canvas.height;
@@ -20,7 +22,7 @@ function applyPixelFlow(canvas, ctx, points) {
     const displaceY = new Float32Array(width * height);
 
     // 모든 선분에 대해 변위 계산
-    for (let i = 0; i < points.length - 1; i++) {
+    for (let i = lastIndex; i < points.length - 1; i++) {
         const start = points[i];
         const end = points[i + 1];
         const x0 = start.x;
@@ -77,6 +79,8 @@ function applyPixelFlow(canvas, ctx, points) {
                 }
             }
         }
+
+        lastIndex = i+1;
     }
 
     // 새로운 이미지 데이터 생성
@@ -137,6 +141,8 @@ function applyPixelFlow(canvas, ctx, points) {
     }
 
     ctx.putImageData(new ImageData(newImageData, width, height), 0, 0);
+
+    
 }
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
@@ -245,7 +251,7 @@ function drawImageToCanvas(img) {
 }
 
 // 마우스 위치를 저장할 배열
-const positions = [];
+let positions = [];
 let isTracking = false; // 스페이스바 누름 상태
 
 // 마우스 움직임 기록
@@ -255,13 +261,22 @@ document.addEventListener("mousemove", (event) => {
 
         // 현재 좌표를 배열에 저장
         positions.push({ x: clientX, y: clientY });
+
+
+          applyPixelFlow(canvas, ctx, positions);
+
+        if (hadMax) {
+            console.log("max!");
+            hadMax = false;
+        }
     }
 });
 
 // 스페이스바 눌렀을 때 추적 시작
 document.addEventListener("pointerdown", (event) => {
     isTracking = true;
-    positions.length = 0; // 이전 데이터 초기화
+    positions = []; // 이전 데이터 초기화
+    lastIndex = 0;
     console.log("Tracking 시작...");
 });
 
@@ -271,10 +286,10 @@ document.addEventListener("pointerup", (event) => {
     console.log("Tracking 종료. 기록된 좌표:");
     // console.log(positions);
 
-    applyPixelFlow(canvas, ctx, positions);
-    // drawHelperLine(ctx, positions);
-    if (hadMax) {
-        console.log("max!");
-        hadMax = false;
-    }
+    // applyPixelFlow(canvas, ctx, positions);
+    // // drawHelperLine(ctx, positions);
+    // if (hadMax) {
+    //     console.log("max!");
+    //     hadMax = false;
+    // }
 });
