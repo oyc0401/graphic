@@ -3,8 +3,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 0.2; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 
@@ -41,6 +41,11 @@ function applyPixelFlow(canvas, ctx, points) {
     const regionWidth = maxX - minX;
     const regionHeight = maxY - minY;
 
+    // Early exit if the region has no area
+    if (regionWidth <= 0 || regionHeight <= 0) {
+        return;
+    }
+
     // 영역 이미지 데이터 가져오기
     const regionImageData = ctx.getImageData(
         minX,
@@ -65,7 +70,7 @@ function applyPixelFlow(canvas, ctx, points) {
 
         const deltaX = x1 - x0;
         const deltaY = y1 - y0;
-        const segmentLength = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const segmentLength = Math.hypot(deltaX, deltaY);
 
         if (segmentLength === 0) {
             console.warn(`점 ${i}와 점 ${i + 1}가 동일합니다.`);
@@ -106,12 +111,12 @@ function applyPixelFlow(canvas, ctx, points) {
                 const t = (dx * unitX + dy * unitY) / segmentLength;
                 const clampedT = Math.max(0, Math.min(1, t));
 
-                const closestX = x0 + clampedT * unitX * segmentLength;
-                const closestY = y0 + clampedT * unitY * segmentLength;
+                const closestX = x0 + clampedT * deltaX;
+                const closestY = y0 + clampedT * deltaY;
 
                 const distX = x - closestX;
                 const distY = y - closestY;
-                const distance = Math.sqrt(distX * distX + distY * distY);
+                const distance = Math.hypot(distX, distY);
 
                 if (distance < EFFECT_RADIUS) {
                     const effectFactor =
@@ -153,8 +158,8 @@ function applyPixelFlow(canvas, ctx, points) {
             // 양선형 보간
             const floorX = Math.floor(newX);
             const floorY = Math.floor(newY);
-            const ceilX = Math.ceil(newX);
-            const ceilY = Math.ceil(newY);
+            const ceilX = Math.min(Math.ceil(newX), regionWidth - 1);
+            const ceilY = Math.min(Math.ceil(newY), regionHeight - 1);
             const tx = newX - floorX;
             const ty = newY - floorY;
 
@@ -218,6 +223,7 @@ function applyPixelFlow(canvas, ctx, points) {
 }
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
+
 
 // 초기화
 window.onload = async () => {
