@@ -76,8 +76,8 @@ function renderToImage(canvas, ctx, displaceX, displaceY) {
     const width = canvas.width;
     const height = canvas.height;
 
-    originalImageData = ctx.getImageData(0, 0, width, height);
-    originalData = originalImageData.data;
+    // originalImageData = ctx.getImageData(0, 0, width, height);
+    // originalData = originalImageData.data;
 
     const newImageData = new Uint8ClampedArray(originalData.length);
 
@@ -281,7 +281,8 @@ document.addEventListener("mousemove", (event) => {
 
         applyPixelFlow(canvas, start, end);
 
-        renderToImage(canvas, ctx, displaceX, displaceY);
+        let result = renderToImage(canvas, ctx, displaceX, displaceY);
+         ctx.drawImage(result, 0, 0);
     }
 });
 
