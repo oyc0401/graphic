@@ -12,6 +12,11 @@ let displaceY;
 let originalImageData;
 let originalData;
 
+let renderStartX;
+let renderStartY;
+let renderEndX;
+let renderEndY;
+
 function initPixelFlow(canvas, ctx) {
     const width = canvas.width;
     const height = canvas.height;
@@ -41,8 +46,8 @@ function applyPixelFlow(canvas, start, end) {
             const index = y * width + x;
 
             // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
-            const currentX = x + displaceX[index];
-            const currentY = y + displaceY[index];
+            let currentX = x + displaceX[index];
+            let currentY = y + displaceY[index];
 
             // start~end 선분과 거리 계산(화면 좌표계)
             const px = currentX - start.x;
@@ -67,31 +72,41 @@ function applyPixelFlow(canvas, start, end) {
                 // 누적 변위 갱신
                 displaceX[index] += smallerAbs(offsetX, maxoffsetX);
                 displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+
+                // 렌더링 해야하는 범위 찾기
+                renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
+                renderStartY = Math.floor(Math.min(renderStartY ?? y, y));
+                renderEndX = Math.ceil(Math.max(renderEndX ?? x, x));
+                renderEndY = Math.ceil(Math.max(renderEndY ?? y, y));
             }
         }
     }
 }
 
-function renderToImage(canvas, ctx, displaceX, displaceY) {
-    const width = canvas.width;
-    const height = canvas.height;
+function renderToImage(canvas, sx, sy, ex, ey) {
+    const canvas_w = canvas.width;
+    const canvas_h = canvas.height;
+    const width = ex - sx;
+    const height = ey - sy;
 
-    // originalImageData = ctx.getImageData(0, 0, width, height);
-    // originalData = originalImageData.data;
+    if (!sx || width <= 0 || height <= 0) {
+        return;
+    }
+    const newImageData = new Uint8ClampedArray(width * height * 4);
 
-    const newImageData = new Uint8ClampedArray(originalData.length);
+    let idxx = 0;
+    for (let y = sy; y < ey ; y++) {
+        for (let x = sx; x < ex ; x++) {
+            const index = y * canvas_w + x;
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const index = y * width + x;
             const totalDx = displaceX[index];
             const totalDy = displaceY[index];
             let newX = x + totalDx;
             let newY = y + totalDy;
 
             // 좌표를 이미지 경계 내로 클램핑
-            newX = Math.min(Math.max(newX, 0), width - 1);
-            newY = Math.min(Math.max(newY, 0), height - 1);
+            newX = Math.min(Math.max(newX, 0), canvas_w - 1);
+            newY = Math.min(Math.max(newY, 0), canvas_h - 1);
 
             // 양선형 보간
             const floorX = Math.floor(newX);
@@ -103,9 +118,9 @@ function renderToImage(canvas, ctx, displaceX, displaceY) {
 
             const getColor = (xx, yy) => {
                 // 클램핑된 좌표를 사용
-                const clampedX = Math.min(Math.max(xx, 0), width - 1);
-                const clampedY = Math.min(Math.max(yy, 0), height - 1);
-                const idx = (clampedY * width + clampedX) * 4;
+                const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
+                const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
+                const idx = (clampedY * canvas_w + clampedX) * 4;
                 return [
                     originalData[idx],
                     originalData[idx + 1],
@@ -131,20 +146,18 @@ function renderToImage(canvas, ctx, displaceX, displaceY) {
             ];
 
             const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-            const newIndex = index * 4;
+            const newIndex = idxx * 4;
             newImageData[newIndex] = r;
             newImageData[newIndex + 1] = g;
             newImageData[newIndex + 2] = b;
             newImageData[newIndex + 3] = a;
+
+            idxx++;
         }
     }
 
-    let resultCanvas = new OffscreenCanvas(width, height);
-    let result_ctx = resultCanvas.getContext("2d");
-
     let resultImageData = new ImageData(newImageData, width, height);
-    result_ctx.putImageData(resultImageData, 0, 0);
-    return resultCanvas;
+    ctx.putImageData(resultImageData, sx, sy);
 }
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
@@ -152,38 +165,77 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        // const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
-        const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
-        // drawHelperLine(ctx, [
-        //     // { x: 100, y: 100 },
-        //     // { x: 110, y: 110 },
-        //     // { x: 120, y: 120 },
-        //     // { x: 150, y: 150 },
-        //     // { x: 200, y: 200 },
-        // ]);
+        initPixelFlow(canvas, ctx);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
     //animate();
 };
 
-// { x: 100, y: 100 },
-// { x: 110, y: 110 },
-// { x: 120, y: 120 },
-// { x: 150, y: 150 },
-// { x: 200, y: 200 },
+// 마우스 위치를 저장할 배열
+let positions = [];
+let isTracking = false; // 스페이스바 누름 상태
 
-// { x: 50, y: 100 },
-// { x: 200, y: 200 },
-//  { x: 300, y: 170 },
+// 스페이스바 눌렀을 때 추적 시작
+document.addEventListener("pointerdown", (event) => {
+    isTracking = true;
+    positions = []; // 이전 데이터 초기화
+    lastIndex = 0;
+    renderStartX = renderStartY = renderEndX = renderEndY = undefined;
 
-// { x: 50, y: 100 },
-// { x: 200, y: 200 },
-//  { x: 220, y: 300 },
-//    { x: 120, y: 300 },
-//  { x: 50, y: 100 },
+    //initPixelFlow(canvas, ctx);
+    ctx.fillStyle = "rgba(255,0,0,0.1)";
+    console.log("Tracking 시작...");
+});
+
+// 마우스 움직임 기록
+document.addEventListener("mousemove", (event) => {
+    if (isTracking) {
+        const { clientX, clientY } = event;
+
+        // 현재 좌표를 배열에 저장
+        positions.push({ x: clientX, y: clientY });
+
+        if (positions.length < 2) {
+            return;
+        }
+
+        lastIndex = positions.length - 1;
+        const start = positions[lastIndex - 1];
+        const end = positions[lastIndex];
+        renderStartX = renderStartY = renderEndX = renderEndY = undefined;
+
+        applyPixelFlow(canvas, start, end);
+
+        let result = renderToImage(
+            canvas,
+            renderStartX,
+            renderStartY,
+            renderEndX,
+            renderEndY,
+        );
+
+        // console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
+        // console.log(renderEndX - renderStartX, renderEndY - renderStartY);
+
+        // ctx.fillRect(
+        //     renderStartX,
+        //     renderStartY,
+        //     renderEndX - renderStartX,
+        //     renderEndY - renderStartY,
+        // );
+    }
+});
+
+// 스페이스바 뗐을 때 추적 종료 및 로그 출력
+document.addEventListener("pointerup", (event) => {
+    isTracking = false;
+    console.log("Tracking 종료. 기록된 좌표:");
+});
 
 const helper_canvas = document.getElementById("helper-canvas");
 const helper_ctx = canvas.getContext("2d");
@@ -247,47 +299,3 @@ function drawImageToCanvas(img) {
     helper_canvas.height = canvas.height;
     ctx.drawImage(img, 0, 0);
 }
-
-// 마우스 위치를 저장할 배열
-let positions = [];
-let isTracking = false; // 스페이스바 누름 상태
-
-// 스페이스바 눌렀을 때 추적 시작
-document.addEventListener("pointerdown", (event) => {
-    isTracking = true;
-    positions = []; // 이전 데이터 초기화
-    lastIndex = 0;
-
-    initPixelFlow(canvas, ctx);
-
-    console.log("Tracking 시작...");
-});
-
-// 마우스 움직임 기록
-document.addEventListener("mousemove", (event) => {
-    if (isTracking) {
-        const { clientX, clientY } = event;
-
-        // 현재 좌표를 배열에 저장
-        positions.push({ x: clientX, y: clientY });
-
-        if (positions.length < 2) {
-            return;
-        }
-
-        lastIndex = positions.length - 1;
-        const start = positions[lastIndex - 1];
-        const end = positions[lastIndex];
-
-        applyPixelFlow(canvas, start, end);
-
-        let result = renderToImage(canvas, ctx, displaceX, displaceY);
-         ctx.drawImage(result, 0, 0);
-    }
-});
-
-// 스페이스바 뗐을 때 추적 종료 및 로그 출력
-document.addEventListener("pointerup", (event) => {
-    isTracking = false;
-    console.log("Tracking 종료. 기록된 좌표:");
-});
