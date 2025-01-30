@@ -72,9 +72,12 @@ function applyPixelFlow(canvas, start, end) {
     }
 }
 
-function renderToImage(canvas) {
+function renderToImage(canvas, ctx, displaceX, displaceY) {
     const width = canvas.width;
     const height = canvas.height;
+
+    originalImageData = ctx.getImageData(0, 0, width, height);
+    originalData = originalImageData.data;
 
     const newImageData = new Uint8ClampedArray(originalData.length);
 
@@ -136,7 +139,12 @@ function renderToImage(canvas) {
         }
     }
 
-    return new ImageData(newImageData, width, height);
+    let resultCanvas = new OffscreenCanvas(width, height);
+    let result_ctx = resultCanvas.getContext("2d");
+
+    let resultImageData = new ImageData(newImageData, width, height);
+    result_ctx.putImageData(resultImageData, 0, 0);
+    return resultCanvas;
 }
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
@@ -147,8 +155,6 @@ window.onload = async () => {
         // const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
         const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
-
-        initPixelFlow(canvas, ctx);
 
         // drawHelperLine(ctx, [
         //     // { x: 100, y: 100 },
@@ -252,6 +258,8 @@ document.addEventListener("pointerdown", (event) => {
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
 
+    initPixelFlow(canvas, ctx);
+
     console.log("Tracking 시작...");
 });
 
@@ -266,16 +274,14 @@ document.addEventListener("mousemove", (event) => {
         if (positions.length < 2) {
             return;
         }
-        
+
         lastIndex = positions.length - 1;
-        const start = positions[lastIndex-1];
+        const start = positions[lastIndex - 1];
         const end = positions[lastIndex];
 
         applyPixelFlow(canvas, start, end);
 
-        const newImageData = renderToImage(canvas);
-
-        ctx.putImageData(newImageData, 0, 0);
+        renderToImage(canvas, ctx, displaceX, displaceY);
     }
 });
 
