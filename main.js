@@ -89,14 +89,14 @@ function renderToImage(canvas, sx, sy, ex, ey) {
     const width = ex - sx;
     const height = ey - sy;
 
-    if (!sx || width <= 0 || height <= 0) {
+    if (sx == undefined) {
         return;
     }
     const newImageData = new Uint8ClampedArray(width * height * 4);
 
     let idxx = 0;
-    for (let y = sy; y < ey ; y++) {
-        for (let x = sx; x < ex ; x++) {
+    for (let y = sy; y < ey; y++) {
+        for (let x = sx; x < ex; x++) {
             const index = y * canvas_w + x;
 
             const totalDx = displaceX[index];
@@ -211,7 +211,7 @@ document.addEventListener("mousemove", (event) => {
 
         applyPixelFlow(canvas, start, end);
 
-        let result = renderToImage(
+        renderToImage(
             canvas,
             renderStartX,
             renderStartY,
@@ -219,15 +219,8 @@ document.addEventListener("mousemove", (event) => {
             renderEndY,
         );
 
-        // console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
+        //console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
         // console.log(renderEndX - renderStartX, renderEndY - renderStartY);
-
-        // ctx.fillRect(
-        //     renderStartX,
-        //     renderStartY,
-        //     renderEndX - renderStartX,
-        //     renderEndY - renderStartY,
-        // );
     }
 });
 
