@@ -38,6 +38,9 @@ function applyPixelFlow(canvas, start, end) {
     const dy = end.y - start.y;
     const length = Math.sqrt(dx * dx + dy * dy);
 
+    if (length == 0) {
+        return;
+    }
     const unitX = dx / length;
     const unitY = dy / length;
 
@@ -46,8 +49,8 @@ function applyPixelFlow(canvas, start, end) {
             const index = y * width + x;
 
             // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
-            let currentX = x + displaceX[index];
-            let currentY = y + displaceY[index];
+            let currentX = x; //+ displaceX[index];
+            let currentY = y; //+ displaceY[index];
 
             // start~end 선분과 거리 계산(화면 좌표계)
             const px = currentX - start.x;
@@ -165,7 +168,7 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check_r.png"); // 프로젝트 폴더 내 image.jpg 경로
         //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
