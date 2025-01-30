@@ -3,146 +3,96 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
+let displaceX;
+let displaceY;
+let originalImageData;
+let originalData;
+/// 이걸 displaceX, displaceY는 한번만 생성하고, 여러번 유동화를 시키면 이곳만 수정하도록 변경.
+// 그리고 보간법은 따로 함수 만들어서 해당 displace만 이미지 변환시켜서 붙여넣도록 변경
 
-function applyPixelFlow(canvas, ctx, points) {
-    const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-    const MAGNIFY_STRENGTH = 0.3; // 강도: +이면 정방향, -이면 역방향
-    const PADDING = 1; // 보간을 위한 추가 패딩
+function initPixelFlow(canvas,ctx){
     
-    const canvas_width = canvas.width;
-    const canvas_height = canvas.height;
-
-    const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
-
-    if (points.length - lastIndex - 1 === 0) {
-        return;
-    }
-
-    // 초기 바운딩 박스 설정
-    let minX = canvas_width;
-    let minY = canvas_height;
-    let maxX = 0;
-    let maxY = 0;
-
-    // lastIndex부터 points.length - 1까지의 포인트를 기준으로 바운딩 박스 계산
-    for (let i = lastIndex; i < points.length - 1; i++) {
-        const startPoint = points[i];
-        const endPoint = points[i + 1];
-        minX = Math.min(minX, startPoint.x, endPoint.x);
-        minY = Math.min(minY, startPoint.y, endPoint.y);
-        maxX = Math.max(maxX, startPoint.x, endPoint.x);
-        maxY = Math.max(maxY, startPoint.y, endPoint.y);
-    }
-
-    // 패딩 추가 및 캔버스 경계를 벗어나지 않도록 클램핑
-    minX = Math.max(Math.floor(minX - EFFECT_RADIUS - PADDING), 0);
-    minY = Math.max(Math.floor(minY - EFFECT_RADIUS - PADDING), 0);
-    maxX = Math.min(Math.ceil(maxX + EFFECT_RADIUS + PADDING), canvas_width);
-    maxY = Math.min(Math.ceil(maxY + EFFECT_RADIUS + PADDING), canvas_height);
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-
-    // 영역 이미지 데이터 가져오기
-    const regionImageData = ctx.getImageData(minX, minY, width, height);
-    const originalPixels = regionImageData.data;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // 원본 이미지 데이터 가져오기
+    originalImageData = ctx.getImageData(0, 0, width, height);
+    originalData = originalImageData.data;
 
     // 변위 맵 초기화
-    const displaceX = new Float32Array(width * height);
-    const displaceY = new Float32Array(width * height);
+    displaceX = new Float32Array(width * height);
+    displaceY = new Float32Array(width * height);
+}
 
-    // 모든 선분에 대해 변위 계산
-    for (let i = lastIndex; i < points.length - 1; i++) {
-        const startPoint = points[i];
-        const endPoint = points[i + 1];
-        const x0 = startPoint.x;
-        const y0 = startPoint.y;
-        const x1 = endPoint.x;
-        const y1 = endPoint.y;
+function applyPixelFlow(canvas, points, displaceX, displaceY) {
+  const width = canvas.width;
+  const height = canvas.height;
 
-        const deltaX = x1 - x0;
-        const deltaY = y1 - y0;
-        const segmentLength = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  for (let i = lastIndex; i < points.length - 1; i++) {
+    const start = points[i];
+    const end = points[i + 1];
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) continue;
 
-        if (segmentLength === 0) {
-            console.warn(`점 ${i}와 점 ${i + 1}가 동일합니다.`);
-            lastIndex = i + 1;
-            continue;
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = y * width + x;
+
+        // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
+        const currentX = x +displaceX[index];
+        const currentY = y+ displaceY[index];
+
+        // start~end 선분과 거리 계산(화면 좌표계)
+        const px = currentX - start.x;
+        const py = currentY - start.y;
+        const t = (px * unitX + py * unitY) / length;
+        const clampedT = Math.max(0, Math.min(1, t));
+
+        const closestX = start.x + clampedT * dx;
+        const closestY = start.y + clampedT * dy;
+        const distX = currentX - closestX;
+        const distY = currentY - closestY;
+        const dist = Math.sqrt(distX * distX + distY * distY);
+
+        if (dist < EFFECT_RADIUS) {
+          const effectFactor = (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
+          const offsetX = (effectFactor * dx) / 2;
+          const offsetY = (effectFactor * dy) / 2;
+          const maxoffsetX = effectFactor * unitX * 10;
+          const maxoffsetY = effectFactor * unitY * 10;
+
+          // 누적 변위 갱신
+          displaceX[index] += smallerAbs(offsetX, maxoffsetX);
+          displaceY[index] += smallerAbs(offsetY, maxoffsetY);
         }
-
-        const unitX = deltaX / segmentLength;
-        const unitY = deltaY / segmentLength;
-
-        // 선분의 바운딩 박스 내에서만 반복
-        const segmentMinY = Math.max(
-            Math.floor(Math.min(y0, y1) - EFFECT_RADIUS),
-            minY,
-        );
-        const segmentMaxY = Math.min(
-            Math.ceil(Math.max(y0, y1) + EFFECT_RADIUS),
-            maxY,
-        );
-        const segmentMinX = Math.max(
-            Math.floor(Math.min(x0, x1) - EFFECT_RADIUS),
-            minX,
-        );
-        const segmentMaxX = Math.min(
-            Math.ceil(Math.max(x0, x1) + EFFECT_RADIUS),
-            maxX,
-        );
-
-        for (let y = segmentMinY; y < segmentMaxY; y++) {
-            for (let x = segmentMinX; x < segmentMaxX; x++) {
-                const relativeX = x - minX;
-                const relativeY = y - minY;
-                const pixelIndex = relativeY * width + relativeX;
-
-                // 선분과의 거리 계산
-                const dx = x - x0;
-                const dy = y - y0;
-                const t = (dx * unitX + dy * unitY) / segmentLength;
-                const clampedT = Math.max(0, Math.min(1, t));
-
-                const closestX = x0 + clampedT * unitX * segmentLength;
-                const closestY = y0 + clampedT * unitY * segmentLength;
-
-                const distX = x - closestX;
-                const distY = y - closestY;
-                const distance = Math.sqrt(distX * distX + distY * distY);
-
-                if (distance < EFFECT_RADIUS) {
-                    const effectFactor =
-                        (1 - distance / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
-
-                    const offsetX = (effectFactor * deltaX) / 2;
-                    const offsetY = (effectFactor * deltaY) / 2;
-
-                    const maxOffsetX = effectFactor * unitX * 10;
-                    const maxOffsetY = effectFactor * unitY * 10;
-
-                    // 변위 누적 (절댓값이 작은 값을 선택)
-                    displaceX[pixelIndex] += smallerAbs(offsetX, maxOffsetX);
-                    displaceY[pixelIndex] += smallerAbs(offsetY, maxOffsetY);
-                }
-            }
-        }
-
-        lastIndex = i + 1;
+      }
     }
+    lastIndex = i + 1;
+  }
+}
 
-    // 새로운 영역 이미지 데이터 생성
-    const newImageDataArray = new Uint8ClampedArray(originalPixels.length);
+function renderToImage(canvas, originalData, displaceX, displaceY) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const newImageData = new Uint8ClampedArray(originalData.length);
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const pixelIndex = y * width + x;
-            const totalOffsetX = displaceX[pixelIndex];
-            const totalOffsetY = displaceY[pixelIndex];
-            const newX = x + totalOffsetX;
-            const newY = y + totalOffsetY;
+            const index = y * width + x;
+            const totalDx = displaceX[index];
+            const totalDy = displaceY[index];
+            const newX = x + totalDx;
+            const newY = y + totalDy;
 
             // 양선형 보간
             const floorX = Math.floor(newX);
@@ -153,23 +103,22 @@ function applyPixelFlow(canvas, ctx, points) {
             const ty = newY - floorY;
 
             const getColor = (xx, yy) => {
-                // 좌표를 영역 내로 클램핑
-                const clampedX = Math.max(0, Math.min(xx, width - 1));
-                const clampedY = Math.max(0, Math.min(yy, height - 1));
-
-                const idx = (clampedY * width + clampedX) * 4;
-                return [
-                    originalPixels[idx],
-                    originalPixels[idx + 1],
-                    originalPixels[idx + 2],
-                    originalPixels[idx + 3],
-                ];
+                if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
+                    const idx = (yy * width + xx) * 4;
+                    return [
+                        originalData[idx],
+                        originalData[idx + 1],
+                        originalData[idx + 2],
+                        originalData[idx + 3],
+                    ];
+                }
+                return [0, 0, 0, 0];
             };
 
-            const color00 = getColor(floorX, floorY);
-            const color10 = getColor(ceilX, floorY);
-            const color01 = getColor(floorX, ceilY);
-            const color11 = getColor(ceilX, ceilY);
+            const c00 = getColor(floorX, floorY);
+            const c10 = getColor(ceilX, floorY);
+            const c01 = getColor(floorX, ceilY);
+            const c11 = getColor(ceilX, ceilY);
 
             const interpolate = (c1, c2, c3, c4, tx, ty) => [
                 (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
@@ -182,39 +131,30 @@ function applyPixelFlow(canvas, ctx, points) {
                     (c3[3] * (1 - tx) + c4[3] * tx) * ty,
             ];
 
-            const [r, g, b, a] = interpolate(
-                color00,
-                color10,
-                color01,
-                color11,
-                tx,
-                ty,
-            );
-            const newPixelIndex = pixelIndex * 4;
-            newImageDataArray[newPixelIndex] = r;
-            newImageDataArray[newPixelIndex + 1] = g;
-            newImageDataArray[newPixelIndex + 2] = b;
-            newImageDataArray[newPixelIndex + 3] = a;
+            const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
+            const newIndex = index * 4;
+            newImageData[newIndex] = r;
+            newImageData[newIndex + 1] = g;
+            newImageData[newIndex + 2] = b;
+            newImageData[newIndex + 3] = a;
         }
     }
 
-    // 수정된 영역 이미지를 캔버스에 다시 그리기
-    const finalImageData = new ImageData(newImageDataArray, width, height);
-    ctx.putImageData(finalImageData, minX, minY);
+    // console.log(displaceX);
+    return new ImageData(newImageData, width, height);
 }
+
+const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
 // 초기화
 window.onload = async () => {
     try {
-        //const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
-        const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
-        // applyPixelFlow(canvas, ctx, [
-        //     // { x: 50, y: 100 },
-        //     // { x: 200, y: 200 },
-        //     //  { x: 300, y: 170 },
-        // ]);
+        initPixelFlow(canvas,ctx);
+
         // drawHelperLine(ctx, [
         //     // { x: 100, y: 100 },
         //     // { x: 110, y: 110 },
@@ -311,11 +251,25 @@ function drawImageToCanvas(img) {
 let positions = [];
 let isTracking = false; // 스페이스바 누름 상태
 
+
 // 스페이스바 눌렀을 때 추적 시작
 document.addEventListener("pointerdown", (event) => {
     isTracking = true;
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
+
+    // applyPixelFlow(
+    //     canvas,
+    //     [
+    //         { x: 0, y: 0 },
+    //         { x: 20, y: 20 },
+    //         //  { x: 300, y: 170 },
+    //     ],
+    //     displaceX,
+    //     displaceY,
+    // );
+
+    console.log("Tracking 시작...");
 });
 
 // 마우스 움직임 기록
@@ -325,11 +279,39 @@ document.addEventListener("mousemove", (event) => {
 
         // 현재 좌표를 배열에 저장
         positions.push({ x: clientX, y: clientY });
-        applyPixelFlow(canvas, ctx, positions);
+
+        applyPixelFlow(canvas, positions, displaceX, displaceY);
+
+        const newImageData = renderToImage(
+            canvas,
+            originalData,
+            displaceX,
+            displaceY,
+        );
+
+        ctx.putImageData(newImageData, 0, 0);
     }
 });
 
 // 스페이스바 뗐을 때 추적 종료 및 로그 출력
 document.addEventListener("pointerup", (event) => {
     isTracking = false;
+    console.log("Tracking 종료. 기록된 좌표:");
+
+    // const newImageData = renderToImage(
+    //     canvas,
+    //     originalData,
+    //     displaceX,
+    //     displaceY,
+    // );
+
+    // ctx.putImageData(newImageData, 0, 0);
+    // console.log(positions);
+
+    // applyPixelFlow(canvas, ctx, positions);
+    // // drawHelperLine(ctx, positions);
+    // if (hadMax) {
+    //     console.log("max!");
+    //     hadMax = false;
+    // }
 });
