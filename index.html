@@ -21,11 +21,25 @@
             .helper-canvas{
                 z-index: 1;
             }
+
+             #info-box {
+                position: absolute;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 5px;
+                font-size: 12px;
+                border-radius: 5px;
+                pointer-events: none;
+                white-space: nowrap;
+              }
+
+            
         </style>
     </head>
     <body>
         <canvas id="canvas"></canvas>
 <canvas id='helper-canvas'></canvas>
+        <div id="info-box"></div>
         <script src='main.js'></script>
     </body>
 </html>

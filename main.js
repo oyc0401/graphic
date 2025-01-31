@@ -44,13 +44,18 @@ function applyPixelFlow(canvas, start, end) {
     const unitX = dx / length;
     const unitY = dy / length;
 
+    let sum = 0;
+
+    let tempDisplaceX = structuredClone(displaceX);
+    let tempDisplaceY = structuredClone(displaceY);
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const index = y * width + x;
 
             // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
-            let currentX = x; //+ displaceX[index];
-            let currentY = y; //+ displaceY[index];
+            let currentX = x; // + displaceX[index];
+            let currentY = y; // + displaceY[index];
 
             // start~end 선분과 거리 계산(화면 좌표계)
             const px = currentX - start.x;
@@ -65,25 +70,58 @@ function applyPixelFlow(canvas, start, end) {
             const dist = Math.sqrt(distX * distX + distY * distY);
 
             if (dist < EFFECT_RADIUS) {
+                let dirX = unitX > 0 ? 1 : -1;
+                let dirY = unitY > 0 ? 1 : -1;
+
+                let diffX = Math.abs(
+                    tempDisplaceX[index - 1 * dirX] -
+                        tempDisplaceX[index] -
+                        dirX,
+                );
+                let diffY = Math.abs(
+                    tempDisplaceY[index - width * dirY] -
+                        tempDisplaceY[index] -
+                        dirY,
+                );
+
+                if (
+                    tempDisplaceX[index - 1 * dirX] - 1 >
+                    tempDisplaceX[index]
+                ) {
+                    console.log("!");
+                }
+
+                // console.log(dirX, dirY);
+
                 const effectFactor =
-                    (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
-                const offsetX = (effectFactor * dx) / 2;
-                const offsetY = (effectFactor * dy) / 2;
-                const maxoffsetX = effectFactor * unitX * 10;
-                const maxoffsetY = effectFactor * unitY * 10;
+                    Math.sin((1 - dist / EFFECT_RADIUS) * (Math.PI / 2)) *
+                    -MAGNIFY_STRENGTH;
+                const offsetX = ((effectFactor * dx) / 2) * diffX;
+                const offsetY = ((effectFactor * dy) / 2) * diffY;
+                //const maxoffsetX = effectFactor * unitX * 10 //* diffX;
+                // const maxoffsetY = effectFactor * unitY * 10 //* diffY;
 
                 // 누적 변위 갱신
-                displaceX[index] += smallerAbs(offsetX, maxoffsetX);
-                displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+                let plusForceX = offsetX;
+                let plusForceY = offsetY;
+                displaceX[index] += plusForceX;
+                displaceY[index] += plusForceY;
+
+                if (displaceX[index - 1 * dirX] - 1 > displaceX[index]) {
+                    console.log("!");
+                }
 
                 // 렌더링 해야하는 범위 찾기
                 renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
                 renderStartY = Math.floor(Math.min(renderStartY ?? y, y));
                 renderEndX = Math.ceil(Math.max(renderEndX ?? x, x));
                 renderEndY = Math.ceil(Math.max(renderEndY ?? y, y));
+                sum++;
             }
         }
     }
+
+    // console.log(sum)
 }
 
 function renderToImage(canvas, sx, sy, ex, ey) {
@@ -195,11 +233,32 @@ document.addEventListener("pointerdown", (event) => {
     console.log("Tracking 시작...");
 });
 
+const infoBox = document.getElementById("info-box");
+
+
 // 마우스 움직임 기록
 document.addEventListener("mousemove", (event) => {
-    if (isTracking) {
-        const { clientX, clientY } = event;
+    const { clientX, clientY } = event;
 
+      const indexX = clientX + canvas.width * clientY;
+      const indexY = clientY + canvas.height * clientX;
+
+      const dispX = displaceX[indexX] || 0;
+      const dispY = displaceY[indexY] || 0;
+
+      const viewX = clientX + dispX;
+      const viewY = clientY + dispY;
+
+      // 박스 업데이트
+      infoBox.style.left = `${clientX + 15}px`;
+      infoBox.style.top = `${clientY + 15}px`;
+      infoBox.innerHTML = `
+          displace: (${dispX.toFixed(2)}, ${dispY.toFixed(2)})<br>
+          position: (${clientX.toFixed(2)}, ${clientY.toFixed(2)})<br>
+          view position: (${viewX.toFixed(2)}, ${viewY.toFixed(2)})
+      `;
+
+    if (isTracking) {
         // 현재 좌표를 배열에 저장
         positions.push({ x: clientX, y: clientY });
 
