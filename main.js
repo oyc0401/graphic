@@ -17,6 +17,30 @@ let renderStartY;
 let renderEndX;
 let renderEndY;
 
+/**
+ * 두 Float32Array 행렬 a와 b를 받아서 f(a, b) = a + b * (1 - a)를 계산합니다.
+ * @param {Float32Array} a - 첫 번째 입력 행렬
+ * @param {Float32Array} b - 두 번째 입력 행렬
+ * @returns {Float32Array} - 결과 행렬 f(a, b)
+ */
+function interpolate(a, b) {
+    if (a.length !== b.length) {
+        throw new Error("Input arrays must have the same length.");
+    }
+
+    const result = new Float32Array(a.length);
+
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] > 0 && b[i] > 0) {
+            result[i] = (a[i] + b[i] + a[i] * b[i]) / 2;
+        } else {
+            result[i] = a[i] + b[i];
+        }
+    }
+
+    return result;
+}
+
 function initPixelFlow(canvas, ctx) {
     const width = canvas.width;
     const height = canvas.height;
@@ -46,15 +70,15 @@ function applyPixelFlow(canvas, start, end) {
 
     let sum = 0;
 
-    let tempDisplaceX = structuredClone(displaceX);
-    let tempDisplaceY = structuredClone(displaceY);
+    let tempDisplaceX = new Float32Array(width * height);
+    let tempDisplaceY = new Float32Array(width * height);
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const index = y * width + x;
 
             // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
-            let currentX = x; // + displaceX[index];
+            let currentX = x; //+ displaceX[index];
             let currentY = y; // + displaceY[index];
 
             // start~end 선분과 거리 계산(화면 좌표계)
@@ -70,46 +94,19 @@ function applyPixelFlow(canvas, start, end) {
             const dist = Math.sqrt(distX * distX + distY * distY);
 
             if (dist < EFFECT_RADIUS) {
-                let dirX = unitX > 0 ? 1 : -1;
-                let dirY = unitY > 0 ? 1 : -1;
-
-                let diffX = Math.abs(
-                    tempDisplaceX[index - 1 * dirX] -
-                        tempDisplaceX[index] -
-                        dirX,
-                );
-                let diffY = Math.abs(
-                    tempDisplaceY[index - width * dirY] -
-                        tempDisplaceY[index] -
-                        dirY,
-                );
-
-                if (
-                    tempDisplaceX[index - 1 * dirX] - 1 >
-                    tempDisplaceX[index]
-                ) {
-                    console.log("!");
-                }
-
-                // console.log(dirX, dirY);
-
                 const effectFactor =
                     Math.sin((1 - dist / EFFECT_RADIUS) * (Math.PI / 2)) *
                     -MAGNIFY_STRENGTH;
-                const offsetX = ((effectFactor * dx) / 2) * diffX;
-                const offsetY = ((effectFactor * dy) / 2) * diffY;
+                const offsetX = (effectFactor * dx) / 2; //* diffX;
+                const offsetY = (effectFactor * dy) / 2; //* diffY;
                 //const maxoffsetX = effectFactor * unitX * 10 //* diffX;
                 // const maxoffsetY = effectFactor * unitY * 10 //* diffY;
 
                 // 누적 변위 갱신
                 let plusForceX = offsetX;
                 let plusForceY = offsetY;
-                displaceX[index] += plusForceX;
-                displaceY[index] += plusForceY;
-
-                if (displaceX[index - 1 * dirX] - 1 > displaceX[index]) {
-                    console.log("!");
-                }
+                tempDisplaceX[index] += plusForceX;
+                tempDisplaceY[index] += plusForceY;
 
                 // 렌더링 해야하는 범위 찾기
                 renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
@@ -121,33 +118,25 @@ function applyPixelFlow(canvas, start, end) {
         }
     }
 
+    displaceX = interpolate(displaceX, tempDisplaceX);
+    displaceY = interpolate(displaceY, tempDisplaceY);
+
     // console.log(sum)
 }
 
-function renderToImage(canvas, sx, sy, ex, ey) {
-    const canvas_w = canvas.width;
-    const canvas_h = canvas.height;
-    const width = ex - sx;
-    const height = ey - sy;
+function renderToImage(canvas) {
+    const width = canvas.width;
+    const height = canvas.height;
 
-    if (sx == undefined) {
-        return;
-    }
-    const newImageData = new Uint8ClampedArray(width * height * 4);
+    const newImageData = new Uint8ClampedArray(originalData.length);
 
-    let idxx = 0;
-    for (let y = sy; y < ey; y++) {
-        for (let x = sx; x < ex; x++) {
-            const index = y * canvas_w + x;
-
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
             const totalDx = displaceX[index];
             const totalDy = displaceY[index];
-            let newX = x + totalDx;
-            let newY = y + totalDy;
-
-            // 좌표를 이미지 경계 내로 클램핑
-            newX = Math.min(Math.max(newX, 0), canvas_w - 1);
-            newY = Math.min(Math.max(newY, 0), canvas_h - 1);
+            const newX = x + totalDx;
+            const newY = y + totalDy;
 
             // 양선형 보간
             const floorX = Math.floor(newX);
@@ -158,16 +147,16 @@ function renderToImage(canvas, sx, sy, ex, ey) {
             const ty = newY - floorY;
 
             const getColor = (xx, yy) => {
-                // 클램핑된 좌표를 사용
-                const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
-                const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
-                const idx = (clampedY * canvas_w + clampedX) * 4;
-                return [
-                    originalData[idx],
-                    originalData[idx + 1],
-                    originalData[idx + 2],
-                    originalData[idx + 3],
-                ];
+                if (xx >= 0 && xx < width && yy >= 0 && yy < height) {
+                    const idx = (yy * width + xx) * 4;
+                    return [
+                        originalData[idx],
+                        originalData[idx + 1],
+                        originalData[idx + 2],
+                        originalData[idx + 3],
+                    ];
+                }
+                return [0, 0, 0, 0];
             };
 
             const c00 = getColor(floorX, floorY);
@@ -187,18 +176,18 @@ function renderToImage(canvas, sx, sy, ex, ey) {
             ];
 
             const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-            const newIndex = idxx * 4;
+            const newIndex = index * 4;
             newImageData[newIndex] = r;
             newImageData[newIndex + 1] = g;
             newImageData[newIndex + 2] = b;
             newImageData[newIndex + 3] = a;
-
-            idxx++;
         }
     }
 
-    let resultImageData = new ImageData(newImageData, width, height);
-    ctx.putImageData(resultImageData, sx, sy);
+    // console.log(displaceX);
+    let imageData = new ImageData(newImageData, width, height);
+
+    ctx.putImageData(imageData, 0, 0);
 }
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
@@ -235,24 +224,23 @@ document.addEventListener("pointerdown", (event) => {
 
 const infoBox = document.getElementById("info-box");
 
-
 // 마우스 움직임 기록
 document.addEventListener("mousemove", (event) => {
     const { clientX, clientY } = event;
 
-      const indexX = clientX + canvas.width * clientY;
-      const indexY = clientY + canvas.height * clientX;
+    const indexX = clientX + canvas.width * clientY;
+    const indexY = clientY + canvas.height * clientX;
 
-      const dispX = displaceX[indexX] || 0;
-      const dispY = displaceY[indexY] || 0;
+    const dispX = displaceX[indexX] || 0;
+    const dispY = displaceY[indexY] || 0;
 
-      const viewX = clientX + dispX;
-      const viewY = clientY + dispY;
+    const viewX = clientX + dispX;
+    const viewY = clientY + dispY;
 
-      // 박스 업데이트
-      infoBox.style.left = `${clientX + 15}px`;
-      infoBox.style.top = `${clientY + 15}px`;
-      infoBox.innerHTML = `
+    // 박스 업데이트
+    infoBox.style.left = `${clientX + 15}px`;
+    infoBox.style.top = `${clientY + 15}px`;
+    infoBox.innerHTML = `
           displace: (${dispX.toFixed(2)}, ${dispY.toFixed(2)})<br>
           position: (${clientX.toFixed(2)}, ${clientY.toFixed(2)})<br>
           view position: (${viewX.toFixed(2)}, ${viewY.toFixed(2)})
@@ -273,13 +261,7 @@ document.addEventListener("mousemove", (event) => {
 
         applyPixelFlow(canvas, start, end);
 
-        renderToImage(
-            canvas,
-            renderStartX,
-            renderStartY,
-            renderEndX,
-            renderEndY,
-        );
+        renderToImage(canvas);
 
         //console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
         // console.log(renderEndX - renderStartX, renderEndY - renderStartY);
