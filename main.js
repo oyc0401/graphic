@@ -160,8 +160,43 @@ function applyPixelFlow(canvas, start, end) {
                 diffY = unitY > 0 ? diffT : diffB;
 
                 // 효과 적용 인자 계산
+                // x 가 0에 가까워질수록 1에 근접해가고, x == 1이면 정확히 0이고,
+                // x가 1에 가까워질수록 1에 근접해진다. 이때는 정확히 1이 아니여도 된다.
+
+                // 선형
+                const linearEffect = (x) => x;
+                // 사인함수
+              
+                const easeInOutSine = (x) => {
+                  return -0.5 * (Math.cos(Math.PI * x) - 1);
+                };
+
+                const easeInOutCubic = (x) =>
+                    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+                
+                const easeInOutQuad = (x) => (x < 0.5) ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
+                // 4. Ease In Out Quart
+                const easeInOutQuart = (x) => (x < 0.5) ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2;
+
+                const easeInOutQuint = (x) => (x < 0.5) ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2;
+
+                const easeInOutExpo = (x) => {
+                  if (x === 0) return 0;
+                  if (x === 1) return 1;
+                  if (x < 0.5) return Math.pow(2, (20 * x) - 10) / 2;
+                  return (2 - Math.pow(2, (-20 * x) + 10)) / 2;
+                };
+                
+                const easeInOutCirc = (x) => {
+                  if (x < 0.5) return (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2;
+                  return (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2;
+                };
+                
+                
                 const effectFactor =
-                    (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
+                    (1 - easeInOutCubic (dist / EFFECT_RADIUS)) * -MAGNIFY_STRENGTH;
+
                 const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
                 const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
                 const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
@@ -206,8 +241,8 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 
             // 좌표를 이미지 경계 내로 클램핑
             // 이걸 주석하면 더욱더 바깥 색을 잘 표현함. 아마?
-           // newX = Math.min(Math.max(newX, 0), canvas_w - 1);
-           // newY = Math.min(Math.max(newY, 0), canvas_h - 1);
+            // newX = Math.min(Math.max(newX, 0), canvas_w - 1);
+            // newY = Math.min(Math.max(newY, 0), canvas_h - 1);
 
             // 양선형 보간
             const floorX = Math.floor(newX);
@@ -276,8 +311,9 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("cat.webp"); // 프로젝트 폴더 내 image.jpg 경로
-        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check.png");
+        //const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
         initPixelFlow(canvas, ctx);
