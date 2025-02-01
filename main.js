@@ -44,8 +44,18 @@ function applyPixelFlow(canvas, start, end) {
     const unitX = dx / length;
     const unitY = dy / length;
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
+    // x축 순회 조건
+    const startX = unitX >= 0 ? 0 : width - 1;
+    const endX = unitX >= 0 ? width : -1;
+    const stepX = unitX >= 0 ? 1 : -1;
+
+    // y축 순회 조건
+    const startY = unitY >= 0 ? 0 : height - 1;
+    const endY = unitY >= 0 ? height : -1;
+    const stepY = unitY >= 0 ? 1 : -1;
+
+    for (let y = startY; y !== endY; y += stepY) {
+        for (let x = startX; x !== endX; x += stepX) {
             const index = y * width + x;
 
             // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
@@ -132,18 +142,22 @@ function applyPixelFlow(canvas, start, end) {
                     (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
                 const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
                 const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
-                const maxoffsetX = effectFactor * unitX * 10;
-                const maxoffsetY = effectFactor * unitY * 10;
+                const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
+                const maxoffsetY = effectFactor * unitY * 10 * diffY.y;
 
+                // x방향으로 했을 때 더할 y값
                 const offsetX2Y = ((effectFactor * unitX) / 2) * diffX.y; // y값에 더할 값
                 const offsetY2X = ((effectFactor * unitY) / 2) * diffY.x;
+
+                const maxoffsetX2Y = effectFactor * unitX * 10 * diffX.y;
+                const maxoffsetY2X = effectFactor * unitY * 10 * diffY.x;
 
                 // 누적 변위 갱신
                 displaceX[index] += smallerAbs(offsetX, maxoffsetX);
                 displaceY[index] += smallerAbs(offsetY, maxoffsetY);
 
-                displaceX[index] += smallerAbs(offsetY2X, maxoffsetX);
-                displaceY[index] += smallerAbs(offsetX2Y, maxoffsetY);
+                displaceY[index] += smallerAbs(offsetX2Y, maxoffsetX2Y);
+                displaceX[index] += smallerAbs(offsetY2X, maxoffsetY2X);
 
                 // 렌더링 해야하는 범위 찾기
                 renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
@@ -237,7 +251,7 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check_r.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
         //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
@@ -258,10 +272,6 @@ document.addEventListener("pointerdown", (event) => {
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
     renderStartX = renderStartY = renderEndX = renderEndY = undefined;
-
-    // initPixelFlow(canvas, ctx);
-    ctx.fillStyle = "rgba(255,0,0,0.1)";
-    console.log("Tracking 시작...");
 });
 
 // 마우스 움직임 기록
@@ -290,9 +300,6 @@ document.addEventListener("mousemove", (event) => {
             renderEndX,
             renderEndY,
         );
-
-        //console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
-        // console.log(renderEndX - renderStartX, renderEndY - renderStartY);
     }
 });
 
