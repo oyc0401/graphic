@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 500; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -77,11 +77,12 @@ function applyPixelFlow(canvas, start, end) {
         yEnd = boundMinY;
         stepY = -1;
     }
-
+let sum=0;
     // y 반복: 조건은 stepY의 부호에 따라 달라짐
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
         // x 반복: 조건은 stepX의 부호에 따라 달라짐
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
+            sum++;
             const index = y * width + x;
 
             // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
@@ -217,6 +218,8 @@ function applyPixelFlow(canvas, start, end) {
             }
         }
     }
+
+    console.log(sum)
 }
 
 function renderToImage(canvas, sx, sy, ex, ey) {
