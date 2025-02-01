@@ -205,6 +205,7 @@ function renderToImage(canvas, sx, sy, ex, ey) {
             let newY = y + totalDy;
 
             // 좌표를 이미지 경계 내로 클램핑
+            // 이걸 주석하면 더욱더 바깥 색을 잘 표현함. 아마?
            // newX = Math.min(Math.max(newX, 0), canvas_w - 1);
            // newY = Math.min(Math.max(newY, 0), canvas_h - 1);
 
@@ -216,32 +217,20 @@ function renderToImage(canvas, sx, sy, ex, ey) {
             const tx = newX - floorX;
             const ty = newY - floorY;
 
-            // const getColor = (xx, yy) => {
-            //     // 클램핑된 좌표를 사용
-            //     const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
-            //     const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
-            //     const idx = (clampedY * canvas_w + clampedX) * 4;
-            //     return [
-            //         originalData[idx],
-            //         originalData[idx + 1],
-            //         originalData[idx + 2],
-            //         originalData[idx + 3],
-            //     ];
-            // };
-
             const getColor = (xx, yy) => {
-                // 화면 밖이면 투명으로 설정
+                // 클램핑된 좌표를 사용
                 const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
                 const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
                 const idx = (clampedY * canvas_w + clampedX) * 4;
-                if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
-                    return [
-                        originalData[idx],
-                            originalData[idx + 1],
-                            originalData[idx + 2],
-                        0,
-                    ];
-                }
+                // 화면 밖이면 투명으로 설정
+                //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
+                //         return [
+                //             originalData[idx],
+                //                 originalData[idx + 1],
+                //                 originalData[idx + 2],
+                //             0,
+                //         ];
+                //     }
 
                 return [
                     originalData[idx],
@@ -287,7 +276,7 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png"); // 프로젝트 폴더 내 image.jpg 경로
+        const img = await loadImageFromURL("cat.webp"); // 프로젝트 폴더 내 image.jpg 경로
         //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
