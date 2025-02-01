@@ -1,332 +1,297 @@
+// 설정값
 
-// ---------------------------------------------------------
-// 설정값 및 유틸리티 함수
-// ---------------------------------------------------------
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// 작은 절대값을 선택하는 함수 (현재 사용되지 않음)
-const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
-// ---------------------------------------------------------
-// MESH INITIALIZATION
-// ---------------------------------------------------------
-let meshGrid = [];  // 메시 전체를 관리할 전역 변수
-let meshCols = 0;
-let meshRows = 0;
-let gridSize = 1;  // 기본 16픽셀 간격 (더 부드러운 변형을 위해 16으로 설정)
+let lastIndex = 0;
+let displaceX;
+let displaceY;
+let originalImageData;
+let originalData;
 
-// 메시 초기화 함수
-function initLiquifyMesh(canvas, grid = 16) {
-    gridSize = grid;
+let renderStartX;
+let renderStartY;
+let renderEndX;
+let renderEndY;
+
+function initPixelFlow(canvas, ctx) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 가로, 세로 그리드 개수
-    meshCols = Math.ceil(width / gridSize);
-    meshRows = Math.ceil(height / gridSize);
+    // 원본 이미지 데이터 가져오기
+    originalImageData = ctx.getImageData(0, 0, width, height);
+    originalData = originalImageData.data;
 
-    // meshGrid[row][col] = { x: 현재 x, y: 현재 y, ox: 원본 x, oy: 원본 y }
-    meshGrid = [];
-    for (let row = 0; row <= meshRows; row++) {
-        const rowData = [];
-        for (let col = 0; col <= meshCols; col++) {
-            const x = col * gridSize;
-            const y = row * gridSize;
-            rowData.push({
-                x: x,      // 현재 변형된 위치
-                y: y,
-                ox: x,     // 원본 위치(초기값)
-                oy: y,
-            });
-        }
-        meshGrid.push(rowData);
-    }
+    // 변위 맵 초기화
+    displaceX = new Float32Array(width * height);
+    displaceY = new Float32Array(width * height);
 }
 
-// ---------------------------------------------------------
-// APPLY WARP TO MESH
-// ---------------------------------------------------------
-function applyLiquifyWarp(pointerX, pointerY, prevX, prevY, radius, strength) {
-    // 드래그 벡터
-    const dx = pointerX - prevX;
-    const dy = pointerY - prevY;
-    const dragDist = Math.sqrt(dx * dx + dy * dy);
+function applyPixelFlow(canvas, start, end) {
+    const width = canvas.width;
+    const height = canvas.height;
 
-    for (let row = 0; row <= meshRows; row++) {
-        for (let col = 0; col <= meshCols; col++) {
-            const point = meshGrid[row][col];
-            const distX = point.x - prevX;
-            const distY = point.y - prevY;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    if (length == 0) {
+        return;
+    }
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
+
+            // (원래 x + 누적 displace) = 현재 픽셀이 실제 화면상 갖는 좌표
+            let currentX = x+ displaceX[index];
+            let currentY = y+ displaceY[index];
+
+            // start~end 선분과 거리 계산(화면 좌표계)
+            const px = currentX - start.x;
+            const py = currentY - start.y;
+            const t = (px * unitX + py * unitY) / length;
+            const clampedT = Math.max(0, Math.min(1, t));
+
+            const closestX = start.x + clampedT * dx;
+            const closestY = start.y + clampedT * dy;
+            const distX = currentX - closestX;
+            const distY = currentY - closestY;
             const dist = Math.sqrt(distX * distX + distY * distY);
 
-            if (dist < radius) {
-                // dist가 작을수록(드래그 중심에 가까울수록) 이동량을 크게
-                const falloff = 1 - (dist / radius); // 0 ~ 1
-                // 가우시안 falloff 적용 (더 부드러운 영향)
-                const sigma = radius / 2;
-                const gaussianFalloff = Math.exp(-(dist * dist) / (2 * sigma * sigma));
-                // 강도와 falloff, 그리고 드래그 벡터를 곱해서 이동
-                point.x -= dx * strength * gaussianFalloff;
-                point.y -= dy * strength * gaussianFalloff;
+            if (dist < EFFECT_RADIUS) {
+                const effectFactor =
+                    (1 - dist / EFFECT_RADIUS) * -MAGNIFY_STRENGTH;
+                const offsetX = (effectFactor * dx) / 2;
+                const offsetY = (effectFactor * dy) / 2;
+                const maxoffsetX = effectFactor * unitX * 10;
+                const maxoffsetY = effectFactor * unitY * 10;
+
+                // 누적 변위 갱신
+                displaceX[index] += smallerAbs(offsetX, maxoffsetX);
+                displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+
+                // 렌더링 해야하는 범위 찾기
+                renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
+                renderStartY = Math.floor(Math.min(renderStartY ?? y, y));
+                renderEndX = Math.ceil(Math.max(renderEndX ?? x, x));
+                renderEndY = Math.ceil(Math.max(renderEndY ?? y, y));
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// RENDER MESH-WARPED IMAGE
-// ---------------------------------------------------------
-function renderLiquifyMesh(ctx, originalImageData, meshGrid) {
-    const { width, height } = ctx.canvas;
+function renderToImage(canvas, sx, sy, ex, ey) {
+    const canvas_w = canvas.width;
+    const canvas_h = canvas.height;
+    const width = ex - sx;
+    const height = ey - sy;
 
-    // 결과 이미지를 담을 배열
-    const outputData = new Uint8ClampedArray(width * height * 4);
+    if (sx == undefined) {
+        return;
+    }
+    const newImageData = new Uint8ClampedArray(width * height * 4);
 
-    // 원본 이미지 데이터 접근용
-    const srcData = originalImageData.data;
-    const srcWidth = originalImageData.width;
-    const srcHeight = originalImageData.height;
+    let idxx = 0;
+    for (let y = sy; y < ey; y++) {
+        for (let x = sx; x < ex; x++) {
+            const index = y * canvas_w + x;
 
-    // 그리드 크기
-    const grid = gridSize;
+            const totalDx = displaceX[index];
+            const totalDy = displaceY[index];
+            let newX = x + totalDx;
+            let newY = y + totalDy;
 
-    // 각 픽셀에 대해 메시 사각형(quad)에 속하는지 찾고, 역매핑
-    for (let py = 0; py < height; py++) {
-        // 메시 내에서 y축 비율
-        let rowIndex = Math.floor(py / grid);
-        rowIndex = Math.min(rowIndex, meshRows - 1); // 범위 제한
+            // 좌표를 이미지 경계 내로 클램핑
+            newX = Math.min(Math.max(newX, 0), canvas_w - 1);
+            newY = Math.min(Math.max(newY, 0), canvas_h - 1);
 
-        const rowYStart = rowIndex * grid;
-        const v = (py - rowYStart) / grid; // 0~1
+            // 양선형 보간
+            const floorX = Math.floor(newX);
+            const floorY = Math.floor(newY);
+            const ceilX = Math.ceil(newX);
+            const ceilY = Math.ceil(newY);
+            const tx = newX - floorX;
+            const ty = newY - floorY;
 
-        for (let px = 0; px < width; px++) {
-            // 메시 내에서 x축 비율
-            let colIndex = Math.floor(px / grid);
-            colIndex = Math.min(colIndex, meshCols - 1);
+            const getColor = (xx, yy) => {
+                // 클램핑된 좌표를 사용
+                const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
+                const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
+                const idx = (clampedY * canvas_w + clampedX) * 4;
+                return [
+                    originalData[idx],
+                    originalData[idx + 1],
+                    originalData[idx + 2],
+                    originalData[idx + 3],
+                ];
+            };
 
-            const colXStart = colIndex * grid;
-            const u = (px - colXStart) / grid; // 0~1
+            const c00 = getColor(floorX, floorY);
+            const c10 = getColor(ceilX, floorY);
+            const c01 = getColor(floorX, ceilY);
+            const c11 = getColor(ceilX, ceilY);
 
-            // 현재 quad의 4개 꼭짓점:
-            const p00 = meshGrid[rowIndex][colIndex];
-            const p01 = meshGrid[rowIndex][colIndex + 1];
-            const p10 = meshGrid[rowIndex + 1][colIndex];
-            const p11 = meshGrid[rowIndex + 1][colIndex + 1];
+            const interpolate = (c1, c2, c3, c4, tx, ty) => [
+                (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
+                    (c3[0] * (1 - tx) + c4[0] * tx) * ty,
+                (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
+                    (c3[1] * (1 - tx) + c4[1] * tx) * ty,
+                (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
+                    (c3[2] * (1 - tx) + c4[2] * tx) * ty,
+                (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
+                    (c3[3] * (1 - tx) + c4[3] * tx) * ty,
+            ];
 
-            // 각 꼭짓점의 displacement 벡터
-            const dx00 = p00.x - p00.ox;
-            const dy00 = p00.y - p00.oy;
-            const dx01 = p01.x - p01.ox;
-            const dy01 = p01.y - p01.oy;
-            const dx10 = p10.x - p10.ox;
-            const dy10 = p10.y - p10.oy;
-            const dx11 = p11.x - p11.ox;
-            const dy11 = p11.y - p11.oy;
+            const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
+            const newIndex = idxx * 4;
+            newImageData[newIndex] = r;
+            newImageData[newIndex + 1] = g;
+            newImageData[newIndex + 2] = b;
+            newImageData[newIndex + 3] = a;
 
-            // Bilinear interpolation for displacement
-            const dispXTop = dx00 * (1 - u) + dx01 * u;
-            const dispXBtm = dx10 * (1 - u) + dx11 * u;
-            const finalDispX = dispXTop * (1 - v) + dispXBtm * v;
-
-            const dispYTop = dy00 * (1 - u) + dy01 * u;
-            const dispYBtm = dy10 * (1 - u) + dy11 * u;
-            const finalDispY = dispYTop * (1 - v) + dispYBtm * v;
-
-            // 원본 좌표 계산 (변위 방향 수정)
-            const srcX = px + finalDispX; // 수정된 부분
-            const srcY = py + finalDispY; // 수정된 부분
-
-            // 원본 좌표가 이미지 범위를 벗어나면 클램핑
-            const clampedSrcX = Math.max(0, Math.min(srcX, srcWidth - 1));
-            const clampedSrcY = Math.max(0, Math.min(srcY, srcHeight - 1));
-
-            // 원본 이미지에서 해당 위치의 색상을 bilinear로 샘플링
-            const color = sampleBilinear(srcData, srcWidth, srcHeight, clampedSrcX, clampedSrcY);
-
-            // outputData에 기록
-            const dstIndex = (py * width + px) * 4;
-            outputData[dstIndex + 0] = color[0];
-            outputData[dstIndex + 1] = color[1];
-            outputData[dstIndex + 2] = color[2];
-            outputData[dstIndex + 3] = color[3];
+            idxx++;
         }
     }
 
-    // 최종 outputData를 ImageData로 만들어 캔버스에 출력
-    const finalImageData = new ImageData(outputData, width, height);
-    ctx.putImageData(finalImageData, 0, 0);
+    let resultImageData = new ImageData(newImageData, width, height);
+    ctx.putImageData(resultImageData, sx, sy);
 }
 
-// 양선형 보간으로 이미지에서 (x, y) 위치의 색상을 구한다.
-function sampleBilinear(srcData, srcWidth, srcHeight, x, y) {
-    // 범위 넘어가면 클램핑
-    x = Math.max(0, Math.min(x, srcWidth - 1));
-    y = Math.max(0, Math.min(y, srcHeight - 1));
+const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
-    // 정수, 소수 분리
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
-    const x1 = Math.min(x0 + 1, srcWidth - 1);
-    const y1 = Math.min(y0 + 1, srcHeight - 1);
-
-    const dx = x - x0;
-    const dy = y - y0;
-
-    // 4개 꼭짓점 인덱스
-    const i00 = (y0 * srcWidth + x0) * 4;
-    const i01 = (y0 * srcWidth + x1) * 4;
-    const i10 = (y1 * srcWidth + x0) * 4;
-    const i11 = (y1 * srcWidth + x1) * 4;
-
-    // bilinear
-    const r00 = srcData[i00 + 0], g00 = srcData[i00 + 1], b00 = srcData[i00 + 2], a00 = srcData[i00 + 3];
-    const r01 = srcData[i01 + 0], g01 = srcData[i01 + 1], b01 = srcData[i01 + 2], a01 = srcData[i01 + 3];
-    const r10 = srcData[i10 + 0], g10 = srcData[i10 + 1], b10 = srcData[i10 + 2], a10 = srcData[i10 + 3];
-    const r11 = srcData[i11 + 0], g11 = srcData[i11 + 1], b11 = srcData[i11 + 2], a11 = srcData[i11 + 3];
-
-    const r0 = r00 * (1 - dx) + r01 * dx;
-    const g0 = g00 * (1 - dx) + g01 * dx;
-    const b0 = b00 * (1 - dx) + b01 * dx;
-    const a0 = a00 * (1 - dx) + a01 * dx;
-
-    const r1 = r10 * (1 - dx) + r11 * dx;
-    const g1 = g10 * (1 - dx) + g11 * dx;
-    const b1 = b10 * (1 - dx) + b11 * dx;
-    const a1 = a10 * (1 - dx) + a11 * dx;
-
-    const r = r0 * (1 - dy) + r1 * dy;
-    const g = g0 * (1 - dy) + g1 * dy;
-    const b = b0 * (1 - dy) + b1 * dy;
-    const a = a0 * (1 - dy) + a1 * dy;
-
-    return [r, g, b, a];
-}
-
-// ---------------------------------------------------------
-// MESH RESET FUNCTION
-// ---------------------------------------------------------
-// 메시를 초기 상태로 리셋하는 함수
-function resetMeshToOriginal() {
-    for (let row = 0; row <= meshRows; row++) {
-        for (let col = 0; col <= meshCols; col++) {
-            const point = meshGrid[row][col];
-            point.x = point.ox;
-            point.y = point.oy;
-        }
-    }
-    renderLiquifyMesh(ctx, originalImageData, meshGrid);
-}
-
-// ---------------------------------------------------------
-// GET CANVAS COORDINATES FROM POINTER EVENT
-// ---------------------------------------------------------
-// 포인터 이벤트에서 캔버스 좌표를 얻는 함수
-function getCanvasCoordinates(event) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    return { x, y };
-}
-
-// ---------------------------------------------------------
-// IMAGE LOADING AND INITIALIZATION
-// ---------------------------------------------------------
-let originalImageData = null; // 원본 이미지 데이터 저장
-
-// 초기화 (이미지 로드 후)
+// 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("musk.png"); // 이미지 경로 수정 필요
+        const img = await loadImageFromURL("check_r.png"); // 프로젝트 폴더 내 image.jpg 경로
+        //const img = await loadImageFromURL("musk.png"); // 프로젝트 폴더 내 image.jpg 경로
         drawImageToCanvas(img);
 
-        // "픽셀 유동화" 대신 "메시 기반 왜곡" 초기화
-        initLiquifyMesh(canvas, gridSize); // gridSize=16 예시
-
-        // 원본 이미지 데이터 캡처
-        const width = canvas.width;
-        const height = canvas.height;
-        originalImageData = ctx.getImageData(0, 0, width, height);
-
-        // 초기 메시는 원본 이미지 기준으로 리셋
-        resetMeshToOriginal();
-
-        console.log("초기화 완료");
-
+        initPixelFlow(canvas, ctx);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
+    //animate();
 };
+
+// 마우스 위치를 저장할 배열
+let positions = [];
+let isTracking = false; // 스페이스바 누름 상태
+
+// 스페이스바 눌렀을 때 추적 시작
+document.addEventListener("pointerdown", (event) => {
+    isTracking = true;
+    positions = []; // 이전 데이터 초기화
+    lastIndex = 0;
+    renderStartX = renderStartY = renderEndX = renderEndY = undefined;
+
+    //initPixelFlow(canvas, ctx);
+    ctx.fillStyle = "rgba(255,0,0,0.1)";
+    console.log("Tracking 시작...");
+});
+
+// 마우스 움직임 기록
+document.addEventListener("mousemove", (event) => {
+    if (isTracking) {
+        const { clientX, clientY } = event;
+
+        // 현재 좌표를 배열에 저장
+        positions.push({ x: clientX, y: clientY });
+
+        if (positions.length < 2) {
+            return;
+        }
+
+        lastIndex = positions.length - 1;
+        const start = positions[lastIndex - 1];
+        const end = positions[lastIndex];
+        renderStartX = renderStartY = renderEndX = renderEndY = undefined;
+
+        applyPixelFlow(canvas, start, end);
+
+        renderToImage(
+            canvas,
+            renderStartX,
+            renderStartY,
+            renderEndX,
+            renderEndY,
+        );
+
+        //console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
+        // console.log(renderEndX - renderStartX, renderEndY - renderStartY);
+    }
+});
+
+// 스페이스바 뗐을 때 추적 종료 및 로그 출력
+document.addEventListener("pointerup", (event) => {
+    isTracking = false;
+    console.log("Tracking 종료. 기록된 좌표:");
+});
+
+const helper_canvas = document.getElementById("helper-canvas");
+const helper_ctx = canvas.getContext("2d");
+
+function drawHelperLine(ctx, points) {
+    if (!Array.isArray(points) || points.length < 2) {
+        console.warn("At least two points are required to draw helper lines.");
+        return;
+    }
+
+    const totalPoints = points.length;
+
+    // Function to interpolate color from red to blue
+    const getColor = (index) => {
+        const ratio = index / (totalPoints - 1); // Ratio between 0 and 1
+        const r = Math.round(255 * (1 - ratio)); // Red decreases
+        const g = 0; // Green remains 0
+        const b = Math.round(255 * ratio); // Blue increases
+        return `rgba(${r},${g},${b},0.05)`;
+    };
+
+    // Draw lines between consecutive points
+    for (let i = 0; i < totalPoints - 1; i++) {
+        const start = points[i];
+        const end = points[i + 1];
+
+        ctx.beginPath(); // Start a new path
+        ctx.moveTo(start.x, start.y); // Move to the start point
+        ctx.lineTo(end.x, end.y); // Draw a line to the end point
+        ctx.lineWidth = 1; // Set line width
+        ctx.strokeStyle = "rgba(0,255,0,0.05)"; // Set line color to blue
+        ctx.stroke(); // Render the line
+    }
+
+    // Draw circles at each point with colors transitioning from red to blue
+    for (let i = 0; i < totalPoints; i++) {
+        const point = points[i];
+        const color = getColor(i); // Get the color based on point index
+
+        ctx.fillStyle = color; // Set fill color
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 2, 0, Math.PI * 2); // Draw a circle with radius 2
+        ctx.fill();
+    }
+}
 
 // 이미지 로드 함수
 function loadImageFromURL(url) {
     return new Promise((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = "Anonymous"; // CORS 이슈 방지 (필요 시)
         img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("이미지 로드 실패"));
+        img.onerror = reject;
         img.src = url;
     });
 }
 
-// 이미지 캔버스에 그리기 함수
 function drawImageToCanvas(img) {
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
+    helper_canvas.width = canvas.width;
+    helper_canvas.height = canvas.height;
     ctx.drawImage(img, 0, 0);
 }
-
-// ---------------------------------------------------------
-// POINTER EVENT HANDLERS
-// ---------------------------------------------------------
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
-
-// 포인터/마우스 다운
-document.addEventListener("pointerdown", (e) => {
-    isDrawing = true;
-    const { x, y } = getCanvasCoordinates(e);
-    lastX = x;
-    lastY = y;
-    console.log(`포인터 다운: (${x}, ${y})`);
-});
-
-// 포인터 이동
-document.addEventListener("pointermove", (e) => {
-    if (!isDrawing) return;
-
-    const { x, y } = getCanvasCoordinates(e);
-    const pointerX = x;
-    const pointerY = y;
-
-    // 메시 왜곡 적용: 브러시 반경과 강도는 원하는 값으로 조절
-    const radius = 80;    // 브러시 크기
-    const strength = 0.5; // 이동 강도
-
-    applyLiquifyWarp(pointerX, pointerY, lastX, lastY, radius, strength);
-
-    lastX = pointerX;
-    lastY = pointerY;
-
-    // 매 프레임 그릴 때마다 메시 기반으로 이미지를 다시 렌더링
-    // 성능 최적화를 위해 requestAnimationFrame 사용
-    requestAnimationFrame(() => {
-        renderLiquifyMesh(ctx, originalImageData, meshGrid);
-    });
-
-    // 디버깅: 메시 변형 확인
-    // console.log(`메시 변형: (${pointerX}, ${pointerY})`);
-});
-
-// 포인터 업
-document.addEventListener("pointerup", (e) => {
-    isDrawing = false;
-    console.log("포인터 업");
-});
-
-// 포인터가 캔버스를 벗어났을 때도 포인터 업 처리
-document.addEventListener("pointerleave", (e) => {
-    isDrawing = false;
-    console.log("포인터 떠남");
-});
