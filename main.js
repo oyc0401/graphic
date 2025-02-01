@@ -6,16 +6,13 @@ const ctx = canvas.getContext("2d");
 const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
-let lastIndex = 0;
+
 let displaceX;
 let displaceY;
 let originalImageData;
 let originalData;
 
-let renderStartX;
-let renderStartY;
-let renderEndX;
-let renderEndY;
+
 
 function initPixelFlow(canvas, ctx) {
     const width = canvas.width;
@@ -76,17 +73,21 @@ function applyPixelFlow(canvas, start, end) {
                 displaceX[index] += smallerAbs(offsetX, maxoffsetX);
                 displaceY[index] += smallerAbs(offsetY, maxoffsetY);
 
-                // 렌더링 해야하는 범위 찾기
-                renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
-                renderStartY = Math.floor(Math.min(renderStartY ?? y, y));
-                renderEndX = Math.ceil(Math.max(renderEndX ?? x, x));
-                renderEndY = Math.ceil(Math.max(renderEndY ?? y, y));
+                // // 렌더링 해야하는 범위 찾기
+                // renderStartX = Math.floor(Math.min(renderStartX ?? x, x));
+                // renderStartY = Math.floor(Math.min(renderStartY ?? y, y));
+                // renderEndX = Math.ceil(Math.max(renderEndX ?? x, x));
+                // renderEndY = Math.ceil(Math.max(renderEndY ?? y, y));
             }
         }
     }
 }
 
-function renderToImage(canvas, sx, sy, ex, ey) {
+function renderToImage(canvas) {
+    let sx = 0;
+    let sy = 0;
+    let ex = canvas.width
+    let ey = canvas.height
     const canvas_w = canvas.width;
     const canvas_h = canvas.height;
     const width = ex - sx;
@@ -165,6 +166,11 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
+let renderStartX;
+let renderStartY;
+let renderEndX;
+let renderEndY;
+let lastIndex = 0;
 // 초기화
 window.onload = async () => {
     try {
@@ -188,7 +194,7 @@ document.addEventListener("pointerdown", (event) => {
     isTracking = true;
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
-    renderStartX = renderStartY = renderEndX = renderEndY = undefined;
+    //renderStartX = renderStartY = renderEndX = renderEndY = undefined;
 
     //initPixelFlow(canvas, ctx);
     ctx.fillStyle = "rgba(255,0,0,0.1)";
@@ -210,16 +216,13 @@ document.addEventListener("mousemove", (event) => {
         lastIndex = positions.length - 1;
         const start = positions[lastIndex - 1];
         const end = positions[lastIndex];
-        renderStartX = renderStartY = renderEndX = renderEndY = undefined;
+       // renderStartX = renderStartY = renderEndX = renderEndY = undefined;
 
         applyPixelFlow(canvas, start, end);
 
         renderToImage(
             canvas,
-            renderStartX,
-            renderStartY,
-            renderEndX,
-            renderEndY,
+          
         );
 
         //console.log('(',renderStartX, renderStartY, renderEndX, renderEndY,')', renderEndX-renderStartX,renderEndY- renderStartY);
