@@ -110,7 +110,8 @@ function applyPixelFlow(canvas, start, end) {
                 // x축: unitX에 따라 좌측 혹은 우측 픽셀과의 차이 계산
                 if (unitX > 0) {
                     if (x == 0) {
-                        diffL.x = displaceX[index] + 1;
+                        // 이런거 +1 해주는거는 테두리에 투명색 1픽셀 해주는거임
+                        diffL.x = displaceX[index] + 1; 
                         diffL.y = displaceY[index];
                     } else {
                         let leftIdx = y * width + (x - 1);
@@ -311,8 +312,8 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png");
-        //const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("check.png");
+        const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
@@ -320,7 +321,6 @@ window.onload = async () => {
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
-    //animate();
 };
 
 // 마우스 위치를 저장할 배열
