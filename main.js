@@ -4,7 +4,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const EFFECT_RADIUS = 30; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 0.1; // 강도: +이면 정방향, -이면 역방향
+const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 let displaceX;
@@ -69,6 +69,7 @@ function applyPixelFlow(canvas, start, end) {
         stepY = -1;
     }
 
+    let sum = 0;
     // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
@@ -84,55 +85,47 @@ function applyPixelFlow(canvas, start, end) {
             // 원 내부의 픽셀만 처리
             if (dist < EFFECT_RADIUS) {
                 // 원래 코드에서 4방향(좌/우, 위/아래) 미분 차이를 계산하는 부분
-                let diffX, diffY;
+
                 let diffL = { x: 0, y: 0 },
                     diffR = { x: 0, y: 0 },
                     diffT = { x: 0, y: 0 },
                     diffB = { x: 0, y: 0 };
 
-                // x 방향 미분 (unitX에 따라 좌측 혹은 우측 비교)
+                // -> 방향으로 밀때
+                const leftIdx = y * width + (x - 1);
+                let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
+                let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
 
-                if (x === 0) {
-                    diffL.x = displaceX[index] + 1;
-                    diffL.y = displaceY[index];
-                } else {
-                    let leftIdx = y * width + (x - 1);
-                    diffL.x = displaceX[index] + 1 - displaceX[leftIdx];
-                    diffL.y = displaceY[index] - displaceY[leftIdx];
-                }
+                diffL.x = displaceX[index] + 1 - leftDisplaceX;
+                diffL.y = displaceY[index] - leftDisplaceY;
 
-                if (x === width - 1) {
-                    diffR.x = -displaceX[index] + 1;
-                    diffR.y = -displaceY[index];
-                } else {
-                    let rightIdx = y * width + (x + 1);
-                    diffR.x = displaceX[rightIdx] + 1 - displaceX[index];
-                    diffR.y = displaceY[rightIdx] - displaceY[index];
-                }
+                // <- 방향으로 밀때
+                const rightIdx = y * width + (x + 1);
+                let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
+                let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
 
-                // y 방향 미분 (unitY에 따라 위쪽 혹은 아래쪽 비교)
+                diffR.x = rightDisplaceX + 1 - displaceX[index];
+                diffR.y = rightDisplaceY - displaceY[index];
 
-                if (y === 0) {
-                    diffT.x = displaceX[index];
-                    diffT.y = displaceY[index] + 1;
-                } else {
-                    let topIdx = (y - 1) * width + x;
-                    diffT.x = displaceX[index] - displaceX[topIdx];
-                    diffT.y = displaceY[index] + 1 - displaceY[topIdx];
-                }
+                // 아래로 밀때
+                const topIdx = (y - 1) * width + x;
+                let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
+                let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
 
-                if (y === height - 1) {
-                    diffB.x = -displaceX[index];
-                    diffB.y = -displaceY[index] + 1;
-                } else {
-                    let bottomIdx = (y + 1) * width + x;
-                    diffB.x = displaceX[bottomIdx] - displaceX[index];
-                    diffB.y = displaceY[bottomIdx] + 1 - displaceY[index];
-                }
+                diffT.x = displaceX[index] - topDisplaceX;
+                diffT.y = displaceY[index] + 1 - topDisplaceY;
+
+                // 위로 밀때
+                const bottomIdx = (y + 1) * width + x;
+                let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
+                let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
+
+                diffB.x = bottomDisplaceX - displaceX[index];
+                diffB.y = bottomDisplaceY + 1 - displaceY[index];
 
                 // unit 방향에 따른 미분 선택
-                diffX = unitX > 0 ? diffL : diffR;
-                diffY = unitY > 0 ? diffT : diffB;
+                let diffX = unitX > 0 ? diffL : diffR;
+                let diffY = unitY > 0 ? diffT : diffB;
 
                 // easing 함수 (예시로 easeInOutCubic 사용)
                 const easeInOutCubic = (x) =>
@@ -144,38 +137,41 @@ function applyPixelFlow(canvas, start, end) {
                     -MAGNIFY_STRENGTH;
 
                 // offset 계산 (두 방향 간의 보정도 포함)
-                const offsetX_val = ((effectFactor * unitX) / 2) * diffX.x;
-                const offsetY_val = ((effectFactor * unitY) / 2) * diffY.y;
-                const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
-                const maxoffsetY = effectFactor * unitY * 10 * diffY.y;
+                const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
+                const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
 
                 const offsetX2Y = ((effectFactor * unitX) / 2) * diffX.y;
                 const offsetY2X = ((effectFactor * unitY) / 2) * diffY.x;
-                const maxoffsetX2Y = effectFactor * unitX * 10 * diffX.y;
-                const maxoffsetY2X = effectFactor * unitY * 10 * diffY.x;
 
                 // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
-                displaceX[index] += smallerAbs(offsetX_val, maxoffsetX);
-                displaceY[index] += smallerAbs(offsetY_val, maxoffsetY);
-                displaceY[index] += smallerAbs(offsetX2Y, maxoffsetX2Y);
-                displaceX[index] += smallerAbs(offsetY2X, maxoffsetY2X);
+                displaceX[index] += offsetX;
+                displaceY[index] += offsetY;
+                displaceY[index] += offsetX2Y;
+                displaceX[index] += offsetY2X;
+
+                sum++;
             }
         }
     }
+
+    console.log(sum);
 }
 
 function renderToImage(canvas, sx, sy, ex, ey) {
     const canvas_w = canvas.width;
     const canvas_h = canvas.height;
+
     const width = ex - sx;
     const height = ey - sy;
 
-    if (sx == undefined) {
+    // 잘못된 영역이면 그냥 종료합니다.
+    if (width <= 0 || height <= 0) {
         return;
     }
+
     const newImageData = new Uint8ClampedArray(width * height * 4);
 
-    let idxx = 0;
+    let imageIndex = 0;
     for (let y = sy; y < ey; y++) {
         for (let x = sx; x < ex; x++) {
             const index = y * canvas_w + x;
@@ -238,13 +234,13 @@ function renderToImage(canvas, sx, sy, ex, ey) {
             ];
 
             const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-            const newIndex = idxx * 4;
+            const newIndex = imageIndex * 4;
             newImageData[newIndex] = r;
             newImageData[newIndex + 1] = g;
             newImageData[newIndex + 2] = b;
             newImageData[newIndex + 3] = a;
 
-            idxx++;
+            imageIndex++;
         }
     }
 
@@ -337,19 +333,22 @@ document.addEventListener("mousemove", (event) => {
             0,
             Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
         );
-        const boundMaxX = Math.min(
-            width - 1,
-            Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
-        );
         const boundMinY = Math.max(
             0,
             Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
         );
+
+        const boundMaxX = Math.min(
+            width - 1,
+            Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
+        );
+
         const boundMaxY = Math.min(
             height - 1,
             Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
         );
 
+        console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
         renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
     }
 });
