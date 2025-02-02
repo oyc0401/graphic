@@ -3,8 +3,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 500; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 30; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 0.1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 let displaceX;
@@ -25,10 +25,14 @@ function initPixelFlow(canvas, ctx) {
     displaceY = new Float32Array(width * height);
 }
 
+const easeInOutCubic = (x) =>
+    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
 function applyPixelFlow(canvas, start, end) {
     const width = canvas.width;
     const height = canvas.height;
 
+    // end는 방향 계산용으로만 사용
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const length = Math.sqrt(dx * dx + dy * dy);
@@ -36,26 +40,13 @@ function applyPixelFlow(canvas, start, end) {
     const unitX = dx / length;
     const unitY = dy / length;
 
-    // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
-    const boundMinX = Math.max(
-        0,
-        Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
-    );
-    const boundMaxX = Math.min(
-        width - 1,
-        Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
-    );
-    const boundMinY = Math.max(
-        0,
-        Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
-    );
-    const boundMaxY = Math.min(
-        height - 1,
-        Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
-    );
+    // start를 중심으로 EFFECT_RADIUS 반경 내의 픽셀만 처리하기 위한 바운딩 박스 계산
+    const boundMinX = Math.max(0, Math.floor(start.x - EFFECT_RADIUS));
+    const boundMaxX = Math.min(width - 1, Math.ceil(start.x + EFFECT_RADIUS));
+    const boundMinY = Math.max(0, Math.floor(start.y - EFFECT_RADIUS));
+    const boundMaxY = Math.min(height - 1, Math.ceil(start.y + EFFECT_RADIUS));
 
-    // unit 방향에 따라 for문 시작점, 끝점, step 결정
-    // x축
+    // unit 방향에 따라 x, y 루프 순서를 결정 (unitX가 양수면 boundMinX부터, 음수면 boundMaxX부터; unitY도 마찬가지)
     let xStart, xEnd, stepX;
     if (unitX >= 0) {
         xStart = boundMinX;
@@ -66,7 +57,7 @@ function applyPixelFlow(canvas, start, end) {
         xEnd = boundMinX;
         stepX = -1;
     }
-    // y축
+
     let yStart, yEnd, stepY;
     if (unitY >= 0) {
         yStart = boundMinY;
@@ -77,149 +68,100 @@ function applyPixelFlow(canvas, start, end) {
         yEnd = boundMinY;
         stepY = -1;
     }
-let sum=0;
-    // y 반복: 조건은 stepY의 부호에 따라 달라짐
+
+    // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
-        // x 반복: 조건은 stepX의 부호에 따라 달라짐
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
-            sum++;
             const index = y * width + x;
+            const currentX = x;
+            const currentY = y;
 
-            // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
-            const currentX = x; // + displaceX[index];
-            const currentY = y; // + displaceY[index];
+            // start와 현재 픽셀 사이의 거리 계산
+            const deltaX = currentX - start.x;
+            const deltaY = currentY - start.y;
+            const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            // start~end 선분과 현재 픽셀 간의 최단거리 계산
-            const px = currentX - start.x;
-            const py = currentY - start.y;
-            const t = (px * unitX + py * unitY) / length;
-            const clampedT = Math.max(0, Math.min(1, t));
-            const closestX = start.x + clampedT * dx;
-            const closestY = start.y + clampedT * dy;
-            const distX = currentX - closestX;
-            const distY = currentY - closestY;
-            const dist = Math.sqrt(distX * distX + distY * distY);
-
+            // 원 내부의 픽셀만 처리
             if (dist < EFFECT_RADIUS) {
+                // 원래 코드에서 4방향(좌/우, 위/아래) 미분 차이를 계산하는 부분
                 let diffX, diffY;
-                // 4방향의 차이를 저장할 객체 (x, y 프로퍼티)
                 let diffL = { x: 0, y: 0 },
                     diffR = { x: 0, y: 0 },
                     diffT = { x: 0, y: 0 },
                     diffB = { x: 0, y: 0 };
 
-                // x축: unitX에 따라 좌측 혹은 우측 픽셀과의 차이 계산
-                if (unitX > 0) {
-                    if (x == 0) {
-                        // 이런거 +1 해주는거는 테두리에 투명색 1픽셀 해주는거임
-                        diffL.x = displaceX[index] + 1; 
-                        diffL.y = displaceY[index];
-                    } else {
-                        let leftIdx = y * width + (x - 1);
-                        diffL.x = displaceX[index] + 1 - displaceX[leftIdx];
-                        diffL.y = displaceY[index] - displaceY[leftIdx];
-                    }
-                }
-                // <-으로 밀기
-                else {
-                    // <-으로 밀기
-                    if (x == width - 1) {
-                        diffR.x = -displaceX[index] + 1;
-                        diffR.y = -displaceY[index];
-                    } else {
-                        let rightIdx = y * width + (x + 1);
-                        diffR.x = displaceX[rightIdx] + 1 - displaceX[index];
-                        diffR.y = displaceY[rightIdx] - displaceY[index];
-                    }
+                // x 방향 미분 (unitX에 따라 좌측 혹은 우측 비교)
+
+                if (x === 0) {
+                    diffL.x = displaceX[index] + 1;
+                    diffL.y = displaceY[index];
+                } else {
+                    let leftIdx = y * width + (x - 1);
+                    diffL.x = displaceX[index] + 1 - displaceX[leftIdx];
+                    diffL.y = displaceY[index] - displaceY[leftIdx];
                 }
 
-                // y축: unitY에 따라 위쪽 혹은 아래쪽 픽셀과의 차이 계산
-                if (unitY > 0) {
-                    //아래로 밀기, 위랑 비교
-                    if (y == 0) {
-                        diffT.x = displaceX[index];
-                        diffT.y = displaceY[index] + 1; // or 탑이 1
-                    } else {
-                        let topIdx = (y - 1) * width + x;
-                        diffT.x = displaceX[index] - displaceX[topIdx];
-                        diffT.y = displaceY[index] + 1 - displaceY[topIdx];
-                    }
-                }
-                // 위로 밀기
-                else {
-                    if (y == height - 1) {
-                        diffB.x = -displaceX[index];
-                        diffB.y = -displaceY[index] + 1; // or 바텀이 -1
-                    } else {
-                        let bottomIdx = (y + 1) * width + x;
-                        diffB.x = displaceX[bottomIdx] - displaceX[index];
-                        diffB.y = displaceY[bottomIdx] + 1 - displaceY[index];
-                    }
+                if (x === width - 1) {
+                    diffR.x = -displaceX[index] + 1;
+                    diffR.y = -displaceY[index];
+                } else {
+                    let rightIdx = y * width + (x + 1);
+                    diffR.x = displaceX[rightIdx] + 1 - displaceX[index];
+                    diffR.y = displaceY[rightIdx] - displaceY[index];
                 }
 
-                // x, y 각각에 대해 해당 방향의 차이를 선택
+                // y 방향 미분 (unitY에 따라 위쪽 혹은 아래쪽 비교)
+
+                if (y === 0) {
+                    diffT.x = displaceX[index];
+                    diffT.y = displaceY[index] + 1;
+                } else {
+                    let topIdx = (y - 1) * width + x;
+                    diffT.x = displaceX[index] - displaceX[topIdx];
+                    diffT.y = displaceY[index] + 1 - displaceY[topIdx];
+                }
+
+                if (y === height - 1) {
+                    diffB.x = -displaceX[index];
+                    diffB.y = -displaceY[index] + 1;
+                } else {
+                    let bottomIdx = (y + 1) * width + x;
+                    diffB.x = displaceX[bottomIdx] - displaceX[index];
+                    diffB.y = displaceY[bottomIdx] + 1 - displaceY[index];
+                }
+
+                // unit 방향에 따른 미분 선택
                 diffX = unitX > 0 ? diffL : diffR;
                 diffY = unitY > 0 ? diffT : diffB;
 
-                // 효과 적용 인자 계산
-                // x 가 0에 가까워질수록 1에 근접해가고, x == 1이면 정확히 0이고,
-                // x가 1에 가까워질수록 1에 근접해진다. 이때는 정확히 1이 아니여도 된다.
-
-                // 선형
-                const linearEffect = (x) => x;
-                // 사인함수
-              
-                const easeInOutSine = (x) => {
-                  return -0.5 * (Math.cos(Math.PI * x) - 1);
-                };
-
+                // easing 함수 (예시로 easeInOutCubic 사용)
                 const easeInOutCubic = (x) =>
                     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-                
-                const easeInOutQuad = (x) => (x < 0.5) ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 
-                // 4. Ease In Out Quart
-                const easeInOutQuart = (x) => (x < 0.5) ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2;
-
-                const easeInOutQuint = (x) => (x < 0.5) ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2;
-
-                const easeInOutExpo = (x) => {
-                  if (x === 0) return 0;
-                  if (x === 1) return 1;
-                  if (x < 0.5) return Math.pow(2, (20 * x) - 10) / 2;
-                  return (2 - Math.pow(2, (-20 * x) + 10)) / 2;
-                };
-                
-                const easeInOutCirc = (x) => {
-                  if (x < 0.5) return (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2;
-                  return (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2;
-                };
-                
-                
+                // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic (dist / EFFECT_RADIUS)) * -MAGNIFY_STRENGTH;
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                    -MAGNIFY_STRENGTH;
 
-                const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
-                const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
+                // offset 계산 (두 방향 간의 보정도 포함)
+                const offsetX_val = ((effectFactor * unitX) / 2) * diffX.x;
+                const offsetY_val = ((effectFactor * unitY) / 2) * diffY.y;
                 const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
                 const maxoffsetY = effectFactor * unitY * 10 * diffY.y;
 
-                // x방향으로 밀었을 때 y값 보정, y방향으로 밀었을 때 x값 보정
                 const offsetX2Y = ((effectFactor * unitX) / 2) * diffX.y;
                 const offsetY2X = ((effectFactor * unitY) / 2) * diffY.x;
                 const maxoffsetX2Y = effectFactor * unitX * 10 * diffX.y;
                 const maxoffsetY2X = effectFactor * unitY * 10 * diffY.x;
 
-                // 누적 변위 업데이트 (smallerAbs는 두 값 중 절대값이 작은 쪽을 반환하는 함수)
-                displaceX[index] += smallerAbs(offsetX, maxoffsetX);
-                displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+                // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
+                displaceX[index] += smallerAbs(offsetX_val, maxoffsetX);
+                displaceY[index] += smallerAbs(offsetY_val, maxoffsetY);
                 displaceY[index] += smallerAbs(offsetX2Y, maxoffsetX2Y);
                 displaceX[index] += smallerAbs(offsetY2X, maxoffsetY2X);
             }
         }
     }
-
-    console.log(sum)
 }
 
 function renderToImage(canvas, sx, sy, ex, ey) {
@@ -315,8 +257,8 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        //const img = await loadImageFromURL("check.png");
-        const img = await loadImageFromURL("cat.webp");
+        const img = await loadImageFromURL("check.png");
+        // const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
@@ -355,41 +297,40 @@ document.addEventListener("mousemove", (event) => {
         const start = positions[lastIndex - 1];
         const end = positions[lastIndex];
 
-        // 두 점 사이의 총 거리 계산
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
+        function getLinePoints(x0, y0, x1, y1) {
+            const points = [];
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            const sx = x0 < x1 ? 1 : -1;
+            const sy = y0 < y1 ? 1 : -1;
+            let err = dx - dy;
 
-        const step = 2; // 기준 길이 5
-
-        // 5 단위 구간을 계산하여 무조건 실행
-        const numSegments = Math.floor(distance / step);
-
-        // 각 세그먼트를 for문으로 순회하며 applyPixelFlow를 호출합니다.
-        for (let i = 0; i < numSegments; i++) {
-            // 현재 세그먼트의 시작점과 끝점 계산 (선형 보간)
-            const segStart = {
-                x: start.x + (i * step * dx) / distance,
-                y: start.y + (i * step * dy) / distance,
-            };
-            const segEnd = {
-                x: start.x + ((i + 1) * step * dx) / distance,
-                y: start.y + ((i + 1) * step * dy) / distance,
-            };
-
-            applyPixelFlow(canvas, segStart, segEnd);
+            while (true) {
+                points.push({ x: x0, y: y0 });
+                if (x0 === x1 && y0 === y1) break;
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x0 += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+            return points;
         }
 
-        // 남은 구간(remainder)이 있을 경우, remainder/step 확률로 마지막 구간에 대해 적용합니다.
-        const remainder = distance - numSegments * step;
-        if (remainder > 0 && Math.random() < remainder / step) {
-            const segStart = {
-                x: start.x + (numSegments * step * dx) / distance,
-                y: start.y + (numSegments * step * dy) / distance,
-            };
+        ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
-            applyPixelFlow(canvas, segStart, end);
-        }
+        const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
+        linePoints.forEach((point) => {
+            // ctx.beginPath();
+            // ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+            //ctx.fill();
+            applyPixelFlow(canvas, point, end);
+        });
 
         // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
         const boundMinX = Math.max(
@@ -480,4 +421,169 @@ function drawImageToCanvas(img) {
     helper_canvas.width = canvas.width;
     helper_canvas.height = canvas.height;
     ctx.drawImage(img, 0, 0);
+}
+
+function applyPixelFlowLine(canvas, start, end) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) return;
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
+    const boundMinX = Math.max(
+        0,
+        Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
+    );
+    const boundMaxX = Math.min(
+        width - 1,
+        Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
+    );
+    const boundMinY = Math.max(
+        0,
+        Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
+    );
+    const boundMaxY = Math.min(
+        height - 1,
+        Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
+    );
+
+    // unit 방향에 따라 for문 시작점, 끝점, step 결정
+    // x축
+    let xStart, xEnd, stepX;
+    if (unitX >= 0) {
+        xStart = boundMinX;
+        xEnd = boundMaxX;
+        stepX = 1;
+    } else {
+        xStart = boundMaxX;
+        xEnd = boundMinX;
+        stepX = -1;
+    }
+    // y축
+    let yStart, yEnd, stepY;
+    if (unitY >= 0) {
+        yStart = boundMinY;
+        yEnd = boundMaxY;
+        stepY = 1;
+    } else {
+        yStart = boundMaxY;
+        yEnd = boundMinY;
+        stepY = -1;
+    }
+    let sum = 0;
+    // y 반복: 조건은 stepY의 부호에 따라 달라짐
+    for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
+        // x 반복: 조건은 stepX의 부호에 따라 달라짐
+        for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
+            sum++;
+            const index = y * width + x;
+
+            // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
+            const currentX = x; // + displaceX[index];
+            const currentY = y; // + displaceY[index];
+
+            // start~end 선분과 현재 픽셀 간의 최단거리 계산
+            const px = currentX - start.x;
+            const py = currentY - start.y;
+            const t = (px * unitX + py * unitY) / length;
+            const clampedT = Math.max(0, Math.min(1, t));
+            const closestX = start.x + clampedT * dx;
+            const closestY = start.y + clampedT * dy;
+            const distX = currentX - closestX;
+            const distY = currentY - closestY;
+            const dist = Math.sqrt(distX * distX + distY * distY);
+
+            if (dist < EFFECT_RADIUS) {
+                let diffX, diffY;
+                // 4방향의 차이를 저장할 객체 (x, y 프로퍼티)
+                let diffL = { x: 0, y: 0 },
+                    diffR = { x: 0, y: 0 },
+                    diffT = { x: 0, y: 0 },
+                    diffB = { x: 0, y: 0 };
+
+                // x축: unitX에 따라 좌측 혹은 우측 픽셀과의 차이 계산
+
+                if (x == 0) {
+                    // 이런거 +1 해주는거는 테두리에 투명색 1픽셀 해주는거임
+                    diffL.x = displaceX[index] + 1;
+                    diffL.y = displaceY[index];
+                } else {
+                    let leftIdx = y * width + (x - 1);
+                    diffL.x = displaceX[index] + 1 - displaceX[leftIdx];
+                    diffL.y = displaceY[index] - displaceY[leftIdx];
+                }
+
+                // <-으로 밀기
+
+                // <-으로 밀기
+                if (x == width - 1) {
+                    diffR.x = -displaceX[index] + 1;
+                    diffR.y = -displaceY[index];
+                } else {
+                    let rightIdx = y * width + (x + 1);
+                    diffR.x = displaceX[rightIdx] + 1 - displaceX[index];
+                    diffR.y = displaceY[rightIdx] - displaceY[index];
+                }
+
+                // y축: unitY에 따라 위쪽 혹은 아래쪽 픽셀과의 차이 계산
+
+                //아래로 밀기, 위랑 비교
+                if (y == 0) {
+                    diffT.x = displaceX[index];
+                    diffT.y = displaceY[index] + 1; // or 탑이 1
+                } else {
+                    let topIdx = (y - 1) * width + x;
+                    diffT.x = displaceX[index] - displaceX[topIdx];
+                    diffT.y = displaceY[index] + 1 - displaceY[topIdx];
+                }
+
+                // 위로 밀기
+
+                if (y == height - 1) {
+                    diffB.x = -displaceX[index];
+                    diffB.y = -displaceY[index] + 1; // or 바텀이 -1
+                } else {
+                    let bottomIdx = (y + 1) * width + x;
+                    diffB.x = displaceX[bottomIdx] - displaceX[index];
+                    diffB.y = displaceY[bottomIdx] + 1 - displaceY[index];
+                }
+
+                // x, y 각각에 대해 해당 방향의 차이를 선택
+                diffX = unitX > 0 ? diffL : diffR;
+                diffY = unitY > 0 ? diffT : diffB;
+
+                // 효과 적용 인자 계산
+                // x 가 0에 가까워질수록 1에 근접해가고, x == 1이면 정확히 0이고,
+                // x가 1에 가까워질수록 1에 근접해진다.
+
+                const effectFactor =
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                    -MAGNIFY_STRENGTH;
+
+                const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
+                const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
+                const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
+                const maxoffsetY = effectFactor * unitY * 10 * diffY.y;
+
+                // x방향으로 밀었을 때 y값 보정, y방향으로 밀었을 때 x값 보정
+                const offsetX2Y = ((effectFactor * unitX) / 2) * diffX.y;
+                const offsetY2X = ((effectFactor * unitY) / 2) * diffY.x;
+                const maxoffsetX2Y = effectFactor * unitX * 10 * diffX.y;
+                const maxoffsetY2X = effectFactor * unitY * 10 * diffY.x;
+
+                // 누적 변위 업데이트 (smallerAbs는 두 값 중 절대값이 작은 쪽을 반환하는 함수)
+                displaceX[index] += smallerAbs(offsetX, maxoffsetX);
+                displaceY[index] += smallerAbs(offsetY, maxoffsetY);
+                displaceY[index] += smallerAbs(offsetX2Y, maxoffsetX2Y);
+                displaceX[index] += smallerAbs(offsetY2X, maxoffsetY2X);
+            }
+        }
+    }
+
+    //console.log(sum)
 }
