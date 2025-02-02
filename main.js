@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 30; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 0.5; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -27,7 +27,7 @@ function initPixelFlow(canvas, ctx) {
 
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-
+let sum = 0;
 function applyPixelFlow(canvas, start, end) {
     const width = canvas.width;
     const height = canvas.height;
@@ -48,31 +48,45 @@ function applyPixelFlow(canvas, start, end) {
 
     // unit 방향에 따라 x, y 루프 순서를 결정 (unitX가 양수면 boundMinX부터, 음수면 boundMaxX부터; unitY도 마찬가지)
     let xStart, xEnd, stepX;
-    if (unitX >= 0) {
-        xStart = boundMinX;
-        xEnd = boundMaxX;
-        stepX = 1;
-    } else {
-        xStart = boundMaxX;
-        xEnd = boundMinX;
-        stepX = -1;
-    }
-
     let yStart, yEnd, stepY;
-    if (unitY >= 0) {
-        yStart = boundMinY;
-        yEnd = boundMaxY;
-        stepY = 1;
-    } else {
+    
+    if (unitX > 0 && unitY > 0) {
+        // unitX와 unitY가 양수인 경우: x와 y 모두 boundMax에서 boundMin 방향으로 반복
+        xStart = boundMaxX;
+        xEnd   = boundMinX;
+        stepX  = -1;
+
         yStart = boundMaxY;
-        yEnd = boundMinY;
-        stepY = -1;
+        yEnd   = boundMinY;
+        stepY  = -1;
+    } else {
+        // 그 외의 경우: 기존 방식대로 설정
+        if (unitX >= 0) {
+            xStart = boundMinX;
+            xEnd   = boundMaxX;
+            stepX  = 1;
+        } else {
+            xStart = boundMaxX;
+            xEnd   = boundMinX;
+            stepX  = -1;
+        }
+
+        if (unitY >= 0) {
+            yStart = boundMinY;
+            yEnd   = boundMaxY;
+            stepY  = 1;
+        } else {
+            yStart = boundMaxY;
+            yEnd   = boundMinY;
+            stepY  = -1;
+        }
     }
 
-    let sum = 0;
+
     // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
+         
             const index = y * width + x;
             const currentX = x;
             const currentY = y;
@@ -154,8 +168,9 @@ function applyPixelFlow(canvas, start, end) {
         }
     }
 
-    console.log(sum);
+   // console.log("sum:", sum);
 }
+
 
 function renderToImage(canvas, sx, sy, ex, ey) {
     const canvas_w = canvas.width;
@@ -253,9 +268,9 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png");
+        //const img = await loadImageFromURL("check.png");
         // const img = await loadImageFromURL("cat.webp");
-        //const img = await loadImageFromURL("musk.png");
+        const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
         initPixelFlow(canvas, ctx);
@@ -289,6 +304,7 @@ document.addEventListener("mousemove", (event) => {
             return;
         }
 
+        sum=0;
         lastIndex = positions.length - 1;
         const start = positions[lastIndex - 1];
         const end = positions[lastIndex];
@@ -318,13 +334,13 @@ document.addEventListener("mousemove", (event) => {
             return points;
         }
 
-        ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+        //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
         const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
         linePoints.forEach((point) => {
-            // ctx.beginPath();
-            // ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-            //ctx.fill();
+           // ctx.beginPath();
+           // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
+           // ctx.fill();
             applyPixelFlow(canvas, point, end);
         });
 
@@ -348,7 +364,8 @@ document.addEventListener("mousemove", (event) => {
             Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
         );
 
-        console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
+        console.log(sum)
+        //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
         renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
     }
 });
