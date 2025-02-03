@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 10; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 100; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -298,7 +298,7 @@ document.addEventListener("pointermove", (event) => {
         let height = canvas.height;
 
         // 현재 좌표를 배열에 저장
-        positions.push({ x: clientX, y: clientY });
+        positions.push({ x: ~~clientX, y: ~~clientY });
 
         if (positions.length < 2) {
             return;
@@ -311,6 +311,11 @@ document.addEventListener("pointermove", (event) => {
 
         // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
         function getLinePoints(x0, y0, x1, y1) {
+              if (!Number.isInteger(x0) || !Number.isInteger(y0) ||
+                  !Number.isInteger(x1) || !Number.isInteger(y1)) {
+                throw new Error("모든 좌표는 정수여야 합니다.");
+              }
+            
             const points = [];
             let dx = Math.abs(x1 - x0);
             let dy = Math.abs(y1 - y0);
@@ -364,7 +369,7 @@ document.addEventListener("pointermove", (event) => {
             Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
         );
 
-       // console.log(sum);
+        console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
         renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
     }
