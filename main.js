@@ -3,8 +3,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 100; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH =1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 let displaceX;
@@ -46,44 +46,37 @@ function applyPixelFlow(canvas, start, end) {
     const boundMinY = Math.max(0, Math.floor(start.y - EFFECT_RADIUS));
     const boundMaxY = Math.min(height - 1, Math.ceil(start.y + EFFECT_RADIUS));
 
-    // unit 방향에 따라 x, y 루프 순서를 결정 (unitX가 양수면 boundMinX부터, 음수면 boundMaxX부터; unitY도 마찬가지)
+    // unit 방향에 따라 for문 시작점, 끝점, step 결정
+    // x축
     let xStart, xEnd, stepX;
-    let yStart, yEnd, stepY;
-
-    if (unitX > 0 && unitY > 0) {
-        // unitX와 unitY가 양수인 경우: x와 y 모두 boundMax에서 boundMin 방향으로 반복
+    if (unitX > 0) {
+        // unitX가 양수이면 x는 큰 값에서 작은 값으로 감소
         xStart = boundMaxX;
         xEnd = boundMinX;
         stepX = -1;
+    } else {
+        // unitX가 0이거나 음수이면 x는 작은 값에서 큰 값으로 증가
+        xStart = boundMinX;
+        xEnd = boundMaxX;
+        stepX = 1;
+    }
 
+    let yStart, yEnd, stepY;
+    if (unitY > 0) {
+        // unitY가 양수이면 y는 큰 값에서 작은 값으로 감소
         yStart = boundMaxY;
         yEnd = boundMinY;
         stepY = -1;
     } else {
-        // 그 외의 경우: 기존 방식대로 설정
-        if (unitX >= 0) {
-            xStart = boundMinX;
-            xEnd = boundMaxX;
-            stepX = 1;
-        } else {
-            xStart = boundMaxX;
-            xEnd = boundMinX;
-            stepX = -1;
-        }
-
-        if (unitY >= 0) {
-            yStart = boundMinY;
-            yEnd = boundMaxY;
-            stepY = 1;
-        } else {
-            yStart = boundMaxY;
-            yEnd = boundMinY;
-            stepY = -1;
-        }
+        // unitY가 0이거나 음수이면 y는 작은 값에서 큰 값으로 증가
+        yStart = boundMinY;
+        yEnd = boundMaxY;
+        stepY = 1;
     }
 
-    // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
+    // y축 반복: stepY에 따라 조건 변경
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
+        // x축 반복: stepX에 따라 조건 변경
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
             const index = y * width + x;
             const currentX = x;
@@ -110,7 +103,6 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffL.x = displaceX[index] + 1 - leftDisplaceX;
                 diffL.y = displaceY[index] - leftDisplaceY;
-               
 
                 // <- 방향으로 밀때
                 const rightIdx = y * width + (x + 1);
@@ -119,7 +111,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffR.x = rightDisplaceX + 1 - displaceX[index];
                 diffR.y = rightDisplaceY - displaceY[index];
-               
+
                 // 아래로 밀때
                 const topIdx = (y - 1) * width + x;
                 let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
@@ -127,7 +119,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffT.x = displaceX[index] - topDisplaceX;
                 diffT.y = displaceY[index] + 1 - topDisplaceY;
-               
+
                 // 위로 밀때
                 const bottomIdx = (y + 1) * width + x;
                 let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
@@ -135,7 +127,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffB.x = bottomDisplaceX - displaceX[index];
                 diffB.y = bottomDisplaceY + 1 - displaceY[index];
-               
+
                 // unit 방향에 따른 미분 선택
                 let diffX = unitX > 0 ? diffL : diffR;
                 let diffY = unitY > 0 ? diffT : diffB;
@@ -146,8 +138,8 @@ function applyPixelFlow(canvas, start, end) {
 
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                    MAGNIFY_STRENGTH/2;
+                    ((1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                        MAGNIFY_STRENGTH)
 
                 // offset 계산 (두 방향 간의 보정도 포함)
                 const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
@@ -159,10 +151,10 @@ function applyPixelFlow(canvas, start, end) {
 
                 // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
                 displaceX[index] += offsetX * unitX;
-                displaceY[index] += offsetX2Y* unitX;
+                displaceY[index] += offsetX2Y * unitX;
 
                 displaceY[index] += offsetY * unitY;
-               displaceX[index] += offsetY2X* unitY;
+                displaceX[index] += offsetY2X * unitY;
 
                 sum++;
             }
@@ -268,12 +260,27 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 // 초기화
 window.onload = async () => {
     try {
-        //const img = await loadImageFromURL("check.png");
+        const img = await loadImageFromURL("check_r.png");
         // const img = await loadImageFromURL("cat.webp");
-        const img = await loadImageFromURL("musk.png");
+        //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
         initPixelFlow(canvas, ctx);
+
+        // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
+        // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
+
+        // applyPixelFlowLine(canvas, { x: 100, y: 300 }, { x: 400, y: 300 }, 2);
+
+        // const linePoints = getLinePoints(100, 100, 400, 100);
+        // linePoints.forEach((point) => {
+        //     // ctx.beginPath();
+        //     // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
+        //     // ctx.fill();
+        //     applyPixelFlow(canvas, point,  { x: 400, y: 100 });
+        // });
+
+        //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
@@ -289,7 +296,39 @@ document.addEventListener("pointerdown", (event) => {
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
 });
+// // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
+    function getLinePoints(x0, y0, x1, y1) {
+        if (
+            !Number.isInteger(x0) ||
+            !Number.isInteger(y0) ||
+            !Number.isInteger(x1) ||
+            !Number.isInteger(y1)
+        ) {
+            throw new Error("모든 좌표는 정수여야 합니다.");
+        }
 
+        const points = [];
+        let dx = Math.abs(x1 - x0);
+        let dy = Math.abs(y1 - y0);
+        const sx = x0 < x1 ? 1 : -1;
+        const sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+
+        while (true) {
+            points.push({ x: x0, y: y0 });
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+        return points;
+    }
 // 마우스 움직임 기록
 document.addEventListener("pointermove", (event) => {
     if (isTracking) {
@@ -309,35 +348,7 @@ document.addEventListener("pointermove", (event) => {
         const start = positions[lastIndex - 1];
         const end = positions[lastIndex];
 
-        // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
-        function getLinePoints(x0, y0, x1, y1) {
-              if (!Number.isInteger(x0) || !Number.isInteger(y0) ||
-                  !Number.isInteger(x1) || !Number.isInteger(y1)) {
-                throw new Error("모든 좌표는 정수여야 합니다.");
-              }
-            
-            const points = [];
-            let dx = Math.abs(x1 - x0);
-            let dy = Math.abs(y1 - y0);
-            const sx = x0 < x1 ? 1 : -1;
-            const sy = y0 < y1 ? 1 : -1;
-            let err = dx - dy;
-
-            while (true) {
-                points.push({ x: x0, y: y0 });
-                if (x0 === x1 && y0 === y1) break;
-                const e2 = 2 * err;
-                if (e2 > -dy) {
-                    err -= dy;
-                    x0 += sx;
-                }
-                if (e2 < dx) {
-                    err += dx;
-                    y0 += sy;
-                }
-            }
-            return points;
-        }
+    
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
@@ -369,7 +380,7 @@ document.addEventListener("pointermove", (event) => {
             Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
         );
 
-        console.log(sum);
+        //console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
         renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
     }
@@ -444,7 +455,7 @@ function drawImageToCanvas(img) {
     ctx.drawImage(img, 0, 0);
 }
 
-function applyPixelFlowLine(canvas, start, end) {
+function applyPixelFlowLine(canvas, start, end, force = 1) {
     const width = canvas.width;
     const height = canvas.height;
 
@@ -476,32 +487,35 @@ function applyPixelFlowLine(canvas, start, end) {
     // unit 방향에 따라 for문 시작점, 끝점, step 결정
     // x축
     let xStart, xEnd, stepX;
-    if (unitX >= 0) {
-        xStart = boundMinX;
-        xEnd = boundMaxX;
-        stepX = 1;
-    } else {
+    if (unitX > 0) {
+        // unitX가 양수이면 x는 큰 값에서 작은 값으로 감소
         xStart = boundMaxX;
         xEnd = boundMinX;
         stepX = -1;
-    }
-    // y축
-    let yStart, yEnd, stepY;
-    if (unitY >= 0) {
-        yStart = boundMinY;
-        yEnd = boundMaxY;
-        stepY = 1;
     } else {
+        // unitX가 0이거나 음수이면 x는 작은 값에서 큰 값으로 증가
+        xStart = boundMinX;
+        xEnd = boundMaxX;
+        stepX = 1;
+    }
+
+    let yStart, yEnd, stepY;
+    if (unitY > 0) {
+        // unitY가 양수이면 y는 큰 값에서 작은 값으로 감소
         yStart = boundMaxY;
         yEnd = boundMinY;
         stepY = -1;
+    } else {
+        // unitY가 0이거나 음수이면 y는 작은 값에서 큰 값으로 증가
+        yStart = boundMinY;
+        yEnd = boundMaxY;
+        stepY = 1;
     }
-    let sum = 0;
-    // y 반복: 조건은 stepY의 부호에 따라 달라짐
+
+    // y축 반복: stepY에 따라 조건 변경
     for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
-        // x 반복: 조건은 stepX의 부호에 따라 달라짐
+        // x축 반복: stepX에 따라 조건 변경
         for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
-            sum++;
             const index = y * width + x;
 
             // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
@@ -522,86 +536,68 @@ function applyPixelFlowLine(canvas, start, end) {
             if (dist < EFFECT_RADIUS) {
                 let diffX, diffY;
                 // 4방향의 차이를 저장할 객체 (x, y 프로퍼티)
-                let diffL = { x: 0, y: 0 },
+                let diffL = { x: 0, y: 0, t: 0 },
                     diffR = { x: 0, y: 0 },
                     diffT = { x: 0, y: 0 },
                     diffB = { x: 0, y: 0 };
 
-                // x축: unitX에 따라 좌측 혹은 우측 픽셀과의 차이 계산
+                // -> 방향으로 밀때
+                const leftIdx = y * width + (x - 1);
+                let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
+                let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
 
-                if (x == 0) {
-                    // 이런거 +1 해주는거는 테두리에 투명색 1픽셀 해주는거임
-                    diffL.x = displaceX[index] + 1;
-                    diffL.y = displaceY[index];
-                } else {
-                    let leftIdx = y * width + (x - 1);
-                    diffL.x = displaceX[index] + 1 - displaceX[leftIdx];
-                    diffL.y = displaceY[index] - displaceY[leftIdx];
-                }
+                diffL.x = displaceX[index] + 1 - leftDisplaceX;
+                diffL.y = displaceY[index] - leftDisplaceY;
 
-                // <-으로 밀기
+                // <- 방향으로 밀때
+                const rightIdx = y * width + (x + 1);
+                let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
+                let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
 
-                // <-으로 밀기
-                if (x == width - 1) {
-                    diffR.x = -displaceX[index] + 1;
-                    diffR.y = -displaceY[index];
-                } else {
-                    let rightIdx = y * width + (x + 1);
-                    diffR.x = displaceX[rightIdx] + 1 - displaceX[index];
-                    diffR.y = displaceY[rightIdx] - displaceY[index];
-                }
+                diffR.x = rightDisplaceX + 1 - displaceX[index];
+                diffR.y = rightDisplaceY - displaceY[index];
 
-                // y축: unitY에 따라 위쪽 혹은 아래쪽 픽셀과의 차이 계산
+                // 아래로 밀때
+                const topIdx = (y - 1) * width + x;
+                let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
+                let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
 
-                //아래로 밀기, 위랑 비교
-                if (y == 0) {
-                    diffT.x = displaceX[index];
-                    diffT.y = displaceY[index] + 1; // or 탑이 1
-                } else {
-                    let topIdx = (y - 1) * width + x;
-                    diffT.x = displaceX[index] - displaceX[topIdx];
-                    diffT.y = displaceY[index] + 1 - displaceY[topIdx];
-                }
+                diffT.x = displaceX[index] - topDisplaceX;
+                diffT.y = displaceY[index] + 1 - topDisplaceY;
 
-                // 위로 밀기
+                // 위로 밀때
+                const bottomIdx = (y + 1) * width + x;
+                let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
+                let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
 
-                if (y == height - 1) {
-                    diffB.x = -displaceX[index];
-                    diffB.y = -displaceY[index] + 1; // or 바텀이 -1
-                } else {
-                    let bottomIdx = (y + 1) * width + x;
-                    diffB.x = displaceX[bottomIdx] - displaceX[index];
-                    diffB.y = displaceY[bottomIdx] + 1 - displaceY[index];
-                }
+                diffB.x = bottomDisplaceX - displaceX[index];
+                diffB.y = bottomDisplaceY + 1 - displaceY[index];
 
                 // x, y 각각에 대해 해당 방향의 차이를 선택
                 diffX = unitX > 0 ? diffL : diffR;
                 diffY = unitY > 0 ? diffT : diffB;
 
-                // 효과 적용 인자 계산
-                // x 가 0에 가까워질수록 1에 근접해가고, x == 1이면 정확히 0이고,
-                // x가 1에 가까워질수록 1에 근접해진다.
+                // easing 함수
+                const easeInOutCubic = (x) =>
+                    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
-                const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                    -MAGNIFY_STRENGTH;
+                // start와의 거리에 따른 효과 강도 계산
+                const effectFactor = MAGNIFY_STRENGTH * force;
 
-                const offsetX = ((effectFactor * unitX) / 2) * diffX.x;
-                const offsetY = ((effectFactor * unitY) / 2) * diffY.y;
-                const maxoffsetX = effectFactor * unitX * 10 * diffX.x;
-                const maxoffsetY = effectFactor * unitY * 10 * diffY.y;
+                // offset 계산 (두 방향 간의 보정도 포함)
+                const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
+                const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
 
-                // x방향으로 밀었을 때 y값 보정, y방향으로 밀었을 때 x값 보정
-                const offsetX2Y = ((effectFactor * unitX) / 2) * diffX.y;
-                const offsetY2X = ((effectFactor * unitY) / 2) * diffY.x;
-                const maxoffsetX2Y = effectFactor * unitX * 10 * diffX.y;
-                const maxoffsetY2X = effectFactor * unitY * 10 * diffY.x;
+                const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
 
-                // 누적 변위 업데이트 (smallerAbs는 두 값 중 절대값이 작은 쪽을 반환하는 함수)
-                displaceX[index] += smallerAbs(offsetX, maxoffsetX);
-                displaceY[index] += smallerAbs(offsetY, maxoffsetY);
-                displaceY[index] += smallerAbs(offsetX2Y, maxoffsetX2Y);
-                displaceX[index] += smallerAbs(offsetY2X, maxoffsetY2X);
+                const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
+
+                // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
+                displaceX[index] += offsetX * unitX;
+                displaceY[index] += offsetX2Y * unitX;
+
+                displaceY[index] += offsetY * unitY;
+                displaceX[index] += offsetY2X * unitY;
             }
         }
     }
