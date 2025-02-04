@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 5; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -260,6 +260,42 @@ const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 function easeInOutQuint(x) {
     return x < 0.5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2;
 }
+function applyLine(start, end, radius) {
+    const step = radius;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const totalDistance = Math.hypot(dx, dy);
+    const steps = Math.floor(totalDistance / step);
+    const remainder = totalDistance % step; // 남은 부분 계산
+
+    if (remainder > 0) {
+        const firstEnd = {
+            x: start.x + (dx * remainder) / totalDistance,
+            y: start.y + (dy * remainder) / totalDistance,
+        };
+        getLinePoints(start.x, start.y, firstEnd.x, firstEnd.y).forEach(
+            (point) => {
+                applyPixelFlow(canvas, point, firstEnd);
+            },
+        );
+    }
+
+    for (let i = 0; i < steps; i++) {
+        const t1 = (remainder + i * step) / totalDistance;
+        const t2 = (remainder + (i + 1) * step) / totalDistance;
+
+        const p1 = {
+            x: start.x + dx * t1,
+            y: start.y + dy * t1,
+        };
+        const p2 = {
+            x: start.x + dx * t2,
+            y: start.y + dy * t2,
+        };
+
+        applyPixelFlowLine(canvas, p1, p2, 18);
+    }
+}
 
 // 초기화
 window.onload = async () => {
@@ -270,17 +306,34 @@ window.onload = async () => {
         drawImageToCanvas(img);
 
         initPixelFlow(canvas, ctx);
+        // getLinePoints(100, 100, 200, 100).forEach((point) => {
+        //     applyPixelFlow(canvas, point, { x: 400, y: 100 });
+        // });
+        let radius = EFFECT_RADIUS;
+        let start = { x: 100, y: 100 };
+        let end = { x: 400, y: 100 };
 
-        applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 120, y: 120 }, 3);
+        // applyLine(start, end, radius);
+
+        let F = 1.32
+        applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 150, y: 100 },F );
+        applyPixelFlowLine(canvas, { x: 150, y: 100 }, { x: 200, y: 100 }, F );
+       applyPixelFlowLine(canvas, { x: 200, y: 100 }, { x: 250, y: 100 }, F );
+        applyPixelFlowLine(canvas, { x: 250, y: 100 }, { x: 300, y: 100 }, F );
+        applyPixelFlowLine(canvas, { x: 300, y: 100 }, { x: 350, y: 100 }, F );
+        applyPixelFlowLine(canvas, { x: 350, y: 100 }, { x: 400, y: 100 }, F );
+        // getLinePoints(400, 100, 450, 100).forEach((point) => {
+        //     applyPixelFlow(canvas, point, { x: 450, y: 100 });
+        // });
         // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
 
         // applyPixelFlowLine(canvas, { x: 100, y: 300 }, { x: 400, y: 300 }, 2);
 
-        const linePoints = getLinePoints(100, 300, 120, 300);
-        linePoints.forEach((point) => {
-            // ctx.beginPath();
-            // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
-            // ctx.fill();
+        getLinePoints(100, 300, 200, 300).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 200, y: 300 });
+        });
+
+        getLinePoints(200, 300, 400, 300).forEach((point) => {
             applyPixelFlow(canvas, point, { x: 400, y: 300 });
         });
 
@@ -512,16 +565,18 @@ function applyPixelFlowLine(canvas, start, end, force = 1) {
     const gridHeight = boundMaxY - boundMinY;
 
     console.log(start, end);
+    console.log(gridWidth, gridHeight);
+    console.log(boundMinX, boundMaxX, boundMinY, boundMaxY);
     console.log(
         start.x - boundMinX,
-        start.y - boundMinX,
+        start.y - boundMinY,
         gridWidth - EFFECT_RADIUS,
         gridHeight - EFFECT_RADIUS,
     );
 
     const centers = bresenhamLine(
         start.x - boundMinX,
-        start.y - boundMinX,
+        start.y - boundMinY,
         gridWidth - EFFECT_RADIUS,
         gridHeight - EFFECT_RADIUS,
     );
@@ -612,18 +667,22 @@ function applyPixelFlowLine(canvas, start, end, force = 1) {
                 function easeInOutSine(x) {
                     return -(Math.cos(Math.PI * x) - 1) / 2;
                 }
-
+                const easeInOutCubicModified = (x) => {
+                    if (x < 0.5) {
+                        return 4 * x * x * x; // 기존 그대로 유지
+                    } else {
+                        return 1 - ((-2 * x + 2) ** 3 / 2) * 0.8; // 기울기 증가
+                    }
+                };
+                function logDoubleFunction(x) {
+                    return  Math.log2(Math.log2(x + 1) + 1);
+                }
                 const myStack = capsuleGrid[y - boundMinY][x - boundMinX];
 
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    ((1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                        force *
-                        MAGNIFY_STRENGTH *
-                        0.5 *
-                        myStack) /
-                    EFFECT_RADIUS /
-                    2;
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                        force *MAGNIFY_STRENGTH *  0.5 * logDoubleFunction(myStack/EFFECT_RADIUS+1)*5
 
                 // offset 계산 (두 방향 간의 보정도 포함)
                 const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
