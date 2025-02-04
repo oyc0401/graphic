@@ -3,14 +3,207 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+// 초기화
 
 let lastIndex = 0;
 let displaceX;
 let displaceY;
 let originalImageData;
 let originalData;
+function applyPixelFlowLine(canvas, start, end, force = 1) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) return;
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    // 선분의 최소/ 최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
+    const boundMinX = Math.max(
+        0,
+        Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
+    );
+    const boundMaxX = Math.min(
+        width - 1,
+        Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
+    );
+    const boundMinY = Math.max(
+        0,
+        Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
+    );
+    const boundMaxY = Math.min(
+        height - 1,
+        Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
+    );
+
+    let xStart, xEnd, stepX;
+    if (unitX >= 0) {
+        xStart = boundMinX;
+        xEnd = boundMaxX;
+        stepX = 1;
+    } else {
+        xStart = boundMaxX;
+        xEnd = boundMinX;
+        stepX = -1;
+    }
+    // y축
+    let yStart, yEnd, stepY;
+    if (unitY >= 0) {
+        yStart = boundMinY;
+        yEnd = boundMaxY;
+        stepY = 1;
+    } else {
+        yStart = boundMaxY;
+        yEnd = boundMinY;
+        stepY = -1;
+    }
+
+    const gridWidth = boundMaxX - boundMinX;
+    const gridHeight = boundMaxY - boundMinY;
+
+    console.log(start, end);
+    console.log(gridWidth, gridHeight);
+    console.log(boundMinX, boundMaxX, boundMinY, boundMaxY);
+    console.log(
+        start.x - boundMinX,
+        start.y - boundMinY,
+        gridWidth - EFFECT_RADIUS,
+        gridHeight - EFFECT_RADIUS,
+    );
+
+    const centers = bresenhamLine(
+        start.x - boundMinX,
+        start.y - boundMinY,
+        gridWidth - EFFECT_RADIUS,
+        gridHeight - EFFECT_RADIUS,
+    );
+
+    // 차분 배열 업데이트를 통해 최종 결과 배열 생성
+    const capsuleGrid = generateResultGrid(
+        gridWidth,
+        gridHeight,
+        EFFECT_RADIUS,
+        centers,
+    );
+
+    console.log(capsuleGrid);
+
+    let halfRadius = Math.floor(0);
+
+    console.log("반복문", xStart, yStart, ", ", xEnd, yEnd);
+    console.log("그리드 width:", gridWidth, "height:", gridHeight);
+    console.log("반복문 width:", xEnd - xStart, "height:", yEnd - yStart);
+    // y 반복: 조건은 stepY의 부호에 따라 달라짐
+    for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
+        // x 반복: 조건은 stepX의 부호에 따라 달라짐
+        for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
+            const index = y * width + x;
+
+            // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
+            const currentX = x; // + displaceX[index];
+            const currentY = y; // + displaceY[index];
+
+            // start~end 선분과 현재 픽셀 간의 최단거리 계산
+            const px = currentX - start.x;
+            const py = currentY - start.y;
+            const t = (px * unitX + py * unitY) / length;
+            const clampedT = Math.max(0, Math.min(1, t));
+            const closestX = start.x + clampedT * dx;
+            const closestY = start.y + clampedT * dy;
+            const distX = currentX - closestX;
+            const distY = currentY - closestY;
+            const dist = Math.sqrt(distX * distX + distY * distY);
+
+            if (dist < EFFECT_RADIUS) {
+                let diffX, diffY;
+                // 4방향의 차이를 저장할 객체 (x, y 프로퍼티)
+                let diffL = { x: 0, y: 0, t: 0 },
+                    diffR = { x: 0, y: 0 },
+                    diffT = { x: 0, y: 0 },
+                    diffB = { x: 0, y: 0 };
+
+                // -> 방향으로 밀때
+                const leftIdx = y * width + (x - 1);
+                let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
+                let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
+
+                diffL.x = displaceX[index] + 1 - leftDisplaceX;
+                diffL.y = displaceY[index] - leftDisplaceY;
+
+                // <- 방향으로 밀때
+                const rightIdx = y * width + (x + 1);
+                let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
+                let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
+
+                diffR.x = rightDisplaceX + 1 - displaceX[index];
+                diffR.y = rightDisplaceY - displaceY[index];
+
+                // 아래로 밀때
+                const topIdx = (y - 1) * width + x;
+                let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
+                let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
+
+                diffT.x = displaceX[index] - topDisplaceX;
+                diffT.y = displaceY[index] + 1 - topDisplaceY;
+
+                // 위로 밀때
+                const bottomIdx = (y + 1) * width + x;
+                let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
+                let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
+
+                diffB.x = bottomDisplaceX - displaceX[index];
+                diffB.y = bottomDisplaceY + 1 - displaceY[index];
+
+                // x, y 각각에 대해 해당 방향의 차이를 선택
+                diffX = unitX > 0 ? diffL : diffR;
+                diffY = unitY > 0 ? diffT : diffB;
+
+                // easing 함수
+                const easeInOutCubic = (x) =>
+                    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+                function easeInOutSine(x) {
+                    return -(Math.cos(Math.PI * x) - 1) / 2;
+                }
+                function easeInOutQuad(x) {
+                return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+                }
+                const easeInOutCubicModified = (x) => x
+                function logDoubleFunction(x) {
+                    return  Math.log2(Math.log2(x + 1) + 1);
+                }
+                const myStack = capsuleGrid[y - boundMinY][x - boundMinX];
+
+                // start와의 거리에 따른 효과 강도 계산
+                const effectFactor =
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                        force *MAGNIFY_STRENGTH * Math.log(myStack+1)
+                    * EFFECT_RADIUS/Math.log2(EFFECT_RADIUS+1)/Math.log2(EFFECT_RADIUS+1)
+
+                // offset 계산 (두 방향 간의 보정도 포함)
+                const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
+                const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
+
+                const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
+
+                const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
+
+                // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
+                displaceX[index] += offsetX * unitX;
+                displaceY[index] += offsetX2Y * unitX;
+
+                displaceY[index] += offsetY * unitY;
+                displaceX[index] += offsetY2X * unitY;
+            }
+        }
+    }
+
+    //console.log(sum)
+}
 
 function initPixelFlow(canvas, ctx) {
     const width = canvas.width;
@@ -24,7 +217,50 @@ function initPixelFlow(canvas, ctx) {
     displaceX = new Float32Array(width * height);
     displaceY = new Float32Array(width * height);
 }
+window.onload = async () => {
+    try {
+        const img = await loadImageFromURL("check_r.png");
+        // const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("musk.png");
+        drawImageToCanvas(img);
 
+        initPixelFlow(canvas, ctx);
+        // getLinePoints(100, 100, 200, 100).forEach((point) => {
+        //     applyPixelFlow(canvas, point, { x: 400, y: 100 });
+        // });
+        let radius = EFFECT_RADIUS;
+        let start = { x: 100, y: 103 };
+        let end = { x: 400, y: 103 };
+
+        applyLine(start, end, radius);
+
+        let F = 1;
+       //  applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 150, y: 100 },F );
+       //  applyPixelFlowLine(canvas, { x: 150, y: 100 }, { x: 200, y: 100 }, F );
+       // applyPixelFlowLine(canvas, { x: 200, y: 100 }, { x: 250, y: 100 }, F );
+       //  applyPixelFlowLine(canvas, { x: 250, y: 100 }, { x: 300, y: 100 }, F );
+       //  applyPixelFlowLine(canvas, { x: 300, y: 100 }, { x: 350, y: 100 }, F );
+       //  applyPixelFlowLine(canvas, { x: 350, y: 100 }, { x: 400, y: 100 }, F );
+        // getLinePoints(400, 100, 450, 100).forEach((point) => {
+        //     applyPixelFlow(canvas, point, { x: 450, y: 100 });
+        // });
+        // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
+
+        // applyPixelFlowLine(canvas, { x: 100, y: 300 }, { x: 400, y: 300 }, 2);
+
+        getLinePoints(100, 300, 200, 300).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 200, y: 300 });
+        });
+
+        getLinePoints(200, 300, 400, 300).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 400, y: 300 });
+        });
+
+        renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+    } catch (error) {
+        console.error("이미지 로드 실패:", error);
+    }
+};
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 let sum = 0;
@@ -268,21 +504,22 @@ function applyLine(start, end, radius) {
     const steps = Math.floor(totalDistance / step);
     const remainder = totalDistance % step; // 남은 부분 계산
 
-    if (remainder > 0) {
-        const firstEnd = {
-            x: start.x + (dx * remainder) / totalDistance,
-            y: start.y + (dy * remainder) / totalDistance,
-        };
-        getLinePoints(start.x, start.y, firstEnd.x, firstEnd.y).forEach(
-            (point) => {
-                applyPixelFlow(canvas, point, firstEnd);
-            },
-        );
-    }
+    // if (remainder > 0) {
+    //     const firstEnd = {
+    //         x: start.x + (dx * remainder) / totalDistance,
+    //         y: start.y + (dy * remainder) / totalDistance,
+    //     };
+    //     getLinePoints(start.x, start.y, firstEnd.x, firstEnd.y).forEach(
+    //         (point) => {
+    //             applyPixelFlow(canvas, point, firstEnd);
+    //         },
+    //     );
+    // }
 
     for (let i = 0; i < steps; i++) {
-        const t1 = (remainder + i * step) / totalDistance;
-        const t2 = (remainder + (i + 1) * step) / totalDistance;
+        const t1 = Math.round((remainder + i * step) / totalDistance);
+        const t2 = Math.round((remainder + (i + 1) * step) / totalDistance);
+
 
         const p1 = {
             x: start.x + dx * t1,
@@ -293,55 +530,11 @@ function applyLine(start, end, radius) {
             y: start.y + dy * t2,
         };
 
-        applyPixelFlowLine(canvas, p1, p2, 18);
+        applyPixelFlowLine(canvas, p1, p2);
     }
 }
 
-// 초기화
-window.onload = async () => {
-    try {
-        const img = await loadImageFromURL("check_r.png");
-        // const img = await loadImageFromURL("cat.webp");
-        //const img = await loadImageFromURL("musk.png");
-        drawImageToCanvas(img);
 
-        initPixelFlow(canvas, ctx);
-        // getLinePoints(100, 100, 200, 100).forEach((point) => {
-        //     applyPixelFlow(canvas, point, { x: 400, y: 100 });
-        // });
-        let radius = EFFECT_RADIUS;
-        let start = { x: 100, y: 100 };
-        let end = { x: 400, y: 100 };
-
-        // applyLine(start, end, radius);
-
-        let F = 6.4
-        applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 150, y: 100 },F );
-        applyPixelFlowLine(canvas, { x: 150, y: 100 }, { x: 200, y: 100 }, F );
-       applyPixelFlowLine(canvas, { x: 200, y: 100 }, { x: 250, y: 100 }, F );
-        applyPixelFlowLine(canvas, { x: 250, y: 100 }, { x: 300, y: 100 }, F );
-        applyPixelFlowLine(canvas, { x: 300, y: 100 }, { x: 350, y: 100 }, F );
-        applyPixelFlowLine(canvas, { x: 350, y: 100 }, { x: 400, y: 100 }, F );
-        // getLinePoints(400, 100, 450, 100).forEach((point) => {
-        //     applyPixelFlow(canvas, point, { x: 450, y: 100 });
-        // });
-        // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
-
-        // applyPixelFlowLine(canvas, { x: 100, y: 300 }, { x: 400, y: 300 }, 2);
-
-        getLinePoints(100, 300, 200, 300).forEach((point) => {
-            applyPixelFlow(canvas, point, { x: 200, y: 300 });
-        });
-
-        getLinePoints(200, 300, 400, 300).forEach((point) => {
-            applyPixelFlow(canvas, point, { x: 400, y: 300 });
-        });
-
-        renderToImage(canvas, 0, 0, canvas.width, canvas.height);
-    } catch (error) {
-        console.error("이미지 로드 실패:", error);
-    }
-};
 
 // 마우스 위치를 저장할 배열
 let positions = [];
@@ -510,198 +703,6 @@ function drawImageToCanvas(img) {
     ctx.drawImage(img, 0, 0);
 }
 
-function applyPixelFlowLine(canvas, start, end, force = 1) {
-    const width = canvas.width;
-    const height = canvas.height;
-
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    if (length === 0) return;
-    const unitX = dx / length;
-    const unitY = dy / length;
-
-    // 선분의 최소/ ��대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
-    const boundMinX = Math.max(
-        0,
-        Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
-    );
-    const boundMaxX = Math.min(
-        width - 1,
-        Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
-    );
-    const boundMinY = Math.max(
-        0,
-        Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
-    );
-    const boundMaxY = Math.min(
-        height - 1,
-        Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
-    );
-
-    let xStart, xEnd, stepX;
-    if (unitX >= 0) {
-        xStart = boundMinX;
-        xEnd = boundMaxX;
-        stepX = 1;
-    } else {
-        xStart = boundMaxX;
-        xEnd = boundMinX;
-        stepX = -1;
-    }
-    // y축
-    let yStart, yEnd, stepY;
-    if (unitY >= 0) {
-        yStart = boundMinY;
-        yEnd = boundMaxY;
-        stepY = 1;
-    } else {
-        yStart = boundMaxY;
-        yEnd = boundMinY;
-        stepY = -1;
-    }
-
-    const gridWidth = boundMaxX - boundMinX;
-    const gridHeight = boundMaxY - boundMinY;
-
-    console.log(start, end);
-    console.log(gridWidth, gridHeight);
-    console.log(boundMinX, boundMaxX, boundMinY, boundMaxY);
-    console.log(
-        start.x - boundMinX,
-        start.y - boundMinY,
-        gridWidth - EFFECT_RADIUS,
-        gridHeight - EFFECT_RADIUS,
-    );
-
-    const centers = bresenhamLine(
-        start.x - boundMinX,
-        start.y - boundMinY,
-        gridWidth - EFFECT_RADIUS,
-        gridHeight - EFFECT_RADIUS,
-    );
-
-    // 차분 배열 업데이트를 통해 최종 결과 배열 생성
-    const capsuleGrid = generateResultGrid(
-        gridWidth,
-        gridHeight,
-        EFFECT_RADIUS,
-        centers,
-    );
-
-    console.log(capsuleGrid);
-
-    let halfRadius = Math.floor(0);
-
-    console.log("반복문", xStart, yStart, ", ", xEnd, yEnd);
-    console.log("그리드 width:", gridWidth, "height:", gridHeight);
-    console.log("반복문 width:", xEnd - xStart, "height:", yEnd - yStart);
-    // y 반복: 조건은 stepY의 부호에 따라 달라짐
-    for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
-        // x 반복: 조건은 stepX의 부호에 따라 달라짐
-        for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
-            const index = y * width + x;
-
-            // 현재 픽셀의 실제 화면상의 좌표 (displaceX, displaceY가 적용되어 있다면 추가)
-            const currentX = x; // + displaceX[index];
-            const currentY = y; // + displaceY[index];
-
-            // start~end 선분과 현재 픽셀 간의 최단거리 계산
-            const px = currentX - start.x;
-            const py = currentY - start.y;
-            const t = (px * unitX + py * unitY) / length;
-            const clampedT = Math.max(0, Math.min(1, t));
-            const closestX = start.x + clampedT * dx;
-            const closestY = start.y + clampedT * dy;
-            const distX = currentX - closestX;
-            const distY = currentY - closestY;
-            const dist = Math.sqrt(distX * distX + distY * distY);
-
-            if (dist < EFFECT_RADIUS) {
-                let diffX, diffY;
-                // 4방향의 차이를 저장할 객체 (x, y 프로퍼티)
-                let diffL = { x: 0, y: 0, t: 0 },
-                    diffR = { x: 0, y: 0 },
-                    diffT = { x: 0, y: 0 },
-                    diffB = { x: 0, y: 0 };
-
-                // -> 방향으로 밀때
-                const leftIdx = y * width + (x - 1);
-                let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
-                let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
-
-                diffL.x = displaceX[index] + 1 - leftDisplaceX;
-                diffL.y = displaceY[index] - leftDisplaceY;
-
-                // <- 방향으로 밀때
-                const rightIdx = y * width + (x + 1);
-                let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
-                let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
-
-                diffR.x = rightDisplaceX + 1 - displaceX[index];
-                diffR.y = rightDisplaceY - displaceY[index];
-
-                // 아래로 밀때
-                const topIdx = (y - 1) * width + x;
-                let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
-                let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
-
-                diffT.x = displaceX[index] - topDisplaceX;
-                diffT.y = displaceY[index] + 1 - topDisplaceY;
-
-                // 위로 밀때
-                const bottomIdx = (y + 1) * width + x;
-                let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
-                let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
-
-                diffB.x = bottomDisplaceX - displaceX[index];
-                diffB.y = bottomDisplaceY + 1 - displaceY[index];
-
-                // x, y 각각에 대해 해당 방향의 차이를 선택
-                diffX = unitX > 0 ? diffL : diffR;
-                diffY = unitY > 0 ? diffT : diffB;
-
-                // easing 함수
-                const easeInOutCubic = (x) =>
-                    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-                function easeInOutSine(x) {
-                    return -(Math.cos(Math.PI * x) - 1) / 2;
-                }
-                function easeInOutQuad(x) {
-                return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
-                }
-                const easeInOutCubicModified = (x) => x
-                function logDoubleFunction(x) {
-                    return  Math.log2(Math.log2(x + 1) + 1);
-                }
-                const myStack = capsuleGrid[y - boundMinY][x - boundMinX];
-
-                // start와의 거리에 따른 효과 강도 계산
-                const effectFactor =
-                    logDoubleFunction(1 - easeInOutQuad(dist / EFFECT_RADIUS)) *
-                        force *MAGNIFY_STRENGTH * logDoubleFunction(myStack/EFFECT_RADIUS+1)*0.5
-
-                // offset 계산 (두 방향 간의 보정도 포함)
-                const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
-                const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
-
-                const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
-
-                const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
-
-                // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
-                displaceX[index] += offsetX * unitX;
-                displaceY[index] += offsetX2Y * unitX;
-
-                displaceY[index] += offsetY * unitY;
-                displaceX[index] += offsetY2X * unitY;
-            }
-        }
-    }
-
-    //console.log(sum)
-}
-
 // 1. Bresenham 알고리즘: 두 점 (x0, y0)와 (x1, y1)를 잇는 선상의 픽셀 좌표들을 반환
 function bresenhamLine(x0, y0, x1, y1) {
     const coordinates = [];
@@ -768,19 +769,3 @@ function generateResultGrid(width, height, R, centers) {
     }
     return result;
 }
-
-// const width = 400;
-//   const height = 400;
-//   const R = 50;
-
-//   // 선분: (50,50)에서 (200,350)까지
-//   const P1 = { x: 50, y: 50 };
-//   const P2 = { x: 200, y: 350 };
-
-//   // Bresenham 알고리즘으로 선분상의 픽셀 좌표(원 중심) 구하기
-//   const centers = bresenhamLine(P1.x, P1.y, P2.x, P2.y);
-
-//   // 차분 배열 업데이트를 통해 최종 결과 배열 생성
-//   const result = generateResultGrid(width, height, R, centers);
-
-//console.log(result)
