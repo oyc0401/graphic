@@ -315,7 +315,7 @@ window.onload = async () => {
 
         // applyLine(start, end, radius);
 
-        let F = 1.32
+        let F = 6.4
         applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 150, y: 100 },F );
         applyPixelFlowLine(canvas, { x: 150, y: 100 }, { x: 200, y: 100 }, F );
        applyPixelFlowLine(canvas, { x: 200, y: 100 }, { x: 250, y: 100 }, F );
@@ -667,13 +667,10 @@ function applyPixelFlowLine(canvas, start, end, force = 1) {
                 function easeInOutSine(x) {
                     return -(Math.cos(Math.PI * x) - 1) / 2;
                 }
-                const easeInOutCubicModified = (x) => {
-                    if (x < 0.5) {
-                        return 4 * x * x * x; // 기존 그대로 유지
-                    } else {
-                        return 1 - ((-2 * x + 2) ** 3 / 2) * 0.8; // 기울기 증가
-                    }
-                };
+                function easeInOutQuad(x) {
+                return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+                }
+                const easeInOutCubicModified = (x) => x
                 function logDoubleFunction(x) {
                     return  Math.log2(Math.log2(x + 1) + 1);
                 }
@@ -681,8 +678,8 @@ function applyPixelFlowLine(canvas, start, end, force = 1) {
 
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                        force *MAGNIFY_STRENGTH *  0.5 * logDoubleFunction(myStack/EFFECT_RADIUS+1)*5
+                    logDoubleFunction(1 - easeInOutQuad(dist / EFFECT_RADIUS)) *
+                        force *MAGNIFY_STRENGTH * logDoubleFunction(myStack/EFFECT_RADIUS+1)*0.5
 
                 // offset 계산 (두 방향 간의 보정도 포함)
                 const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
