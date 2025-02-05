@@ -4,7 +4,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const EFFECT_RADIUS = 20; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+let MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 // 초기화
 
 let lastIndex = 0;
@@ -170,34 +170,47 @@ function applyPixelFlowLine(canvas, start, end, force = 1) {
                     return -(Math.cos(Math.PI * x) - 1) / 2;
                 }
                 function easeInOutQuad(x) {
-                return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+                    return x < 0.5
+                        ? 2 * x * x
+                        : 1 - Math.pow(-2 * x + 2, 2) / 2;
                 }
-                const easeInOutCubicModified = (x) => x
+                const easeInOutCubicModified = (x) => x;
                 function logDoubleFunction(x) {
-                    return  Math.log2(Math.log2(x + 1) + 1);
+                    return Math.log2(Math.log2(x + 1) + 1);
                 }
                 const myStack = capsuleGrid[y - boundMinY][x - boundMinX];
 
+                let percent = myStack / EFFECT_RADIUS;
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                        force *MAGNIFY_STRENGTH * Math.log(myStack+1)
-                    * EFFECT_RADIUS/Math.log2(EFFECT_RADIUS+1)/Math.log2(EFFECT_RADIUS+1)
+                    force *
+                    Math.pow(2, percent) *
+                    MAGNIFY_STRENGTH *
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *1.7
+                //  Math.log(myStack + 1) * EFFECT_RADIUS) /
+                // Math.log2(EFFECT_RADIUS + 1
 
+                let div = 1;
+
+                let multi = 1;
                 // offset 계산 (두 방향 간의 보정도 포함)
-                const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
-                const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
+                const offsetX =
+                    diffX.x / Math.pow(2, effectFactor) / div - diffX.x;
+                const offsetY =
+                    diffY.y / Math.pow(2, effectFactor) / div - diffY.y;
 
-                const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
+                const offsetX2Y =
+                    diffX.y / Math.pow(2, effectFactor) / div - diffX.y;
 
-                const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
+                const offsetY2X =
+                    diffY.x / Math.pow(2, effectFactor) / div - diffY.x;
 
                 // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
-                displaceX[index] += offsetX * unitX;
-                displaceY[index] += offsetX2Y * unitX;
+                displaceX[index] += offsetX * unitX * multi;
+                displaceY[index] += offsetX2Y * unitX * multi;
 
-                displaceY[index] += offsetY * unitY;
-                displaceX[index] += offsetY2X * unitY;
+                displaceY[index] += offsetY * unitY * multi;
+                displaceX[index] += offsetY2X * unitY * multi;
             }
         }
     }
@@ -228,32 +241,36 @@ window.onload = async () => {
         // getLinePoints(100, 100, 200, 100).forEach((point) => {
         //     applyPixelFlow(canvas, point, { x: 400, y: 100 });
         // });
-        let radius = EFFECT_RADIUS;
-        let start = { x: 100, y: 103 };
-        let end = { x: 400, y: 103 };
-
-        applyLine(start, end, radius);
-
-        let F = 1;
-       //  applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 150, y: 100 },F );
-       //  applyPixelFlowLine(canvas, { x: 150, y: 100 }, { x: 200, y: 100 }, F );
-       // applyPixelFlowLine(canvas, { x: 200, y: 100 }, { x: 250, y: 100 }, F );
-       //  applyPixelFlowLine(canvas, { x: 250, y: 100 }, { x: 300, y: 100 }, F );
-       //  applyPixelFlowLine(canvas, { x: 300, y: 100 }, { x: 350, y: 100 }, F );
-       //  applyPixelFlowLine(canvas, { x: 350, y: 100 }, { x: 400, y: 100 }, F );
-        // getLinePoints(400, 100, 450, 100).forEach((point) => {
-        //     applyPixelFlow(canvas, point, { x: 450, y: 100 });
-        // });
-        // applyPixelFlowLine(canvas, { x: 100, y: 100 }, { x: 400, y: 100 });
-
-        // applyPixelFlowLine(canvas, { x: 100, y: 300 }, { x: 400, y: 300 }, 2);
-
-        getLinePoints(100, 300, 200, 300).forEach((point) => {
-            applyPixelFlow(canvas, point, { x: 200, y: 300 });
+        MAGNIFY_STRENGTH = 1;
+        let start = { x: 100, y: 100 };
+        let end = { x: 400, y: 100 };
+        applyLine(start, end, EFFECT_RADIUS);
+        getLinePoints(100, 150, 400, 150).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 400, y: 150 });
         });
 
-        getLinePoints(200, 300, 400, 300).forEach((point) => {
-            applyPixelFlow(canvas, point, { x: 400, y: 300 });
+        MAGNIFY_STRENGTH = 0.5;
+        start = { x: 100, y: 200 };
+        end = { x: 400, y: 200 };
+        applyLine(start, end, EFFECT_RADIUS);
+        getLinePoints(100, 250, 400, 250).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 400, y: 250 });
+        });
+
+        MAGNIFY_STRENGTH = 0.25;
+        start = { x: 100, y: 300 };
+        end = { x: 400, y: 300 };
+        applyLine(start, end, EFFECT_RADIUS);
+        getLinePoints(100, 350, 400, 350).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 400, y: 350 });
+        });
+
+        MAGNIFY_STRENGTH = 0.1;
+        start = { x: 100, y: 390 };
+        end = { x: 400, y: 390 };
+        applyLine(start, end, EFFECT_RADIUS);
+        getLinePoints(100, 420, 400, 420).forEach((point) => {
+            applyPixelFlow(canvas, point, { x: 400, y: 420 });
         });
 
         renderToImage(canvas, 0, 0, canvas.width, canvas.height);
@@ -374,9 +391,9 @@ function applyPixelFlow(canvas, start, end) {
 
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                    MAGNIFY_STRENGTH;
-
+                    MAGNIFY_STRENGTH *
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS));
+                let multi = 1; // - easeInOutCubic(dist / EFFECT_RADIUS);
                 // offset 계산 (두 방향 간의 보정도 포함)
                 const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
                 const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
@@ -386,11 +403,11 @@ function applyPixelFlow(canvas, start, end) {
                 const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
 
                 // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
-                displaceX[index] += offsetX * unitX;
-                displaceY[index] += offsetX2Y * unitX;
+                displaceX[index] += offsetX * unitX * multi;
+                displaceY[index] += offsetX2Y * unitX * multi;
 
-                displaceY[index] += offsetY * unitY;
-                displaceX[index] += offsetY2X * unitY;
+                displaceY[index] += offsetY * unitY * multi;
+                displaceX[index] += offsetY2X * unitY * multi;
 
                 sum++;
             }
@@ -520,7 +537,6 @@ function applyLine(start, end, radius) {
         const t1 = Math.round((remainder + i * step) / totalDistance);
         const t2 = Math.round((remainder + (i + 1) * step) / totalDistance);
 
-
         const p1 = {
             x: start.x + dx * t1,
             y: start.y + dy * t1,
@@ -533,8 +549,6 @@ function applyLine(start, end, radius) {
         applyPixelFlowLine(canvas, p1, p2);
     }
 }
-
-
 
 // 마우스 위치를 저장할 배열
 let positions = [];
