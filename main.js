@@ -4,7 +4,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 500;
+const EFFECT_RADIUS = 50;
 const MAGNIFY_STRENGTH = 1;
 
 let displaceX, displaceY;
@@ -14,7 +14,7 @@ let originalImageData, originalData;
 window.onload = async () => {
   try {
     // 원하는 이미지로 교체
-    const img = await loadImageFromURL("cat.webp");
+    const img = await loadImageFromURL("check.png");
     drawImageToCanvas(img);
 
     initPixelFlow(canvas, ctx);
@@ -59,9 +59,11 @@ function initPixelFlow(canvas, ctx){
 
 // CPU에서 결과를 부분적으로 다시 그리는 예시
 function renderToImage(canvas, sx, sy, ex, ey){
+ 
   const cw= canvas.width;
   const ch= canvas.height;
   const w= ex - sx, h= ey - sy;
+  console.log('render:',  sx, sy, w, h)
   if(w<=0||h<=0) return;
 
   const newImageData= new Uint8ClampedArray(w*h*4);
@@ -136,6 +138,7 @@ let isTracking= false;
 document.addEventListener("pointerdown", (evt)=>{
   isTracking= true;
   positions= [];
+  uploadDisplaceToTex(displaceX, displaceY, texA);
 });
 document.addEventListener("pointermove", (evt)=>{
   if(!isTracking)return;
@@ -161,11 +164,17 @@ document.addEventListener("pointermove", (evt)=>{
   maxx= Math.min(canvas.width-1, Math.ceil(maxx));
   maxy= Math.min(canvas.height-1,Math.ceil(maxy));
 
+   regionX = minx
+    regionY =miny
+   regionW = maxx-minx
+    regionH = maxy-miny;
+  downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
+  // //console.log( minx, miny, maxx, maxy)
   renderToImage(canvas, minx, miny, maxx, maxy);
 });
 document.addEventListener("pointerup", (evt)=>{
   isTracking= false;
-
+  downloadTexToDisplace(texA, fboA, displaceX, displaceY);
    renderToImage(canvas, 0, 0, canvas.width, canvas.height);
 });
 
@@ -383,6 +392,9 @@ function uploadDisplaceToTex(srcX, srcY, tex){
   );
   gl.bindTexture(gl.TEXTURE_2D,null);
 }
+
+
+
 function downloadTexToDisplace(tex, fbo, outX, outY){
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   const buf= new Float32Array(width*height*2);
@@ -397,12 +409,42 @@ function downloadTexToDisplace(tex, fbo, outX, outY){
   }
 }
 
+let regionX = 10,
+  regionY = 10; // 읽을 영역의 시작점
+let regionW = 30,
+  regionH = 30; // 읽을 영역의 크기
+
+function downloadTexToDisplace2(tex, fbo, outX, outY) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+  // 가져올 데이터 버퍼 (2채널 RG)
+  let buf = new Float32Array(regionW * regionH * 2);
+console.log('download:', regionX, regionY, regionW, regionH)
+  // 특정 영역만 읽기
+  gl.readPixels(regionX, regionY, regionW, regionH, gl.RG, gl.FLOAT, buf);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  // GPU의 텍스처 좌표는 (0,0)이 왼쪽 아래!
+  // CPU의 `outX, outY`는 일반 배열처럼 (0,0)이 왼쪽 위!
+
+  for (let y = 0; y < regionH; y++) {
+    for (let x = 0; x < regionW; x++) {
+      let bufIdx = (y * regionW + x) * 2; // RG 채널이므로 *2
+      let outIdx = (regionY + y) * width + (regionX + x); // 전체 outX, outY에서의 위치
+
+      outX[outIdx] = buf[bufIdx]; // R 채널 → X 변위
+      outY[outIdx] = buf[bufIdx + 1]; // G 채널 → Y 변위
+    }
+  }
+}
+
 /************************************************
  * 여러 linePoints를 "순차"로 누적 적용( Ping-Pong )
  ************************************************/
 function gpuApplyPixelFlowLinePoints(linePoints){
   // 0) GPU에 현재 displaceX,displaceY 업로드 => texA
-  uploadDisplaceToTex(displaceX, displaceY, texA);
+ // uploadDisplaceToTex(displaceX, displaceY, texA);
 
   // 1) point마다 순차적으로
   for(let i=0; i< linePoints.length; i++){
@@ -469,7 +511,7 @@ function gpuApplyPixelFlowLinePoints(linePoints){
   // 2) 모든 points 작업 완료 후,
   //    최종 texA 에는 누적 결과가 있음
   //    CPU 다운로드
-  downloadTexToDisplace(texA, fboA, displaceX, displaceY);
+  //downloadTexToDisplace(texA, fboA, displaceX, displaceY);
 }
 
 // 텍스처와 FBO를 swap

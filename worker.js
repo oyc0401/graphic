@@ -6,7 +6,7 @@ const EFFECT_RADIUS = 100;
 const MAGNIFY_STRENGTH = 1;
 
 // CPU에서 2D캔버스용
-let canvas2d, ctx2d;           // 2D Canvas & context
+let canvas2d, ctx2d; // 2D Canvas & context
 let originalImageData, originalData;
 
 // CPU 쪽에서 관리할 displaceX,Y
@@ -27,7 +27,7 @@ const MAX_LINE_POINTS = 256;
 // ================== initPixelFlow ==================
 function initPixelFlow(canvas, ctx) {
   width = canvas.width;
-  height= canvas.height;
+  height = canvas.height;
 
   // 원본 이미지
   originalImageData = ctx.getImageData(0, 0, width, height);
@@ -42,17 +42,17 @@ function initPixelFlow(canvas, ctx) {
 async function initWebGL2(offscreenCanvas) {
   // OffscreenCanvas로부터 WebGL2 context
   gl = offscreenCanvas.getContext("webgl2", { antialias: false });
-  if(!gl){
+  if (!gl) {
     throw new Error("WebGL2 not supported in OffscreenCanvas.");
   }
   // float 텍스처 확장
   const ext = gl.getExtension("EXT_color_buffer_float");
-  if(!ext){
+  if (!ext) {
     throw new Error("EXT_color_buffer_float not supported.");
   }
 
-  gl.viewport(0,0, width, height);
-  gl.clearColor(0,0,0,1);
+  gl.viewport(0, 0, width, height);
+  gl.clearColor(0, 0, 0, 1);
 
   // 셰이더 컴파일
   const vsSource = `#version 300 es
@@ -192,24 +192,30 @@ async function initWebGL2(offscreenCanvas) {
   glVao = gl.createVertexArray();
   gl.bindVertexArray(glVao);
 
-  let quad = new Float32Array([-1,-1, +1,-1, -1,+1, +1,+1]);
+  let quad = new Float32Array([-1, -1, +1, -1, -1, +1, +1, +1]);
   let vbo = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
 
   gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
   gl.bindVertexArray(null);
 
   // 텍스처 & FBO 2개 (ping-pong)
   [texIn, texOut] = [gl.createTexture(), gl.createTexture()];
-  [texIn, texOut].forEach((tex)=>{
+  [texIn, texOut].forEach((tex) => {
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(
-      gl.TEXTURE_2D, 0,
-      gl.RG32F, width, height, 0,
-      gl.RG, gl.FLOAT, null
+      gl.TEXTURE_2D,
+      0,
+      gl.RG32F,
+      width,
+      height,
+      0,
+      gl.RG,
+      gl.FLOAT,
+      null,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -218,77 +224,95 @@ async function initWebGL2(offscreenCanvas) {
   });
 
   fboIn = createFBO(texIn);
-  fboOut= createFBO(texOut);
-  gl.bindTexture(gl.TEXTURE_2D,null);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  fboOut = createFBO(texOut);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-  function createFBO(tex){
+  function createFBO(tex) {
     const fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(
-      gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D, tex,0
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      tex,
+      0,
     );
     return fbo;
   }
 }
 
-function compileShader(gl, src, type){
+function compileShader(gl, src, type) {
   let sh = gl.createShader(type);
   gl.shaderSource(sh, src);
   gl.compileShader(sh);
-  if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
-    throw new Error("Shader compile error:\n"+gl.getShaderInfoLog(sh));
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    throw new Error("Shader compile error:\n" + gl.getShaderInfoLog(sh));
   }
   return sh;
 }
-function linkProgram(gl, vs, fs){
+function linkProgram(gl, vs, fs) {
   let p = gl.createProgram();
   gl.attachShader(p, vs);
   gl.attachShader(p, fs);
   gl.linkProgram(p);
-  if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
-    throw new Error("Program link error:\n"+gl.getProgramInfoLog(p));
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    throw new Error("Program link error:\n" + gl.getProgramInfoLog(p));
   }
   return p;
 }
 
 // ================== CPU <-> GPU 동기화 ==================
-function uploadDisplaceToTex(displaceX, displaceY, tex){
-  let size = width*height*2;
+function uploadDisplaceToTex(displaceX, displaceY, tex) {
+  let size = width * height * 2;
   let buf = new Float32Array(size);
-  for(let i=0; i<width*height; i++){
-    buf[i*2+0] = displaceX[i];
-    buf[i*2+1] = displaceY[i];
+  for (let i = 0; i < width * height; i++) {
+    buf[i * 2 + 0] = displaceX[i];
+    buf[i * 2 + 1] = displaceY[i];
   }
   gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texSubImage2D(
-    gl.TEXTURE_2D, 0, 0,0, width, height,
-    gl.RG, gl.FLOAT, buf
-  );
-  gl.bindTexture(gl.TEXTURE_2D,null);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RG, gl.FLOAT, buf);
+  gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
-function downloadTexToDisplace(tex, fbo, outX, outY){
+let regionX = 10,
+  regionY = 10; // 읽을 영역의 시작점
+let regionW = 30,
+  regionH = 30; // 읽을 영역의 크기
+function downloadTexToDisplace(tex, fbo, outX, outY) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  let buf = new Float32Array(width*height*2);
-  gl.readPixels(0,0,width,height, gl.RG, gl.FLOAT, buf);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
-  for(let i=0; i<width*height; i++){
-    outX[i] = buf[i*2+0];
-    outY[i] = buf[i*2+1];
+
+  // 가져올 데이터 버퍼 (2채널 RG)
+  let buf = new Float32Array(regionW * regionH * 2);
+
+  // 특정 영역만 읽기
+  gl.readPixels(regionX, regionY, regionW, regionH, gl.RG, gl.FLOAT, buf);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  // GPU의 텍스처 좌표는 (0,0)이 왼쪽 아래!
+  // CPU의 `outX, outY`는 일반 배열처럼 (0,0)이 왼쪽 위!
+
+  for (let y = 0; y < regionH; y++) {
+    for (let x = 0; x < regionW; x++) {
+      let bufIdx = (y * regionW + x) * 2; // RG 채널이므로 *2
+      let outIdx = (regionY + y) * width + (regionX + x); // 전체 outX, outY에서의 위치
+
+      outX[outIdx] = buf[bufIdx]; // R 채널 → X 변위
+      outY[outIdx] = buf[bufIdx + 1]; // G 채널 → Y 변위
+    }
   }
 }
 
 // ================== GPU applyPixelFlow: 전체 linePoints를 한 번에 처리 ==================
-function gpuApplyPixelFlowLine(linePoints){
- // console.log(linePoints)
+function gpuApplyPixelFlowLine(linePoints) {
+  // console.log(linePoints)
   // 1) CPU->GPU: displace -> texIn
   uploadDisplaceToTex(displaceX, displaceY, texIn);
 
   // 2) draw call (fboOut)
   gl.bindFramebuffer(gl.FRAMEBUFFER, fboOut);
-  gl.viewport(0,0,width,height);
+  gl.viewport(0, 0, width, height);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.useProgram(glProgram);
@@ -296,7 +320,7 @@ function gpuApplyPixelFlowLine(linePoints){
 
   // uniform: uOldDisp => texIn
   let loc = gl.getUniformLocation(glProgram, "uOldDisp");
-  gl.uniform1i(loc, 0); 
+  gl.uniform1i(loc, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texIn);
 
@@ -319,25 +343,28 @@ function gpuApplyPixelFlowLine(linePoints){
   gl.uniform1i(loc, n);
 
   // uLinePoints[..]
-  for(let i=0; i<n; i++){
+  for (let i = 0; i < n; i++) {
     let pointLoc = gl.getUniformLocation(glProgram, `uLinePoints[${i}]`);
     gl.uniform2f(pointLoc, linePoints[i].x, linePoints[i].y);
   }
 
   // uEnd: linePoints의 마지막
-  let endPt = linePoints[linePoints.length-1];
+  let endPt = linePoints[linePoints.length - 1];
   loc = gl.getUniformLocation(glProgram, "uEnd");
   gl.uniform2f(loc, endPt.x, endPt.y);
 
   // bounding box
-  let boundMinX=Infinity, boundMinY=Infinity;
-  let boundMaxX=-Infinity, boundMaxY=-Infinity;
-  for(let i=0;i<linePoints.length;i++){
-    let px=linePoints[i].x, py=linePoints[i].y;
-    if(px<boundMinX) boundMinX=px;
-    if(px>boundMaxX) boundMaxX=px;
-    if(py<boundMinY) boundMinY=py;
-    if(py>boundMaxY) boundMaxY=py;
+  let boundMinX = Infinity,
+    boundMinY = Infinity;
+  let boundMaxX = -Infinity,
+    boundMaxY = -Infinity;
+  for (let i = 0; i < linePoints.length; i++) {
+    let px = linePoints[i].x,
+      py = linePoints[i].y;
+    if (px < boundMinX) boundMinX = px;
+    if (px > boundMaxX) boundMaxX = px;
+    if (py < boundMinY) boundMinY = py;
+    if (py > boundMaxY) boundMaxY = py;
   }
   // 반경 고려
   boundMinX = Math.floor(boundMinX - EFFECT_RADIUS);
@@ -348,10 +375,10 @@ function gpuApplyPixelFlowLine(linePoints){
   // clamp
   boundMinX = Math.max(0, boundMinX);
   boundMinY = Math.max(0, boundMinY);
-  boundMaxX = Math.min(width-1, boundMaxX);
-  boundMaxY = Math.min(height-1,boundMaxY);
+  boundMaxX = Math.min(width - 1, boundMaxX);
+  boundMaxY = Math.min(height - 1, boundMaxY);
 
-  loc = gl.getUniformLocation(glProgram,"uBounds");
+  loc = gl.getUniformLocation(glProgram, "uBounds");
   // (minX, minY, maxX, maxY)
   gl.uniform4f(loc, boundMinX, boundMinY, boundMaxX, boundMaxY);
 
@@ -359,90 +386,96 @@ function gpuApplyPixelFlowLine(linePoints){
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
   gl.bindVertexArray(null);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
   // 3) GPU->CPU
   downloadTexToDisplace(texOut, fboOut, displaceX, displaceY);
 }
 
 // ================== 브레젠험 ==================
-function getLinePoints(x0,y0,x1,y1){
-  const pts=[];
-  let dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
-  let sx=(x0<x1?1:-1), sy=(y0<y1?1:-1);
-  let err=dx-dy;
-  while(true){
-    pts.push({x:x0,y:y0});
-    if(x0===x1 && y0===y1) break;
-    let e2 = 2*err;
-    if(e2> -dy){ err-=dy; x0+=sx; }
-    if(e2< dx){ err+=dx; y0+=sy; }
+function getLinePoints(x0, y0, x1, y1) {
+  const pts = [];
+  let dx = Math.abs(x1 - x0),
+    dy = Math.abs(y1 - y0);
+  let sx = x0 < x1 ? 1 : -1,
+    sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  while (true) {
+    pts.push({ x: x0, y: y0 });
+    if (x0 === x1 && y0 === y1) break;
+    let e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+    }
   }
   return pts;
 }
 
 // ================== 메시지 핸들러 ==================
-onmessage = async function(e){
+onmessage = async function (e) {
   const data = e.data;
-  if(data.type==="init"){
+  if (data.type === "init") {
     // data.canvas2d => 2D용, data.webglCanvas => WebGL2용
     canvas2d = data.canvas;
-    ctx2d    = canvas2d.getContext("2d");
+    ctx2d = canvas2d.getContext("2d");
 
     // 이미지 로드
-    try{
+    try {
       const resp = await fetch(data.imageUrl);
       const blob = await resp.blob();
       const bitmap = await createImageBitmap(blob);
 
-      canvas2d.width  = bitmap.width;
+      canvas2d.width = bitmap.width;
       canvas2d.height = bitmap.height;
-      ctx2d.drawImage(bitmap,0,0);
+      ctx2d.drawImage(bitmap, 0, 0);
 
       // CPU init
       initPixelFlow(canvas2d, ctx2d);
 
       // WebGL2 init (OffscreenCanvas)
-      webglCanvas = new OffscreenCanvas( bitmap.width,bitmap.height)
+      webglCanvas = new OffscreenCanvas(bitmap.width, bitmap.height);
       await initWebGL2(webglCanvas);
-    }catch(err){
+    } catch (err) {
       console.error("이미지 로드 실패:", err);
     }
-  }
-  else if(data.type==="applyLine"){
+  } else if (data.type === "applyLine") {
     // pointermove 후 linePoints를 한 번에 처리
     const linePoints = data.linePoints; // [{x,y},...]
     // GPU에서 한 번에 처리
     gpuApplyPixelFlowLine(linePoints);
 
     const start = linePoints[0];
-    const end = linePoints[linePoints.length-1];
-
+    const end = linePoints[linePoints.length - 1];
 
     // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
     const boundMinX = Math.max(
-        0,
-        Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
+      0,
+      Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
     );
     const boundMinY = Math.max(
-        0,
-        Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
+      0,
+      Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
     );
 
     const boundMaxX = Math.min(
-        width - 1,
-        Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
+      width - 1,
+      Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
     );
 
     const boundMaxY = Math.min(
-        height - 1,
-        Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
+      height - 1,
+      Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
     );
-    
-    renderToImage(canvas2d,ctx2d,boundMinX, boundMinY, boundMaxX, boundMaxY);
+
+    renderToImage(canvas2d, ctx2d, boundMinX, boundMinY, boundMaxX, boundMaxY);
   }
 };
-function renderToImage(canvas,ctx,sx, sy, ex, ey) {
+function renderToImage(canvas, ctx, sx, sy, ex, ey) {
   const canvas_w = canvas.width;
   const canvas_h = canvas.height;
 
@@ -453,7 +486,7 @@ function renderToImage(canvas,ctx,sx, sy, ex, ey) {
     return;
   }
 
-  console.log('heelo?')
+  console.log("heelo?");
   const newImageData = new Uint8ClampedArray(width * height * 4);
   let imageIndex = 0;
   for (let y = sy; y < ey; y++) {
@@ -511,5 +544,5 @@ function renderToImage(canvas,ctx,sx, sy, ex, ey) {
   }
 
   let resultImageData = new ImageData(newImageData, width, height);
-   ctx.putImageData(resultImageData, sx, sy);
+  ctx.putImageData(resultImageData, sx, sy);
 }
