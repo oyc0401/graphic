@@ -4,7 +4,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50;
+const EFFECT_RADIUS = 200;
 const MAGNIFY_STRENGTH = 1;
 
 let displaceX, displaceY;
@@ -67,7 +67,7 @@ function renderToImage(canvas, sx, sy, ex, ey) {
   const ch = canvas.height;
   const w = ex - sx,
     h = ey - sy;
-  console.log("render:", sx, sy, w, h);
+  //console.log("render:", sx, sy, w, h);
   if (w <= 0 || h <= 0) return;
 
   const newImageData = new Uint8ClampedArray(w * h * 4);
@@ -186,31 +186,54 @@ document.addEventListener("pointermove", (evt) => {
   maxx = Math.min(canvas.width - 1, Math.ceil(maxx));
   maxy = Math.min(canvas.height - 1, Math.ceil(maxy));
 
-  regionX = minx;
-  regionY = miny;
-  regionW = maxx - minx;
-  regionH = maxy - miny;
-  downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
-  // //console.log( minx, miny, maxx, maxy)
-  renderToImage(canvas, minx, miny, maxx, maxy);
+  regionX =  Math.min(regionX, minx);
+  regionY = Math.min(regionY, miny);
+  regionEX =  Math.max(regionEX, maxx);
+  regionEY = Math.max(regionEY, maxy);
+  
+  // regionW = maxx - minx;
+  //regionH = maxy - miny;
+  // downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
+  console.log( minx, miny, maxx, maxy)
+  //renderToImage(canvas, minx, miny, maxx, maxy);
+
+  rendering();
 });
 document.addEventListener("pointerup", (evt) => {
   isTracking = false;
+  //rendering();
   // downloadTexToDisplace(texA, fboA, displaceX, displaceY);
   // renderToImage(canvas, 0, 0, canvas.width, canvas.height);
 });
 
-let regionX = 10,
-  regionY = 10; // 읽을 영역의 시작점
-let regionW = 30,
-  regionH = 30; // 읽을 영역의 크기
+let isqueue = false;
+let regionX = Infinity,
+  regionY = Infinity; // 읽을 영역의 시작점
+let regionEX = 0,
+  regionEY = 0; // 읽을 영역의 크기
+
+function rendering() {
+  if (!isqueue) {
+    isqueue = true;
+    requestAnimationFrame(() => {
+       downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
+      renderToImage(canvas, regionX, regionY, regionEX, regionEY);
+      isqueue = false;
+      regionX=regionY=Infinity;
+        regionEX=regionEY=0;
+    });
+  }
+}
 
 function downloadTexToDisplace2(tex, fbo, outX, outY) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-
+  let regionW = regionEX - regionX;
+  let regionH = regionEY - regionY;
   // 가져올 데이터 버퍼 (2채널 RG)
+  if(!isqueue) return;
+  console.log("download size:", regionW, regionH, regionW * regionH * 2);
   let buf = new Float32Array(regionW * regionH * 2);
-  console.log("download:", regionX, regionY, regionW, regionH);
+
   // 특정 영역만 읽기
   gl.readPixels(regionX, regionY, regionW, regionH, gl.RG, gl.FLOAT, buf);
 
