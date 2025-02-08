@@ -108,7 +108,6 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffL.x = displaceX[index] + 1 - leftDisplaceX;
                 diffL.y = displaceY[index] - leftDisplaceY;
-               
 
                 // <- 방향으로 밀때
                 const rightIdx = y * width + (x + 1);
@@ -117,7 +116,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffR.x = rightDisplaceX + 1 - displaceX[index];
                 diffR.y = rightDisplaceY - displaceY[index];
-               
+
                 // 아래로 밀때
                 const topIdx = (y - 1) * width + x;
                 let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
@@ -125,7 +124,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffT.x = displaceX[index] - topDisplaceX;
                 diffT.y = displaceY[index] + 1 - topDisplaceY;
-               
+
                 // 위로 밀때
                 const bottomIdx = (y + 1) * width + x;
                 let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
@@ -133,7 +132,7 @@ function applyPixelFlow(canvas, start, end) {
 
                 diffB.x = bottomDisplaceX - displaceX[index];
                 diffB.y = bottomDisplaceY + 1 - displaceY[index];
-               
+
                 // unit 방향에 따른 미분 선택
                 let diffX = unitX > 0 ? diffL : diffR;
                 let diffY = unitY > 0 ? diffT : diffB;
@@ -144,8 +143,9 @@ function applyPixelFlow(canvas, start, end) {
 
                 // start와의 거리에 따른 효과 강도 계산
                 const effectFactor =
-                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-                    MAGNIFY_STRENGTH/2;
+                    ((1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                        MAGNIFY_STRENGTH) /
+                    2;
 
                 // offset 계산 (두 방향 간의 보정도 포함)
                 const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
@@ -157,10 +157,10 @@ function applyPixelFlow(canvas, start, end) {
 
                 // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
                 displaceX[index] += offsetX * unitX;
-                displaceY[index] += offsetX2Y* unitX;
+                displaceY[index] += offsetX2Y * unitX;
 
                 displaceY[index] += offsetY * unitY;
-               displaceX[index] += offsetY2X* unitY;
+                displaceX[index] += offsetY2X * unitY;
 
                 sum++;
             }
@@ -169,7 +169,8 @@ function applyPixelFlow(canvas, start, end) {
 
     // console.log("sum:", sum);
 }
-
+const easeInOutCubic = (x) =>
+    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 function renderToImage(canvas, sx, sy, ex, ey) {
     const canvas_w = canvas.width;
     const canvas_h = canvas.height;
@@ -280,22 +281,53 @@ window.onload = async () => {
 // 마우스 위치를 저장할 배열
 let positions = [];
 let isTracking = false; // 스페이스바 누름 상태
-let count=0;
+let count = 0;
 // 스페이스바 눌렀을 때 추적 시작
 document.addEventListener("pointerdown", (event) => {
     isTracking = true;
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
     const { clientX, clientY } = event;
-      applyPixelFlow(canvas, { x: ~~clientX, y: ~~clientY }, { x: ~~clientX+100, y: ~~clientY });
+    applyPixelFlow(
+        canvas,
+        { x: ~~clientX, y: ~~clientY },
+        { x: ~~clientX + 100, y: ~~clientY },
+    );
 
-       renderToImage(canvas, 0, 0, canvas.width, canvas.height);
-   count=0;
+    renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+
+    count = 0;
+
+    console.table(createEffectArea(5));
 });
+function createEffectArea(effectRadius) {
+    // effectRadius를 올림하여 정수 반지름 계산
+    let ceiledRadius = Math.ceil(effectRadius);
+    // 배열 크기 계산 (항상 홀수 크기 유지)
+    const size = 2 * ceiledRadius + 1;
+    const center = Math.floor(size / 2);
 
+    // 2D 배열 초기화
+    const result = Array.from({ length: size }, () => Array(size).fill(0));
+
+    // 각 픽셀에 대해 거리 계산 후 값 할당
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            // 중심점과의 거리 계산
+            const distance = Math.sqrt((x - center) ** 2 + (y - center) ** 2);
+
+            // 반지름 내에 있는 경우만 값 할당
+            if (distance <= effectRadius) {
+                result[y][x] = 1 - easeInOutCubic(distance / effectRadius);
+            }
+        }
+    }
+
+    return result;
+}
 // 마우스 움직임 기록
 document.addEventListener("pointermove", (event) => {
-   // return;
+    return;
     if (isTracking) {
         const { clientX, clientY } = event;
         let width = canvas.width;
@@ -315,11 +347,15 @@ document.addEventListener("pointermove", (event) => {
 
         // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
         function getLinePoints(x0, y0, x1, y1) {
-              if (!Number.isInteger(x0) || !Number.isInteger(y0) ||
-                  !Number.isInteger(x1) || !Number.isInteger(y1)) {
+            if (
+                !Number.isInteger(x0) ||
+                !Number.isInteger(y0) ||
+                !Number.isInteger(x1) ||
+                !Number.isInteger(y1)
+            ) {
                 throw new Error("모든 좌표는 정수여야 합니다.");
-              }
-            
+            }
+
             const points = [];
             let dx = Math.abs(x1 - x0);
             let dy = Math.abs(y1 - y0);
@@ -345,15 +381,15 @@ document.addEventListener("pointermove", (event) => {
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
-        let tap=5;
-        
+        let tap = 5;
+
         const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
         linePoints.forEach((point) => {
             // ctx.beginPath();
             // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
             // ctx.fill();
-            if(count%tap==0){
-                 applyPixelFlow(canvas, point, end);
+            if (count % tap == 0) {
+                applyPixelFlow(canvas, point, end);
             }
             count++;
         });
