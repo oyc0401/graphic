@@ -1,568 +1,412 @@
-/************************************************
- * 전역 설정 및 초기화
- ************************************************/
+// 설정값
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 200;
-const MAGNIFY_STRENGTH = 1;
+const EFFECT_RADIUS = 100; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
-let displaceX, displaceY;
-let originalImageData, originalData;
+let lastIndex = 0;
+let displaceX;
+let displaceY;
+let originalImageData;
+let originalData;
 
-// 브라우저 로드 시 이미지 불러오기 & 초기화
+function initPixelFlow(canvas, ctx) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // 원본 이미지 데이터 가져오기
+    originalImageData = ctx.getImageData(0, 0, width, height);
+    originalData = originalImageData.data;
+
+    // 변위 맵 초기화
+    displaceX = new Float32Array(width * height);
+    displaceY = new Float32Array(width * height);
+}
+
+let sum = 0;
+function applyPixelFlow(canvas, start, end) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // end는 방향 계산용으로만 사용
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (length === 0) return;
+    const unitX = dx / length;
+    const unitY = dy / length;
+
+    // start를 중심으로 EFFECT_RADIUS 반경 내의 픽셀만 처리하기 위한 바운딩 박스 계산
+    const boundMinX = Math.max(0, Math.floor(start.x - EFFECT_RADIUS));
+    const boundMaxX = Math.min(width - 1, Math.ceil(start.x + EFFECT_RADIUS));
+    const boundMinY = Math.max(0, Math.floor(start.y - EFFECT_RADIUS));
+    const boundMaxY = Math.min(height - 1, Math.ceil(start.y + EFFECT_RADIUS));
+
+    // unit 방향에 따라 x, y 루프 순서를 결정 (unitX가 양수면 boundMinX부터, 음수면 boundMaxX부터; unitY도 마찬가지)
+    let xStart, xEnd, stepX;
+    let yStart, yEnd, stepY;
+
+    if (unitX > 0 && unitY > 0) {
+        // unitX와 unitY가 양수인 경우: x와 y 모두 boundMax에서 boundMin 방향으로 반복
+        xStart = boundMaxX;
+        xEnd = boundMinX;
+        stepX = -1;
+
+        yStart = boundMaxY;
+        yEnd = boundMinY;
+        stepY = -1;
+    } else {
+        // 그 외의 경우: 기존 방식대로 설정
+        if (unitX >= 0) {
+            xStart = boundMinX;
+            xEnd = boundMaxX;
+            stepX = 1;
+        } else {
+            xStart = boundMaxX;
+            xEnd = boundMinX;
+            stepX = -1;
+        }
+
+        if (unitY >= 0) {
+            yStart = boundMinY;
+            yEnd = boundMaxY;
+            stepY = 1;
+        } else {
+            yStart = boundMaxY;
+            yEnd = boundMinY;
+            stepY = -1;
+        }
+    }
+
+    // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
+    for (let y = yStart; stepY > 0 ? y <= yEnd : y >= yEnd; y += stepY) {
+        for (let x = xStart; stepX > 0 ? x <= xEnd : x >= xEnd; x += stepX) {
+            const index = y * width + x;
+            const currentX = x;
+            const currentY = y;
+
+            // start와 현재 픽셀 사이의 거리 계산
+            const deltaX = currentX - start.x;
+            const deltaY = currentY - start.y;
+            const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // 원 내부의 픽셀만 처리
+            if (dist < EFFECT_RADIUS) {
+                // 원래 코드에서 4방향(좌/우, 위/아래) 미분 차이를 계산하는 부분
+
+                let diffL = { x: 0, y: 0, t: 0 },
+                    diffR = { x: 0, y: 0 },
+                    diffT = { x: 0, y: 0 },
+                    diffB = { x: 0, y: 0 };
+
+                // -> 방향으로 밀때
+                const leftIdx = y * width + (x - 1);
+                let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
+                let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
+
+                diffL.x = displaceX[index] + 1 - leftDisplaceX;
+                diffL.y = displaceY[index] - leftDisplaceY;
+               
+
+                // <- 방향으로 밀때
+                const rightIdx = y * width + (x + 1);
+                let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
+                let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
+
+                diffR.x = rightDisplaceX + 1 - displaceX[index];
+                diffR.y = rightDisplaceY - displaceY[index];
+               
+                // 아래로 밀때
+                const topIdx = (y - 1) * width + x;
+                let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
+                let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
+
+                diffT.x = displaceX[index] - topDisplaceX;
+                diffT.y = displaceY[index] + 1 - topDisplaceY;
+               
+                // 위로 밀때
+                const bottomIdx = (y + 1) * width + x;
+                let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
+                let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
+
+                diffB.x = bottomDisplaceX - displaceX[index];
+                diffB.y = bottomDisplaceY + 1 - displaceY[index];
+               
+                // unit 방향에 따른 미분 선택
+                let diffX = unitX > 0 ? diffL : diffR;
+                let diffY = unitY > 0 ? diffT : diffB;
+
+                // easing 함수 (예시로 easeInOutCubic 사용)
+                const easeInOutCubic = (x) =>
+                    x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+                // start와의 거리에 따른 효과 강도 계산
+                const effectFactor =
+                    (1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
+                    MAGNIFY_STRENGTH/2;
+
+                // offset 계산 (두 방향 간의 보정도 포함)
+                const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
+                const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
+
+                const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
+
+                const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
+
+                // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
+                displaceX[index] += offsetX * unitX;
+                displaceY[index] += offsetX2Y* unitX;
+
+                displaceY[index] += offsetY * unitY;
+               displaceX[index] += offsetY2X* unitY;
+
+                sum++;
+            }
+        }
+    }
+
+    // console.log("sum:", sum);
+}
+
+function renderToImage(canvas, sx, sy, ex, ey) {
+    const canvas_w = canvas.width;
+    const canvas_h = canvas.height;
+
+    const width = ex - sx;
+    const height = ey - sy;
+
+    // 잘못된 영역이면 그냥 종료합니다.
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    const newImageData = new Uint8ClampedArray(width * height * 4);
+
+    let imageIndex = 0;
+    for (let y = sy; y < ey; y++) {
+        for (let x = sx; x < ex; x++) {
+            const index = y * canvas_w + x;
+
+            const totalDx = displaceX[index];
+            const totalDy = displaceY[index];
+            let newX = x + totalDx;
+            let newY = y + totalDy;
+
+            // 좌표를 이미지 경계 내로 클램핑
+            // 이걸 주석하면 더욱더 바깥 색을 잘 표현함. 아마?
+            // newX = Math.min(Math.max(newX, 0), canvas_w - 1);
+            // newY = Math.min(Math.max(newY, 0), canvas_h - 1);
+
+            // 양선형 보간
+            const floorX = Math.floor(newX);
+            const floorY = Math.floor(newY);
+            const ceilX = Math.ceil(newX);
+            const ceilY = Math.ceil(newY);
+            const tx = newX - floorX;
+            const ty = newY - floorY;
+
+            const getColor = (xx, yy) => {
+                // 클램핑된 좌표를 사용
+                const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
+                const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
+                const idx = (clampedY * canvas_w + clampedX) * 4;
+                // 화면 밖이면 투명으로 설정
+                //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
+                //         return [
+                //             originalData[idx],
+                //                 originalData[idx + 1],
+                //                 originalData[idx + 2],
+                //             0,
+                //         ];
+                //     }
+
+                return [
+                    originalData[idx],
+                    originalData[idx + 1],
+                    originalData[idx + 2],
+                    originalData[idx + 3],
+                ];
+            };
+
+            const c00 = getColor(floorX, floorY);
+            const c10 = getColor(ceilX, floorY);
+            const c01 = getColor(floorX, ceilY);
+            const c11 = getColor(ceilX, ceilY);
+
+            const interpolate = (c1, c2, c3, c4, tx, ty) => [
+                (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
+                    (c3[0] * (1 - tx) + c4[0] * tx) * ty,
+                (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
+                    (c3[1] * (1 - tx) + c4[1] * tx) * ty,
+                (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
+                    (c3[2] * (1 - tx) + c4[2] * tx) * ty,
+                (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
+                    (c3[3] * (1 - tx) + c4[3] * tx) * ty,
+            ];
+
+            const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
+            const newIndex = imageIndex * 4;
+            newImageData[newIndex] = r;
+            newImageData[newIndex + 1] = g;
+            newImageData[newIndex + 2] = b;
+            newImageData[newIndex + 3] = a;
+
+            imageIndex++;
+        }
+    }
+
+    let resultImageData = new ImageData(newImageData, width, height);
+    ctx.putImageData(resultImageData, sx, sy);
+}
+
+const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
+
+// 초기화
 window.onload = async () => {
-  try {
-    // 원하는 이미지로 교체
-    //const img = await loadImageFromURL("check.png");
-    const img = await loadImageFromURL("cat.webp");
-    drawImageToCanvas(img);
+    try {
+        const img = await loadImageFromURL("check.png");
+        // const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("musk.png");
+        drawImageToCanvas(img);
 
-    initPixelFlow(canvas, ctx);
-
-    // WebGL2용 OffscreenCanvas
-    webglCanvas = new OffscreenCanvas(canvas.width, canvas.height);
-    width = canvas.width;
-    height = canvas.height;
-
-    await initWebGL2(webglCanvas);
-
-    //initWebGLRender(canvas);
-    // initOriginalTexture(img)
-    //initDisplacementTexture();
-  } catch (e) {
-    console.error("이미지 로드 실패:", e);
-  }
+        initPixelFlow(canvas, ctx);
+    } catch (error) {
+        console.error("이미지 로드 실패:", error);
+    }
 };
 
-/************************************************
- * CPU 코드: 이미지, 캔버스
- ************************************************/
-function loadImageFromURL(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
-}
-function drawImageToCanvas(img) {
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  ctx.drawImage(img, 0, 0);
-}
-function initPixelFlow(canvas, ctx) {
-  const w = canvas.width;
-  const h = canvas.height;
-  originalImageData = ctx.getImageData(0, 0, w, h);
-  originalData = originalImageData.data;
-
-  displaceX = new Float32Array(w * h);
-  displaceY = new Float32Array(w * h);
-}
-
-// CPU에서 결과를 부분적으로 다시 그리는 예시
-function renderToImage(canvas, sx, sy, ex, ey) {
-  const cw = canvas.width;
-  const ch = canvas.height;
-  const w = ex - sx,
-    h = ey - sy;
-  //console.log("render:", sx, sy, w, h);
-  if (w <= 0 || h <= 0) return;
-
-  const newImageData = new Uint8ClampedArray(w * h * 4);
-  let iOut = 0;
-  for (let y = sy; y < ey; y++) {
-    for (let x = sx; x < ex; x++) {
-      const idx = y * cw + x;
-      let dx = displaceX[idx];
-      let dy = displaceY[idx];
-      let newX = x + dx,
-        newY = y + dy;
-
-      // bilinear 보간
-      const floorX = Math.floor(newX),
-        floorY = Math.floor(newY);
-      const ceilX = Math.ceil(newX),
-        ceilY = Math.ceil(newY);
-      const tx = newX - floorX,
-        ty = newY - floorY;
-
-      const getColor = (xx, yy) => {
-        const cx = Math.min(Math.max(xx, 0), cw - 1);
-        const cy = Math.min(Math.max(yy, 0), ch - 1);
-        const base = (cy * cw + cx) * 4;
-        return [
-          originalData[base + 0],
-          originalData[base + 1],
-          originalData[base + 2],
-          originalData[base + 3],
-        ];
-      };
-      const c00 = getColor(floorX, floorY);
-      const c10 = getColor(ceilX, floorY);
-      const c01 = getColor(floorX, ceilY);
-      const c11 = getColor(ceilX, ceilY);
-
-      const interpolate = (c1, c2, c3, c4, tx, ty) => [
-        (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
-          (c3[0] * (1 - tx) + c4[0] * tx) * ty,
-        (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
-          (c3[1] * (1 - tx) + c4[1] * tx) * ty,
-        (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
-          (c3[2] * (1 - tx) + c4[2] * tx) * ty,
-        (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
-          (c3[3] * (1 - tx) + c4[3] * tx) * ty,
-      ];
-      const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-      const outIndex = iOut * 4;
-      newImageData[outIndex + 0] = r;
-      newImageData[outIndex + 1] = g;
-      newImageData[outIndex + 2] = b;
-      newImageData[outIndex + 3] = a;
-      iOut++;
-    }
-  }
-  let imgData = new ImageData(newImageData, w, h);
-  ctx.putImageData(imgData, sx, sy);
-}
-// ================== 브레젠험 ==================
-function getLinePoints(x0, y0, x1, y1) {
-  const pts = [];
-  let dx = Math.abs(x1 - x0),
-    dy = Math.abs(y1 - y0);
-  let sx = x0 < x1 ? 1 : -1,
-    sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
-  while (true) {
-    pts.push({ x: x0, y: y0 });
-    if (x0 === x1 && y0 === y1) break;
-    let e2 = 2 * err;
-    if (e2 > -dy) {
-      err -= dy;
-      x0 += sx;
-    }
-    if (e2 < dx) {
-      err += dx;
-      y0 += sy;
-    }
-  }
-  return pts;
-}
-
-/************************************************
- * Bresenham + 마우스 이벤트
- ************************************************/
+// 마우스 위치를 저장할 배열
 let positions = [];
-let isTracking = false;
-document.addEventListener("pointerdown", (evt) => {
-  isTracking = true;
-  positions = [];
-  uploadDisplaceToTex(displaceX, displaceY, texA);
-});
-document.addEventListener("pointermove", (evt) => {
-  if (!isTracking) return;
-  let x = Math.floor(evt.clientX),
-    y = Math.floor(evt.clientY);
-  positions.push({ x, y });
-  if (positions.length < 2) return;
+let isTracking = false; // 스페이스바 누름 상태
+let count=0;
+// 스페이스바 눌렀을 때 추적 시작
+document.addEventListener("pointerdown", (event) => {
+    isTracking = true;
+    positions = []; // 이전 데이터 초기화
+    lastIndex = 0;
+    const { clientX, clientY } = event;
+      applyPixelFlow(canvas, { x: ~~clientX, y: ~~clientY }, { x: ~~clientX+100, y: ~~clientY });
 
-  // 마지막 두 점으로 linePoints
-  let n = positions.length;
-  let start = positions[n - 2],
-    end = positions[n - 1];
-  let linePts = getLinePoints(start.x, start.y, end.x, end.y);
-
-  // Ping-Pong GPU 순차 업데이트
-  gpuApplyPixelFlowLinePoints(linePts);
-
-  // bounding
-  let minx = Math.min(start.x, end.x) - EFFECT_RADIUS;
-  let miny = Math.min(start.y, end.y) - EFFECT_RADIUS;
-  let maxx = Math.max(start.x, end.x) + EFFECT_RADIUS;
-  let maxy = Math.max(start.y, end.y) + EFFECT_RADIUS;
-  minx = Math.max(0, Math.floor(minx));
-  miny = Math.max(0, Math.floor(miny));
-  maxx = Math.min(canvas.width - 1, Math.ceil(maxx));
-  maxy = Math.min(canvas.height - 1, Math.ceil(maxy));
-
-  regionX =  Math.min(regionX, minx);
-  regionY = Math.min(regionY, miny);
-  regionEX =  Math.max(regionEX, maxx);
-  regionEY = Math.max(regionEY, maxy);
-  
-  // regionW = maxx - minx;
-  //regionH = maxy - miny;
-  // downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
-  console.log( minx, miny, maxx, maxy)
-  //renderToImage(canvas, minx, miny, maxx, maxy);
-
-  rendering();
-});
-document.addEventListener("pointerup", (evt) => {
-  isTracking = false;
-  //rendering();
-  // downloadTexToDisplace(texA, fboA, displaceX, displaceY);
-  // renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+       renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+   count=0;
 });
 
-let isqueue = false;
-let regionX = Infinity,
-  regionY = Infinity; // 읽을 영역의 시작점
-let regionEX = 0,
-  regionEY = 0; // 읽을 영역의 크기
+// 마우스 움직임 기록
+document.addEventListener("pointermove", (event) => {
+   // return;
+    if (isTracking) {
+        const { clientX, clientY } = event;
+        let width = canvas.width;
+        let height = canvas.height;
 
-function rendering() {
-  if (!isqueue) {
-    isqueue = true;
-    requestAnimationFrame(() => {
-       downloadTexToDisplace2(texA, fboA, displaceX, displaceY);
-      renderToImage(canvas, regionX, regionY, regionEX, regionEY);
-      isqueue = false;
-      regionX=regionY=Infinity;
-        regionEX=regionEY=0;
+        // 현재 좌표를 배열에 저장
+        positions.push({ x: ~~clientX, y: ~~clientY });
+
+        if (positions.length < 2) {
+            return;
+        }
+
+        sum = 0;
+        lastIndex = positions.length - 1;
+        const start = positions[lastIndex - 1];
+        const end = positions[lastIndex];
+
+        // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
+        function getLinePoints(x0, y0, x1, y1) {
+              if (!Number.isInteger(x0) || !Number.isInteger(y0) ||
+                  !Number.isInteger(x1) || !Number.isInteger(y1)) {
+                throw new Error("모든 좌표는 정수여야 합니다.");
+              }
+            
+            const points = [];
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            const sx = x0 < x1 ? 1 : -1;
+            const sy = y0 < y1 ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                points.push({ x: x0, y: y0 });
+                if (x0 === x1 && y0 === y1) break;
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x0 += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y0 += sy;
+                }
+            }
+            return points;
+        }
+
+        //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+
+        let tap=5;
+        
+        const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
+        linePoints.forEach((point) => {
+            // ctx.beginPath();
+            // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
+            // ctx.fill();
+            if(count%tap==0){
+                 applyPixelFlow(canvas, point, end);
+            }
+            count++;
+        });
+
+        // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
+        const boundMinX = Math.max(
+            0,
+            Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
+        );
+        const boundMinY = Math.max(
+            0,
+            Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
+        );
+
+        const boundMaxX = Math.min(
+            width - 1,
+            Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
+        );
+
+        const boundMaxY = Math.min(
+            height - 1,
+            Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
+        );
+
+        console.log(sum);
+        //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
+        renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
+    }
+});
+
+// 스페이스바 뗐을 때 추적 종료 및 로그 출력
+document.addEventListener("pointerup", (event) => {
+    isTracking = false;
+    console.log("Tracking 종료. 기록된 좌표:");
+});
+
+const helper_canvas = document.getElementById("helper-canvas");
+const helper_ctx = canvas.getContext("2d");
+
+// 이미지 로드 함수
+function loadImageFromURL(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
     });
-  }
 }
 
-function downloadTexToDisplace2(tex, fbo, outX, outY) {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  let regionW = regionEX - regionX;
-  let regionH = regionEY - regionY;
-  // 가져올 데이터 버퍼 (2채널 RG)
-  if(!isqueue) return;
-  console.log("download size:", regionW, regionH, regionW * regionH * 2);
-  let buf = new Float32Array(regionW * regionH * 2);
-
-  // 특정 영역만 읽기
-  gl.readPixels(regionX, regionY, regionW, regionH, gl.RG, gl.FLOAT, buf);
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-  // GPU의 텍스처 좌표는 (0,0)이 왼쪽 아래!
-  // CPU의 `outX, outY`는 일반 배열처럼 (0,0)이 왼쪽 위!
-
-  for (let y = 0; y < regionH; y++) {
-    for (let x = 0; x < regionW; x++) {
-      let bufIdx = (y * regionW + x) * 2; // RG 채널이므로 *2
-      let outIdx = (regionY + y) * width + (regionX + x); // 전체 outX, outY에서의 위치
-
-      outX[outIdx] = buf[bufIdx]; // R 채널 → X 변위
-      outY[outIdx] = buf[bufIdx + 1]; // G 채널 → Y 변위
-    }
-  }
-}
-
-/************************************************
- * WebGL2 + Ping-Pong
- ************************************************/
-let webglCanvas, gl;
-let width, height;
-let glProgram, glVao;
-let texA, texB; // Ping-Pong 텍스처
-let fboA, fboB; // Ping-Pong FBO
-
-async function initWebGL2(offscreenCanvas) {
-  gl = offscreenCanvas.getContext("webgl2", { antialias: false });
-  if (!gl) {
-    throw new Error("WebGL2 not supported.");
-  }
-  const ext = gl.getExtension("EXT_color_buffer_float");
-  if (!ext) {
-    throw new Error("EXT_color_buffer_float not supported.");
-  }
-  gl.viewport(0, 0, width, height);
-  gl.clearColor(0, 0, 0, 1);
-
-  // Vertex shader
-  const vsSource = `#version 300 es
-  in vec2 aPos;
-  out vec2 vTexCoord;
-  void main(){
-    vTexCoord= (aPos*0.5)+0.5;
-    gl_Position= vec4(aPos,0,1);
-  }`;
-  // 단일 linePoint만 처리하는 셰이더 (순차 갱신)
-  const SINGLE_POINT_FS = `#version 300 es
-  precision highp float;
-
-  in vec2 vTexCoord;
-  out vec2 outDisp; // 결과 (newX, newY)
-
-  // prev state
-  uniform sampler2D uOldDisp;
-  uniform vec2 uResolution;
-
-  // 단일 linePoint
-  uniform vec2 uLinePoint;
-  uniform vec2 uEnd;
-
-  // bound
-  uniform vec4 uBounds; // minX, minY, maxX, maxY
-
-  uniform float uRadius;
-  uniform float uStrength;
-
-  // easing
-  float easeInOutCubic(float x){
-    return (x < 0.5)
-      ? 4.0*x*x*x
-      : 1.0 - pow(-2.0*x+2.0,3.0)/2.0;
-  }
-
-  vec2 getDisp(vec2 coord){
-    return texture(uOldDisp, coord).rg;
-  }
-
-  void main(){
-    vec2 coord = vTexCoord * uResolution;
-    float x = floor(coord.x + 0.5);
-    float y = floor(coord.y + 0.5);
-
-    // bounding check
-    if(x< uBounds.x || x>uBounds.z || y< uBounds.y || y>uBounds.w){
-      outDisp = texture(uOldDisp, vTexCoord).rg;
-      return;
-    }
-
-    vec2 oldVal = getDisp(vTexCoord);
-    vec2 pt = uLinePoint;
-    vec2 dxy= uEnd - pt;
-    float len= length(dxy);
-    if(len<1e-9){
-      outDisp= oldVal;
-      return;
-    }
-    vec2 unit= dxy/len;
-
-    float dxp= x - pt.x;
-    float dyp= y - pt.y;
-    float dist= sqrt(dxp*dxp + dyp*dyp);
-    if(dist>=uRadius){
-      outDisp= oldVal;
-      return;
-    }
-
-    bool hasLeft   = (x>0.0);
-    bool hasRight  = (x< (uResolution.x-1.0));
-    bool hasTop    = (y>0.0);
-    bool hasBottom = (y< (uResolution.y-1.0));
-
-    vec2 leftVal   = hasLeft   ? getDisp((coord + vec2(-1.0,0.0))/uResolution) : vec2(0.0);
-    vec2 rightVal  = hasRight  ? getDisp((coord + vec2(+1.0,0.0))/uResolution) : vec2(0.0);
-    vec2 topVal    = hasTop    ? getDisp((coord + vec2(0.0,-1.0))/uResolution): vec2(0.0);
-    vec2 bottomVal = hasBottom ? getDisp((coord + vec2(0.0,+1.0))/uResolution): vec2(0.0);
-
-    vec2 diffL= vec2(oldVal.x+1.0 - leftVal.x, oldVal.y - leftVal.y);
-    vec2 diffR= vec2(rightVal.x+1.0 - oldVal.x, rightVal.y - oldVal.y);
-    vec2 diffT= vec2(oldVal.x - topVal.x, oldVal.y+1.0 - topVal.y);
-    vec2 diffB= vec2(bottomVal.x - oldVal.x, bottomVal.y+1.0 - oldVal.y);
-
-    vec2 diffX= (unit.x>0.0)? diffL : diffR;
-    vec2 diffY= (unit.y>0.0)? diffT : diffB;
-
-    float factor= (1.0 - easeInOutCubic(dist/uRadius))* uStrength;
-    float pow2Val= pow(2.0, factor);
-
-    float offsetX = (diffX.x/pow2Val - diffX.x);
-    float offsetY = (diffY.y/pow2Val - diffY.y);
-    float offsetX2Y= (diffX.y/pow2Val - diffX.y);
-    float offsetY2X= (diffY.x/pow2Val - diffY.x);
-
-    float newX= oldVal.x + offsetX*unit.x + offsetY2X*unit.y;
-    float newY= oldVal.y + offsetX2Y*unit.x + offsetY*unit.y;
-
-    outDisp= vec2(newX, newY);
-  }
-  `;
-  const vs = compileShader(gl, vsSource, gl.VERTEX_SHADER);
-  const fs = compileShader(gl, SINGLE_POINT_FS, gl.FRAGMENT_SHADER);
-  glProgram = linkProgram(gl, vs, fs);
-
-  // VAO
-  glVao = gl.createVertexArray();
-  gl.bindVertexArray(glVao);
-
-  const quad = new Float32Array([-1, -1, +1, -1, -1, +1, +1, +1]);
-  const vbo = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
-
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.bindVertexArray(null);
-
-  // Ping-Pong 텍스처
-  texA = gl.createTexture();
-  texB = gl.createTexture();
-  [texA, texB].forEach((tex) => {
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG32F,
-      width,
-      height,
-      0,
-      gl.RG,
-      gl.FLOAT,
-      null,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  });
-
-  fboA = createFBO(texA);
-  fboB = createFBO(texB);
-
-  gl.bindTexture(gl.TEXTURE_2D, null);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-}
-function createFBO(tex) {
-  const fbo = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    tex,
-    0,
-  );
-  return fbo;
-}
-
-function compileShader(gl, src, type) {
-  const sh = gl.createShader(type);
-  gl.shaderSource(sh, src);
-  gl.compileShader(sh);
-  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-    throw new Error("Shader compile error:\n" + gl.getShaderInfoLog(sh));
-  }
-  return sh;
-}
-function linkProgram(gl, vs, fs) {
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    throw new Error("Program link error:\n" + gl.getProgramInfoLog(prog));
-  }
-  return prog;
-}
-
-/************************************************
- * GPU <-> CPU 함수
- ************************************************/
-function uploadDisplaceToTex(srcX, srcY, tex) {
-  const size = width * height * 2;
-  const buf = new Float32Array(size);
-  for (let i = 0; i < width * height; i++) {
-    buf[i * 2 + 0] = srcX[i];
-    buf[i * 2 + 1] = srcY[i];
-  }
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RG, gl.FLOAT, buf);
-  gl.bindTexture(gl.TEXTURE_2D, null);
-}
-
-function downloadTexToDisplace(tex, fbo, outX, outY) {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  const buf = new Float32Array(width * height * 2);
-  gl.readPixels(0, 0, width, height, gl.RG, gl.FLOAT, buf);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-  for (let i = 0; i < width * height; i++) {
-    outX[i] = buf[i * 2 + 0];
-    outY[i] = buf[i * 2 + 1];
-  }
-}
-
-/************************************************
- * 여러 linePoints를 "순차"로 누적 적용( Ping-Pong )
- ************************************************/
-function gpuApplyPixelFlowLinePoints(linePoints) {
-  // 0) GPU에 현재 displaceX,displaceY 업로드 => texA
-  // uploadDisplaceToTex(displaceX, displaceY, texA);
-
-  // 1) point마다 순차적으로
-  for (let i = 0; i < linePoints.length; i++) {
-    // (a) texA 읽기 → fboB(= texB) 쓰기
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
-    gl.viewport(0, 0, width, height);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.useProgram(glProgram);
-    gl.bindVertexArray(glVao);
-
-    // uOldDisp => texA
-    let loc = gl.getUniformLocation(glProgram, "uOldDisp");
-    gl.uniform1i(loc, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texA);
-
-    // uResolution
-    loc = gl.getUniformLocation(glProgram, "uResolution");
-    gl.uniform2f(loc, width, height);
-
-    // uLinePoint
-    let pt = linePoints[i];
-    loc = gl.getUniformLocation(glProgram, "uLinePoint");
-    gl.uniform2f(loc, pt.x, pt.y);
-
-    // uEnd => linePoints 전체의 마지막 점
-    let endPt = linePoints[linePoints.length - 1];
-    loc = gl.getUniformLocation(glProgram, "uEnd");
-    gl.uniform2f(loc, endPt.x, endPt.y);
-
-    // uRadius, uStrength
-    loc = gl.getUniformLocation(glProgram, "uRadius");
-    gl.uniform1f(loc, EFFECT_RADIUS);
-    loc = gl.getUniformLocation(glProgram, "uStrength");
-    gl.uniform1f(loc, MAGNIFY_STRENGTH);
-
-    // bounding box: 전체 linePoints / 혹은 단일 point
-    // 여기서는 단일 point에 대해서만 bound
-    let boundMinX = Math.floor(pt.x - EFFECT_RADIUS);
-    let boundMinY = Math.floor(pt.y - EFFECT_RADIUS);
-    let boundMaxX = Math.ceil(pt.x + EFFECT_RADIUS);
-    let boundMaxY = Math.ceil(pt.y + EFFECT_RADIUS);
-    boundMinX = Math.max(0, boundMinX);
-    boundMinY = Math.max(0, boundMinY);
-    boundMaxX = Math.min(width - 1, boundMaxX);
-    boundMaxY = Math.min(height - 1, boundMaxY);
-
-    loc = gl.getUniformLocation(glProgram, "uBounds");
-    gl.uniform4f(loc, boundMinX, boundMinY, boundMaxX, boundMaxY);
-
-    // draw full screen
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    gl.bindVertexArray(null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    // (b) fboB => CPU로 안 가져옴, 대신 swap: B => A
-    //   A ← B
-    //   (실제로 copy 없이 "핑퐁" swap)
-    swapTex();
-  }
-
-  // 2) 모든 points 작업 완료 후,
-  //    최종 texA 에는 누적 결과가 있음
-  //    CPU 다운로드
-  //downloadTexToDisplace(texA, fboA, displaceX, displaceY);
-}
-
-// 텍스처와 FBO를 swap
-function swapTex() {
-  // texA ↔ texB
-  let t = texA;
-  texA = texB;
-  texB = t;
-  // fboA ↔ fboB
-  let f = fboA;
-  fboA = fboB;
-  fboB = f;
+function drawImageToCanvas(img) {
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    helper_canvas.width = canvas.width;
+    helper_canvas.height = canvas.height;
+    ctx.drawImage(img, 0, 0);
 }
