@@ -3,8 +3,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 5; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 10; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 2; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 let displaceX;
@@ -42,16 +42,25 @@ function applyPixelFlow(canvas, start, end) {
     // start를 중심으로 EFFECT_RADIUS 반경 내의 픽셀만 처리하기 위한 바운딩 박스 계산
     const boundMinX = Math.max(0, start.x - ceiledRadius);
     const boundMinY = Math.max(0, start.y - ceiledRadius);
-    let leftPadding = 0 > start.x - ceiledRadius ? ceiledRadius - start.x : 0;
-    let topPadding = 0 > start.y - ceiledRadius ? ceiledRadius - start.y : 0;
-    console.log("topPadding", leftPadding, topPadding);
+
     const padding = 2 * ceiledRadius + 1;
 
     const boundMaxX = Math.min(width - 1, start.x + ceiledRadius);
     const boundMaxY = Math.min(height - 1, start.y + ceiledRadius);
 
-    const boundWidth = boundMaxX - boundMinX+1;
-    const boundHeight = boundMaxY - boundMinY+1;
+    const boundWidth = boundMaxX - boundMinX + 1;
+    const boundHeight = boundMaxY - boundMinY + 1;
+
+    let leftPadding =
+        start.x + ceiledRadius > boundMaxX
+            ? start.x + ceiledRadius - boundMaxX
+            : 0;
+    let topPadding =
+        start.y + ceiledRadius > boundMaxY
+            ? start.y + ceiledRadius - boundMaxY
+            : 0;
+    console.log("padding", leftPadding, topPadding);
+
     console.log(start);
     console.log(
         `(${boundMinX}, ${boundMinY})`,
@@ -61,58 +70,35 @@ function applyPixelFlow(canvas, start, end) {
         boundHeight,
     );
 
-    // unit 방향에 따라 x, y 루프 순서를 결정 (unitX가 양수면 boundMinX부터, 음수면 boundMaxX부터; unitY도 마찬가지)
-    let xStart, xEnd, stepX;
-    let yStart, yEnd, stepY;
-
-    if (unitX > 0 && unitY > 0) {
-        // unitX와 unitY가 양수인 경우: x와 y 모두 boundMax에서 boundMin 방향으로 반복
-        xStart = boundMaxX;
-        xEnd = boundMinX;
-        stepX = -1;
-
-        yStart = boundMaxY;
-        yEnd = boundMinY;
-        stepY = -1;
-    } else {
-        // 그 외의 경우: 기존 방식대로 설정
-        if (unitX >= 0) {
-            xStart = boundMinX;
-            xEnd = boundMaxX;
-            stepX = 1;
-        } else {
-            xStart = boundMaxX;
-            xEnd = boundMinX;
-            stepX = -1;
-        }
-
-        if (unitY >= 0) {
-            yStart = boundMinY;
-            yEnd = boundMaxY;
-            stepY = 1;
-        } else {
-            yStart = boundMaxY;
-            yEnd = boundMinY;
-            stepY = -1;
-        }
-    }
-
     let area = createEffectArea(EFFECT_RADIUS);
     const areaMap = Array.from({ length: boundHeight }, () =>
         Array(boundWidth).fill(0),
     );
+
     // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
     for (let i = 0; i < boundHeight; i++) {
         const y = unitY > 0 ? boundMaxY - i : boundMinY + i;
-        const areaY = topPadding + i;
+        const areaY = unitY > 0 ? boundHeight - (i + topPadding) - 1 : i;
 
         for (let j = 0; j < boundWidth; j++) {
             const x = unitX > 0 ? boundMaxX - j : boundMinX + j;
-            const areaX = leftPadding + j;
-           // console.log("@", areaX, areaY,'*', area[areaY][areaX],'&', x, y);
-            // stack.push(area[areaY][areaX]);
+            const areaX = unitX > 0 ? boundHeight - (j + leftPadding) - 1 : j;
+            //console.log("@", areaX, areaY,'*', area[areaY][areaX],`(${x}, ${y})`);
+            // console.log("unit", unitX, unitY);
             areaMap[i][j] = area[areaY][areaX];
-            // const index = y * width + x;
+
+            if (area[areaY][areaX] > 0) {
+                console.log("%");
+            }
+
+            let diff = area[areaY][areaX] * MAGNIFY_STRENGTH;
+
+            const index = y * width + x;
+
+            let [ax, ay] = getVector(x - diff * unitX, y - diff * unitY);
+            displaceX[index] = ax - diff * unitX;
+            displaceY[index] = ay - diff * unitY;
+
             // const currentX = x;
             // const currentY = y;
 
@@ -195,9 +181,9 @@ function applyPixelFlow(canvas, start, end) {
             // }
         }
     }
-    console.table(areaMap);
-
-    // console.log("sum:", sum);
+    //console.table(areaMap);
+    // console.table(vecterMapX);
+    //console.log("sum:", sum);
 }
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
@@ -294,6 +280,50 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
 
+function getVector(x, y) {
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // x, y 좌표의 네 개의 인접 픽셀을 찾음
+    const x1 = Math.floor(x);
+    const x2 = Math.ceil(x);
+    const y1 = Math.floor(y);
+    const y2 = Math.ceil(y);
+
+    function getData(xx, yy) {
+        const clampedX = Math.min(Math.max(xx, 0), width - 1);
+        const clampedY = Math.min(Math.max(yy, 0), height - 1);
+        const idx = clampedY * width + clampedX;
+        return [displaceX[idx], displaceY[idx]];
+    }
+
+    // 네 개의 픽셀 값 가져오기
+    const Q11 = getData(x1, y1); // 좌상단
+    const Q21 = getData(x2, y1); //[y1][x2]; // 우상단
+    const Q12 = getData(x1, y2); //[y2][x1]; // 좌하단
+    const Q22 = getData(x2, y2); //[y2][x2]; // 우하단
+    function interpolate(Q11, Q21, Q12, Q22, dx, dy) {
+        const invDx = 1 - dx,
+            invDy = 1 - dy;
+
+        return [
+            Q11[0] * invDx * invDy +
+                Q21[0] * dx * invDy +
+                Q12[0] * invDx * dy +
+                Q22[0] * dx * dy,
+            Q11[1] * invDx * invDy +
+                Q21[1] * dx * invDy +
+                Q12[1] * invDx * dy +
+                Q22[1] * dx * dy,
+        ];
+    }
+
+    // 보간 비율 계산
+    const dx = x - x1; // x에 대한 가중치
+    const dy = y - y1; // y에 대한 가중치
+    let result = interpolate(Q11, Q21, Q12, Q22, dx, dy);
+    return result;
+}
 // 초기화
 window.onload = async () => {
     try {
@@ -446,7 +476,9 @@ document.addEventListener("pointermove", (event) => {
 
         console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
-        renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
+        // renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
+
+        renderToImage(canvas, 0, 0, canvas.width, canvas.height);
     }
 });
 
