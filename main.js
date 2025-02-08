@@ -3,8 +3,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 10; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 2; // 강도: +이면 정방향, -이면 역방향
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
 let displaceX;
@@ -69,115 +69,6 @@ function applyPixelFlow(canvas, start, end) {
         }
     }
 
-    // 바운딩 박스 내의 각 픽셀에 대해 원 내부에 있는지 확인한 후 효과 적용
-    // for (let i = 0; i < boundHeight; i++) {
-    //     const y = unitY > 0 ? boundMaxY - i : boundMinY + i;
-    //     const areaY = unitY > 0 ? boundHeight - (i + topPadding) - 1 : i;
-
-    //     for (let j = 0; j < boundWidth; j++) {
-    //         const x = unitX > 0 ? boundMaxX - j : boundMinX + j;
-    //         const areaX = unitX > 0 ? boundHeight - (j + leftPadding) - 1 : j;
-    //         //console.log("@", areaX, areaY,'*', area[areaY][areaX],`(${x}, ${y})`);
-    //         // console.log("unit", unitX, unitY);
-    //         areaMap[i][j] = area[areaY][areaX];
-
-    //         if (area[areaY][areaX] > 0) {
-    //             console.log("%");
-    //         }
-
-    //         let diff = area[areaY][areaX] * MAGNIFY_STRENGTH;
-
-    //         const index = y * width + x;
-
-    //         let [ax, ay] = getVector(x - diff * unitX, y - diff * unitY);
-    //         displaceX[index] = ax - diff * unitX;
-    //         displaceY[index] = ay - diff * unitY;
-
-    //         // const currentX = x;
-    //         // const currentY = y;
-
-    //         // // start와 현재 픽셀 사이의 거리 계산
-    //         // const deltaX = currentX - start.x;
-    //         // const deltaY = currentY - start.y;
-    //         // const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-    //         // // 원 내부의 픽셀만 처리
-    //         // if (dist < EFFECT_RADIUS) {
-    //         //     // 원래 코드에서 4방향(좌/우, 위/아래) 미분 차이를 계산하는 부분
-
-    //         //     let diffL = { x: 0, y: 0, t: 0 },
-    //         //         diffR = { x: 0, y: 0 },
-    //         //         diffT = { x: 0, y: 0 },
-    //         //         diffB = { x: 0, y: 0 };
-
-    //         //     // -> 방향으로 밀때
-    //         //     const leftIdx = y * width + (x - 1);
-    //         //     let leftDisplaceX = x > 0 ? displaceX[leftIdx] : 0;
-    //         //     let leftDisplaceY = x > 0 ? displaceY[leftIdx] : 0;
-
-    //         //     diffL.x = displaceX[index] + 1 - leftDisplaceX;
-    //         //     diffL.y = displaceY[index] - leftDisplaceY;
-
-    //         //     // <- 방향으로 밀때
-    //         //     const rightIdx = y * width + (x + 1);
-    //         //     let rightDisplaceX = x < width - 1 ? displaceX[rightIdx] : 0;
-    //         //     let rightDisplaceY = x < width - 1 ? displaceY[rightIdx] : 0;
-
-    //         //     diffR.x = rightDisplaceX + 1 - displaceX[index];
-    //         //     diffR.y = rightDisplaceY - displaceY[index];
-
-    //         //     // 아래로 밀때
-    //         //     const topIdx = (y - 1) * width + x;
-    //         //     let topDisplaceX = y > 0 ? displaceX[topIdx] : 0;
-    //         //     let topDisplaceY = y > 0 ? displaceY[topIdx] : 0;
-
-    //         //     diffT.x = displaceX[index] - topDisplaceX;
-    //         //     diffT.y = displaceY[index] + 1 - topDisplaceY;
-
-    //         //     // 위로 밀때
-    //         //     const bottomIdx = (y + 1) * width + x;
-    //         //     let bottomDisplaceX = y < height - 1 ? displaceX[bottomIdx] : 0;
-    //         //     let bottomDisplaceY = y < height - 1 ? displaceY[bottomIdx] : 0;
-
-    //         //     diffB.x = bottomDisplaceX - displaceX[index];
-    //         //     diffB.y = bottomDisplaceY + 1 - displaceY[index];
-
-    //         //     // unit 방향에 따른 미분 선택
-    //         //     let diffX = unitX > 0 ? diffL : diffR;
-    //         //     let diffY = unitY > 0 ? diffT : diffB;
-
-    //         //     // easing 함수 (예시로 easeInOutCubic 사용)
-    //         //     const easeInOutCubic = (x) =>
-    //         //         x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-
-    //         //     // start와의 거리에 따른 효과 강도 계산
-    //         //     const effectFactor =
-    //         //         ((1 - easeInOutCubic(dist / EFFECT_RADIUS)) *
-    //         //             MAGNIFY_STRENGTH) /
-    //         //         2;
-
-    //         //     // offset 계산 (두 방향 간의 보정도 포함)
-    //         //     const offsetX = diffX.x / Math.pow(2, effectFactor) - diffX.x;
-    //         //     const offsetY = diffY.y / Math.pow(2, effectFactor) - diffY.y;
-
-    //         //     const offsetX2Y = diffX.y / Math.pow(2, effectFactor) - diffX.y;
-
-    //         //     const offsetY2X = diffY.x / Math.pow(2, effectFactor) - diffY.x;
-
-    //         //     // 누적 변위 업데이트 (smallerAbs 함수는 두 값 중 절대값이 작은 쪽을 선택)
-    //         //     displaceX[index] += offsetX * unitX;
-    //         //     displaceY[index] += offsetX2Y * unitX;
-
-    //         //     displaceY[index] += offsetY * unitY;
-    //         //     displaceX[index] += offsetY2X * unitY;
-
-    //         //     sum++;
-    //         // }
-    //     }
-    // }
-    //console.table(areaMap);
-    // console.table(vecterMapX);
-    //console.log("sum:", sum);
 }
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
@@ -435,7 +326,7 @@ document.addEventListener("pointermove", (event) => {
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
-        let tap = 5;
+        let tap = Math.floor(EFFECT_RADIUS/25);
 
         const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
         linePoints.forEach((point) => {
