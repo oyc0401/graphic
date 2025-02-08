@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 26; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -26,7 +26,7 @@ function initPixelFlow(canvas, ctx) {
 }
 
 let sum = 0;
-function applyPixelFlow(canvas, start, end) {
+function applyPixelFlow(canvas, start, end,force) {
     const c_width = canvas.width;
     const c_height = canvas.height;
 
@@ -39,7 +39,7 @@ function applyPixelFlow(canvas, start, end) {
     const unitY = dy / length;
     const ceiledRadius = Math.ceil(EFFECT_RADIUS);
 
-    console.log(start);
+    //console.log(start);
 
     let area = createEffectArea(EFFECT_RADIUS);
 
@@ -58,7 +58,7 @@ function applyPixelFlow(canvas, start, end) {
                 const index = y * c_width + x;
 
                 //areaMap[i][j] = area[areaY][areaX];
-                let diff = area[areaY][areaX] * MAGNIFY_STRENGTH;
+                let diff = area[areaY][areaX] * MAGNIFY_STRENGTH*force/2;
 
                 //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
                 let [ax, ay] = getVector(x - diff * unitX, y - diff * unitY);
@@ -68,7 +68,6 @@ function applyPixelFlow(canvas, start, end) {
             }
         }
     }
-
 }
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
@@ -326,15 +325,15 @@ document.addEventListener("pointermove", (event) => {
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
-        let tap = Math.floor(EFFECT_RADIUS/25);
-
+        let tap = Math.ceil(EFFECT_RADIUS / 25);
+        console.log("tap", tap);
         const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
         linePoints.forEach((point) => {
             // ctx.beginPath();
             // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
             // ctx.fill();
             if (count % tap == 0) {
-                applyPixelFlow(canvas, point, end);
+                applyPixelFlow(canvas, point, end,tap);
             }
             count++;
         });
@@ -359,9 +358,9 @@ document.addEventListener("pointermove", (event) => {
             Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
         );
 
-        console.log(sum);
+        // console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
-         renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
+        renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
 
         //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
     }
