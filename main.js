@@ -1,165 +1,46 @@
-import { Liquify } from "./liquify";
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+// main.js
+(() => {
+    window.addEventListener("load", () => {
+        const canvas = document.getElementById("canvas");
+        const offscreen = canvas.transferControlToOffscreen();
 
-let liquify;
+        // 웹워커 생성
+        const worker = new Worker("worker.js", { type: "module" });
 
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1;
+        // 웹워커 초기화 메시지 전송 (OffscreenCanvas와 이미지 URL 전달)
+        worker.postMessage(
+            {
+                type: "init",
+                canvas: offscreen,
+                imageUrl: "cat_4k.jpg", 
+               // imageUrl: "cat.webp", 
+            },
+            [offscreen],
+        );
 
-// 마우스 위치를 저장할 배열
-let positions = [];
-let isTracking = false; // 누름 상태
-let distance = 0;
-let lastIndex = 0;
+        // 캔버스 내 좌표를 얻기 위한 헬퍼 함수 (캔버스의 위치에 따라 보정)
+        const getCanvasCoordinates = (event) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: Math.floor(event.clientX - rect.left),
+                y: Math.floor(event.clientY - rect.top),
+            };
+        };
 
-// // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
-function getLinePoints(x0, y0, x1, y1) {
-    if (
-        !Number.isInteger(x0) ||
-        !Number.isInteger(y0) ||
-        !Number.isInteger(x1) ||
-        !Number.isInteger(y1)
-    ) {
-        throw new Error("모든 좌표는 정수여야 합니다.");
-    }
-
-    const points = [];
-    let dx = Math.abs(x1 - x0);
-    let dy = Math.abs(y1 - y0);
-    const sx = x0 < x1 ? 1 : -1;
-    const sy = y0 < y1 ? 1 : -1;
-    let err = dx - dy;
-
-    while (true) {
-        points.push({ x: x0, y: y0 });
-        if (x0 === x1 && y0 === y1) break;
-        const e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x0 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-    return points;
-}
-
-function goLiquify(start, end) {
-    let tap = Math.ceil(liquify.radius / 20);
-    const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
-    linePoints.forEach((point) => {
-        if (distance % tap == 0) {
-            liquify.applyPixelFlow(point, end, tap);
-        }
-        distance++;
-    });
-}
-
-// 초기화
-window.onload = async () => {
-    try {
-        //const img = await loadImageFromURL("check.png");
-        const img = await loadImageFromURL("cat.webp");
-        //const img = await loadImageFromURL("musk.png");
-        drawImageToCanvas(img);
-
-        liquify = new Liquify(canvas, ctx);
-        liquify.setRadius(EFFECT_RADIUS);
-        liquify.setStrength(MAGNIFY_STRENGTH);
-    } catch (error) {
-        console.error("이미지 로드 실패:", error);
-    }
-};
-
-document.addEventListener("pointerdown", (event) => {
-    isTracking = true;
-    positions = []; // 이전 데이터 초기화
-    lastIndex = 0;
-    distance = 0;
-});
-
-document.addEventListener("pointermove", (event) => {
-    //return;
-    if (!isTracking) {
-        return;
-    }
-
-    const { clientX, clientY } = event;
-
-    // 현재 좌표를 배열에 저장
-    positions.push({ x: ~~clientX, y: ~~clientY });
-
-    if (positions.length < 2) {
-        return;
-    }
-    execute();
-    // lastIndex = positions.length - 1;
-    // const start = positions[lastIndex - 1];
-    // const end = positions[lastIndex];
-
-    // liquify.renderToImage(minX, minY, maxX, maxY);
-
-    //renderToImage( 0, 0, c_width, c_height);
-});
-
-let queued = false;
-function execute() {
-    if (!queued) {
-        queued = true;
-        requestAnimationFrame(() => {
-            // 렌더링 영역 계산
-            let minX = Infinity;
-            let minY = Infinity;
-            let maxX = 0;
-            let maxY = 0;
-
-            if (lastIndex == positions.length - 1) {
-                queued = false;
-                console.warn("왜 여기 들어왔니");
-                return;
-            }
-
-            while (lastIndex < positions.length - 1) {
-                const start = positions[lastIndex];
-                const end = positions[lastIndex + 1];
-                console.log(start, end);
-                goLiquify(start, end);
-                lastIndex++;
-
-                minX = Math.min(start.x, end.x, minX);
-                minY = Math.min(start.y, end.y, minY);
-                maxX = Math.max(start.x, end.x, maxX);
-                maxY = Math.max(start.y, end.y, maxY);
-            }
-
-            liquify.renderToImage(minX, minY, maxX, maxY);
-
-            queued = false;
+        // pointer 이벤트를 웹워커로 전달합니다.
+        document.addEventListener("pointerdown", (event) => {
+            const pos = getCanvasCoordinates(event);
+            worker.postMessage({ type: "pointerdown", x: pos.x, y: pos.y });
         });
-    }
-}
 
-document.addEventListener("pointerup", (event) => {
-    isTracking = false;
-    console.log("pointerup");
-    // liquify.renderToImage(0, 0, liquify.c_width, liquify.c_height);
-});
+        document.addEventListener("pointermove", (event) => {
+            const pos = getCanvasCoordinates(event);
+            worker.postMessage({ type: "pointermove", x: pos.x, y: pos.y });
+        });
 
-// 이미지 로드 함수
-function loadImageFromURL(url) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = url;
+        document.addEventListener("pointerup", (event) => {
+            const pos = getCanvasCoordinates(event);
+            worker.postMessage({ type: "pointerup", x: pos.x, y: pos.y });
+        });
     });
-}
-
-function drawImageToCanvas(img) {
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    ctx.drawImage(img, 0, 0);
-}
+})();
