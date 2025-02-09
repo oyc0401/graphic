@@ -3,7 +3,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const EFFECT_RADIUS = 26; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 let lastIndex = 0;
@@ -26,7 +26,7 @@ function initPixelFlow(canvas, ctx) {
 }
 
 let sum = 0;
-function applyPixelFlow(canvas, start, end,force) {
+function applyPixelFlow(canvas, start, end, force) {
     const c_width = canvas.width;
     const c_height = canvas.height;
 
@@ -58,7 +58,7 @@ function applyPixelFlow(canvas, start, end,force) {
                 const index = y * c_width + x;
 
                 //areaMap[i][j] = area[areaY][areaX];
-                let diff = area[areaY][areaX] * MAGNIFY_STRENGTH*force/2;
+                let diff = (area[areaY][areaX] * MAGNIFY_STRENGTH * force) / 2;
 
                 //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
                 let [ax, ay] = getVector(x - diff * unitX, y - diff * unitY);
@@ -72,6 +72,8 @@ function applyPixelFlow(canvas, start, end,force) {
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 function renderToImage(canvas, sx, sy, ex, ey) {
+    console.log(sx,sy,ex,ey);
+    
     const canvas_w = canvas.width;
     const canvas_h = canvas.height;
 
@@ -110,8 +112,8 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 
             const getColor = (xx, yy) => {
                 // 클램핑된 좌표를 사용
-                const clampedX = Math.min(Math.max(xx, 0), canvas_w - 1);
-                const clampedY = Math.min(Math.max(yy, 0), canvas_h - 1);
+                const clampedX = clamp(xx, 0, canvas_w - 1);
+                const clampedY = clamp(yy, 0, canvas_h - 1);
                 const idx = (clampedY * canvas_w + clampedX) * 4;
                 // 화면 밖이면 투명으로 설정
                 //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
@@ -163,7 +165,9 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 }
 
 const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
-
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
 function getVector(x, y) {
     const width = canvas.width;
     const height = canvas.height;
@@ -175,8 +179,8 @@ function getVector(x, y) {
     const y2 = Math.ceil(y);
 
     function getData(xx, yy) {
-        const clampedX = Math.min(Math.max(xx, 0), width - 1);
-        const clampedY = Math.min(Math.max(yy, 0), height - 1);
+        const clampedX = clamp(xx, 0, width - 1);
+        const clampedY = clamp(yy, 0, height - 1);
         const idx = clampedY * width + clampedX;
         return [displaceX[idx], displaceY[idx]];
     }
@@ -212,7 +216,7 @@ function getVector(x, y) {
 window.onload = async () => {
     try {
         const img = await loadImageFromURL("check.png");
-        // const img = await loadImageFromURL("cat.webp");
+         //const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
@@ -241,7 +245,9 @@ document.addEventListener("pointerdown", (event) => {
     //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
 
     count = 0;
-
+let index = ~~clientY * canvas.width + ~~clientX
+    
+    console.log(`(${~~clientX}, ${~~clientY})`, ',',displaceX[index], displaceY[index]);
     //console.table(createEffectArea(5));
 });
 function createEffectArea(effectRadius) {
@@ -325,7 +331,7 @@ document.addEventListener("pointermove", (event) => {
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
 
-        let tap = Math.ceil(EFFECT_RADIUS / 25);
+        let tap = Math.ceil(EFFECT_RADIUS / 20);
         console.log("tap", tap);
         const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
         linePoints.forEach((point) => {
@@ -333,7 +339,7 @@ document.addEventListener("pointermove", (event) => {
             // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
             // ctx.fill();
             if (count % tap == 0) {
-                applyPixelFlow(canvas, point, end,tap);
+                applyPixelFlow(canvas, point, end, tap);
             }
             count++;
         });
@@ -360,7 +366,7 @@ document.addEventListener("pointermove", (event) => {
 
         // console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
-        renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
+        renderToImage(canvas, boundMinX, boundMinY, boundMaxX+1, boundMaxY+1);
 
         //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
     }
