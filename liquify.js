@@ -51,7 +51,6 @@ export class Liquify {
         if (0 <= x && x < c_width && 0 <= y && y < c_height) {
           const index = y * c_width + x;
 
-          //areaMap[i][j] = area[areaY][areaX];
           let diff = (this.area[areaY][areaX] * this.strength * force) / 2;
 
           //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
@@ -59,8 +58,6 @@ export class Liquify {
           let ax = result[0];
           let ay = result[1];
 
-          //displaceX[index] = ax - diff * unitX;
-          // displaceY[index] = ay - diff * unitY;
           this.displaceMap[2 * index] = ax - diff * unitX;
           this.displaceMap[2 * index + 1] = ay - diff * unitY;
         }

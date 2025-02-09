@@ -95,28 +95,57 @@ document.addEventListener("pointermove", (event) => {
     if (positions.length < 2) {
         return;
     }
+    execute();
+    // lastIndex = positions.length - 1;
+    // const start = positions[lastIndex - 1];
+    // const end = positions[lastIndex];
 
-    lastIndex = positions.length - 1;
-    const start = positions[lastIndex - 1];
-    const end = positions[lastIndex];
-
-    goLiquify(start, end);
-
-    // 렌더링 영역 계산
-    const minX = Math.min(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxX = Math.max(start.x, end.x);
-    const maxY = Math.max(start.y, end.y);
-
-    liquify.renderToImage(minX, minY, maxX, maxY);
+    // liquify.renderToImage(minX, minY, maxX, maxY);
 
     //renderToImage( 0, 0, c_width, c_height);
 });
 
+let queued = false;
+function execute() {
+    if (!queued) {
+        queued = true;
+        requestAnimationFrame(() => {
+            // 렌더링 영역 계산
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = 0;
+            let maxY = 0;
+
+            if (lastIndex == positions.length - 1) {
+                queued = false;
+                console.warn("왜 여기 들어왔니");
+                return;
+            }
+
+            while (lastIndex < positions.length - 1) {
+                const start = positions[lastIndex];
+                const end = positions[lastIndex + 1];
+                console.log(start, end);
+                goLiquify(start, end);
+                lastIndex++;
+
+                minX = Math.min(start.x, end.x, minX);
+                minY = Math.min(start.y, end.y, minY);
+                maxX = Math.max(start.x, end.x, maxX);
+                maxY = Math.max(start.y, end.y, maxY);
+            }
+
+            liquify.renderToImage(minX, minY, maxX, maxY);
+
+            queued = false;
+        });
+    }
+}
+
 document.addEventListener("pointerup", (event) => {
     isTracking = false;
     console.log("pointerup");
-    //renderToImage( 0, 0, c_width, c_height);
+    // liquify.renderToImage(0, 0, liquify.c_width, liquify.c_height);
 });
 
 // 이미지 로드 함수
