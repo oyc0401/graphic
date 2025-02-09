@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>차분 배열 기반 캡슐 효과 결과</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      td,
+      th {
+        border: 1px solid #ccc;
+        padding: 5px 10px;
+        text-align: center;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .bresenham-point {
+        background-color: red;
+        color: white;
+        font-weight: bold;
+      }
+
+      /* 원 반경 내에 있는 셀에 적용할 클래스 */
+      .circle-hover {
+        background-color: #ff99cc !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>직선 가중치 구하기 [Brute Force, O(R²N)] (가중치: easeInOutCubic)</h1>
+      <div id="output"></div>
+    </div>
+
+    <script>
+      // 1. Bresenham 알고리즘: 두 점 (x0, y0)와 (x1, y1)를 잇는 선상의 픽셀 좌표들을 반환
+      function bresenhamLine(start, end) {
+        let x0 = start.x;
+        let y0 = start.y;
+        let x1 = end.x;
+        let y1 = end.y;
+
+        if (![x0, y0, x1, y1].every(Number.isInteger)) {
+          throw new Error(
+            `좌표 값은 정수여야 합니다. 받은 값: x0=${x0}, y0=${y0}, x1=${x1}, y1=${y1}`,
+          );
+        }
+
+        const coordinates = [];
+        let dx = Math.abs(x1 - x0);
+        let dy = Math.abs(y1 - y0);
+        let sx = x0 < x1 ? 1 : -1;
+        let sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+
+        while (true) {
+          coordinates.push({ x: x0, y: y0 });
+          if (x0 === x1 && y0 === y1) break;
+          let e2 = 2 * err;
+          if (e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+          }
+          if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+          }
+        }
+        return coordinates;
+      }
+      const easeInOutCubic = (x) => x;
+
+      function generateResultGrid(width, height, R, centers) {
+        console.log(width, height, R, centers);
+        const effective_R = R; // 여기서는 effective_R = R; (R이 소수점이면 그대로 사용)
+        const ceiledRadius = Math.ceil(R);
+        // 2차원 차분 배열 초기화
+        const diff = [];
+        for (let y = 0; y < height; y++) {
+          diff[y] = new Array(width).fill(0);
+        }
+
+        // 각 원 중심(centers)에 대해 업데이트
+        centers.forEach((center) => {
+          const cx = center.x + ceiledRadius;
+          const cy = center.y + ceiledRadius;
+          // y 범위: 중심에서 effective_R만큼 확장 (정수 그리드 경계를 위해 floor/ceil 적용)
+          const xStart = 0;
+          const yStart = 0;
+
+          const yEnd = Math.min(height - 1, cy + ceiledRadius);
+          const xEnd = Math.min(width - 1, cx + ceiledRadius);
+
+          for (let y = 0; y <= height; y++) {
+            for (let x = 0; x <= width; x++) {
+              let dist = Math.hypot(cx - x, cy - y);
+
+              if (dist < R) {
+                diff[y][x] += easeInOutCubic(1 - dist / R);
+              }
+            }
+          }
+        });
+
+        // // 누적합 계산하여 최종 결과 배열 복원
+        // const result = [];
+        // for (let y = 0; y < height; y++) {
+        //   result[y] = new Array(width).fill(0);
+        //   let sum = 0;
+        //   for (let x = 0; x < width; x++) {
+        //     sum += diff[y][x];
+        //     result[y][x] = sum;
+        //   }
+        // }
+
+        return diff;
+      }
+
+      function getArea(r, x, y) {
+        const R = r; // 소수점 R 값 가능
+        const start = { x: 0, y: 0 };
+        const end = { x, y };
+
+        centers = bresenhamLine(start, end);
+
+        ceiledRadius = Math.ceil(R);
+        // 경계를 정수로 만들기 위해 내림, 올림 처리 반지름이 1.1이여도 2칸 여유두기
+        let minX = start.x - ceiledRadius;
+        let minY = start.y - ceiledRadius;
+        let maxX = end.x + ceiledRadius;
+        let maxY = end.y + ceiledRadius;
+
+        const gridWidth = maxX - minX + 1;
+        const gridHeight = maxY - minY + 1;
+
+        const resultGrid = generateResultGrid(
+          gridWidth,
+          gridHeight,
+          R,
+          centers,
+        );
+        return resultGrid;
+      }
+
+      let ceiledRadius;
+      let centers;
+      // 5. 메인 함수: 결과 계산 후 HTML 테이블 출력
+      function main() {
+        const R = 4; // 소수점 R 값 가능
+        //const resultGrid = getArea(R, 12, 8);
+
+        // console.log(
+        //   `Calculated Grid Size: Width = ${gridWidth}, Height = ${gridHeight}`,
+        // );
+        //console.table(resultGrid);
+
+        let grid = generateGradientGrid(3, 3, 14, 16, 3);
+        console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
+
+        displayResultTable(grid, centers);
+      }
+
+      function generateGradientGrid(
+        startX,
+        startY,
+        endX,
+        endY,
+        radius,
+        steps = 1,
+      ) {
+        // 이동 거리 + 2 * 반지름 + 1 로 크기 결정
+        const ceiledRadius = Math.ceil(radius);
+        const width = Math.abs(endX - startX) + 2 * ceiledRadius + 1;
+        const height = Math.abs(endY - startY) + 2 * ceiledRadius + 1;
+
+        const length = Math.hypot(endX - startX, endY - startY);
+      
+
+        // 2D 배열 초기화
+        let grid = Array.from({ length: height }, () => Array(width).fill(0));
+
+        let delta = steps*length;
+        // 원의 이동 경로를 따라 값 추가
+        for (let t = 0; t <= 1; t += 1 / delta) {
+          const cx = startX + t * (endX - startX);
+          const cy = startY + t * (endY - startY);
+
+          console.log(cx,cy)
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const d = Math.hypot(
+                x + startX - ceiledRadius - cx,
+                y + startY - ceiledRadius - cy,
+              );
+              const value = Math.max(0, 1 - d / radius);
+              grid[y][x] += value/steps; // 누적
+            }
+          }
+        }
+        console.log(length);
+        return grid;
+
+        // 결과 출력
+      }
+
+      // 4. HTML 테이블로 결과 출력
+      function displayResultTable(grid, centers) {
+        const outputDiv = document.getElementById("output");
+        let html = "<table>";
+
+        // // 브레젠험 점들을 쉽게 찾기 위해 집합 생성 (좌표 문자열)
+        // const centerSet = new Set(
+        //   centers.map((p) => `${p.x + ceiledRadius},${p.y + ceiledRadius}`),
+        // );
+
+        // 테이블 헤더 (열 인덱스)
+        html += "<tr><th></th>";
+        for (let x = 0; x < grid[0].length; x++) {
+          html += `<th>${x}</th>`;
+        }
+        html += "</tr>";
+
+        // 각 행
+        for (let y = 0; y < grid.length; y++) {
+          html += `<tr><th>${y}</th>`;
+          for (let x = 0; x < grid[y].length; x++) {
+            const cellValue = grid[y][x];
+            html += `<td>${cellValue.toFixed(2)}</td>`;
+          }
+          html += "</tr>";
+        }
+        html += "</table>";
+        outputDiv.innerHTML = html;
+      }
+
+      window.onload = main;
+    </script>
+  </body>
+</html>
