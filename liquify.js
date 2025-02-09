@@ -1,4 +1,6 @@
 export class Liquify {
+
+  
   constructor(canvas, ctx) {
     // 원본 이미지 데이터 가져오기
     let c_width = canvas.width;
@@ -66,7 +68,6 @@ export class Liquify {
     }
   }
 
-  // 이게 1.3배 더 빠름
   fastGetVector(x, y) {
     // 지역 변수에 글로벌 상수를 캐싱 (최적화에 도움)
     const w = this.c_width;
@@ -129,9 +130,15 @@ export class Liquify {
     return vectorResult;
   }
 
-  renderToImage(sx, sy, ex, ey) {
+  renderToImage(minX, minY, maxX, maxY) {
     const c_width = this.c_width;
     const c_height = this.c_height;
+    const ceiledRadius = Math.ceil(this.radius);
+
+    const sx = Math.max(0, minX - ceiledRadius);
+    const sy = Math.max(0, minY - ceiledRadius);
+    const ex = Math.min(c_width - 1, maxX + ceiledRadius);
+    const ey = Math.min(c_height - 1, maxY + ceiledRadius);
 
     const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
     const height = ey - sy + 1;

@@ -1,17 +1,16 @@
-// 설정값
 import { Liquify } from "./liquify";
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let liquify;
 
-const EFFECT_RADIUS = 500; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1;
 
 // 마우스 위치를 저장할 배열
 let positions = [];
 let isTracking = false; // 누름 상태
-let count = 0;
+let distance = 0;
 let lastIndex = 0;
 
 // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
@@ -48,6 +47,17 @@ function getLinePoints(x0, y0, x1, y1) {
     return points;
 }
 
+function goLiquify(start, end) {
+    let tap = Math.ceil(liquify.radius / 20);
+    const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
+    linePoints.forEach((point) => {
+        if (distance % tap == 0) {
+            liquify.applyPixelFlow(point, end, tap);
+        }
+        distance++;
+    });
+}
+
 // 초기화
 window.onload = async () => {
     try {
@@ -68,25 +78,7 @@ document.addEventListener("pointerdown", (event) => {
     isTracking = true;
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
-    count = 0;
-    //const { clientX, clientY } = event;
-    // applyPixelFlow(
-    //     canvas,
-    //     { x: ~~clientX, y: ~~clientY },
-    //     { x: ~~clientX + 100, y: ~~clientY + 100 },
-    // );
-
-    //renderToImage( 0, 0, c_width, c_height);
-
-    // let index = ~~clientY * c_width + ~~clientX;
-
-    // console.log(
-    //     `(${~~clientX}, ${~~clientY})`,
-    //     ",",
-    //     displaceX[index],
-    //     displaceY[index],
-    // );
-    //console.table(createEffectArea(5));
+    distance = 0;
 });
 
 document.addEventListener("pointermove", (event) => {
@@ -108,27 +100,15 @@ document.addEventListener("pointermove", (event) => {
     const start = positions[lastIndex - 1];
     const end = positions[lastIndex];
 
-    let tap = Math.ceil(EFFECT_RADIUS / 20);
-    const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
-    linePoints.forEach((point) => {
-        if (count % tap == 0) {
-            liquify.applyPixelFlow(point, end, tap);
-        }
-        count++;
-    });
+    goLiquify(start, end);
 
-    // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
-    let ceiledRadius = Math.ceil(EFFECT_RADIUS);
+    // 렌더링 영역 계산
     const minX = Math.min(start.x, end.x);
     const minY = Math.min(start.y, end.y);
     const maxX = Math.max(start.x, end.x);
-    const maxY = Math.max(start.y, end.y);0
-    const boundMinX = Math.max(0, minX - ceiledRadius);
-    const boundMinY = Math.max(0, minY - ceiledRadius);
-    const boundMaxX = Math.min(liquify.c_width - 1, maxX + ceiledRadius);
-    const boundMaxY = Math.min(liquify.c_height - 1, maxY + ceiledRadius);
+    const maxY = Math.max(start.y, end.y);
 
-    liquify.renderToImage(boundMinX, boundMinY, boundMaxX, boundMaxY);
+    liquify.renderToImage(minX, minY, maxX, maxY);
 
     //renderToImage( 0, 0, c_width, c_height);
 });
