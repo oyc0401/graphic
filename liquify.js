@@ -31,10 +31,10 @@ export class Liquify {
     const unitY = dy / length;
     const ceiledRadius = Math.ceil(this.EFFECT_RADIUS);
     let areaLength = this.area.length;
+    //console.log(start);
     let c_width = this.c_width;
     let c_height = this.c_height;
-    //console.log(start);
-
+    
     for (let i = 0; i < areaLength - 1; i++) {
       const y =
         unitY > 0 ? start.y + ceiledRadius - i : start.y - ceiledRadius + i;
@@ -69,7 +69,7 @@ export class Liquify {
   fastGetVector(x, y) {
     // 지역 변수에 글로벌 상수를 캐싱 (최적화에 도움)
     const w = this.c_width;
-    const h = this.c_width;
+    const h = this.c_height;
 
     // x, y의 정수 부분 계산 (하나의 호출로 두 번 쓰임)
     const x1 = Math.floor(x);
@@ -117,7 +117,8 @@ export class Liquify {
     const dy = y - y1;
     const invDx = 1 - dx;
     const invDy = 1 - dy;
-
+    
+    const vectorResult = [0, 0];
     // bilinear interpolation (각 성분 별로 계산)
     vectorResult[0] =
       Q11x * invDx * invDy +
@@ -133,98 +134,8 @@ export class Liquify {
 
     return vectorResult;
   }
-
-  renderToImage(sx, sy, ex, ey) {
-    const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
-    const height = ey - sy + 1;
-    let c_width = this.c_width;
-    let c_height = this.c_height;
-
-    // 잘못된 영역이면 그냥 종료합니다.
-    if (width <= 0 || height <= 0) {
-      return;
-    }
-
-    const newImageData = new Uint8ClampedArray(width * height * 4);
-
-    let imageIndex = 0;
-    for (let y = sy; y <= ey; y++) {
-      for (let x = sx; x <= ex; x++) {
-        const index = y * c_width + x;
-
-        const totalDx = this.displaceMap[2 * index];
-        const totalDy = this.displaceMap[2 * index + 1];
-        let newX = x + totalDx;
-        let newY = y + totalDy;
-
-        // 좌표를 이미지 경계 내로 클램핑
-        // 이걸 주석하면 더욱더 바깥 색을 잘 표현함. 아마?
-        // newX = Math.min(Math.max(newX, 0), canvas_w - 1);
-        // newY = Math.min(Math.max(newY, 0), canvas_h - 1);
-
-        // 양선형 보간
-        const floorX = Math.floor(newX);
-        const floorY = Math.floor(newY);
-        const ceilX = Math.ceil(newX);
-        const ceilY = Math.ceil(newY);
-        const tx = newX - floorX;
-        const ty = newY - floorY;
-
-        const getColor = (xx, yy) => {
-          // 클램핑된 좌표를 사용
-          const clampedX = clamp(xx, 0, c_width - 1);
-          const clampedY = clamp(yy, 0, c_height - 1);
-          const idx = (clampedY * c_width + clampedX) * 4;
-          // 화면 밖이면 투명으로 설정
-          //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
-          //         return [
-          //             originalData[idx],
-          //                 originalData[idx + 1],
-          //                 originalData[idx + 2],
-          //             0,
-          //         ];
-          //     }
-
-          return [
-            this.originalData[idx],
-            this.originalData[idx + 1],
-            this.originalData[idx + 2],
-            this.originalData[idx + 3],
-          ];
-        };
-
-        const c00 = getColor(floorX, floorY);
-        const c10 = getColor(ceilX, floorY);
-        const c01 = getColor(floorX, ceilY);
-        const c11 = getColor(ceilX, ceilY);
-
-        const interpolate = (c1, c2, c3, c4, tx, ty) => [
-          (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
-            (c3[0] * (1 - tx) + c4[0] * tx) * ty,
-          (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
-            (c3[1] * (1 - tx) + c4[1] * tx) * ty,
-          (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
-            (c3[2] * (1 - tx) + c4[2] * tx) * ty,
-          (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
-            (c3[3] * (1 - tx) + c4[3] * tx) * ty,
-        ];
-
-        const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-        const newIndex = imageIndex * 4;
-        newImageData[newIndex] = r;
-        newImageData[newIndex + 1] = g;
-        newImageData[newIndex + 2] = b;
-        newImageData[newIndex + 3] = a;
-
-        imageIndex++;
-      }
-    }
-
-    let resultImageData = new ImageData(newImageData, width, height);
-    this.ctx.putImageData(resultImageData, sx, sy);
-  }
 }
-const vectorResult = [0, 0];
+
 function createEffectArea(effectRadius) {
   // effectRadius를 올림하여 정수 반지름 계산
   let ceiledRadius = Math.ceil(effectRadius);
