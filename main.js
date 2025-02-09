@@ -26,7 +26,7 @@ function initPixelFlow(canvas, ctx) {
 }
 
 let sum = 0;
-function applyPixelFlow(canvas, start, end, force) {
+function applyPixelFlow(canvas, start, end, area, force) {
     const c_width = canvas.width;
     const c_height = canvas.height;
 
@@ -40,8 +40,6 @@ function applyPixelFlow(canvas, start, end, force) {
     const ceiledRadius = Math.ceil(EFFECT_RADIUS);
 
     //console.log(start);
-
-    let area = createEffectArea(EFFECT_RADIUS);
 
     for (let i = 0; i < area.length - 1; i++) {
         const y =
@@ -72,13 +70,11 @@ function applyPixelFlow(canvas, start, end, force) {
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 function renderToImage(canvas, sx, sy, ex, ey) {
-    console.log(sx,sy,ex,ey);
-    
     const canvas_w = canvas.width;
     const canvas_h = canvas.height;
 
-    const width = ex - sx;
-    const height = ey - sy;
+    const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
+    const height = ey - sy + 1;
 
     // 잘못된 영역이면 그냥 종료합니다.
     if (width <= 0 || height <= 0) {
@@ -88,8 +84,8 @@ function renderToImage(canvas, sx, sy, ex, ey) {
     const newImageData = new Uint8ClampedArray(width * height * 4);
 
     let imageIndex = 0;
-    for (let y = sy; y < ey; y++) {
-        for (let x = sx; x < ex; x++) {
+    for (let y = sy; y <= ey; y++) {
+        for (let x = sx; x <= ex; x++) {
             const index = y * canvas_w + x;
 
             const totalDx = displaceX[index];
@@ -216,7 +212,7 @@ function getVector(x, y) {
 window.onload = async () => {
     try {
         const img = await loadImageFromURL("check.png");
-         //const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
@@ -245,9 +241,14 @@ document.addEventListener("pointerdown", (event) => {
     //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
 
     count = 0;
-let index = ~~clientY * canvas.width + ~~clientX
-    
-    console.log(`(${~~clientX}, ${~~clientY})`, ',',displaceX[index], displaceY[index]);
+    let index = ~~clientY * canvas.width + ~~clientX;
+
+    console.log(
+        `(${~~clientX}, ${~~clientY})`,
+        ",",
+        displaceX[index],
+        displaceY[index],
+    );
     //console.table(createEffectArea(5));
 });
 function createEffectArea(effectRadius) {
@@ -330,6 +331,7 @@ document.addEventListener("pointermove", (event) => {
         }
 
         //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+        let area = createEffectArea(EFFECT_RADIUS);
 
         let tap = Math.ceil(EFFECT_RADIUS / 20);
         console.log("tap", tap);
@@ -339,34 +341,25 @@ document.addEventListener("pointermove", (event) => {
             // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
             // ctx.fill();
             if (count % tap == 0) {
-                applyPixelFlow(canvas, point, end, tap);
+                applyPixelFlow(canvas, point, end, area, tap);
             }
             count++;
         });
 
         // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
-        const boundMinX = Math.max(
-            0,
-            Math.floor(Math.min(start.x, end.x) - EFFECT_RADIUS),
-        );
-        const boundMinY = Math.max(
-            0,
-            Math.floor(Math.min(start.y, end.y) - EFFECT_RADIUS),
-        );
-
-        const boundMaxX = Math.min(
-            width - 1,
-            Math.ceil(Math.max(start.x, end.x) + EFFECT_RADIUS),
-        );
-
-        const boundMaxY = Math.min(
-            height - 1,
-            Math.ceil(Math.max(start.y, end.y) + EFFECT_RADIUS),
-        );
+        let ceiledRadius = Math.ceil(EFFECT_RADIUS);
+        const minX = Math.min(start.x, end.x);
+        const minY = Math.min(start.y, end.y);
+        const maxX = Math.max(start.x, end.x);
+        const maxY = Math.max(start.y, end.y);
+        const boundMinX = Math.max(0, minX - ceiledRadius);
+        const boundMinY = Math.max(0, minY - ceiledRadius);
+        const boundMaxX = Math.min(width - 1, maxX + ceiledRadius);
+        const boundMaxY = Math.min(height - 1, maxY + ceiledRadius);
 
         // console.log(sum);
         //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
-        renderToImage(canvas, boundMinX, boundMinY, boundMaxX+1, boundMaxY+1);
+        //renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
 
         //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
     }
@@ -375,7 +368,8 @@ document.addEventListener("pointermove", (event) => {
 // 스페이스바 뗐을 때 추적 종료 및 로그 출력
 document.addEventListener("pointerup", (event) => {
     isTracking = false;
-    console.log("Tracking 종료. 기록된 좌표:");
+    console.log("pointerup");
+    renderToImage(canvas, 0, 0, canvas.width, canvas.height);
 });
 
 const helper_canvas = document.getElementById("helper-canvas");
