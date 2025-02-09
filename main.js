@@ -2,20 +2,18 @@
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-
-const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
-const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
-
-let lastIndex = 0;
-let displaceX;
-let displaceY;
+let c_width;
+let c_height;
 let originalImageData;
 let originalData;
 
-function initPixelFlow(canvas, ctx) {
-    const width = canvas.width;
-    const height = canvas.height;
+let displaceX;
+let displaceY;
 
+const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
+const MAGNIFY_STRENGTH = 1; // 강도
+
+function initPixelFlow(ctx, width, height) {
     // 원본 이미지 데이터 가져오기
     originalImageData = ctx.getImageData(0, 0, width, height);
     originalData = originalImageData.data;
@@ -25,11 +23,7 @@ function initPixelFlow(canvas, ctx) {
     displaceY = new Float32Array(width * height);
 }
 
-let sum = 0;
-function applyPixelFlow(canvas, start, end, area, force) {
-    const c_width = canvas.width;
-    const c_height = canvas.height;
-
+function applyPixelFlow(start, end, area, force) {
     // end는 방향 계산용으로만 사용
     const dx = end.x - start.x;
     const dy = end.y - start.y;
@@ -59,7 +53,9 @@ function applyPixelFlow(canvas, start, end, area, force) {
                 let diff = (area[areaY][areaX] * MAGNIFY_STRENGTH * force) / 2;
 
                 //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
-                let [ax, ay] = getVector(x - diff * unitX, y - diff * unitY);
+                let result = fastGetVector(x - diff * unitX, y - diff * unitY);
+                let ax = result[0];
+                let ay = result[1];
 
                 displaceX[index] = ax - diff * unitX;
                 displaceY[index] = ay - diff * unitY;
@@ -67,12 +63,150 @@ function applyPixelFlow(canvas, start, end, area, force) {
         }
     }
 }
+
+function createEffectArea(effectRadius) {
+    // effectRadius를 올림하여 정수 반지름 계산
+    let ceiledRadius = Math.ceil(effectRadius);
+    // 배열 크기 계산 (항상 홀수 크기 유지)
+    const size = 2 * ceiledRadius + 1;
+    const center = Math.floor(size / 2);
+
+    // 2D 배열 초기화
+    const result = Array.from({ length: size }, () => Array(size).fill(0));
+
+    // 각 픽셀에 대해 거리 계산 후 값 할당
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            // 중심점과의 거리 계산
+            const distance = Math.hypot(x - center, y - center);
+
+            // 반지름 내에 있는 경우만 값 할당
+            if (distance <= effectRadius) {
+                result[y][x] = 1 - easeInOutCubic(distance / effectRadius);
+            }
+        }
+    }
+
+    return result;
+}
+
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-function renderToImage(canvas, sx, sy, ex, ey) {
-    const canvas_w = canvas.width;
-    const canvas_h = canvas.height;
 
+
+const clamp = (value, min, max) =>
+    value < min ? min : value > max ? max : value;
+
+
+function getVector(x, y) {
+    // x, y 좌표의 네 개의 인접 픽셀을 찾음
+    const x1 = Math.floor(x);
+    const x2 = Math.ceil(x);
+    const y1 = Math.floor(y);
+    const y2 = Math.ceil(y);
+
+    // 네 개의 픽셀 값 가져오기
+    const Q11 = getDisplaceData(x1, y1); // 좌상단
+    const Q21 = getDisplaceData(x2, y1); //[y1][x2]; // 우상단
+    const Q12 = getDisplaceData(x1, y2); //[y2][x1]; // 좌하단
+    const Q22 = getDisplaceData(x2, y2); //[y2][x2]; // 우하단
+
+    // 보간 비율 계산
+    const dx = x - x1; // x에 대한 가중치
+    const dy = y - y1; // y에 대한 가중치
+    let result = interpolateXY(Q11, Q21, Q12, Q22, dx, dy);
+    return result;
+}
+
+function getDisplaceData(xx, yy) {
+    const clampedX = clamp(xx, 0, c_width - 1);
+    const clampedY = clamp(yy, 0, c_height - 1);
+    const idx = clampedY * c_width + clampedX;
+    let disX = displaceX[idx];
+    let disY = displaceY[idx];
+    return [disX, disY];
+}
+
+function interpolateXY(Q11, Q21, Q12, Q22, dx, dy) {
+    const invDx = 1 - dx,
+        invDy = 1 - dy;
+
+    return [
+        Q11[0] * invDx * invDy +
+            Q21[0] * dx * invDy +
+            Q12[0] * invDx * dy +
+            Q22[0] * dx * dy,
+        Q11[1] * invDx * invDy +
+            Q21[1] * dx * invDy +
+            Q12[1] * invDx * dy +
+            Q22[1] * dx * dy,
+    ];
+}
+
+const vectorResult = [0, 0];
+// 이게 1.3배 더 빠름
+function fastGetVector(x, y) {
+    // 지역 변수에 글로벌 상수를 캐싱 (최적화에 도움)
+    const w = c_width;
+    const h = c_height;
+
+    // x, y의 정수 부분 계산 (하나의 호출로 두 번 쓰임)
+    const x1 = Math.floor(x);
+    const y1 = Math.floor(y);
+    // 원래 코드는 Math.ceil(x)로 x2, y2를 구했지만,
+    // 일반적으로 bilinear interpolation에서는 x2 = x1 + 1, y2 = y1 + 1로 처리하는 경우가 많음.
+    // (만약 x, y가 정수일 경우 보간에 사용하지 않으려면 추가 처리가 필요함)
+    const x2 = x1 + 1;
+    const y2 = y1 + 1;
+
+    // 좌표 클램핑 (inline clamp)
+    const cx1 = x1 < 0 ? 0 : x1 >= w ? w - 1 : x1;
+    const cx2 = x2 < 0 ? 0 : x2 >= w ? w - 1 : x2;
+    const cy1 = y1 < 0 ? 0 : y1 >= h ? h - 1 : y1;
+    const cy2 = y2 < 0 ? 0 : y2 >= h ? h - 1 : y2;
+
+    // 인덱스 계산 (지역 변수 w 사용)
+    const idx11 = cy1 * w + cx1;
+    const idx21 = cy1 * w + cx2;
+    const idx12 = cy2 * w + cx1;
+    const idx22 = cy2 * w + cx2;
+
+    // 배열에서 픽셀 데이터 읽어오기 (분리된 x, y 값)
+    const Q11x = displaceX[idx11],
+        Q11y = displaceY[idx11];
+    const Q21x = displaceX[idx21],
+        Q21y = displaceY[idx21];
+    const Q12x = displaceX[idx12],
+        Q12y = displaceY[idx12];
+    const Q22x = displaceX[idx22],
+        Q22y = displaceY[idx22];
+
+    // 보간 비율 계산
+    // x1, y1는 Math.floor(x), Math.floor(y)이므로
+    // dx, dy는 소수 부분이 됨.
+    const dx = x - x1;
+    const dy = y - y1;
+    const invDx = 1 - dx;
+    const invDy = 1 - dy;
+
+    // bilinear interpolation (각 성분 별로 계산)
+    vectorResult[0] =
+        Q11x * invDx * invDy +
+        Q21x * dx * invDy +
+        Q12x * invDx * dy +
+        Q22x * dx * dy;
+
+    vectorResult[1] =
+        Q11y * invDx * invDy +
+        Q21y * dx * invDy +
+        Q12y * invDx * dy +
+        Q22y * dx * dy;
+
+    return vectorResult;
+}
+
+
+function renderToImage(sx, sy, ex, ey) {
     const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
     const height = ey - sy + 1;
 
@@ -86,7 +220,7 @@ function renderToImage(canvas, sx, sy, ex, ey) {
     let imageIndex = 0;
     for (let y = sy; y <= ey; y++) {
         for (let x = sx; x <= ex; x++) {
-            const index = y * canvas_w + x;
+            const index = y * c_width + x;
 
             const totalDx = displaceX[index];
             const totalDy = displaceY[index];
@@ -108,9 +242,9 @@ function renderToImage(canvas, sx, sy, ex, ey) {
 
             const getColor = (xx, yy) => {
                 // 클램핑된 좌표를 사용
-                const clampedX = clamp(xx, 0, canvas_w - 1);
-                const clampedY = clamp(yy, 0, canvas_h - 1);
-                const idx = (clampedY * canvas_w + clampedX) * 4;
+                const clampedX = clamp(xx, 0, c_width - 1);
+                const clampedY = clamp(yy, 0, c_height - 1);
+                const idx = (clampedY * c_width + clampedX) * 4;
                 // 화면 밖이면 투명으로 설정
                 //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
                 //         return [
@@ -160,220 +294,141 @@ function renderToImage(canvas, sx, sy, ex, ey) {
     ctx.putImageData(resultImageData, sx, sy);
 }
 
-const smallerAbs = (a, b) => (Math.abs(a) < Math.abs(b) ? a : b);
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-}
-function getVector(x, y) {
-    const width = canvas.width;
-    const height = canvas.height;
+// 마우스 위치를 저장할 배열
+let positions = [];
+let isTracking = false; // 누름 상태
+let count = 0;
+let lastIndex = 0;
 
-    // x, y 좌표의 네 개의 인접 픽셀을 찾음
-    const x1 = Math.floor(x);
-    const x2 = Math.ceil(x);
-    const y1 = Math.floor(y);
-    const y2 = Math.ceil(y);
-
-    function getData(xx, yy) {
-        const clampedX = clamp(xx, 0, width - 1);
-        const clampedY = clamp(yy, 0, height - 1);
-        const idx = clampedY * width + clampedX;
-        return [displaceX[idx], displaceY[idx]];
-    }
-
-    // 네 개의 픽셀 값 가져오기
-    const Q11 = getData(x1, y1); // 좌상단
-    const Q21 = getData(x2, y1); //[y1][x2]; // 우상단
-    const Q12 = getData(x1, y2); //[y2][x1]; // 좌하단
-    const Q22 = getData(x2, y2); //[y2][x2]; // 우하단
-    function interpolate(Q11, Q21, Q12, Q22, dx, dy) {
-        const invDx = 1 - dx,
-            invDy = 1 - dy;
-
-        return [
-            Q11[0] * invDx * invDy +
-                Q21[0] * dx * invDy +
-                Q12[0] * invDx * dy +
-                Q22[0] * dx * dy,
-            Q11[1] * invDx * invDy +
-                Q21[1] * dx * invDy +
-                Q12[1] * invDx * dy +
-                Q22[1] * dx * dy,
-        ];
-    }
-
-    // 보간 비율 계산
-    const dx = x - x1; // x에 대한 가중치
-    const dy = y - y1; // y에 대한 가중치
-    let result = interpolate(Q11, Q21, Q12, Q22, dx, dy);
-    return result;
-}
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png");
-        //const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("check.png");
+        const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
-        initPixelFlow(canvas, ctx);
+        initPixelFlow(ctx, c_width, c_height);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
     }
 };
 
-// 마우스 위치를 저장할 배열
-let positions = [];
-let isTracking = false; // 스페이스바 누름 상태
-let count = 0;
-// 스페이스바 눌렀을 때 추적 시작
 document.addEventListener("pointerdown", (event) => {
     isTracking = true;
     positions = []; // 이전 데이터 초기화
     lastIndex = 0;
-    const { clientX, clientY } = event;
+    count = 0;
+    //const { clientX, clientY } = event;
     // applyPixelFlow(
     //     canvas,
     //     { x: ~~clientX, y: ~~clientY },
     //     { x: ~~clientX + 100, y: ~~clientY + 100 },
     // );
 
-    //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+    //renderToImage( 0, 0, c_width, c_height);
 
-    count = 0;
-    let index = ~~clientY * canvas.width + ~~clientX;
+    // let index = ~~clientY * c_width + ~~clientX;
 
-    console.log(
-        `(${~~clientX}, ${~~clientY})`,
-        ",",
-        displaceX[index],
-        displaceY[index],
-    );
+    // console.log(
+    //     `(${~~clientX}, ${~~clientY})`,
+    //     ",",
+    //     displaceX[index],
+    //     displaceY[index],
+    // );
     //console.table(createEffectArea(5));
 });
-function createEffectArea(effectRadius) {
-    // effectRadius를 올림하여 정수 반지름 계산
-    let ceiledRadius = Math.ceil(effectRadius);
-    // 배열 크기 계산 (항상 홀수 크기 유지)
-    const size = 2 * ceiledRadius + 1;
-    const center = Math.floor(size / 2);
 
-    // 2D 배열 초기화
-    const result = Array.from({ length: size }, () => Array(size).fill(0));
-
-    // 각 픽셀에 대해 거리 계산 후 값 할당
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            // 중심점과의 거리 계산
-            const distance = Math.hypot(x - center, y - center);
-
-            // 반지름 내에 있는 경우만 값 할당
-            if (distance <= effectRadius) {
-                result[y][x] = 1 - easeInOutCubic(distance / effectRadius);
-            }
-        }
-    }
-
-    return result;
-}
-// 마우스 움직임 기록
 document.addEventListener("pointermove", (event) => {
     //return;
-    if (isTracking) {
-        const { clientX, clientY } = event;
-        let width = canvas.width;
-        let height = canvas.height;
-
-        // 현재 좌표를 배열에 저장
-        positions.push({ x: ~~clientX, y: ~~clientY });
-
-        if (positions.length < 2) {
-            return;
-        }
-
-        sum = 0;
-        lastIndex = positions.length - 1;
-        const start = positions[lastIndex - 1];
-        const end = positions[lastIndex];
-
-        // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
-        function getLinePoints(x0, y0, x1, y1) {
-            if (
-                !Number.isInteger(x0) ||
-                !Number.isInteger(y0) ||
-                !Number.isInteger(x1) ||
-                !Number.isInteger(y1)
-            ) {
-                throw new Error("모든 좌표는 정수여야 합니다.");
-            }
-
-            const points = [];
-            let dx = Math.abs(x1 - x0);
-            let dy = Math.abs(y1 - y0);
-            const sx = x0 < x1 ? 1 : -1;
-            const sy = y0 < y1 ? 1 : -1;
-            let err = dx - dy;
-
-            while (true) {
-                points.push({ x: x0, y: y0 });
-                if (x0 === x1 && y0 === y1) break;
-                const e2 = 2 * err;
-                if (e2 > -dy) {
-                    err -= dy;
-                    x0 += sx;
-                }
-                if (e2 < dx) {
-                    err += dx;
-                    y0 += sy;
-                }
-            }
-            return points;
-        }
-
-        //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
-        let area = createEffectArea(EFFECT_RADIUS);
-
-        let tap = Math.ceil(EFFECT_RADIUS / 20);
-        console.log("tap", tap);
-        const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
-        linePoints.forEach((point) => {
-            // ctx.beginPath();
-            // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
-            // ctx.fill();
-            if (count % tap == 0) {
-                applyPixelFlow(canvas, point, end, area, tap);
-            }
-            count++;
-        });
-
-        // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
-        let ceiledRadius = Math.ceil(EFFECT_RADIUS);
-        const minX = Math.min(start.x, end.x);
-        const minY = Math.min(start.y, end.y);
-        const maxX = Math.max(start.x, end.x);
-        const maxY = Math.max(start.y, end.y);
-        const boundMinX = Math.max(0, minX - ceiledRadius);
-        const boundMinY = Math.max(0, minY - ceiledRadius);
-        const boundMaxX = Math.min(width - 1, maxX + ceiledRadius);
-        const boundMaxY = Math.min(height - 1, maxY + ceiledRadius);
-
-        // console.log(sum);
-        //console.log(boundMinX, boundMinY, boundMaxX, boundMaxY);
-        //renderToImage(canvas, boundMinX, boundMinY, boundMaxX, boundMaxY);
-
-        //renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+    if (!isTracking) {
+        return;
     }
+
+    const { clientX, clientY } = event;
+
+    // 현재 좌표를 배열에 저장
+    positions.push({ x: ~~clientX, y: ~~clientY });
+
+    if (positions.length < 2) {
+        return;
+    }
+
+    lastIndex = positions.length - 1;
+    const start = positions[lastIndex - 1];
+    const end = positions[lastIndex];
+
+    // // Bresenham 알고리즘을 사용하여 두 점 사이의 모든 정수 좌표를 구하는 함수
+    function getLinePoints(x0, y0, x1, y1) {
+        if (
+            !Number.isInteger(x0) ||
+            !Number.isInteger(y0) ||
+            !Number.isInteger(x1) ||
+            !Number.isInteger(y1)
+        ) {
+            throw new Error("모든 좌표는 정수여야 합니다.");
+        }
+
+        const points = [];
+        let dx = Math.abs(x1 - x0);
+        let dy = Math.abs(y1 - y0);
+        const sx = x0 < x1 ? 1 : -1;
+        const sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+
+        while (true) {
+            points.push({ x: x0, y: y0 });
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+        return points;
+    }
+
+    //ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+    let area = createEffectArea(EFFECT_RADIUS);
+
+    let tap = Math.ceil(EFFECT_RADIUS / 20);
+    const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
+    linePoints.forEach((point) => {
+        // ctx.beginPath();
+        // ctx.arc(point.x, point.y, EFFECT_RADIUS, 0, Math.PI * 2);
+        // ctx.fill();
+        if (count % tap == 0) {
+            // console.log("tap", tap);
+            applyPixelFlow(point, end, area, tap);
+        }
+        count++;
+    });
+
+    // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
+    let ceiledRadius = Math.ceil(EFFECT_RADIUS);
+    const minX = Math.min(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxX = Math.max(start.x, end.x);
+    const maxY = Math.max(start.y, end.y);
+    const boundMinX = Math.max(0, minX - ceiledRadius);
+    const boundMinY = Math.max(0, minY - ceiledRadius);
+    const boundMaxX = Math.min(c_width - 1, maxX + ceiledRadius);
+    const boundMaxY = Math.min(c_height - 1, maxY + ceiledRadius);
+
+    renderToImage(boundMinX, boundMinY, boundMaxX, boundMaxY);
+
+    //renderToImage( 0, 0, c_width, c_height);
 });
 
-// 스페이스바 뗐을 때 추적 종료 및 로그 출력
 document.addEventListener("pointerup", (event) => {
     isTracking = false;
     console.log("pointerup");
-    renderToImage(canvas, 0, 0, canvas.width, canvas.height);
+    //renderToImage( 0, 0, c_width, c_height);
 });
-
-const helper_canvas = document.getElementById("helper-canvas");
-const helper_ctx = canvas.getContext("2d");
 
 // 이미지 로드 함수
 function loadImageFromURL(url) {
@@ -388,7 +443,7 @@ function loadImageFromURL(url) {
 function drawImageToCanvas(img) {
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
-    helper_canvas.width = canvas.width;
-    helper_canvas.height = canvas.height;
+    c_width = img.naturalWidth;
+    c_height = img.naturalHeight;
     ctx.drawImage(img, 0, 0);
 }
