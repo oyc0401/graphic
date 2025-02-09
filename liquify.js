@@ -1,6 +1,4 @@
 export class Liquify {
-
-  
   constructor(canvas, ctx) {
     // 원본 이미지 데이터 가져오기
     let c_width = canvas.width;
@@ -170,15 +168,15 @@ export class Liquify {
           const clampedX = clamp(xx, 0, c_width - 1);
           const clampedY = clamp(yy, 0, c_height - 1);
           const idx = (clampedY * c_width + clampedX) * 4;
-          // 화면 밖이면 투명으로 설정
-          //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
-          //         return [
-          //             originalData[idx],
-          //                 originalData[idx + 1],
-          //                 originalData[idx + 2],
-          //             0,
-          //         ];
-          //     }
+          //화면 밖이면 투명으로 설정
+          if (xx < 0 || xx >= c_width || yy < 0 || yy >= c_height) {
+            return [
+              this.originalData[idx],
+              this.originalData[idx + 1],
+              this.originalData[idx + 2],
+              0,
+            ];
+          }
 
           return [
             this.originalData[idx],

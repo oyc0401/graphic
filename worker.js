@@ -94,7 +94,7 @@ function getLinePoints(x0, y0, x1, y1) {
 }
 
 function goLiquify(start, end) {
-    let tap = Math.ceil(liquify.radius / 10);
+    let tap = Math.ceil(liquify.radius / 20);
     const linePoints = getLinePoints(start.x, start.y, end.x, end.y);
     linePoints.forEach((point) => {
         if (distance % tap == 0) {
