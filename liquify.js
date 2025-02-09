@@ -16,10 +16,12 @@ export class Liquify {
   }
 
   setRadius(radius) {
-    this.EFFECT_RADIUS = radius; // 뒤틀기 효과 반경
-    this.MAGNIFY_STRENGTH = 1; // 강도
-
+    this.radius = radius; // 뒤틀기 효과 반경
     this.area = createEffectArea(radius);
+  }
+
+  setStrength(strength) {
+    this.strength = strength; // 강도
   }
   applyPixelFlow(start, end, force) {
     // end는 방향 계산용으로만 사용
@@ -29,12 +31,12 @@ export class Liquify {
     if (length === 0) return;
     const unitX = dx / length;
     const unitY = dy / length;
-    const ceiledRadius = Math.ceil(this.EFFECT_RADIUS);
+    const ceiledRadius = Math.ceil(this.radius);
     let areaLength = this.area.length;
     //console.log(start);
     let c_width = this.c_width;
     let c_height = this.c_height;
-    
+
     for (let i = 0; i < areaLength - 1; i++) {
       const y =
         unitY > 0 ? start.y + ceiledRadius - i : start.y - ceiledRadius + i;
@@ -48,8 +50,7 @@ export class Liquify {
           const index = y * c_width + x;
 
           //areaMap[i][j] = area[areaY][areaX];
-          let diff =
-            (this.area[areaY][areaX] * this.MAGNIFY_STRENGTH * force) / 2;
+          let diff = (this.area[areaY][areaX] * this.strength * force) / 2;
 
           //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
           let result = this.fastGetVector(x - diff * unitX, y - diff * unitY);
@@ -93,14 +94,6 @@ export class Liquify {
     const idx22 = cy2 * w + cx2;
 
     // 배열에서 픽셀 데이터 읽어오기 (분리된 x, y 값)
-    // const Q11x = displaceX[idx11],
-    //     Q11y = displaceY[idx11];
-    // const Q21x = displaceX[idx21],
-    //     Q21y = displaceY[idx21];
-    // const Q12x = displaceX[idx12],
-    //     Q12y = displaceY[idx12];
-    // const Q22x = displaceX[idx22],
-    //     Q22y = displaceY[idx22];
     const Q11x = this.displaceMap[2 * idx11],
       Q11y = this.displaceMap[2 * idx11 + 1];
     const Q21x = this.displaceMap[2 * idx21],
@@ -117,9 +110,10 @@ export class Liquify {
     const dy = y - y1;
     const invDx = 1 - dx;
     const invDy = 1 - dy;
-    
-    const vectorResult = [0, 0];
+
     // bilinear interpolation (각 성분 별로 계산)
+
+    const vectorResult = [0, 0];
     vectorResult[0] =
       Q11x * invDx * invDy +
       Q21x * dx * invDy +
@@ -133,6 +127,92 @@ export class Liquify {
       Q22y * dx * dy;
 
     return vectorResult;
+  }
+
+  renderToImage(sx, sy, ex, ey) {
+    const c_width = this.c_width;
+    const c_height = this.c_height;
+
+    const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
+    const height = ey - sy + 1;
+
+    // 잘못된 영역이면 그냥 종료합니다.
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+
+    const newImageData = new Uint8ClampedArray(width * height * 4);
+
+    let imageIndex = 0;
+    for (let y = sy; y <= ey; y++) {
+      for (let x = sx; x <= ex; x++) {
+        const index = y * c_width + x;
+
+        const totalDx = this.displaceMap[2 * index];
+        const totalDy = this.displaceMap[2 * index + 1];
+        let newX = x + totalDx;
+        let newY = y + totalDy;
+
+        // 양선형 보간
+        const floorX = Math.floor(newX);
+        const floorY = Math.floor(newY);
+        const ceilX = Math.ceil(newX);
+        const ceilY = Math.ceil(newY);
+        const tx = newX - floorX;
+        const ty = newY - floorY;
+
+        const getColor = (xx, yy) => {
+          // 클램핑된 좌표를 사용
+          const clampedX = clamp(xx, 0, c_width - 1);
+          const clampedY = clamp(yy, 0, c_height - 1);
+          const idx = (clampedY * c_width + clampedX) * 4;
+          // 화면 밖이면 투명으로 설정
+          //     if (xx < 0 || xx >= canvas_w || yy < 0 || yy >= canvas_h) {
+          //         return [
+          //             originalData[idx],
+          //                 originalData[idx + 1],
+          //                 originalData[idx + 2],
+          //             0,
+          //         ];
+          //     }
+
+          return [
+            this.originalData[idx],
+            this.originalData[idx + 1],
+            this.originalData[idx + 2],
+            this.originalData[idx + 3],
+          ];
+        };
+
+        const c00 = getColor(floorX, floorY);
+        const c10 = getColor(ceilX, floorY);
+        const c01 = getColor(floorX, ceilY);
+        const c11 = getColor(ceilX, ceilY);
+
+        const interpolate = (c1, c2, c3, c4, tx, ty) => [
+          (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
+            (c3[0] * (1 - tx) + c4[0] * tx) * ty,
+          (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
+            (c3[1] * (1 - tx) + c4[1] * tx) * ty,
+          (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
+            (c3[2] * (1 - tx) + c4[2] * tx) * ty,
+          (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
+            (c3[3] * (1 - tx) + c4[3] * tx) * ty,
+        ];
+
+        const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
+        const newIndex = imageIndex * 4;
+        newImageData[newIndex] = r;
+        newImageData[newIndex + 1] = g;
+        newImageData[newIndex + 2] = b;
+        newImageData[newIndex + 3] = a;
+
+        imageIndex++;
+      }
+    }
+
+    let resultImageData = new ImageData(newImageData, width, height);
+    this.ctx.putImageData(resultImageData, sx, sy);
   }
 }
 
