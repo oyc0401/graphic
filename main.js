@@ -54,7 +54,7 @@ function applyPixelFlow(canvas, start, end, force) {
                     : start.x - ceiledRadius + j;
             const areaX = unitX > 0 ? area.length - 1 - j : j;
 
-            if (0 < x && x < c_width && 0 < y && y < c_height) {
+            if (0 <= x && x < c_width && 0 <= y && y < c_height) {
                 const index = y * c_width + x;
 
                 //areaMap[i][j] = area[areaY][areaX];
