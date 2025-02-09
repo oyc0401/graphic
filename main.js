@@ -7,8 +7,9 @@ let c_height;
 let originalImageData;
 let originalData;
 
-let displaceX;
-let displaceY;
+//let displaceX;
+//let displaceY;
+let displaceMap;
 
 const EFFECT_RADIUS = 50; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도
@@ -19,8 +20,9 @@ function initPixelFlow(ctx, width, height) {
     originalData = originalImageData.data;
 
     // 변위 맵 초기화
-    displaceX = new Float32Array(width * height);
-    displaceY = new Float32Array(width * height);
+    //displaceX = new Float32Array(width * height);
+   // displaceY = new Float32Array(width * height);
+    displaceMap = new Float32Array(2 * width * height);
 }
 
 function applyPixelFlow(start, end, area, force) {
@@ -57,8 +59,10 @@ function applyPixelFlow(start, end, area, force) {
                 let ax = result[0];
                 let ay = result[1];
 
-                displaceX[index] = ax - diff * unitX;
-                displaceY[index] = ay - diff * unitY;
+                //displaceX[index] = ax - diff * unitX;
+               // displaceY[index] = ay - diff * unitY;
+                displaceMap[2 * index] = ax - diff * unitX;
+                displaceMap[2 * index + 1] = ay - diff * unitY;
             }
         }
     }
@@ -93,10 +97,8 @@ function createEffectArea(effectRadius) {
 const easeInOutCubic = (x) =>
     x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
-
 const clamp = (value, min, max) =>
     value < min ? min : value > max ? max : value;
-
 
 function getVector(x, y) {
     // x, y 좌표의 네 개의 인접 픽셀을 찾음
@@ -122,8 +124,10 @@ function getDisplaceData(xx, yy) {
     const clampedX = clamp(xx, 0, c_width - 1);
     const clampedY = clamp(yy, 0, c_height - 1);
     const idx = clampedY * c_width + clampedX;
-    let disX = displaceX[idx];
-    let disY = displaceY[idx];
+    //let disX = displaceX[idx];
+    //let disY = displaceY[idx];
+    let disX = displaceMap[2 * idx];
+    let disY = displaceMap[2 * idx + 1];
     return [disX, disY];
 }
 
@@ -172,14 +176,22 @@ function fastGetVector(x, y) {
     const idx22 = cy2 * w + cx2;
 
     // 배열에서 픽셀 데이터 읽어오기 (분리된 x, y 값)
-    const Q11x = displaceX[idx11],
-        Q11y = displaceY[idx11];
-    const Q21x = displaceX[idx21],
-        Q21y = displaceY[idx21];
-    const Q12x = displaceX[idx12],
-        Q12y = displaceY[idx12];
-    const Q22x = displaceX[idx22],
-        Q22y = displaceY[idx22];
+    // const Q11x = displaceX[idx11],
+    //     Q11y = displaceY[idx11];
+    // const Q21x = displaceX[idx21],
+    //     Q21y = displaceY[idx21];
+    // const Q12x = displaceX[idx12],
+    //     Q12y = displaceY[idx12];
+    // const Q22x = displaceX[idx22],
+    //     Q22y = displaceY[idx22];
+    const Q11x = displaceMap[2*idx11],
+        Q11y = displaceMap[2*idx11+1];
+    const Q21x = displaceMap[2*idx21],
+        Q21y = displaceMap[2*idx21+1];
+    const Q12x = displaceMap[2*idx12],
+        Q12y = displaceMap[2*idx12+1];
+    const Q22x = displaceMap[2*idx22],
+        Q22y = displaceMap[2*idx22+1];
 
     // 보간 비율 계산
     // x1, y1는 Math.floor(x), Math.floor(y)이므로
@@ -205,7 +217,6 @@ function fastGetVector(x, y) {
     return vectorResult;
 }
 
-
 function renderToImage(sx, sy, ex, ey) {
     const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
     const height = ey - sy + 1;
@@ -222,8 +233,8 @@ function renderToImage(sx, sy, ex, ey) {
         for (let x = sx; x <= ex; x++) {
             const index = y * c_width + x;
 
-            const totalDx = displaceX[index];
-            const totalDy = displaceY[index];
+            const totalDx = displaceMap[2*index];
+            const totalDy = displaceMap[2*index+1];
             let newX = x + totalDx;
             let newY = y + totalDy;
 
@@ -300,6 +311,8 @@ let isTracking = false; // 누름 상태
 let count = 0;
 let lastIndex = 0;
 
+let liquify;
+
 // 초기화
 window.onload = async () => {
     try {
@@ -308,6 +321,7 @@ window.onload = async () => {
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
 
+        //liquify = makeLiquify(canvas, ctx);
         initPixelFlow(ctx, c_width, c_height);
     } catch (error) {
         console.error("이미지 로드 실패:", error);
