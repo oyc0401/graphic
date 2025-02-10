@@ -27,8 +27,8 @@ function initPixelFlow(ctx, width, height) {
 
 function applyPixelFlow(start, end, force) {
     let area = generateGradientGrid(
-        Math.abs(end.x - start.x),
-        Math.abs(end.y - start.y),
+        end.x - start.x,
+        end.y - start.y,
         EFFECT_RADIUS,
     );
     const ceiledRadius = Math.ceil(EFFECT_RADIUS);
@@ -314,51 +314,47 @@ function renderToImage(sx, sy, ex, ey) {
     ctx.putImageData(resultImageData, sx, sy);
 }
 
-function generateGradientGrid(ex, ey, radius) {
-    if (ex < 0 || ey < 0) {
-        throw Error(
-            `도착지점은 (${0}, ${0})보다 커야합니다. 현재: (${ex}, ${ey})`,
-        );
-    }
+function generateGradientGrid(dx, dy, radius) {
+    const length = Math.hypot(dx, dy);
 
-    let startX = radius;
-    let startY = radius;
-    let endX = ex + radius;
-    let endY = ey + radius;
+    if (length === 0) return;
 
     const ceiledRadius = Math.ceil(radius);
-    const width = Math.abs(endX - startX) + 2 * ceiledRadius + 1;
-    const height = Math.abs(endY - startY) + 2 * ceiledRadius + 1;
 
-    const length = Math.hypot(endX - startX, endY - startY);
+    const width = Math.abs(dx) + 2 * ceiledRadius + 1;
+    const height = Math.abs(dy) + 2 * ceiledRadius + 1;
+
+    let startX = ceiledRadius;
+    let startY = ceiledRadius;
+    let endX = width - 1 - ceiledRadius;
+    let endY = height - 1 - ceiledRadius;
+
+    const unitX = dx / length;
+    const unitY = dy / length;
 
     // 2D 배열 초기화
     let grid = Array.from({ length: height }, () => Array(width).fill(0));
 
     // 원의 이동 경로를 따라 값 추가
     // t는 나누기 오류때문에 약간 보정
-    let steps = 50;
+    let steps = 50; // 이건 무조건 정수로!!
     let div = steps / length;
     for (let t = 0; t <= 1.001; t += 1 / steps) {
-        const cx = startX + t * (endX - startX);
-        const cy = startY + t * (endY - startY);
+      const cx = unitX > 0 ? startX + t * dx : endX + t * dx;
+      const cy = unitY > 0 ? startY + t * dy : endY + t * dy;
 
-        //console.log(cx, cy);
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const d = Math.hypot(
-                    x + startX - ceiledRadius - cx,
-                    y + startY - ceiledRadius - cy,
-                );
-                const value = Math.max(0, 1 - d / radius);
-                grid[y][x] += value / div; // 누적
-            }
+      //console.log(cx, cy);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const d = Math.hypot(x - cx, y - cy);
+          const value = Math.max(0, 1 - d / radius);
+          grid[y][x] += value / div; // 누적
         }
+      }
     }
-    //console.log(length);
-    return grid;
-}
 
+    return grid;
+  }
 // 마우스 위치를 저장할 배열
 let positions = [];
 let isTracking = false; // 누름 상태
