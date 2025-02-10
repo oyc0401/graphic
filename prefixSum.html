@@ -42,11 +42,6 @@
     </div>
 
     <script>
-      const flat = (x) => Math.ceil(x);
-      const linear = (x) => x;
-      const easeInOutCubic = (x) =>
-        x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-
       function generateGradientGrid(dx, dy, radius) {
         const length = Math.hypot(dx, dy);
 
@@ -71,6 +66,7 @@
         // 원의 이동 경로를 따라 값 추가
         // t는 나누기 오류때문에 약간 보정
         let steps = Math.ceil(length) * 2; // 이건 무조건 정수로!!
+        steps = 6000;
         let div = steps / length;
         for (let t = 0; t <= 1.001; t += 1 / steps) {
           const cx = (unitX > 0 ? startX : endX) + t * dx;
@@ -82,7 +78,7 @@
               const d = Math.hypot(x - cx, y - cy);
               let value = Math.max(0, 1 - d / radius);
               const addValue = flat(value);
-              grid[y][x] += addValue / div; // 누적
+              grid[y][x] += addValue / div / radius / 2; // 누적
             }
           }
         }
@@ -90,10 +86,96 @@
         return grid;
       }
 
-      function main() {
-        const radius = 3.5; // 소수점 R 값 가능
+      const flat = (x) => Math.ceil(x);
+      const linear = (x) => x;
+      const easeInOutCubic = (x) =>
+        x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
-        let grid = generateGradientGrid(10, 10, radius);
+      /**
+       * 원기둥 자르기 기법으로 선분(dx, dy), 반경 radius인 캡슐 형태의 2D 그리드를 생성한다.
+       *
+       * @param {number} dx 선분의 x방향 길이
+       * @param {number} dy 선분의 y방향 길이
+       * @param {number} radius 캡슐 반경
+       * @param {function} weightFunc (optional) 거리→가중치 함수, 기본값은 (1 - dist/r)
+       * @returns {number[][]} 2차원 그리드 (height x width)
+       */
+      function generateCylinderCut(dx, dy, radius) {
+        const length = Math.hypot(dx, dy);
+        if (length === 0) {
+          // degenerate case: dx=dy=0
+          return [[1]]; // 혹은 빈 배열 등 적절히 처리
+        }
+
+        // 캡슐을 모두 담을 수 있는 bounding box 계산
+        const rCeil = Math.ceil(radius);
+        const width = Math.abs(Math.floor(dx)) + 2 * rCeil + 1;
+        const height = Math.abs(Math.floor(dy)) + 2 * rCeil + 1;
+
+        // 결과 2D 배열 초기화
+        const grid = Array.from({ length: height }, () => Array(width).fill(0));
+
+        // 선분 방향 유닛벡터
+        const ux = dx / length;
+        const uy = dy / length;
+
+        /**
+         * (startX, startY)를 bounding box 내에서
+         * '선분의 시작점'이 위치하도록 잡는다.
+         * 여기서는 단순히 rCeil만큼 offset해서
+         * (rCeil, rCeil)을 "선분 시작 좌표"로 두는 방식.
+         */
+        const startX = rCeil;
+        const startY = rCeil;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            // 선분 시작점에서 (x, y)까지의 벡터
+            const vx = x - startX;
+            const vy = y - startY;
+
+            // 해당 픽셀이 선분을 따라 가장 가까운 점의 t (0~length)를 구한다.
+            // t = dot(v, u).  (u는 단위벡터)
+            let t = vx * ux + vy * uy;
+
+            // 선분 범위(0 <= t <= length) 바깥이면, 끝단(원) 부분이 됨
+            if (t < 0) t = 0;
+            if (t > length) t = length;
+
+            // 선분 위 가장 가까운 점의 좌표(cx, cy)
+            const cx = t * ux;
+            const cy = t * uy;
+
+            // (vx, vy) - (cx, cy) = 선분에서 수직 방향 벡터
+            const dx2 = vx - cx;
+            const dy2 = vy - cy;
+
+            // 픽셀 (x, y)와 선분 사이의 최단거리
+            const d = Math.hypot(dx2, dy2);
+            let value = Math.max(0, 1 - d / radius);
+            // 가중치 함수 적용 (ex. max(0, 1 - dist/r))
+
+            if (value > 0) {
+              const addValue = easeOutCirc(value); // 1 - Math.pow(1 - value, 2);
+
+              grid[y][x] = addValue;
+            }
+          }
+        }
+
+        return grid;
+      }
+
+      function easeOutCirc(x) {
+        return Math.sqrt(1 - Math.pow(1 - x, 2)); // 또는 Math.sqrt(2*x - x*x)
+      }
+
+      function main() {
+        const radius = 20; // 소수점 R 값 가능
+        // generateGradientGrid
+
+        let grid = generateGradientGrid(0, 80, radius);
+        grid = generateCylinderCut(0, 80, radius);
         console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
@@ -114,7 +196,7 @@
           html += `<tr><th style="width: 16px; height: 16px; font-size: 6px; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${y}</th>`;
           for (let x = 0; x < grid[y].length; x++) {
             const cellValue = grid[y][x].toFixed(2);
-            const alpha = (grid[y][x] / radius / 2).toFixed(2);
+            const alpha = grid[y][x].toFixed(2);
             const backgroundColor = `rgba(255, 0, 0, ${alpha})`;
             html += `<td style="
               width: 16px;
