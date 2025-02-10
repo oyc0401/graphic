@@ -25,7 +25,7 @@ function initPixelFlow(ctx, width, height) {
     displaceMap = new Float32Array(2 * width * height);
 }
 
-function applyPixelFlow(start, end, force) {
+function applyPixelFlow(start, end, force=1) {
     let area = generateGradientGrid(
         end.x - start.x,
         end.y - start.y,
@@ -337,23 +337,111 @@ function generateGradientGrid(dx, dy, radius) {
 
     // 원의 이동 경로를 따라 값 추가
     // t는 나누기 오류때문에 약간 보정
-    let steps = 50; // 이건 무조건 정수로!!
+    let steps  = 50; // 이건 무조건 정수로!!
+    
     let div = steps / length;
     for (let t = 0; t <= 1.001; t += 1 / steps) {
-      const cx = unitX > 0 ? startX + t * dx : endX + t * dx;
-      const cy = unitY > 0 ? startY + t * dy : endY + t * dy;
+      const cx = (unitX > 0 ? startX : endX) + t * dx;
+      const cy = (unitY > 0 ? startY : endY) + t * dy;
 
       //console.log(cx, cy);
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const d = Math.hypot(x - cx, y - cy);
-          const value = Math.max(0, 1 - d / radius);
-          grid[y][x] += value / div; // 누적
+          let value = Math.max(0, 1 - d / radius) 
+          const addValue = linear(value)
+          grid[y][x] += addValue/ div 
         }
       }
     }
 
     return grid;
+  }
+
+ const linear = (x) => x;
+
+
+function generateCylinderCut(dx, dy, radius) {
+    const length = Math.hypot(dx, dy);
+    if (length === 0) {
+      // degenerate case: dx=dy=0
+      return [[1]]; // 혹은 빈 배열 등 적절히 처리
+    }
+
+    // 캡슐을 모두 담을 수 있는 bounding box 계산
+    const rCeil = Math.ceil(radius);
+    const width = Math.abs(Math.floor(dx)) + 2 * rCeil + 1;
+    const height = Math.abs(Math.floor(dy)) + 2 * rCeil + 1;
+
+    // 결과 2D 배열 초기화
+    const grid = Array.from({ length: height }, () => Array(width).fill(0));
+
+    // 선분 방향 유닛벡터
+    const ux = dx / length;
+    const uy = dy / length;
+
+    /**
+     * (startX, startY)를 bounding box 내에서
+     * '선분의 시작점'이 위치하도록 잡는다.
+     * 여기서는 단순히 rCeil만큼 offset해서
+     * (rCeil, rCeil)을 "선분 시작 좌표"로 두는 방식.
+     */
+    const startX = rCeil;
+    const startY = rCeil;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // 선분 시작점에서 (x, y)까지의 벡터
+        const vx = x - startX;
+        const vy = y - startY;
+
+        // 해당 픽셀이 선분을 따라 가장 가까운 점의 t (0~length)를 구한다.
+        // t = dot(v, u).  (u는 단위벡터)
+        let t = vx * ux + vy * uy;
+
+        // 선분 범위(0 <= t <= length) 바깥이면, 끝단(원) 부분이 됨
+        if (t < 0) t = 0;
+        if (t > length) t = length;
+
+        // 선분 위 가장 가까운 점의 좌표(cx, cy)
+        const cx = t * ux;
+        const cy = t * uy;
+
+        // (vx, vy) - (cx, cy) = 선분에서 수직 방향 벡터
+        const dx2 = vx - cx;
+        const dy2 = vy - cy;
+
+        // 픽셀 (x, y)와 선분 사이의 최단거리
+        const d = Math.hypot(dx2, dy2);
+        let value = Math.min(1, d / radius);
+        const addValue = linearIntegral(value);
+        grid[y][x] = addValue*radius*2;
+      }
+    }
+    return grid;
+  }
+
+  /**
+   * x가 0 이상 1 이하일 때,
+   * I(x)= ∫₀¹ √((1-F(t))² - x²) dt 를 계산합니다.
+   **/
+  // F(t) = 0일때.
+  function flatIntegral(x) {
+    return Math.sqrt(1 - Math.pow(x, 2));
+  }
+
+  // F(t) = t일때.
+  function linearIntegral(x) {
+    if (x < 0 || x > 1) {
+      throw new Error("x는 0과 1 사이여야 합니다.");
+    }
+    // x = 0일 때 별도로 처리 (로그 계산 시 0이 되지 않도록)
+    if (x === 0) {
+      return 0.5; // I(0) = ∫₀¹ (1-t) dt = 1/2
+    }
+
+    const sqrtTerm = Math.sqrt(1 - x * x);
+    return 0.5 * sqrtTerm + 0.5 * x * x * Math.log(x / (1 + sqrtTerm));
   }
 
 

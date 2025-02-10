@@ -66,7 +66,7 @@
         // 원의 이동 경로를 따라 값 추가
         // t는 나누기 오류때문에 약간 보정
         let steps = Math.ceil(length) * 2; // 이건 무조건 정수로!!
-        steps = 500;
+        steps = 50;
         let div = steps / length;
         for (let t = 0; t <= 1.001; t += 1 / steps) {
           const cx = (unitX > 0 ? startX : endX) + t * dx;
@@ -76,9 +76,9 @@
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
               const d = Math.hypot(x - cx, y - cy);
-              let value = Math.max(0, 1 - d / radius);
-              const addValue = linear(value);
-              grid[y][x] += addValue / div / radius / 2; // 누적
+              let value = Math.max(0, 1 - d / radius) 
+              const addValue = linear(value)
+              grid[y][x] += addValue/ div
             }
           }
         }
@@ -154,7 +154,7 @@
             const d = Math.hypot(dx2, dy2);
             let value = Math.min(1, d / radius);
             const addValue = linearIntegral(value);
-            grid[y][x] = addValue;
+            grid[y][x] = addValue*radius*2;
           }
         }
         return grid;
@@ -166,8 +166,9 @@
        **/
       // F(t) = 0일때.
       function flatIntegral(x) {
-        return Math.sqrt(1 - Math.pow(x, 2)); // 또는 Math.sqrt(2*x - x*x)
+        return Math.sqrt(1 - Math.pow(x, 2));
       }
+
       // F(t) = t일때.
       function linearIntegral(x) {
         if (x < 0 || x > 1) {
@@ -182,14 +183,14 @@
         return 0.5 * sqrtTerm + 0.5 * x * x * Math.log(x / (1 + sqrtTerm));
       }
 
-      function easeInOutCubicIntegral() {}
+      function easeInOutCubicIntegral(x) {}
 
       function main() {
-        const radius = 20; // 소수점 R 값 가능
+        const radius = 15; // 소수점 R 값 가능
         // generateGradientGrid
 
-        //let grid = generateGradientGrid(0, 250, radius);
-        let grid = generateCylinderCut(0, 70, radius);
+        let grid = generateGradientGrid(60, 0, radius);
+        // grid = generateCylinderCut(60, 0, radius);
         //console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
@@ -211,7 +212,7 @@
           for (let x = 0; x < grid[y].length; x++) {
             const cellValue = grid[y][x].toFixed(2);
             const alpha = grid[y][x].toFixed(2);
-            const backgroundColor = `rgba(255, 0, 0, ${alpha})`;
+            const backgroundColor = `rgba(255, 0, 0, ${alpha/radius})`;
             html += `<td style="
               width: 16px;
               height: 16px;
