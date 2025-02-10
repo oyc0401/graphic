@@ -15,7 +15,7 @@
       td,
       th {
         border: 1px solid #ccc;
-       
+
         text-align: center;
       }
       .container {
@@ -43,16 +43,18 @@
 
     <script>
       const easeInOutCubic = (x) => x;
-      
-      function generateGradientGrid(endX, endY, radius) {
-        let startX = radius;
-        let startY = radius;
 
-        if (endX <= radius || endY <= radius) {
+      function generateGradientGrid(ex, ey, radius) {
+        if (ex < 0 || ey < 0) {
           throw Error(
-            `도착지점은 (${radius}, ${radius})보다 커야합니다. 현재: (${endX}, ${endY})`,
+            `도착지점은 (${0}, ${0})보다 커야합니다. 현재: (${ex}, ${ey})`,
           );
         }
+
+        let startX = radius;
+        let startY = radius;
+        let endX = ex + radius;
+        let endY = ey + radius;
 
         const ceiledRadius = Math.ceil(radius);
         const width = Math.abs(endX - startX) + 2 * ceiledRadius + 1;
@@ -65,7 +67,9 @@
 
         // 원의 이동 경로를 따라 값 추가
         // t는 나누기 오류때문에 약간 보정
-        for (let t = 0; t <= 1.001; t += 1 / length) {
+        let steps = 50;
+        let div = steps/length
+        for (let t = 0; t <= 1.001; t += 1 / steps) {
           const cx = startX + t * (endX - startX);
           const cy = startY + t * (endY - startY);
 
@@ -77,7 +81,7 @@
                 y + startY - ceiledRadius - cy,
               );
               const value = Math.max(0, 1 - d / radius);
-              grid[y][x] += value; // 누적
+              grid[y][x] += value/div; // 누적
             }
           }
         }
@@ -86,16 +90,14 @@
       }
 
       function main() {
-        const radius = 4; // 소수점 R 값 가능
-     
+        const radius = 3; // 소수점 R 값 가능
+
         let grid = generateGradientGrid(10, 10, radius);
         console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
       }
 
-
-      
       // HTML 테이블로 결과 출력
       function displayResultTable(grid, radius) {
         const outputDiv = document.getElementById("output");
@@ -130,8 +132,6 @@
         html += "</table>";
         outputDiv.innerHTML = html;
       }
-
-
 
       window.onload = main;
     </script>

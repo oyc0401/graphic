@@ -27,8 +27,8 @@ function initPixelFlow(ctx, width, height) {
 
 function applyPixelFlow(start, end, force) {
     let area = generateGradientGrid(
-        Math.abs(end.x - start.x) + EFFECT_RADIUS,
-        Math.abs(end.y - start.y) + EFFECT_RADIUS,
+        Math.abs(end.x - start.x),
+        Math.abs(end.y - start.y),
         EFFECT_RADIUS,
     );
     const ceiledRadius = Math.ceil(EFFECT_RADIUS);
@@ -314,15 +314,17 @@ function renderToImage(sx, sy, ex, ey) {
     ctx.putImageData(resultImageData, sx, sy);
 }
 
-function generateGradientGrid(endX, endY, radius) {
+function generateGradientGrid(ex, ey, radius) {
+    if (ex < 0 || ey < 0) {
+        throw Error(
+            `도착지점은 (${0}, ${0})보다 커야합니다. 현재: (${ex}, ${ey})`,
+        );
+    }
+
     let startX = radius;
     let startY = radius;
-
-    if (endX <= radius || endY <= radius) {
-      throw Error(
-        `도착지점은 (${radius}, ${radius})보다 커야합니다. 현재: (${endX}, ${endY})`,
-      );
-    }
+    let endX = ex + radius;
+    let endY = ey + radius;
 
     const ceiledRadius = Math.ceil(radius);
     const width = Math.abs(endX - startX) + 2 * ceiledRadius + 1;
@@ -335,25 +337,27 @@ function generateGradientGrid(endX, endY, radius) {
 
     // 원의 이동 경로를 따라 값 추가
     // t는 나누기 오류때문에 약간 보정
-    for (let t = 0; t <= 1.001; t += 1 / length) {
-      const cx = startX + t * (endX - startX);
-      const cy = startY + t * (endY - startY);
+    let steps = 50;
+    let div = steps / length;
+    for (let t = 0; t <= 1.001; t += 1 / steps) {
+        const cx = startX + t * (endX - startX);
+        const cy = startY + t * (endY - startY);
 
-      //console.log(cx, cy);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const d = Math.hypot(
-            x + startX - ceiledRadius - cx,
-            y + startY - ceiledRadius - cy,
-          );
-          const value = Math.max(0, 1 - d / radius);
-          grid[y][x] += value; // 누적
+        //console.log(cx, cy);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const d = Math.hypot(
+                    x + startX - ceiledRadius - cx,
+                    y + startY - ceiledRadius - cy,
+                );
+                const value = Math.max(0, 1 - d / radius);
+                grid[y][x] += value / div; // 누적
+            }
         }
-      }
     }
     //console.log(length);
     return grid;
-  }
+}
 
 // 마우스 위치를 저장할 배열
 let positions = [];
@@ -432,7 +436,7 @@ document.addEventListener("pointermove", (event) => {
 
     // 선분의 최소/최대 좌표에 EFFECT_RADIUS를 고려한 바운딩 박스 계산
     let ceiledRadius = Math.ceil(EFFECT_RADIUS);
-    
+
     const minX = Math.min(start.x, end.x);
     const minY = Math.min(start.y, end.y);
     const maxX = Math.max(start.x, end.x);
