@@ -42,7 +42,10 @@
     </div>
 
     <script>
-      const easeInOutCubic = (x) => x;
+      const flat = (x) => Math.ceil(x);
+      const linear = (x) => x;
+      const easeInOutCubic = (x) =>
+        x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
       function generateGradientGrid(dx, dy, radius) {
         const length = Math.hypot(dx, dy);
@@ -53,7 +56,7 @@
 
         const width = Math.abs(dx) + 2 * ceiledRadius + 1;
         const height = Math.abs(dy) + 2 * ceiledRadius + 1;
-        
+
         let startX = ceiledRadius;
         let startY = ceiledRadius;
         let endX = width - 1 - ceiledRadius;
@@ -67,18 +70,19 @@
 
         // 원의 이동 경로를 따라 값 추가
         // t는 나누기 오류때문에 약간 보정
-        let steps = 50; // 이건 무조건 정수로!!
+        let steps = Math.ceil(length) * 2; // 이건 무조건 정수로!!
         let div = steps / length;
         for (let t = 0; t <= 1.001; t += 1 / steps) {
-          const cx = unitX > 0 ? startX + t * dx : endX + t * dx;
-          const cy = unitY > 0 ? startY + t * dy : endY + t * dy;
+          const cx = (unitX > 0 ? startX : endX) + t * dx;
+          const cy = (unitY > 0 ? startY : endY) + t * dy;
 
           //console.log(cx, cy);
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
               const d = Math.hypot(x - cx, y - cy);
-              const value = Math.max(0, 1 - d / radius);
-              grid[y][x] += value / div; // 누적
+              let value = Math.max(0, 1 - d / radius);
+              const addValue = flat(value);
+              grid[y][x] += addValue / div; // 누적
             }
           }
         }
@@ -87,9 +91,9 @@
       }
 
       function main() {
-        const radius = 1; // 소수점 R 값 가능
+        const radius = 3.5; // 소수점 R 값 가능
 
-        let grid = generateGradientGrid(10, -10, radius);
+        let grid = generateGradientGrid(10, 10, radius);
         console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
@@ -110,7 +114,7 @@
           html += `<tr><th style="width: 16px; height: 16px; font-size: 6px; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${y}</th>`;
           for (let x = 0; x < grid[y].length; x++) {
             const cellValue = grid[y][x].toFixed(2);
-            const alpha = (grid[y][x] / radius).toFixed(2);
+            const alpha = (grid[y][x] / radius / 2).toFixed(2);
             const backgroundColor = `rgba(255, 0, 0, ${alpha})`;
             html += `<td style="
               width: 16px;

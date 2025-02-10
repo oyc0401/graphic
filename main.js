@@ -355,6 +355,8 @@ function generateGradientGrid(dx, dy, radius) {
 
     return grid;
   }
+
+
 // 마우스 위치를 저장할 배열
 let positions = [];
 let isTracking = false; // 누름 상태
