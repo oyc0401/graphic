@@ -77,7 +77,7 @@
             for (let x = 0; x < width; x++) {
               const d = Math.hypot(x - cx, y - cy);
               let value = Math.max(0, 1 - d / radius) 
-              const addValue = linear(value)
+              const addValue = easeInOutCubic(value)
               grid[y][x] += addValue/ div
             }
           }
@@ -153,7 +153,7 @@
             // 픽셀 (x, y)와 선분 사이의 최단거리
             const d = Math.hypot(dx2, dy2);
             let value = Math.min(1, d / radius);
-            const addValue = linearIntegral(value);
+            const addValue =easeInOutCubicIntegral(value);
             grid[y][x] = addValue*radius*2;
           }
         }
@@ -183,14 +183,65 @@
         return 0.5 * sqrtTerm + 0.5 * x * x * Math.log(x / (1 + sqrtTerm));
       }
 
-      function easeInOutCubicIntegral(x) {}
+      // 전역 변수: 미리 계산된 적분값을 저장할 배열
+      let precomputed = null;
 
-      function main() {
-        const radius = 15; // 소수점 R 값 가능
+      // bin 파일을 불러와 `Float32Array`로 변환하는 함수
+      async function loadPrecomputedData(url) {
+          try {
+              const response = await fetch(url);
+              const arrayBuffer = await response.arrayBuffer();
+              console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
+
+              const dataView = new DataView(arrayBuffer);
+              const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
+               precomputed = new Float32Array(numValues);
+
+              for (let i = 0; i < numValues; i++) {
+                  precomputed[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
+              }
+
+              console.log("Float32Array 길이:", precomputed.length);
+              console.log(precomputed.slice(0, 10)); // ✅ 일부 값 확인
+
+              console.log("✅ Precomputed I(x) 데이터 로드 완료!");
+          } catch (error) {
+              console.error("❌ 데이터 로드 실패:", error);
+          }
+      }
+
+
+      // easeInOutCubicIntegral(x) 함수
+      function easeInOutCubicIntegral(x) {
+          if (precomputed==null) {
+              console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
+              return 0;
+          }
+
+          // x가 범위를 벗어나면 경계값 반환
+          if (x <= 0) return precomputed[0];
+          if (x >= 1) return precomputed[precomputed.length - 1];
+
+          const numSamples = precomputed.length;
+          const index = x * (numSamples - 1);
+          const lowerIndex = Math.floor(index);
+          const upperIndex = lowerIndex + 1;
+          const t = index - lowerIndex;  // 선형 보간 가중치
+
+          return precomputed[lowerIndex] * (1 - t) + precomputed[upperIndex] * t;
+      }
+
+     
+      
+
+      async function main() {
+        const radius = 20; // 소수점 R 값 가능
         // generateGradientGrid
-
-        let grid = generateGradientGrid(60, 0, radius);
-        // grid = generateCylinderCut(60, 0, radius);
+        const url = "/data.bin";
+         await loadPrecomputedData(url);
+        
+        let grid = generateGradientGrid(0, 60, radius);
+         grid = generateCylinderCut(0, 60, radius);
         //console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
