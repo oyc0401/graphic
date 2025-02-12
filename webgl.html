@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Webgl 연습!</title>
+        <style>
+            body {
+                position: relative;
+                margin: 0;
+            }
+            canvas {
+                cursor: crosshair;
+                transition: border-color 0.3s;
+                image-rendering: pixelated;
+                position: absolute;
+                left: 0;
+                top: 0;
+                border: none;
+            }
+
+            .helper-canvas {
+                z-index: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <script type="module" src="webgl.js"></script>
+    </body>
+</html>

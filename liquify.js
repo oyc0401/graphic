@@ -132,7 +132,184 @@ export class Liquify {
   }
 }
 
+/**
+ * @param {Float32Array|Array} displaceMap - 2배 길이의 배열 (x,y 변위)
+ * @param {Object} start - {x, y}
+ * @param {Object} end - {x, y}
+ * @param {number} radius
+ * @param {number} force
+ * @param {number} c_width
+ * @param {number} c_height
+ */
 function applyPixelFlow(
+  displaceMap,
+  start,
+  end,
+  radius,
+  force,
+  c_width,
+  c_height,
+) {
+  // 1. 각종 기본값 셋업 (기존 코드와 동일)
+  const ceiledRadius = Math.ceil(radius);
+
+  let minX = Math.min(start.x, end.x);
+  let minY = Math.min(start.y, end.y);
+  let gridWidth = Math.abs(end.x - start.x) + 1 + 2 * ceiledRadius;
+  let gridHeight = Math.abs(end.y - start.y) + 1 + 2 * ceiledRadius;
+
+  let startX = minX - ceiledRadius;
+  let startY = minY - ceiledRadius;
+
+  // 2. 선분 방향 유닛벡터 계산
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length === 0) return; // 0이면 아무 변화 없음
+
+  const unitX = dx / length;
+  const unitY = dy / length;
+
+  // 3. 메인 루프 (배열 없이 movementPower 즉시 계산)
+  //    기존에는 generateCylinderCut()으로 만든 area[y][x]를
+  //    area[areaY][areaX] 형태로 참조했지만, 이제는 getPower() 호출로 대체
+  for (let i = 0; i < gridHeight - 1; i++) {
+    // y좌표와 areaY 계산 (역순 보정)
+    const y = unitY > 0 ? startY + gridHeight - 1 - i : startY + i;
+    const areaY = unitY > 0 ? gridHeight - 1 - i : i;
+
+    for (let j = 0; j < gridWidth - 1; j++) {
+      // x좌표와 areaX 계산 (역순 보정)
+      const x = unitX > 0 ? startX + gridWidth - 1 - j : startX + j;
+      const areaX = unitX > 0 ? gridWidth - 1 - j : j;
+
+      // 화면 범위 체크
+      if (x < 0 || x >= c_width || y < 0 || y >= c_height) {
+        continue;
+      }
+
+      // "generateCylinderCut"의 각 픽셀 계산 로직을 가져온 getPower() 호출
+      const movementPower = getPower(areaX, areaY, dx, dy, radius);
+
+      // 이후 로직: movementPower를 이용해 픽셀 변위 계산
+      const diff = (movementPower * force) / 2;
+      const index = y * c_width + x;
+
+      // fastGetVector()로 주변값 샘플링
+      const [ax, ay] = fastGetVector(
+        displaceMap,
+        c_width,
+        c_height,
+        x - diff * unitX,
+        y - diff * unitY,
+      );
+
+      // 최종 변위 갱신
+      displaceMap[2 * index] = ax - diff * unitX;
+      displaceMap[2 * index + 1] = ay - diff * unitY;
+    }
+  }
+}
+
+/**
+ * "generateCylinderCut"의 내부에서 각 픽셀에 대해 계산하던 로직을
+ *  한 점만 계산해서 반환하도록 옮긴 함수.
+ * 
+ * @param {number} ax - generateCylinderCut 내에서의 'local x' (areaX)
+ * @param {number} ay - generateCylinderCut 내에서의 'local y' (areaY)
+ * @param {number} dx - end.x - start.x
+ * @param {number} dy - end.y - start.y
+ * @param {number} radius 
+ * @returns {number} - 해당 픽셀( ax, ay )에서의 movementPower
+ */
+function getPower(ax, ay, dx, dy, radius) {
+  // generateCylinderCut()와 동일한 계산 준비
+  const length = Math.hypot(dx, dy);
+  if (length === 0) {
+    // 기존 generateCylinderCut도 (dx=0, dy=0)면 특수처리
+    // 결과값이 0인지, 1인지, 혹은 빈 배열인지 상황에 따라 다를 수 있음
+    return 1; 
+  }
+
+  const rCeil = Math.ceil(radius);
+  const width = Math.abs(Math.floor(dx)) + 2 * rCeil + 1;
+  const height = Math.abs(Math.floor(dy)) + 2 * rCeil + 1;
+
+  // 선분 방향 (유닛 벡터)
+  const ux = dx / length;
+  const uy = dy / length;
+
+  // generateCylinderCut()에서 쓰던 local startX, startY
+  // (선분 시작점을 bounding box 안에서 rCeil만큼 옮긴 값)
+  const localStartX = dx > 0 ? rCeil : width - 1 - rCeil;
+  const localStartY = dy > 0 ? rCeil : height - 1 - rCeil;
+
+  // (ax, ay)에 해당하는 실제 벡터
+  const vx = ax - localStartX;
+  const vy = ay - localStartY;
+
+  // 선분 상에서 가장 가까운 지점까지의 거리 t (0~length)
+  let t = vx * ux + vy * uy;
+
+  // (vx, vy)에서 (cx, cy)까지의 거리(=선분까지의 최소 거리) 계산용
+  // cx = t * ux, cy = t * uy
+  // 그래서 d = hypot(vx-cx, vy-cy)
+  const cx = t * ux;
+  const cy = t * uy;
+  const dx2 = vx - cx;
+  const dy2 = vy - cy;
+  const d = Math.hypot(dx2, dy2);
+
+  // 이 픽셀에서의 '초기' power
+  let power = 0;
+  let percent = 1; // 기존 코드에서 percent = 1 로 사용
+
+  // (1) 선분 중심 영역 (0 < t < length) 일 때
+  if (0 < t && t < length) {
+    const value = Math.min(1, d / radius);
+    const addValue = easeInOutCubicIntegral(value);
+    power = addValue * radius * 2 * percent;
+  }
+
+  // (2) '시작점' 방향 원 영역
+  const vLength = Math.hypot(vx, vy);
+  if (vLength < radius) {
+    const value = Math.min(1, d / radius);
+    const addValue = easeInOutCubicIntegral(value);
+    power = addValue * radius * 2 * percent;
+  }
+
+  // (3) '끝점' 방향 원 영역
+  const ex = vx - dx; // 끝점 기준 벡터
+  const ey = vy - dy;
+  const eLength = Math.hypot(ex, ey);
+  if (eLength < radius) {
+    const value = Math.min(1, d / radius);
+    const addValue = easeInOutCubicIntegral(value);
+    power = addValue * radius * 2 * percent;
+  }
+
+  // (4) 빼기 연산을 위해, 현재 power를 따로 보관
+  const originalCell = power;
+
+  // (5) 시작점 쪽 그라데이션 보정
+  if (vLength < radius) {
+    let gradation = (radius + t) / radius / 2;
+    // originalCell * (1 - easeInOutCubicIntegralReal(gradation)) 만큼 감소
+    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
+  }
+
+  // (6) 끝점 쪽 그라데이션 보정
+  if (eLength < radius) {
+    let gradation = (radius + (length - t)) / radius / 2;
+    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
+  }
+
+  return power;
+}
+
+
+function prev_applyPixelFlow(
   displaceMap,
   start,
   end,
@@ -173,7 +350,8 @@ function applyPixelFlow(
         const index = y * c_width + x;
 
         //areaMap[i][j] = area[areaY][areaX];
-        let diff = (area[areaY][areaX] * force) / 2;
+        let movementPower = area[areaY][areaX];
+        let diff = movementPower * force / 2;
 
         //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
         let result = fastGetVector(
@@ -194,6 +372,7 @@ function applyPixelFlow(
     }
   }
 }
+
 
 
 const vectorResult = [0, 0];

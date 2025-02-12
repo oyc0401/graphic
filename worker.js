@@ -2,7 +2,7 @@
 import { Liquify } from "./liquify";
 
 let canvas, ctx;
-const EFFECT_RADIUS = 1000; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 100; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 // 마우스(포인터) 좌표 기록 변수
