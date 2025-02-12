@@ -150,12 +150,12 @@
             // 픽셀 (x, y)와 선분 사이의 최단거리
             const d = Math.hypot(dx2, dy2);
 
-            let percent =1// Math.min(length, radius) / radius;
-            
+            let percent = 1; // Math.min(length, radius) / radius;
+
             if (0 < t && t < length) {
               let value = Math.min(1, d / radius);
               const addValue = easeInOutCubicIntegral(value);
-              grid[y][x] = addValue * radius * 2*percent;
+              grid[y][x] = addValue * radius * 2 * percent;
             }
 
             // // 시작점, 끝점 반경 원
@@ -173,30 +173,31 @@
             if (vLength < radius) {
               let value = Math.min(1, d / radius);
               const addValue = easeInOutCubicIntegral(value);
-              grid[y][x] = addValue * radius * 2*percent;
+              grid[y][x] = addValue * radius * 2 * percent;
 
               let gradation = (radius + t) / radius / 2;
-              grid[y][x] *= easeInOutCubicIntegralReal(gradation);
+              // grid[y][x] *= easeInOutCubicIntegralReal(gradation);
             }
 
             if (eLength < radius) {
               let value = Math.min(1, d / radius);
               const addValue = easeInOutCubicIntegral(value);
-              ///grid[y][x] = addValue * radius * 2*percent;
+              grid[y][x] = addValue * radius * 2 * percent;
 
               let gradation = (radius + length - t) / radius / 2;
-              //grid[y][x] *= gradation;
+              // grid[y][x] *= gradation;
+            }
+            let orginalCell = grid[y][x];
+
+            if (vLength < radius) {
+              let gradation = ((radius + t) / radius / 2);
+              grid[y][x] -= orginalCell * (1-easeInOutCubicIntegralReal(gradation));
             }
 
-            // if (vLength < radius) {
-            //   let gradation = (radius - t) / 2;
-            //   grid[y][x] -= gradation;
-            // }
-
-            // if (eLength < radius) {
-            //   let gradation = (radius - length + t) / 2;
-            //   grid[y][x] -= gradation;
-            // }
+            if (eLength < radius) {
+              let gradation = (radius + length - t) / radius / 2;
+              grid[y][x] -= orginalCell * (1-easeInOutCubicIntegralReal(gradation));
+            }
           }
         }
         return grid;
@@ -313,19 +314,20 @@
         const upperIndex = lowerIndex + 1;
         const t = index - lowerIndex; // 선형 보간 가중치
 
-        return precomputed2[lowerIndex] * (1 - t) + precomputed2[upperIndex] * t;
+        return (
+          precomputed2[lowerIndex] * (1 - t) + precomputed2[upperIndex] * t
+        );
       }
-      
 
       async function main() {
-        const radius = 5; // 소수점 R 값 가능
+        const radius = 10; // 소수점 R 값 가능
         // generateGradientGrid
         const url = "/data.bin";
         await loadPrecomputedData(url);
         await loadPrecomputedData2("/integralEase.bin");
-        
-        let grid = generateGradientGrid(20, 0, radius);
-        grid = generateCylinderCut(20, 0, radius);
+
+        let grid = generateGradientGrid(5, 0, radius);
+        grid = generateCylinderCut(5, 0, radius);
         //console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
