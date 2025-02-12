@@ -176,7 +176,7 @@
               grid[y][x] = addValue * radius * 2*percent;
 
               let gradation = (radius + t) / radius / 2;
-              grid[y][x] = grid[y][x]* easeInOutCubicIntegralReal(gradation);
+              grid[y][x] *= easeInOutCubicIntegralReal(gradation);
             }
 
             if (eLength < radius) {
@@ -303,17 +303,14 @@
           return 0;
         }
 
-        const numSamples = precomputed2.length;
-        const halfSamples = numSamples - 1; // 0.5에서 최대 인덱스
-        const mirroredX = x <= 0.5 ? x * 2 : (1 - x) * 2; // x=1일 때도 0으로 돌아오도록 대칭 변환
-
         // x가 범위를 벗어나면 경계값 반환
-        if (mirroredX <= 0) return precomputed2[0];
-        if (mirroredX >= 1) return precomputed2[halfSamples];
+        if (x <= 0) return precomputed2[0];
+        if (x >= 1) return precomputed2[precomputed2.length - 1];
 
-        const index = mirroredX * halfSamples;
+        const numSamples = precomputed2.length;
+        const index = x * (numSamples - 1);
         const lowerIndex = Math.floor(index);
-        const upperIndex = Math.min(lowerIndex + 1, halfSamples);
+        const upperIndex = lowerIndex + 1;
         const t = index - lowerIndex; // 선형 보간 가중치
 
         return precomputed2[lowerIndex] * (1 - t) + precomputed2[upperIndex] * t;
@@ -321,14 +318,14 @@
       
 
       async function main() {
-        const radius = 20; // 소수점 R 값 가능
+        const radius = 5; // 소수점 R 값 가능
         // generateGradientGrid
         const url = "/data.bin";
         await loadPrecomputedData(url);
         await loadPrecomputedData2("/integralEase.bin");
         
-        let grid = generateGradientGrid(0, 100, radius);
-        //grid = generateCylinderCut(0, 100, radius);
+        let grid = generateGradientGrid(20, 0, radius);
+        grid = generateCylinderCut(20, 0, radius);
         //console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);
