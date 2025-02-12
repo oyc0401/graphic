@@ -12,7 +12,7 @@
             {
                 type: "init",
                 canvas: offscreen,
-        imageUrl: "cat_4k.jpg", 
+                imageUrl: "cat_4k.jpg", 
                // imageUrl: "cat.webp", 
             },
             [offscreen],
