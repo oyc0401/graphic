@@ -53,7 +53,7 @@ function applyPixelFlow(start, end, force = 1) {
     //         EFFECT_RADIUS,
     //     );
     // } else {
-        area = generateGradientGrid(
+        area = generateCylinderCut(
             end.x - start.x,
             end.y - start.y,
             EFFECT_RADIUS,
@@ -609,8 +609,8 @@ let liquify;
 // 초기화
 window.onload = async () => {
     try {
-        //const img = await loadImageFromURL("check.png");
-        const img = await loadImageFromURL("cat_4k.jpg");
+        const img = await loadImageFromURL("check.png");
+        //const img = await loadImageFromURL("cat.webp");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
         const url = "/data.bin";
