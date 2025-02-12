@@ -370,11 +370,20 @@ function generateGradientGrid(dx, dy, radius) {
 
 const linear = (x) => x;
 
-function generateCylinderCut(dx, dy, radius) {
+/**
+   * 원기둥 자르기 기법으로 선분(dx, dy), 반경 radius인 캡슐 형태의 2D 그리드를 생성한다.
+   *
+   * @param {number} dx 선분의 x방향 길이
+   * @param {number} dy 선분의 y방향 길이
+   * @param {number} radius 캡슐 반경
+   * @param {function} weightFunc (optional) 거리→가중치 함수, 기본값은 (1 - dist/r)
+   * @returns {number[][]} 2차원 그리드 (height x width)
+   */
+  function generateCylinderCut(dx, dy, radius) {
     const length = Math.hypot(dx, dy);
     if (length === 0) {
-        // degenerate case: dx=dy=0
-        return [[1]]; // 혹은 빈 배열 등 적절히 처리
+      // degenerate case: dx=dy=0
+      return [[1]]; // 혹은 빈 배열 등 적절히 처리
     }
 
     // 캡슐을 모두 담을 수 있는 bounding box 계산
@@ -393,104 +402,141 @@ function generateCylinderCut(dx, dy, radius) {
     const startY = dy > 0 ? rCeil : height - 1 - rCeil;
 
     for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            // 선분 시작점에서 (x, y)까지의 벡터
-            const vx = x - startX;
-            const vy = y - startY;
+      for (let x = 0; x < width; x++) {
+        // 선분 시작점에서 (x, y)까지의 벡터
+        const vx = x - startX;
+        const vy = y - startY;
 
-            // 해당 픽셀이 선분을 따라 가장 가까운 점의 t (0~length)를 구한다.
-            // t = dot(v, u).  (u는 단위벡터)
-            let t = vx * ux + vy * uy;
+        // 해당 픽셀이 선분을 따라 가장 가까운 점의 t (0~length)를 구한다.
+        // t = dot(v, u).  (u는 단위벡터)
+        let t = vx * ux + vy * uy;
 
-            // 선분 범위(0 <= t <= length) 바깥이면, 끝단(원) 부분이 됨
-            //if (t < 0) t = 0;
-            //if (t > length) t = length;
+        // 선분 범위(0 <= t <= length) 바깥이면, 끝단(원) 부분이 됨
+        //if (t < 0) t = 0;
+        //if (t > length) t = length;
 
-            // 선분 위 가장 가까운 점의 좌표(cx, cy)
-            const cx = t * ux;
-            const cy = t * uy;
+        // 선분 위 가장 가까운 점의 좌표(cx, cy)
+        const cx = t * ux;
+        const cy = t * uy;
 
-            //const cx = (unitX > 0 ? startX : endX) + t * dx;
-            //const cy = (unitY > 0 ? startY : endY) + t * dy;
+        //const cx = (unitX > 0 ? startX : endX) + t * dx;
+        //const cy = (unitY > 0 ? startY : endY) + t * dy;
 
-            // (vx, vy) - (cx, cy) = 선분에서 수직 방향 벡터
-            const dx2 = vx - cx;
-            const dy2 = vy - cy;
+        // (vx, vy) - (cx, cy) = 선분에서 수직 방향 벡터
+        const dx2 = vx - cx;
+        const dy2 = vy - cy;
 
-            // 픽셀 (x, y)와 선분 사이의 최단거리
-            const d = Math.hypot(dx2, dy2);
+        // 픽셀 (x, y)와 선분 사이의 최단거리
+        const d = Math.hypot(dx2, dy2);
 
-            if (0 < t && t < length) {
-                let value = Math.min(1, d / radius);
-                const addValue = easeInOutCubicIntegral(value);
-                grid[y][x] = addValue * radius * 2;
-            }
+        let percent = 1; // Math.min(length, radius) / radius;
 
-            // // 시작점, 끝점 반경 원
-            let vLength = Math.hypot(vx, vy);
-            let ex = vx - dx; // 끝점에서 해당 좌표까지의 벡터
-            let ey = vy - dy;
-            let eLength = Math.hypot(ex, ey);
-
-            if (vLength < radius || eLength < radius) {
-                let value = Math.min(1, d / radius);
-                const addValue = easeInOutCubicIntegral(value);
-                grid[y][x] = addValue * radius * 2;
-            }
-
-            if (vLength < radius) {
-                let gradation = (radius + t) / radius / 2;
-                grid[y][x] *= gradation;
-            }
-
-            if (eLength < radius) {
-                let gradation = (radius + length - t) / radius / 2;
-                grid[y][x] *= gradation;
-            }
-
-            grid[y][x] /= 4;
+        if (0 < t && t < length) {
+          let value = Math.min(1, d / radius);
+          const addValue = easeInOutCubicIntegral(value);
+          grid[y][x] = addValue * radius * 2 * percent;
         }
+
+        // // 시작점, 끝점 반경 원
+        let vLength = Math.hypot(vx, vy);
+        let ex = vx - dx; // 끝점에서 해당 좌표까지의 벡터
+        let ey = vy - dy;
+        let eLength = Math.hypot(ex, ey);
+
+        // if (vLength < radius || eLength < radius) {
+        //   let value = Math.min(1, d / radius);
+        //   const addValue = easeInOutCubicIntegral(value);
+        //   grid[y][x] = addValue * radius * 2;
+        // }
+
+        if (vLength < radius) {
+          let value = Math.min(1, d / radius);
+          const addValue = easeInOutCubicIntegral(value);
+          grid[y][x] = addValue * radius * 2 * percent;
+
+          let gradation = (radius + t) / radius / 2;
+          // grid[y][x] *= easeInOutCubicIntegralReal(gradation);
+        }
+
+        if (eLength < radius) {
+          let value = Math.min(1, d / radius);
+          const addValue = easeInOutCubicIntegral(value);
+          grid[y][x] = addValue * radius * 2 * percent;
+
+          let gradation = (radius + length - t) / radius / 2;
+          // grid[y][x] *= gradation;
+        }
+        let orginalCell = grid[y][x];
+
+        if (vLength < radius) {
+          let gradation = ((radius + t) / radius / 2);
+          grid[y][x] -= orginalCell * (1-easeInOutCubicIntegralReal(gradation));
+        }
+
+        if (eLength < radius) {
+          let gradation = (radius + length - t) / radius / 2;
+          grid[y][x] -= orginalCell * (1-easeInOutCubicIntegralReal(gradation));
+        }
+      }
     }
     return grid;
-}
+  }
 
-/**
- * x가 0 이상 1 이하일 때,
- * I(x)= ∫₀¹ √((1-F(t))² - x²) dt 를 계산합니다.
- **/
+  /**
+   * x가 0 이상 1 이하일 때,
+   * I(x)= ∫₀¹ √((1-F(t))² - x²) dt 를 계산합니다.
+   **/
+  // F(t) = 0일때.
+  function flatIntegral(x) {
+    return Math.sqrt(1 - Math.pow(x, 2));
+  }
 
-// 전역 변수: 미리 계산된 적분값을 저장할 배열
-let precomputed = null;
-
-// bin 파일을 불러와 `Float32Array`로 변환하는 함수
-async function loadPrecomputedData(url) {
-    try {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
-
-        const dataView = new DataView(arrayBuffer);
-        const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
-        precomputed = new Float32Array(numValues);
-
-        for (let i = 0; i < numValues; i++) {
-            precomputed[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
-        }
-
-        console.log("Float32Array 길이:", precomputed.length);
-        console.log(precomputed.slice(0, 10)); // ✅ 일부 값 확인
-
-        console.log("✅ Precomputed I(x) 데이터 로드 완료!");
-    } catch (error) {
-        console.error("❌ 데이터 로드 실패:", error);
+  // F(t) = t일때.
+  function linearIntegral(x) {
+    if (x < 0 || x > 1) {
+      throw new Error("x는 0과 1 사이여야 합니다.");
     }
-}
+    // x = 0일 때 별도로 처리 (로그 계산 시 0이 되지 않도록)
+    if (x === 0) {
+      return 0.5; // I(0) = ∫₀¹ (1-t) dt = 1/2
+    }
 
-// easeInOutCubicIntegral(x) 함수
-function easeInOutCubicIntegral(x) {
+    const sqrtTerm = Math.sqrt(1 - x * x);
+    return 0.5 * sqrtTerm + 0.5 * x * x * Math.log(x / (1 + sqrtTerm));
+  }
+
+  // 전역 변수: 미리 계산된 적분값을 저장할 배열
+  let precomputed = null;
+
+  // bin 파일을 불러와 `Float32Array`로 변환하는 함수
+  async function loadPrecomputedData(url) {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
+
+      const dataView = new DataView(arrayBuffer);
+      const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
+      precomputed = new Float32Array(numValues);
+
+      for (let i = 0; i < numValues; i++) {
+        precomputed[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
+      }
+
+      console.log("Float32Array 길이:", precomputed.length);
+      console.log(precomputed.slice(0, 10)); // ✅ 일부 값 확인
+
+      console.log("✅ Precomputed I(x) 데이터 로드 완료!");
+    } catch (error) {
+      console.error("❌ 데이터 로드 실패:", error);
+    }
+  }
+
+  // easeInOutCubicIntegral(x) 함수
+  function easeInOutCubicIntegral(x) {
     if (precomputed == null) {
-        console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
-        return 0;
+      console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
+      return 0;
     }
 
     // x가 범위를 벗어나면 경계값 반환
@@ -504,7 +550,53 @@ function easeInOutCubicIntegral(x) {
     const t = index - lowerIndex; // 선형 보간 가중치
 
     return precomputed[lowerIndex] * (1 - t) + precomputed[upperIndex] * t;
-}
+  }
+
+  let precomputed2 = null;
+
+  // bin 파일을 불러와 `Float32Array`로 변환하는 함수
+  async function loadPrecomputedData2(url) {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
+
+      const dataView = new DataView(arrayBuffer);
+      const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
+      precomputed2 = new Float32Array(numValues);
+
+      for (let i = 0; i < numValues; i++) {
+        precomputed2[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
+      }
+
+      console.log("Float32Array 길이:", precomputed2.length);
+      console.log(precomputed2.slice(0, 10)); // ✅ 일부 값 확인
+
+      console.log("✅ Precomputed2 I(x) 데이터 로드 완료!");
+    } catch (error) {
+      console.error("❌ 데이터 로드 실패:", error);
+    }
+  }
+  function easeInOutCubicIntegralReal(x) {
+    if (precomputed2 == null) {
+      console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
+      return 0;
+    }
+
+    // x가 범위를 벗어나면 경계값 반환
+    if (x <= 0) return precomputed2[0];
+    if (x >= 1) return precomputed2[precomputed2.length - 1];
+
+    const numSamples = precomputed2.length;
+    const index = x * (numSamples - 1);
+    const lowerIndex = Math.floor(index);
+    const upperIndex = lowerIndex + 1;
+    const t = index - lowerIndex; // 선형 보간 가중치
+
+    return (
+      precomputed2[lowerIndex] * (1 - t) + precomputed2[upperIndex] * t
+    );
+  }
 
 // 마우스 위치를 저장할 배열
 let positions = [];
@@ -517,12 +609,13 @@ let liquify;
 // 초기화
 window.onload = async () => {
     try {
-        const img = await loadImageFromURL("check.png");
-        //const img = await loadImageFromURL("cat.webp");
+        //const img = await loadImageFromURL("check.png");
+        const img = await loadImageFromURL("cat_4k.jpg");
         //const img = await loadImageFromURL("musk.png");
         drawImageToCanvas(img);
         const url = "/data.bin";
         await loadPrecomputedData(url);
+           await loadPrecomputedData2("/integralEase.bin");
         //liquify = makeLiquify(canvas, ctx);
         initPixelFlow(ctx, c_width, c_height);
     } catch (error) {
