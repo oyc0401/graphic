@@ -2,7 +2,7 @@
 import { Liquify } from "./liquify";
 
 let canvas, ctx;
-const EFFECT_RADIUS = 400; // 뒤틀기 효과 반경
+const EFFECT_RADIUS = 1000; // 뒤틀기 효과 반경
 const MAGNIFY_STRENGTH = 1; // 강도: +이면 정방향, -이면 역방향
 
 // 마우스(포인터) 좌표 기록 변수
@@ -45,7 +45,7 @@ onmessage = async function (e) {
     } else if (data.type === "pointermove") {
         if (!isTracking) return;
         const { x, y } = data;
-        console.log("move", x, y);
+        //console.log("move", x, y);
         positions.push({ x, y });
         if (positions.length < 2) {
             return;
@@ -61,31 +61,30 @@ let queued = false;
 function execute() {
     if (!queued) {
         queued = true;
-        requestAnimationFrame(() => {
-            console.log("render!");
 
-            if (lastIndex == positions.length - 1) {
-                //queued = false;
-                console.warn("왜 여기 들어왔니");
-                return;
-            }
-
-            const start = positions[lastIndex];
-            lastIndex = positions.length - 1;
-            const end = positions[lastIndex];
-            
-            console.log(start, end);
-            liquify.apply(start, end);
-
-            // 렌더링 영역 계산
-            let minX = Math.min(start.x, end.x);
-            let minY = Math.min(start.y, end.y);
-            let maxX = Math.max(start.x, end.x);
-            let maxY = Math.max(start.y, end.y);
-
-            liquify.renderToImage(minX, minY, maxX, maxY);
-
-            queued = false;
-        });
+        requestAnimationFrame(doit);
     }
+}
+
+function doit(){
+
+    const slicedArray = positions.slice(lastIndex, positions.length);
+    lastIndex = positions.length - 1;
+
+    const start = slicedArray[0];
+    const end = slicedArray[slicedArray.length - 1];
+
+   // console.log(start, end);
+    liquify.apply(start, end);
+
+    // 렌더링 영역 계산
+    let minX = Math.min(start.x, end.x);
+    let minY = Math.min(start.y, end.y);
+    let maxX = Math.max(start.x, end.x);
+    let maxY = Math.max(start.y, end.y);
+
+    liquify.renderToImage(minX, minY, maxX, maxY);
+//console.log("render!");
+
+    queued = false;
 }
