@@ -1,75 +1,177 @@
 let canvas = document.querySelector("#canvas");
-let ctx = canvas.getContext("webgl2");
+let gl = canvas.getContext("webgl2");
 
-ar vertexShaderSource = `#version 300 es
-
-// attribute는 정점 셰이더에 대한 입력(in)입니다.
-// 버퍼로부터 데이터를 받습니다.
-in vec4 a_position;
-
-// 모든 셰이더는 main 함수를 가지고 있습니다.
-void main() {
-
-  // gl_Position은 정점 셰이더가 설정해 주어야 하는 내장 변수입니다.
-  gl_Position = a_position;
+const width = 500;
+const height = 500;
+canvas.width = width;
+canvas.height = height;
+const ext = gl.getExtension("EXT_color_buffer_float");
+if (!ext) {
+  console.error("EXT_color_buffer_float not supported!");
 }
-`;
-
-var fragmentShaderSource = `#version 300 es
-
-// 프래그먼트 셰이더는 기본 정밀도를 가지고 있지 않으므로 선언을 해야합니다.
-// highp는 기본값으로 적당합니다. "높은 정밀도(high precision)"를 의미합니다.
-precision highp float;
-
-// 프래그먼트 셰이더는 출력값을 선언 해야합니다.
-out vec4 outColor;
-
-void main() {
-  // 붉은-보라색 상수로 출력값을 설정합니다.
-  outColor = vec4(1, 0, 0.5, 1);
+// 1️⃣ Float32Array로 랜덤 데이터 생성
+const arrayData = new Float32Array(width * height);
+for (let i = 0; i < arrayData.length; i++) {
+  arrayData[i] = Math.random() * 1000;
 }
-`;
-function createShader(gl, type, source) {
-  var shader = gl.createShader(type);
+
+// 2️⃣ 원본 텍스처 생성 및 데이터 업로드
+let texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texImage2D(
+  gl.TEXTURE_2D,
+  0,
+  gl.R32F,
+  width,
+  height,
+  0,
+  gl.RED,
+  gl.FLOAT,
+  arrayData,
+);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+// 3️⃣ 출력용 텍스처 생성
+let resultTexture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, resultTexture);
+gl.texImage2D(
+  gl.TEXTURE_2D,
+  0,
+  gl.R32F,
+  width,
+  height,
+  0,
+  gl.RED,
+  gl.FLOAT,
+  null,
+);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+// 4️⃣ 프레임버퍼 생성 및 바인딩
+let framebuffer = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+gl.framebufferTexture2D(
+  gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT0,
+  gl.TEXTURE_2D,
+  resultTexture,
+  0,
+);
+
+// 5️⃣ 셰이더 컴파일 함수
+function createShader(type, source) {
+  let shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
   }
-
-  console.log(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
-}
-var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-
-function createProgram(gl, vertexShader, fragmentShader) {
-  var program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-
-  console.log(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
+  return shader;
 }
 
-var program = createProgram(gl, vertexShader, fragmentShader);
+// 6️⃣ 수정용 셰이더 프로그램 생성
+let vertexShaderSource = `#version 300 es
+in vec2 a_position;
+out vec2 v_texCoord;
+void main() {
+    v_texCoord = a_position * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+let modifyFragmentShaderSource = `#version 300 es
+precision highp float;
+uniform sampler2D u_texture;
+in vec2 v_texCoord;
+out vec4 outColor;
+void main() {
+    float value = texture(u_texture, v_texCoord).r;
+    bool isBig = value>300.0;
+    if (isBig) {
+        value *= -0.8;
+    } else {
+        value *= 1.2;
+    }
+    outColor = vec4(value, 0.0, 0.0, 0.0);
+}
+`;
 
-var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+let vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+let modifyShader = createShader(gl.FRAGMENT_SHADER, modifyFragmentShaderSource);
+let modifyProgram = gl.createProgram();
+gl.attachShader(modifyProgram, vertexShader);
+gl.attachShader(modifyProgram, modifyShader);
+gl.linkProgram(modifyProgram);
+if (!gl.getProgramParameter(modifyProgram, gl.LINK_STATUS)) {
+  console.error(gl.getProgramInfoLog(modifyProgram));
+}
 
-var positionBuffer = gl.createBuffer();
+// 7️⃣ 화면에 그려서 텍스처 수정
+let vao = gl.createVertexArray();
+gl.bindVertexArray(vao);
 
+let positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
+  gl.STATIC_DRAW,
+);
 
-// 세 개의 2d 점
-var positions = [
-  0, 0,
-  0, 0.5,
-  0.7, 0,
-];
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+let posLoc = gl.getAttribLocation(modifyProgram, "a_position");
+gl.enableVertexAttribArray(posLoc);
+gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+gl.useProgram(modifyProgram);
+let texLoc = gl.getUniformLocation(modifyProgram, "u_texture");
+gl.uniform1i(texLoc, 0);
+
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, texture);
+
+gl.viewport(0, 0, width, height);
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+// 8️⃣ 프레임버퍼 해제 및 최종 렌더링
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+let colorShaderSource = `#version 300 es
+precision highp float;
+uniform sampler2D u_texture;
+in vec2 v_texCoord;
+out vec4 outColor;
+void main() {
+    float value = texture(u_texture, v_texCoord).r;
+    if (value > 0.0) {
+        outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        outColor = vec4(0.0, 0.0, 1.0, 1.0);
+    }
+}
+`;
+
+let colorShader = createShader(gl.FRAGMENT_SHADER, colorShaderSource);
+let colorProgram = gl.createProgram();
+gl.attachShader(colorProgram, vertexShader);
+gl.attachShader(colorProgram, colorShader);
+gl.linkProgram(colorProgram);
+
+gl.useProgram(colorProgram);
+let finalTexLoc = gl.getUniformLocation(colorProgram, "u_texture");
+gl.uniform1i(finalTexLoc, 0);
+
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, resultTexture);
+
+gl.viewport(0, 0, width, height);
+gl.clearColor(0, 0, 0, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+let debugData = new Float32Array(width * height);
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+gl.readPixels(0, 0, width, height, gl.RED, gl.FLOAT, debugData);
+console.log(debugData.slice(0, 10));
