@@ -1,644 +1,430 @@
 export class Liquify {
-  constructor(canvas, ctx) {
-    // 원본 이미지 데이터 가져오기
-    let c_width = canvas.width;
-    let c_height = canvas.height;
-    this.originalImageData = ctx.getImageData(0, 0, c_width, c_height);
-    this.originalData = this.originalImageData.data;
-
-    // 변위 맵 초기화
-    this.displaceMap = new Float32Array(2 * c_width * c_height);
-
+  constructor(canvas,gl) {
+    // 이제 2d 컨텍스트 대신 WebGL2 컨텍스트를 사용합니다.
     this.canvas = canvas;
-    this.ctx = ctx;
-    this.c_width = c_width;
-    this.c_height = c_height;
-    this.init();
-  }
-  async init() {
-    await loadPrecomputedData("/data.bin");
-    await loadPrecomputedData2("/integralEase.bin");
-  }
-
-  setRadius(radius) {
-    this.radius = radius; // 뒤틀기 효과 반경
-  }
-
-  setStrength(strength) {
-    this.strength = strength; // 강도
-  }
-  apply(start, end) {
-    applyPixelFlow(
-      this.displaceMap,
-      start,
-      end,
-      this.radius,
-      this.strength,
-      this.c_width,
-      this.c_height,
-    );
-  }
-
-  renderToImage(minX, minY, maxX, maxY) {
-    const c_width = this.c_width;
-    const c_height = this.c_height;
-    const ceiledRadius = Math.ceil(this.radius);
-
-    const sx = Math.max(0, minX - ceiledRadius);
-    const sy = Math.max(0, minY - ceiledRadius);
-    const ex = Math.min(c_width - 1, maxX + ceiledRadius);
-    const ey = Math.min(c_height - 1, maxY + ceiledRadius);
-
-    const width = ex - sx + 1; // 시작: 5, 끝: 9이면 5 6 7 8 9, 총 길이 5임
-    const height = ey - sy + 1;
-
-    // 잘못된 영역이면 그냥 종료합니다.
-    if (width <= 0 || height <= 0) {
+    this.gl = gl
+    if (!this.gl) {
+      console.error("WebGL2 is not supported!");
       return;
     }
+    this.width = canvas.width;
+    this.height = canvas.height;
 
-    const newImageData = new Uint8ClampedArray(width * height * 4);
+    // liquify 효과에 사용할 매개변수의 기본값 설정
+    this.radius = 500;
+    this.strength = 1.0;
 
-    let imageIndex = 0;
-    for (let y = sy; y <= ey; y++) {
-      for (let x = sx; x <= ex; x++) {
-        const index = y * c_width + x;
-
-        const totalDx = this.displaceMap[2 * index];
-        const totalDy = this.displaceMap[2 * index + 1];
-        let newX = x + totalDx;
-        let newY = y + totalDy;
-
-        // 양선형 보간
-        const floorX = Math.floor(newX);
-        const floorY = Math.floor(newY);
-        const ceilX = Math.ceil(newX);
-        const ceilY = Math.ceil(newY);
-        const tx = newX - floorX;
-        const ty = newY - floorY;
-
-        const getColor = (xx, yy) => {
-          // 클램핑된 좌표를 사용
-          const clampedX = clamp(xx, 0, c_width - 1);
-          const clampedY = clamp(yy, 0, c_height - 1);
-          const idx = (clampedY * c_width + clampedX) * 4;
-          //화면 밖이면 투명으로 설정
-          if (xx < 0 || xx >= c_width || yy < 0 || yy >= c_height) {
-            return [
-              this.originalData[idx],
-              this.originalData[idx + 1],
-              this.originalData[idx + 2],
-              0,
-            ];
-          }
-
-          return [
-            this.originalData[idx],
-            this.originalData[idx + 1],
-            this.originalData[idx + 2],
-            this.originalData[idx + 3],
-          ];
-        };
-
-        const c00 = getColor(floorX, floorY);
-        const c10 = getColor(ceilX, floorY);
-        const c01 = getColor(floorX, ceilY);
-        const c11 = getColor(ceilX, ceilY);
-
-        const interpolate = (c1, c2, c3, c4, tx, ty) => [
-          (c1[0] * (1 - tx) + c2[0] * tx) * (1 - ty) +
-            (c3[0] * (1 - tx) + c4[0] * tx) * ty,
-          (c1[1] * (1 - tx) + c2[1] * tx) * (1 - ty) +
-            (c3[1] * (1 - tx) + c4[1] * tx) * ty,
-          (c1[2] * (1 - tx) + c2[2] * tx) * (1 - ty) +
-            (c3[2] * (1 - tx) + c4[2] * tx) * ty,
-          (c1[3] * (1 - tx) + c2[3] * tx) * (1 - ty) +
-            (c3[3] * (1 - tx) + c4[3] * tx) * ty,
-        ];
-
-        const [r, g, b, a] = interpolate(c00, c10, c01, c11, tx, ty);
-        const newIndex = imageIndex * 4;
-        newImageData[newIndex] = r;
-        newImageData[newIndex + 1] = g;
-        newImageData[newIndex + 2] = b;
-        newImageData[newIndex + 3] = a;
-
-        imageIndex++;
-      }
-    }
-
-    let resultImageData = new ImageData(newImageData, width, height);
-    this.ctx.putImageData(resultImageData, sx, sy);
+    // 초기화 이후에는 모든 데이터는 GPU에 남아 있으므로,
+    // CPU↔GPU 데이터 이동은 init 단계 이후 발생하지 않습니다.
+    this.init();
   }
-}
 
-/**
- * @param {Float32Array|Array} displaceMap - 2배 길이의 배열 (x,y 변위)
- * @param {Object} start - {x, y}
- * @param {Object} end - {x, y}
- * @param {number} radius
- * @param {number} force
- * @param {number} c_width
- * @param {number} c_height
- */
-function applyPixelFlow(
-  displaceMap,
-  start,
-  end,
-  radius,
-  force,
-  c_width,
-  c_height,
-) {
-  // 1. 각종 기본값 셋업 (기존 코드와 동일)
-  const ceiledRadius = Math.ceil(radius);
+  async init() {
+    const gl = this.gl;
 
-  let minX = Math.min(start.x, end.x);
-  let minY = Math.min(start.y, end.y);
-  let gridWidth = Math.abs(end.x - start.x) + 1 + 2 * ceiledRadius;
-  let gridHeight = Math.abs(end.y - start.y) + 1 + 2 * ceiledRadius;
+    // ─────────────────────────────────────────────
+    // (1) 텍스처 업로드 시 Y축 뒤집기 설정!
+    // ─────────────────────────────────────────────
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-  let startX = minX - ceiledRadius;
-  let startY = minY - ceiledRadius;
+    // 1. 원본 이미지 텍스처 생성  
+    //    (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
+    this.originalTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.originalTexture);
+    // texImage2D의 소스로 canvas 자체를 사용합니다.
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      this.canvas
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-  // 2. 선분 방향 유닛벡터 계산
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy);
-  if (length === 0) return; // 0이면 아무 변화 없음
+    // 2. 변위 맵(displacement map) 텍스처 생성  
+    //    RG 채널에 (dx, dy) 변위를 저장하며, 초기값은 모두 0
+    this.dispTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.dispTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG32F,
+      this.width,
+      this.height,
+      0,
+      gl.RG,
+      gl.FLOAT,
+      null
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-  const unitX = dx / length;
-  const unitY = dy / length;
+    // 3. precomputed 데이터(적분값) 텍스처 생성  
+    //    기존 easeInOutCubicIntegral()와 easeInOutCubicIntegralReal()의 데이터를
+    //    1D 텍스처에 업로드합니다. (데이터는 loadPrecomputedData* 함수를 통해 로드)
+    this.precomputedTexture = await this._loadPrecomputedTexture("/data.bin");
+    this.precomputed2Texture = await this._loadPrecomputedTexture(
+      "/integralEase.bin"
+    );
 
-  // 3. 메인 루프 (배열 없이 movementPower 즉시 계산)
-  //    기존에는 generateCylinderCut()으로 만든 area[y][x]를
-  //    area[areaY][areaX] 형태로 참조했지만, 이제는 getPower() 호출로 대체
-  for (let i = 0; i < gridHeight - 1; i++) {
-    // y좌표와 areaY 계산 (역순 보정)
-    const y = unitY > 0 ? startY + gridHeight - 1 - i : startY + i;
-    const areaY = unitY > 0 ? gridHeight - 1 - i : i;
+    // 4. 프레임버퍼 생성  
+    //    liquify 효과 업데이트 시, 변위 맵 텍스처를 렌더 타깃으로 사용합니다.
+    this.dispFBO = gl.createFramebuffer();
 
-    for (let j = 0; j < gridWidth - 1; j++) {
-      // x좌표와 areaX 계산 (역순 보정)
-      const x = unitX > 0 ? startX + gridWidth - 1 - j : startX + j;
-      const areaX = unitX > 0 ? gridWidth - 1 - j : j;
+    // 5. 셰이더 프로그램 컴파일  
+    //    (1) liquify 효과(변위 업데이트) 셰이더: applyPixelFlowShader  
+    //    (2) 최종 렌더 셰이더: renderLiquifyShader
+    this.applyProgram = this._createApplyProgram();
+    this.renderProgram = this._createRenderProgram();
 
-      // 화면 범위 체크
-      if (x < 0 || x >= c_width || y < 0 || y >= c_height) {
-        continue;
-      }
+    // 6. 정점 데이터 및 VAO 설정 (풀스크린 쿼드)
+    this.quadVAO = gl.createVertexArray();
+    gl.bindVertexArray(this.quadVAO);
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    // 정점 좌표 (풀스크린을 덮는 두 개의 삼각형)
+    const quadVertices = new Float32Array([
+      -1, -1, 1, -1, -1, 1,
+      1, -1, 1, 1, -1, 1
+    ]);
+    gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+    const posLoc = gl.getAttribLocation(this.applyProgram, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-      // "generateCylinderCut"의 각 픽셀 계산 로직을 가져온 getPower() 호출
-      const movementPower = getPower(areaX, areaY, dx, dy, radius);
+    // 모든 초기화가 끝났으므로, 이후에는 CPU→GPU 데이터 전송 없이 GPU만으로 작업합니다.
+  }
 
-      // 이후 로직: movementPower를 이용해 픽셀 변위 계산
-      const diff = (movementPower * force) / 2;
-      const index = y * c_width + x;
+  // setRadius와 setStrength는 liquify 효과의 매개변수를 조정합니다.
+  setRadius(radius) {
+    this.radius = radius;
+  }
+  setStrength(strength) {
+    this.strength = strength;
+  }
 
-      // fastGetVector()로 주변값 샘플링
-      const [ax, ay] = fastGetVector(
-        displaceMap,
-        c_width,
-        c_height,
-        x - diff * unitX,
-        y - diff * unitY,
+  // liquify 효과 적용: GPU에서 변위 맵 업데이트
+  apply(start, end) {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.dispFBO);
+    // 변위 맵 텍스처를 프레임버퍼의 컬러 어태치먼트로 바인딩
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this.dispTexture,
+      0
+    );
+    gl.viewport(0, 0, this.width, this.height);
+    gl.useProgram(this.applyProgram);
+
+     // === 필요한 유니폼 설정 ===
+      gl.uniform2f(
+        gl.getUniformLocation(this.applyProgram, "u_resolution"),
+        this.width,
+        this.height
       );
+      // WebGL 좌표계와 2D canvas 좌표계가 상하 반전일 수 있으니, 필요하면 y 좌표를 뒤집어 준다
+      // gl.uniform2f(locationOfStart, start.x, (this.height - start.y));
+      // gl.uniform2f(locationOfEnd, end.x, (this.height - end.y));
+      // (상황에 따라 or 그냥 start.y,end.y 그대로도 되는 경우가 있음)
 
-      // 최종 변위 갱신
-      displaceMap[2 * index] = ax - diff * unitX;
-      displaceMap[2 * index + 1] = ay - diff * unitY;
-    }
-  }
-}
+    // 만약 Canvas 높이가 this.height일 때,
+    // 아래쪽이 0, 위쪽이 height라고 간주하려면:
+    gl.uniform2f(
+      gl.getUniformLocation(this.applyProgram, "u_start"),
+      start.x,
+      this.height - start.y  // ★ y 뒤집기
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(this.applyProgram, "u_end"),
+      end.x,
+      this.height - end.y    // ★ y 뒤집기
+    );
 
-/**
- * "generateCylinderCut"의 내부에서 각 픽셀에 대해 계산하던 로직을
- *  한 점만 계산해서 반환하도록 옮긴 함수.
- * 
- * @param {number} ax - generateCylinderCut 내에서의 'local x' (areaX)
- * @param {number} ay - generateCylinderCut 내에서의 'local y' (areaY)
- * @param {number} dx - end.x - start.x
- * @param {number} dy - end.y - start.y
- * @param {number} radius 
- * @returns {number} - 해당 픽셀( ax, ay )에서의 movementPower
- */
-function getPower(ax, ay, dx, dy, radius) {
-  // generateCylinderCut()와 동일한 계산 준비
-  const length = Math.hypot(dx, dy);
-  if (length === 0) {
-    // 기존 generateCylinderCut도 (dx=0, dy=0)면 특수처리
-    // 결과값이 0인지, 1인지, 혹은 빈 배열인지 상황에 따라 다를 수 있음
-    return 1; 
-  }
+    gl.uniform1f(
+      gl.getUniformLocation(this.applyProgram, "u_radius"),
+      this.radius
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(this.applyProgram, "u_strength"),
+      this.strength
+    );
+    // 변위 맵와 precomputed 텍스처들을 텍스처 유닛에 바인딩
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.dispTexture);
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_displacement"), 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.precomputedTexture);
+    gl.uniform1i(
+      gl.getUniformLocation(this.applyProgram, "u_precomputed"),
+      1
+    );
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.precomputed2Texture);
+    gl.uniform1i(
+      gl.getUniformLocation(this.applyProgram, "u_precomputed2"),
+      2
+    );
 
-  const rCeil = Math.ceil(radius);
-  const width = Math.abs(Math.floor(dx)) + 2 * rCeil + 1;
-  const height = Math.abs(Math.floor(dy)) + 2 * rCeil + 1;
-
-  // 선분 방향 (유닛 벡터)
-  const ux = dx / length;
-  const uy = dy / length;
-
-  // generateCylinderCut()에서 쓰던 local startX, startY
-  // (선분 시작점을 bounding box 안에서 rCeil만큼 옮긴 값)
-  const localStartX = dx > 0 ? rCeil : width - 1 - rCeil;
-  const localStartY = dy > 0 ? rCeil : height - 1 - rCeil;
-
-  // (ax, ay)에 해당하는 실제 벡터
-  const vx = ax - localStartX;
-  const vy = ay - localStartY;
-
-  // 선분 상에서 가장 가까운 지점까지의 거리 t (0~length)
-  let t = vx * ux + vy * uy;
-
-  // (vx, vy)에서 (cx, cy)까지의 거리(=선분까지의 최소 거리) 계산용
-  // cx = t * ux, cy = t * uy
-  // 그래서 d = hypot(vx-cx, vy-cy)
-  const cx = t * ux;
-  const cy = t * uy;
-  const dx2 = vx - cx;
-  const dy2 = vy - cy;
-  const d = Math.hypot(dx2, dy2);
-
-  // 이 픽셀에서의 '초기' power
-  let power = 0;
-  let percent = 1; // 기존 코드에서 percent = 1 로 사용
-
-  // (1) 선분 중심 영역 (0 < t < length) 일 때
-  if (0 < t && t < length) {
-    const value = Math.min(1, d / radius);
-    const addValue = easeInOutCubicIntegral(value);
-    power = addValue * radius * 2 * percent;
+    // 풀스크린 쿼드 그리기 → 변위 맵이 셰이더 로직에 따라 업데이트됨
+    gl.bindVertexArray(this.quadVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  // (2) '시작점' 방향 원 영역
-  const vLength = Math.hypot(vx, vy);
-  if (vLength < radius) {
-    const value = Math.min(1, d / radius);
-    const addValue = easeInOutCubicIntegral(value);
-    power = addValue * radius * 2 * percent;
+  // 최종 렌더링: 원본 이미지 텍스처와 업데이트된 변위 맵을 사용해 liquify 효과를 적용한 결과를 화면에 출력
+  render() {
+    const gl = this.gl;
+    gl.viewport(0, 0, this.width, this.height);
+    gl.useProgram(this.renderProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(this.renderProgram, "u_resolution"),
+      this.width,
+      this.height
+    );
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.originalTexture);
+    gl.uniform1i(
+      gl.getUniformLocation(this.renderProgram, "u_original"),
+      0
+    );
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.dispTexture);
+    gl.uniform1i(
+      gl.getUniformLocation(this.renderProgram, "u_displacement"),
+      1
+    );
+
+    gl.bindVertexArray(this.quadVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  // (3) '끝점' 방향 원 영역
-  const ex = vx - dx; // 끝점 기준 벡터
-  const ey = vy - dy;
-  const eLength = Math.hypot(ex, ey);
-  if (eLength < radius) {
-    const value = Math.min(1, d / radius);
-    const addValue = easeInOutCubicIntegral(value);
-    power = addValue * radius * 2 * percent;
-  }
+  // ──────────────────────────────────────────────
+  // 내부 헬퍼 함수들
+  // ──────────────────────────────────────────────
 
-  // (4) 빼기 연산을 위해, 현재 power를 따로 보관
-  const originalCell = power;
-
-  // (5) 시작점 쪽 그라데이션 보정
-  if (vLength < radius) {
-    let gradation = (radius + t) / radius / 2;
-    // originalCell * (1 - easeInOutCubicIntegralReal(gradation)) 만큼 감소
-    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
-  }
-
-  // (6) 끝점 쪽 그라데이션 보정
-  if (eLength < radius) {
-    let gradation = (radius + (length - t)) / radius / 2;
-    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
-  }
-
-  return power;
-}
-
-
-function prev_applyPixelFlow(
-  displaceMap,
-  start,
-  end,
-  radius,
-  force,
-  c_width,
-  c_height,
-) {
-  const ceiledRadius = Math.ceil(radius);
-
-  let minX = Math.min(start.x, end.x);
-  let minY = Math.min(start.y, end.y);
-  let gridWidth = Math.abs(end.x - start.x) + 1 + 2 * ceiledRadius;
-  let gridHeight = Math.abs(end.y - start.y) + 1 + 2 * ceiledRadius;
-
-  //console.log(gridWidth, gridHeight);
-  let startX = minX - ceiledRadius;
-  let startY = minY - ceiledRadius;
-
-  // end는 방향 계산용으로만 사용
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy);
-  if (length === 0) return;
-  const unitX = dx / length;
-  const unitY = dy / length;
-
-  let area = generateCylinderCut(end.x - start.x, end.y - start.y, radius);
-
-  for (let i = 0; i < gridHeight - 1; i++) {
-    const y = unitY > 0 ? startY + gridHeight - 1 - i : startY + i;
-    const areaY = unitY > 0 ? gridHeight - 1 - i : i;
-    for (let j = 0; j < gridWidth - 1; j++) {
-      const x = unitX > 0 ? startX + gridWidth - 1 - j : startX + j;
-      const areaX = unitX > 0 ? gridWidth - 1 - j : j;
-
-      if (0 <= x && x < c_width && 0 <= y && y < c_height) {
-        const index = y * c_width + x;
-
-        //areaMap[i][j] = area[areaY][areaX];
-        let movementPower = area[areaY][areaX];
-        let diff = movementPower * force / 2;
-
-        //console.log("@", areaX, areaY, "*", `(${x}, ${y})`);
-        let result = fastGetVector(
-          displaceMap,
-          c_width,
-          c_height,
-          x - diff * unitX,
-          y - diff * unitY,
-        );
-        let ax = result[0];
-        let ay = result[1];
-
-        //displaceX[index] = ax - diff * unitX;
-        // displaceY[index] = ay - diff * unitY;
-        displaceMap[2 * index] = ax - diff * unitX;
-        displaceMap[2 * index + 1] = ay - diff * unitY;
-      }
-    }
-  }
-}
-
-
-
-const vectorResult = [0, 0];
-// 이게 1.3배 더 빠름
-function fastGetVector(displaceMap, c_width, c_height, x, y) {
-  // 지역 변수에 글로벌 상수를 캐싱 (최적화에 도움)
-  const w = c_width;
-  const h = c_height;
-
-  // x, y의 정수 부분 계산 (하나의 호출로 두 번 쓰임)
-  const x1 = Math.floor(x);
-  const y1 = Math.floor(y);
-  // 원래 코드는 Math.ceil(x)로 x2, y2를 구했지만,
-  // 일반적으로 bilinear interpolation에서는 x2 = x1 + 1, y2 = y1 + 1로 처리하는 경우가 많음.
-  // (만약 x, y가 정수일 경우 보간에 사용하지 않으려면 추가 처리가 필요함)
-  const x2 = x1 + 1;
-  const y2 = y1 + 1;
-
-  // 좌표 클램핑 (inline clamp)
-  const cx1 = x1 < 0 ? 0 : x1 >= w ? w - 1 : x1;
-  const cx2 = x2 < 0 ? 0 : x2 >= w ? w - 1 : x2;
-  const cy1 = y1 < 0 ? 0 : y1 >= h ? h - 1 : y1;
-  const cy2 = y2 < 0 ? 0 : y2 >= h ? h - 1 : y2;
-
-  // 인덱스 계산 (지역 변수 w 사용)
-  const idx11 = cy1 * w + cx1;
-  const idx21 = cy1 * w + cx2;
-  const idx12 = cy2 * w + cx1;
-  const idx22 = cy2 * w + cx2;
-
-  // 배열에서 픽셀 데이터 읽어오기 (분리된 x, y 값)
-  const Q11x = displaceMap[2 * idx11],
-    Q11y = displaceMap[2 * idx11 + 1];
-  const Q21x = displaceMap[2 * idx21],
-    Q21y = displaceMap[2 * idx21 + 1];
-  const Q12x = displaceMap[2 * idx12],
-    Q12y = displaceMap[2 * idx12 + 1];
-  const Q22x = displaceMap[2 * idx22],
-    Q22y = displaceMap[2 * idx22 + 1];
-
-  // 보간 비율 계산
-  // x1, y1는 Math.floor(x), Math.floor(y)이므로
-  // dx, dy는 소수 부분이 됨.
-  const dx = x - x1;
-  const dy = y - y1;
-  const invDx = 1 - dx;
-  const invDy = 1 - dy;
-
-  // bilinear interpolation (각 성분 별로 계산)
-  vectorResult[0] =
-    Q11x * invDx * invDy +
-    Q21x * dx * invDy +
-    Q12x * invDx * dy +
-    Q22x * dx * dy;
-
-  vectorResult[1] =
-    Q11y * invDx * invDy +
-    Q21y * dx * invDy +
-    Q12y * invDx * dy +
-    Q22y * dx * dy;
-
-  return vectorResult;
-}
-
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-/**
- * 원기둥 자르기 기법으로 선분(dx, dy), 반경 radius인 캡슐 형태의 2D 그리드를 생성한다.
- *
- * @param {number} dx 선분의 x방향 길이
- * @param {number} dy 선분의 y방향 길이
- * @param {number} radius 캡슐 반경
- * @param {function} weightFunc (optional) 거리→가중치 함수, 기본값은 (1 - dist/r)
- * @returns {number[][]} 2차원 그리드 (height x width)
- */
-function generateCylinderCut(dx, dy, radius) {
-  const length = Math.hypot(dx, dy);
-  if (length === 0) {
-    // degenerate case: dx=dy=0
-    return [[1]]; // 혹은 빈 배열 등 적절히 처리
-  }
-
-  // 캡슐을 모두 담을 수 있는 bounding box 계산
-  const rCeil = Math.ceil(radius);
-  const width = Math.abs(Math.floor(dx)) + 2 * rCeil + 1;
-  const height = Math.abs(Math.floor(dy)) + 2 * rCeil + 1;
-
-  // 결과 2D 배열 초기화
-  const grid = Array.from({ length: height }, () => Array(width).fill(0));
-
-  // 선분 방향 유닛벡터
-  const ux = dx / length;
-  const uy = dy / length;
-
-  const startX = dx > 0 ? rCeil : width - 1 - rCeil;
-  const startY = dy > 0 ? rCeil : height - 1 - rCeil;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      // 선분 시작점에서 (x, y)까지의 벡터
-      const vx = x - startX;
-      const vy = y - startY;
-
-      // 해당 픽셀이 선분을 따라 가장 가까운 점의 t (0~length)를 구한다.
-      // t = dot(v, u).  (u는 단위벡터)
-      let t = vx * ux + vy * uy;
-
-      // 선분 범위(0 <= t <= length) 바깥이면, 끝단(원) 부분이 됨
-      //if (t < 0) t = 0;
-      //if (t > length) t = length;
-
-      // 선분 위 가장 가까운 점의 좌표(cx, cy)
-      const cx = t * ux;
-      const cy = t * uy;
-
-      //const cx = (unitX > 0 ? startX : endX) + t * dx;
-      //const cy = (unitY > 0 ? startY : endY) + t * dy;
-
-      // (vx, vy) - (cx, cy) = 선분에서 수직 방향 벡터
-      const dx2 = vx - cx;
-      const dy2 = vy - cy;
-
-      // 픽셀 (x, y)와 선분 사이의 최단거리
-      const d = Math.hypot(dx2, dy2);
-
-      let percent = 1; // Math.min(length, radius) / radius;
-
-      if (0 < t && t < length) {
-        let value = Math.min(1, d / radius);
-        const addValue = easeInOutCubicIntegral(value);
-        grid[y][x] = addValue * radius * 2 * percent;
-      }
-
-      // // 시작점, 끝점 반경 원
-      let vLength = Math.hypot(vx, vy);
-      let ex = vx - dx; // 끝점에서 해당 좌표까지의 벡터
-      let ey = vy - dy;
-      let eLength = Math.hypot(ex, ey);
-
-      // if (vLength < radius || eLength < radius) {
-      //   let value = Math.min(1, d / radius);
-      //   const addValue = easeInOutCubicIntegral(value);
-      //   grid[y][x] = addValue * radius * 2;
-      // }
-
-      if (vLength < radius) {
-        let value = Math.min(1, d / radius);
-        const addValue = easeInOutCubicIntegral(value);
-        grid[y][x] = addValue * radius * 2 * percent;
-
-        let gradation = (radius + t) / radius / 2;
-        // grid[y][x] *= easeInOutCubicIntegralReal(gradation);
-      }
-
-      if (eLength < radius) {
-        let value = Math.min(1, d / radius);
-        const addValue = easeInOutCubicIntegral(value);
-        grid[y][x] = addValue * radius * 2 * percent;
-
-        let gradation = (radius + length - t) / radius / 2;
-        // grid[y][x] *= gradation;
-      }
-      let orginalCell = grid[y][x];
-
-      if (vLength < radius) {
-        let gradation = (radius + t) / radius / 2;
-        grid[y][x] -= orginalCell * (1 - easeInOutCubicIntegralReal(gradation));
-      }
-
-      if (eLength < radius) {
-        let gradation = (radius + length - t) / radius / 2;
-        grid[y][x] -= orginalCell * (1 - easeInOutCubicIntegralReal(gradation));
-      }
-    }
-  }
-  return grid;
-}
-
-// 전역 변수: 미리 계산된 적분값을 저장할 배열
-let precomputed = null;
-
-// bin 파일을 불러와 `Float32Array`로 변환하는 함수
-async function loadPrecomputedData(url) {
-  try {
+  // precomputed 데이터(bin 파일)를 읽어 1D 텍스처로 생성합니다.
+  async _loadPrecomputedTexture(url) {
+    const gl = this.gl;
     const response = await fetch(url);
     const arrayBuffer = await response.arrayBuffer();
-    console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
+    const numValues = arrayBuffer.byteLength / 4;
+    const data = new Float32Array(arrayBuffer);
+    // 1D 텍스처는 2D 텍스처로 생성(높이를1로 설정)
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      numValues,
+      1,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      data
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return texture;
+  }
 
-    const dataView = new DataView(arrayBuffer);
-    const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
-    precomputed = new Float32Array(numValues);
+  // liquify 효과(변위 업데이트) 셰이더 프로그램 생성  
+  _createApplyProgram() {
+    const gl = this.gl;
+    // 정점 셰이더는 풀스크린 쿼드용으로 단순합니다.
+    const vsSource = `#version 300 es
+    in vec2 a_position;
+    out vec2 v_texCoord;
+    void main(){
+      v_texCoord = a_position * 0.5 + 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }`;
+    // 프래그먼트 셰이더에서는 기존 applyPixelFlow와 getPower의 로직을 GLSL로 재현합니다.
+    // 좌표의 역순 보정, 선분 방향, easeInOutCubicIntegral() 함수(및 Real 버전)는
+    // precomputed 텍스처를 통해 샘플링합니다.
+    const fsSource = `#version 300 es
+    precision highp float;
+    in vec2 v_texCoord;
+    out vec2 outDisplacement;
 
-    for (let i = 0; i < numValues; i++) {
-      precomputed[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
+    uniform sampler2D u_displacement;
+    uniform sampler2D u_precomputed;
+    uniform sampler2D u_precomputed2;
+    uniform vec2 u_resolution;
+    uniform vec2 u_start;
+    uniform vec2 u_end;
+    uniform float u_radius;
+    uniform float u_strength;
+
+    // 샘플링을 통한 ease 함수 구현 (정확한 결과를 위해 precomputed 텍스처 사용)
+    float easeInOutCubicIntegral(float x) {
+      // x를 [0,1]로 가정하고, 1D 텍스처에서 선형 보간
+      return texture(u_precomputed, vec2(x, 0.5)).r;
+    }
+    float easeInOutCubicIntegralReal(float x) {
+      return texture(u_precomputed2, vec2(x, 0.5)).r;
     }
 
-    console.log("Float32Array 길이:", precomputed.length);
-    console.log(precomputed.slice(0, 10)); // ✅ 일부 값 확인
+    // getPower()와 유사한 로직: liquify 그리드 내에서 현재 픽셀의 영향력을 계산합니다.
+    float getPower(vec2 localCoord, vec2 d, float len, float radius) {
+      float rCeil = ceil(radius);
+      // 계산용 bounding box 크기
+      float gridWidth = abs(d.x) + 1.0 + 2.0 * rCeil;
+      float gridHeight = abs(d.y) + 1.0 + 2.0 * rCeil;
+      // local start (bounding box 내에서 선분 시작점의 위치)
+      float localStartX = (d.x > 0.0) ? rCeil : gridWidth - 1.0 - rCeil;
+      float localStartY = (d.y > 0.0) ? rCeil : gridHeight - 1.0 - rCeil;
+      vec2 localStart = vec2(localStartX, localStartY);
 
-    console.log("✅ Precomputed I(x) 데이터 로드 완료!");
-  } catch (error) {
-    console.error("❌ 데이터 로드 실패:", error);
-  }
-}
+      vec2 v = localCoord - localStart;
+      vec2 unit = d / len;
+      float t = dot(v, unit);
 
-// easeInOutCubicIntegral(x) 함수
-function easeInOutCubicIntegral(x) {
-  if (precomputed == null) {
-    console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
-    return 0;
-  }
+      vec2 proj = t * unit;
+      float dist = length(v - proj);
 
-  // x가 범위를 벗어나면 경계값 반환
-  if (x <= 0) return precomputed[0];
-  if (x >= 1) return precomputed[precomputed.length - 1];
-
-  const numSamples = precomputed.length;
-  const index = x * (numSamples - 1);
-  const lowerIndex = Math.floor(index);
-  const upperIndex = lowerIndex + 1;
-  const t = index - lowerIndex; // 선형 보간 가중치
-
-  return precomputed[lowerIndex] * (1 - t) + precomputed[upperIndex] * t;
-}
-
-let precomputed2 = null;
-
-// bin 파일을 불러와 `Float32Array`로 변환하는 함수
-async function loadPrecomputedData2(url) {
-  try {
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    console.log("ArrayBuffer 크기:", arrayBuffer.byteLength, "바이트");
-
-    const dataView = new DataView(arrayBuffer);
-    const numValues = arrayBuffer.byteLength / 4; // Float32는 4바이트
-    precomputed2 = new Float32Array(numValues);
-
-    for (let i = 0; i < numValues; i++) {
-      precomputed2[i] = dataView.getFloat32(i * 4, true); // 리틀 엔디언으로 읽기
+      float percent = 1.0;
+      float power = 0.0;
+      if(t > 0.0 && t < len) {
+        float value = min(1.0, dist / radius);
+        float addValue = easeInOutCubicIntegral(value);
+        power = addValue * radius * 2.0 * percent;
+      }
+      float vLength = length(v);
+      if(vLength < radius) {
+        float value = min(1.0, dist / radius);
+        float addValue = easeInOutCubicIntegral(value);
+        power = addValue * radius * 2.0 * percent;
+      }
+      vec2 eVec = v - d;
+      float eLength = length(eVec);
+      if(eLength < radius) {
+        float value = min(1.0, dist / radius);
+        float addValue = easeInOutCubicIntegral(value);
+        power = addValue * radius * 2.0 * percent;
+      }
+      float originalCell = power;
+      if(vLength < radius) {
+        float gradation = (radius + t) / radius / 2.0;
+        power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
+      }
+      if(eLength < radius) {
+        float gradation = (radius + (len - t)) / radius / 2.0;
+        power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
+      }
+      return power;
     }
 
-    console.log("Float32Array 길이:", precomputed2.length);
-    console.log(precomputed2.slice(0, 10)); // ✅ 일부 값 확인
+    void main(){
+      // 현재 픽셀 좌표 (화면 공간)
+      vec2 pixel = v_texCoord * u_resolution;
+      float ceiledRadius = ceil(u_radius);
+      // affected 영역 계산: start와 end의 최소/최대값에서 반경을 확장
+      vec2 minCoord = min(u_start, u_end) - vec2(ceiledRadius);
+      vec2 maxCoord = max(u_start, u_end) + vec2(ceiledRadius);
 
-    console.log("✅ Precomputed2 I(x) 데이터 로드 완료!");
-  } catch (error) {
-    console.error("❌ 데이터 로드 실패:", error);
+      // 영향 영역 밖은 기존 변위값 유지
+      if(pixel.x < minCoord.x || pixel.x > maxCoord.x ||
+         pixel.y < minCoord.y || pixel.y > maxCoord.y) {
+        outDisplacement = texture(u_displacement, v_texCoord).xy;
+        return;
+      }
+
+      // liquify 그리드 계산 (CPU 코드와 동일한 방식)
+      vec2 gridSize = abs(u_end - u_start) + vec2(1.0) + vec2(2.0 * ceiledRadius);
+      vec2 startXY = min(u_start, u_end) - vec2(ceiledRadius);
+
+      vec2 d = u_end - u_start;
+      float len = length(d);
+      vec2 unit = d / len;
+
+      // 좌표 역순 보정: unit값에 따라 grid 좌표를 뒤집음
+      float gridX = (unit.x > 0.0) ? gridSize.x - 1.0 - (pixel.x - startXY.x)
+                                   : pixel.x - startXY.x;
+      float gridY = (unit.y > 0.0) ? gridSize.y - 1.0 - (pixel.y - startXY.y)
+                                   : pixel.y - startXY.y;
+      vec2 localCoord = vec2(gridX, gridY);
+
+      float movementPower = getPower(localCoord, d, len, u_radius);
+      float diff = (movementPower * u_strength) / 2.0;
+
+      // 기존 변위 텍스처에서 보간 (fastGetVector와 유사한 효과)
+      vec2 displacedCoord = pixel - diff * unit;
+      vec2 dispSample = texture(u_displacement, displacedCoord / u_resolution).xy;
+      vec2 newDisp = dispSample - diff * unit;
+      //outDisplacement = newDisp;
+      outDisplacement = vec2(1.0,1.0);
+    }`;
+    return this._createProgram(vsSource, fsSource);
   }
-}
 
-function easeInOutCubicIntegralReal(x) {
-  if (precomputed2 == null) {
-    console.warn("❌ 데이터가 아직 로드되지 않았습니다!");
-    return 0;
+  // 최종 렌더 셰이더 프로그램 생성  
+  _createRenderProgram() {
+    const gl = this.gl;
+    const vsSource = `#version 300 es
+    in vec2 a_position;
+    out vec2 v_texCoord;
+    void main(){
+      v_texCoord = a_position * 0.5 + 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }`;
+    const fsSource = `#version 300 es
+    precision highp float;
+    in vec2 v_texCoord;
+    uniform sampler2D u_original;
+    uniform sampler2D u_displacement;
+    uniform vec2 u_resolution;
+    out vec4 outColor;
+    void main(){
+      vec2 pixel = v_texCoord * u_resolution;
+      vec2 disp = texture(u_displacement, v_texCoord).xy;
+      // 디버그용 검사로직. 현재 다 초록으로 나옴
+      if(disp[0]==0.0){
+      outColor = vec4(0.0,0.5,0.0,1);
+      return;
+      }
+      vec2 newCoord = pixel + disp;
+      newCoord = clamp(newCoord, vec2(0.0), u_resolution - vec2(1.0));
+      vec2 finalTexCoord = newCoord / u_resolution;
+      outColor = texture(u_original, finalTexCoord);
+    }`;
+    return this._createProgram(vsSource, fsSource);
   }
 
-  // x가 범위를 벗어나면 경계값 반환
-  if (x <= 0) return precomputed2[0];
-  if (x >= 1) return precomputed2[precomputed2.length - 1];
+  // 셰이더 프로그램 생성 헬퍼
+  _createProgram(vsSource, fsSource) {
+    const gl = this.gl;
+    const vertexShader = this._createShader(gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = this._createShader(gl.FRAGMENT_SHADER, fsSource);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error("Program failed to link:", gl.getProgramInfoLog(program));
+    }
+    return program;
+  }
 
-  const numSamples = precomputed2.length;
-  const index = x * (numSamples - 1);
-  const lowerIndex = Math.floor(index);
-  const upperIndex = lowerIndex + 1;
-  const t = index - lowerIndex; // 선형 보간 가중치
-
-  return precomputed2[lowerIndex] * (1 - t) + precomputed2[upperIndex] * t;
+  _createShader(type, source) {
+    const gl = this.gl;
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(
+        "Shader compile error:",
+        gl.getShaderInfoLog(shader)
+      );
+      gl.deleteShader(shader);
+    }
+    return shader;
+  }
 }
