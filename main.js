@@ -12,8 +12,9 @@
             {
                 type: "init",
                 canvas: offscreen,
-        imageUrl: "cat_4k.jpg", 
-               // imageUrl: "cat.webp", 
+        //imageUrl: "cat_4k.jpg", 
+              // imageUrl: "cat.webp", 
+                  imageUrl: "check_rmini.png", 
             },
             [offscreen],
         );

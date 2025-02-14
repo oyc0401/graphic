@@ -9,23 +9,13 @@
                 position: relative;
                 margin: 0;
             }
-            canvas {
-                cursor: crosshair;
-                transition: border-color 0.3s;
-                image-rendering: pixelated;
-                position: absolute;
-                left: 0;
-                top: 0;
-                border: none;
-            }
-
-            .helper-canvas {
-                z-index: 1;
-            }
         </style>
     </head>
     <body>
         <canvas id="canvas"></canvas>
+         <button id='btn'>Button</button>
+         <button id='render'>Render</button>
         <script type="module" src="webgl.js"></script>
+       
     </body>
 </html>

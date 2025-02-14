@@ -171,7 +171,7 @@ onmessage = async function (e) {
         execute();
     } else if (data.type === "pointerup") {
         isTracking = false;
-        liquify.render()
+        //liquify.render()
         console.log("Tracking 종료. 기록된 좌표:");
     }
 };
@@ -202,7 +202,7 @@ function doit(){
     let maxX = Math.max(start.x, end.x);
     let maxY = Math.max(start.y, end.y);
 
-    liquify.render(minX, minY, maxX, maxY);
+    //liquify.render(minX, minY, maxX, maxY);
 //console.log("render!");
 
     queued = false;

@@ -1,8 +1,8 @@
 export class Liquify {
-  constructor(canvas,gl) {
+  constructor(canvas, gl) {
     // 이제 2d 컨텍스트 대신 WebGL2 컨텍스트를 사용합니다.
     this.canvas = canvas;
-    this.gl = gl
+    this.gl = gl;
     if (!this.gl) {
       console.error("WebGL2 is not supported!");
       return;
@@ -27,7 +27,7 @@ export class Liquify {
     // ─────────────────────────────────────────────
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-    // 1. 원본 이미지 텍스처 생성  
+    // 1. 원본 이미지 텍스처 생성
     //    (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
     this.originalTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.originalTexture);
@@ -38,12 +38,12 @@ export class Liquify {
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      this.canvas
+      this.canvas,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // 2. 변위 맵(displacement map) 텍스처 생성  
+    // 2. 변위 맵(displacement map) 텍스처 생성
     //    RG 채널에 (dx, dy) 변위를 저장하며, 초기값은 모두 0
     this.dispTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.dispTexture);
@@ -56,25 +56,24 @@ export class Liquify {
       0,
       gl.RG,
       gl.FLOAT,
-      null
+      null,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // 3. precomputed 데이터(적분값) 텍스처 생성  
+    // 3. precomputed 데이터(적분값) 텍스처 생성
     //    기존 easeInOutCubicIntegral()와 easeInOutCubicIntegralReal()의 데이터를
     //    1D 텍스처에 업로드합니다. (데이터는 loadPrecomputedData* 함수를 통해 로드)
     this.precomputedTexture = await this._loadPrecomputedTexture("/data.bin");
-    this.precomputed2Texture = await this._loadPrecomputedTexture(
-      "/integralEase.bin"
-    );
+    this.precomputed2Texture =
+      await this._loadPrecomputedTexture("/integralEase.bin");
 
-    // 4. 프레임버퍼 생성  
+    // 4. 프레임버퍼 생성
     //    liquify 효과 업데이트 시, 변위 맵 텍스처를 렌더 타깃으로 사용합니다.
     this.dispFBO = gl.createFramebuffer();
 
-    // 5. 셰이더 프로그램 컴파일  
-    //    (1) liquify 효과(변위 업데이트) 셰이더: applyPixelFlowShader  
+    // 5. 셰이더 프로그램 컴파일
+    //    (1) liquify 효과(변위 업데이트) 셰이더: applyPixelFlowShader
     //    (2) 최종 렌더 셰이더: renderLiquifyShader
     this.applyProgram = this._createApplyProgram();
     this.renderProgram = this._createRenderProgram();
@@ -86,8 +85,7 @@ export class Liquify {
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
     // 정점 좌표 (풀스크린을 덮는 두 개의 삼각형)
     const quadVertices = new Float32Array([
-      -1, -1, 1, -1, -1, 1,
-      1, -1, 1, 1, -1, 1
+      -1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1,
     ]);
     gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(this.applyProgram, "a_position");
@@ -115,42 +113,42 @@ export class Liquify {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       this.dispTexture,
-      0
+      0,
     );
     gl.viewport(0, 0, this.width, this.height);
     gl.useProgram(this.applyProgram);
 
-     // === 필요한 유니폼 설정 ===
-      gl.uniform2f(
-        gl.getUniformLocation(this.applyProgram, "u_resolution"),
-        this.width,
-        this.height
-      );
-      // WebGL 좌표계와 2D canvas 좌표계가 상하 반전일 수 있으니, 필요하면 y 좌표를 뒤집어 준다
-      // gl.uniform2f(locationOfStart, start.x, (this.height - start.y));
-      // gl.uniform2f(locationOfEnd, end.x, (this.height - end.y));
-      // (상황에 따라 or 그냥 start.y,end.y 그대로도 되는 경우가 있음)
+    // === 필요한 유니폼 설정 ===
+    gl.uniform2f(
+      gl.getUniformLocation(this.applyProgram, "u_resolution"),
+      this.width,
+      this.height,
+    );
+    // WebGL 좌표계와 2D canvas 좌표계가 상하 반전일 수 있으니, 필요하면 y 좌표를 뒤집어 준다
+    // gl.uniform2f(locationOfStart, start.x, (this.height - start.y));
+    // gl.uniform2f(locationOfEnd, end.x, (this.height - end.y));
+    // (상황에 따라 or 그냥 start.y,end.y 그대로도 되는 경우가 있음)
 
     // 만약 Canvas 높이가 this.height일 때,
     // 아래쪽이 0, 위쪽이 height라고 간주하려면:
     gl.uniform2f(
       gl.getUniformLocation(this.applyProgram, "u_start"),
       start.x,
-      this.height - start.y  // ★ y 뒤집기
+      this.height - start.y, // ★ y 뒤집기
     );
     gl.uniform2f(
       gl.getUniformLocation(this.applyProgram, "u_end"),
       end.x,
-      this.height - end.y    // ★ y 뒤집기
+      this.height - end.y, // ★ y 뒤집기
     );
 
     gl.uniform1f(
       gl.getUniformLocation(this.applyProgram, "u_radius"),
-      this.radius
+      this.radius,
     );
     gl.uniform1f(
       gl.getUniformLocation(this.applyProgram, "u_strength"),
-      this.strength
+      this.strength,
     );
     // 변위 맵와 precomputed 텍스처들을 텍스처 유닛에 바인딩
     gl.activeTexture(gl.TEXTURE0);
@@ -158,16 +156,10 @@ export class Liquify {
     gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_displacement"), 0);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.precomputedTexture);
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_precomputed"),
-      1
-    );
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_precomputed"), 1);
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, this.precomputed2Texture);
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_precomputed2"),
-      2
-    );
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_precomputed2"), 2);
 
     // 풀스크린 쿼드 그리기 → 변위 맵이 셰이더 로직에 따라 업데이트됨
     gl.bindVertexArray(this.quadVAO);
@@ -184,21 +176,18 @@ export class Liquify {
     gl.uniform2f(
       gl.getUniformLocation(this.renderProgram, "u_resolution"),
       this.width,
-      this.height
+      this.height,
     );
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.originalTexture);
-    gl.uniform1i(
-      gl.getUniformLocation(this.renderProgram, "u_original"),
-      0
-    );
+    gl.uniform1i(gl.getUniformLocation(this.renderProgram, "u_original"), 0);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.dispTexture);
     gl.uniform1i(
       gl.getUniformLocation(this.renderProgram, "u_displacement"),
-      1
+      1,
     );
 
     gl.bindVertexArray(this.quadVAO);
@@ -228,14 +217,14 @@ export class Liquify {
       0,
       gl.RED,
       gl.FLOAT,
-      data
+      data,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     return texture;
   }
 
-  // liquify 효과(변위 업데이트) 셰이더 프로그램 생성  
+  // liquify 효과(변위 업데이트) 셰이더 프로그램 생성
   _createApplyProgram() {
     const gl = this.gl;
     // 정점 셰이더는 풀스크린 쿼드용으로 단순합니다.
@@ -365,7 +354,7 @@ export class Liquify {
     return this._createProgram(vsSource, fsSource);
   }
 
-  // 최종 렌더 셰이더 프로그램 생성  
+  // 최종 렌더 셰이더 프로그램 생성
   _createRenderProgram() {
     const gl = this.gl;
     const vsSource = `#version 300 es
@@ -419,10 +408,7 @@ export class Liquify {
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error(
-        "Shader compile error:",
-        gl.getShaderInfoLog(shader)
-      );
+      console.error("Shader compile error:", gl.getShaderInfoLog(shader));
       gl.deleteShader(shader);
     }
     return shader;
