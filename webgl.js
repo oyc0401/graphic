@@ -230,24 +230,32 @@ async function main() {
     let modifyFragmentShaderSource = `#version 300 es
         precision highp float;
         uniform sampler2D u_texture22;
-        uniform float move_power;
+        
+        uniform vec2 u_resolution;
         uniform vec2 u_start;
         uniform vec2 u_end;
+        uniform float u_radius;
+        uniform float u_strength;
+        
         in vec2 v_texCoord;
-        out vec4 outColor;
+        out vec2 outDisplacement;
         void main() {
-            vec2 value = texture(u_texture22, v_texCoord).rg;
-            //bool isBig = value>300.0;
+            vec2 pixel = v_texCoord * u_resolution; 
+            float ceiledRadius = ceil(u_radius);
+
+            vec2 minCoord = min(u_start, u_end) - vec2(ceiledRadius);
+            vec2 maxCoord = max(u_start, u_end) + vec2(ceiledRadius);
            
-            vec2 canvas_size = vec2(textureSize(u_texture22, 0)); // textureSize 함수는 텍스처의 크기를 반환
-            vec2 pixelCoord = v_texCoord * canvas_size; 
-            float x = pixelCoord[0];
-            float y = pixelCoord[1];
-            float dist = (x-u_start[0]) *(x-u_start[0]) + (y-u_start[1])*(y-u_start[1]);
-            if(dist<1000.0){
-                outColor =  vec4(value.r+1.0, value.g+1.0, 0.0, 0.0);
+            vec2 value = texture(u_texture22, v_texCoord).rg;
+        
+            vec2 pixelCoord = v_texCoord * u_resolution; 
+            float x = pixel[0];
+            float y = pixel[1];
+            float dist = sqrt((x-u_start[0]) *(x-u_start[0]) + (y-u_start[1])*(y-u_start[1]));
+            if(dist<u_radius){
+                outDisplacement =  value + vec2(1,1);
             }else{
-                outColor = vec4(value.r, value.g, 0.0, 0.0);
+                outDisplacement = value;
             }
 
         }
@@ -260,8 +268,14 @@ async function main() {
     );
     let modifyProgram = createProgram(gl, vertexShader, modifyShader);
     gl.useProgram(modifyProgram);
+    // 기본적인 유니폼 변수 설정.
     let texLoc = gl.getUniformLocation(modifyProgram, "u_texture");
     gl.uniform1i(texLoc, 0);
+    gl.uniform2f(
+        gl.getUniformLocation(modifyProgram, "u_resolution"),
+        width,
+        height,
+    );
 
     let positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -329,16 +343,20 @@ async function main() {
     let read = texture;
     let write = resultTexture;
 
-    let force = 1.075;
+    let radius = 50;
+    let strength = 1;
 
     let start = { x: 100, y: 100 };
     let end = { x: 0, y: 0 };
 
     function changeVector() {
         gl.useProgram(modifyProgram);
-
-        let movePowerLoc = gl.getUniformLocation(modifyProgram, "move_power");
-        gl.uniform1f(movePowerLoc, force);
+        // 유나폼 변수 설정
+        gl.uniform1f(gl.getUniformLocation(modifyProgram, "u_radius"), radius);
+        gl.uniform1f(
+            gl.getUniformLocation(modifyProgram, "u_strength"),
+            strength,
+        );
         let startLoc = gl.getUniformLocation(modifyProgram, "u_start");
         gl.uniform2f(startLoc, start.x, height - start.y);
         let endLoc = gl.getUniformLocation(modifyProgram, "u_end");
@@ -385,12 +403,12 @@ async function main() {
     }
 
     function plusForce() {
-        force += 0.05;
-        console.log(force);
+        radius += 2;
+        console.log(radius);
     }
     function minusForce() {
-        force -= 0.05;
-        console.log(force);
+        radius -= 2;
+        console.log(radius);
     }
 
     ///////////////////////
