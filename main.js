@@ -14,7 +14,7 @@
                 canvas: offscreen,
         //imageUrl: "cat_4k.jpg", 
               // imageUrl: "cat.webp", 
-                  imageUrl: "check_rmini.png", 
+                  imageUrl: "check_r.png", 
             },
             [offscreen],
         );

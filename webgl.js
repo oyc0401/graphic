@@ -1,9 +1,12 @@
 let canvas = document.querySelector("#canvas");
 let gl = canvas.getContext("webgl2");
-
+let precomputedTexture;
+let precomputed2Texture;
 // 이미지 업로드함수
 async function init() {
     try {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
         const response = await fetch("check_r.png");
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
@@ -132,9 +135,51 @@ async function init() {
         console.error("이미지 로드 실패:", err);
     }
 }
+let listData1;
+let listNumValues1;
+let listData2;
+let listNumValues2;
+
+async function presetting() {
+    const response1 = await fetch("/data.bin");
+    const arrayBuffer1 = await response1.arrayBuffer();
+    listNumValues1 = arrayBuffer1.byteLength / 4;
+    listData1 = new Float32Array(arrayBuffer1);
+
+    const response2 = await fetch("/integralEase.bin");
+    const arrayBuffer2 = await response2.arrayBuffer();
+    listNumValues2 = arrayBuffer2.byteLength / 4;
+    listData2 = new Float32Array(arrayBuffer2);
+}
+
+// precomputed 데이터(bin 파일)를 읽어 1D 텍스처로 생성합니다.
+async function _loadPrecomputedTexture(url) {
+    // const response = await fetch(url);
+    // const arrayBuffer = await response.arrayBuffer();
+    // const numValues = arrayBuffer.byteLength / 4;
+    // const data = new Float32Array(arrayBuffer);
+    // 1D 텍스처는 2D 텍스처로 생성(높이를1로 설정)
+    //const texture = gl.createTexture();
+    //gl.bindTexture(gl.TEXTURE_2D, texture);
+    // gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0,
+    //     gl.R32F,
+    //     numValues,
+    //     1,
+    //     0,
+    //     gl.RED,
+    //     gl.FLOAT,
+    //     data,
+    // );
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    //return texture;
+}
 
 main();
 async function main() {
+    await presetting();
     await init();
 
     const width = canvas.width;
@@ -229,7 +274,9 @@ async function main() {
         `;
     let modifyFragmentShaderSource = `#version 300 es
         precision highp float;
-        uniform sampler2D u_texture22;
+        uniform sampler2D u_displacement;
+        uniform sampler2D u_precomputed;
+        uniform sampler2D u_precomputed2;
         
         uniform vec2 u_resolution;
         uniform vec2 u_start;
@@ -239,25 +286,154 @@ async function main() {
         
         in vec2 v_texCoord;
         out vec2 outDisplacement;
+
+        // 샘플링을 통한 ease 함수 구현 (정확한 결과를 위해 precomputed 텍스처 사용)
+        float easeInOutCubicIntegral(float x) {
+          // x를 [0,1]로 가정하고, 1D 텍스처에서 선형 보간
+          //return x;
+          return texture(u_precomputed, vec2(x, 0.5)).r;
+        }
+        float easeInOutCubicIntegralReal(float x) {
+          return texture(u_precomputed2, vec2(x, 0.5)).r;
+        }
+
+        // getPower()와 유사한 로직: liquify 그리드 내에서 현재 픽셀의 영향력을 계산합니다.
+        float getPower(vec2 localCoord, vec2 d, float radius) {
+
+            float len = length(d);
+            if(len == 0.0){
+                return 1.0;
+            }
+            float rCeil = ceil(radius);
+            
+            float gridWidth = abs(d.x) + 1.0 + 2.0 * rCeil;
+            float gridHeight = abs(d.y) + 1.0 + 2.0 * rCeil;
+
+            vec2 unit = d / len;
+             
+            float localStartX = (d.x > 0.0) ? rCeil : gridWidth - 1.0 - rCeil;
+            float localStartY = (d.y > 0.0) ? rCeil : gridHeight - 1.0 - rCeil;
+            vec2 localStart = vec2(localStartX, localStartY);
+            
+            vec2 v = localCoord - localStart;
+           
+            float t = dot(v, unit);
+            
+            vec2 center = t * unit; // cx, cy
+            vec2 d22 = v - center;
+            float dist = length(d22);
+
+           
+             
+            float percent = 1.0;
+            float power = 0.0;
+            if(t > 0.0 && t < len) {
+                float value = min(1.0, dist / radius);
+                float addValue = easeInOutCubicIntegral(value);
+                power = addValue * radius * 2.0;
+            }
+            float vLength = length(v);
+            if(vLength < radius) {
+                float value = min(1.0, dist / radius);
+                float addValue = easeInOutCubicIntegral(value);
+                power = addValue * radius * 2.0 * percent;
+            }
+            vec2 eVec = v - d;
+            float eLength = length(eVec);
+            if(eLength < radius) {
+                float value = min(1.0, dist / radius);
+                float addValue = easeInOutCubicIntegral(value);
+                power = addValue * radius * 2.0 * percent;
+            }
+            float originalCell = power;
+            if(vLength < radius) {
+                float gradation = (radius + t) / radius / 2.0;
+                power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
+            }
+            if(eLength < radius) {
+                float gradation = (radius + (len - t)) / radius / 2.0;
+                power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
+            }
+            return power;
+        }
+
+        
         void main() {
+            vec2 value = texture(u_displacement, v_texCoord).xy;
+            
+            // 해당 픽셀의 좌표 ex) (250,360)
             vec2 pixel = v_texCoord * u_resolution; 
             float ceiledRadius = ceil(u_radius);
 
             vec2 minCoord = min(u_start, u_end) - vec2(ceiledRadius);
             vec2 maxCoord = max(u_start, u_end) + vec2(ceiledRadius);
-           
-            vec2 value = texture(u_texture22, v_texCoord).rg;
-        
-            vec2 pixelCoord = v_texCoord * u_resolution; 
-            float x = pixel[0];
-            float y = pixel[1];
-            float dist = sqrt((x-u_start[0]) *(x-u_start[0]) + (y-u_start[1])*(y-u_start[1]));
-            if(dist<u_radius){
-                outDisplacement =  value + vec2(1,1);
-            }else{
+
+            
+            outDisplacement = value;
+            // 영향 영역 밖은 기존 변위값 유지
+            if(pixel.x < minCoord.x || pixel.x > maxCoord.x ||
+                pixel.y < minCoord.y || pixel.y > maxCoord.y) {
                 outDisplacement = value;
+                return;
             }
 
+
+            // liquify 그리드 계산 (CPU 코드와 동일한 방식)
+            vec2 gridSize = abs(u_end - u_start) + vec2(1.0) + vec2(2.0 * ceiledRadius);
+            vec2 startXY = min(u_start, u_end) - vec2(ceiledRadius);
+            
+            vec2 d = u_end - u_start;
+            float len = length(d);
+            vec2 unit = d / len;
+
+            // 좌표 역순 보정: unit값에 따라 grid 좌표를 뒤집음
+            float gridX2 = gridSize.x - 1.0 - (pixel.x - startXY.x);
+            float gridY2 =   gridSize.y - 1.0 - (pixel.y - startXY.y);
+                                       
+                
+              float gridX = 
+             // (unit.x > 0.0) ? 
+              gridSize.x - 1.0 - (pixel.x - startXY.x);
+                                           // :gridX2;
+                                      //  : pixel.x - startXY.x;
+              float gridY = 
+             // (unit.y > 0.0) ? 
+              gridSize.y - 1.0 - (pixel.y - startXY.y);
+                                         //   :gridY2;
+                                       // : pixel.y - startXY.y;
+            vec2 localCoord = vec2(gridX, gridY);
+            
+            float movementPower = getPower(localCoord, d, u_radius);
+          
+            float diff = (movementPower * u_strength) / 2.0;
+
+            // 기존 변위 텍스처에서 보간 (fastGetVector와 유사한 효과)
+            vec2 displacedCoord = pixel - diff * unit;
+            vec2 dispSample = texture(u_displacement, displacedCoord / u_resolution).xy;
+            vec2 newDisp = dispSample - diff * unit;
+            
+            outDisplacement = newDisp;
+        
+            
+            return;
+
+
+
+            
+        
+            vec2 pixelCoord = v_texCoord * u_resolution; 
+  
+            float dist = length(pixel- u_start);
+            
+            //outDisplacement = value;
+            if(dist<u_radius){
+                outDisplacement =  value + vec2(1,1);
+            }
+
+         
+            if(length(pixel- u_end) < u_radius){
+                outDisplacement =  value + vec2(-1,-1);
+            }
         }
         `;
 
@@ -276,6 +452,50 @@ async function main() {
         width,
         height,
     );
+
+    const precomputedTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, precomputedTexture);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.R32F,
+        listNumValues1,
+        1,
+        0,
+        gl.RED,
+        gl.FLOAT,
+        listData1,
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    
+    gl.uniform1i(gl.getUniformLocation(modifyProgram, "u_precomputed"), 2);
+
+    console.log(listData1); // 길이 1000인 1차원 배열
+    // 적분2
+    const precomputed2Texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, precomputed2Texture);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.R32F,
+        listNumValues2,
+        1,
+        0,
+        gl.RED,
+        gl.FLOAT,
+        listData2,
+    );
+    
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.uniform1i(gl.getUniformLocation(modifyProgram, "u_precomputed2"), 3);
 
     let positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -321,12 +541,12 @@ async function main() {
     let colorShader = createShader(gl.FRAGMENT_SHADER, colorShaderSource);
     let colorProgram = createProgram(gl, vertexShader, colorShader);
     gl.useProgram(colorProgram);
-    let finalTexLoc = gl.getUniformLocation(colorProgram, "u_texture22");
+    let finalTexLoc = gl.getUniformLocation(colorProgram, "u_displacement");
     gl.uniform1i(finalTexLoc, 0);
     // 1. 원본 이미지 텍스처 생성
     //    (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-    gl.activeTexture(gl.TEXTURE1);
     let originalTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, originalTexture);
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
@@ -343,11 +563,11 @@ async function main() {
     let read = texture;
     let write = resultTexture;
 
-    let radius = 50;
+    let radius = 10;
     let strength = 1;
 
-    let start = { x: 100, y: 100 };
-    let end = { x: 0, y: 0 };
+    let start = { x: 100, y: 300 };
+    let end = { x: 200, y: 200 };
 
     function changeVector() {
         gl.useProgram(modifyProgram);
@@ -358,9 +578,9 @@ async function main() {
             strength,
         );
         let startLoc = gl.getUniformLocation(modifyProgram, "u_start");
-        gl.uniform2f(startLoc, start.x, height - start.y);
+        gl.uniform2f(startLoc, start.x,start.y);
         let endLoc = gl.getUniformLocation(modifyProgram, "u_end");
-        gl.uniform1f(endLoc, end.x, height - end.y);
+        gl.uniform2f(endLoc, end.x, end.y);
 
         // 쓰기 영역: 내 벡터맵
 
