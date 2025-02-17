@@ -2,6 +2,32 @@ let canvas = document.querySelector("#canvas");
 let gl = canvas.getContext("webgl2");
 let precomputedTexture;
 let precomputed2Texture;
+
+// 헬퍼 함수
+function createShader(type, source) {
+    let shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+    }
+    return shader;
+}
+function createProgram(gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+        return program;
+    }
+
+    console.log(gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+}
+
 // 이미지 업로드함수
 async function init() {
     try {
@@ -30,8 +56,8 @@ async function init() {
         );
 
         // 텍스처 파라미터 설정
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -183,30 +209,6 @@ async function main() {
     for (let i = 0; i < arrayData.length; i++) {
         arrayData[i] = 0;
     }
-    // 헬퍼 함수
-    function createShader(type, source) {
-        let shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error(gl.getShaderInfoLog(shader));
-            gl.deleteShader(shader);
-        }
-        return shader;
-    }
-    function createProgram(gl, vertexShader, fragmentShader) {
-        var program = gl.createProgram();
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-        var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-        if (success) {
-            return program;
-        }
-
-        console.log(gl.getProgramInfoLog(program));
-        gl.deleteProgram(program);
-    }
 
     // 2️⃣ 원본 텍스처 생성 및 데이터 업로드
     const dd = gl.TEXTURE_2D;
@@ -227,6 +229,8 @@ async function main() {
         arrayData,
     );
     // 행렬에 linear를 사용하는 이유는 getVector는 보간으로 값을 가져오기 대문에 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
@@ -234,6 +238,8 @@ async function main() {
     let resultTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, resultTexture);
     gl.texImage2D(dd, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
@@ -293,7 +299,7 @@ async function main() {
         }
 
         // getPower()와 유사한 로직: liquify 그리드 내에서 현재 픽셀의 영향력을 계산합니다.
-        float getPower(vec2 localCoord, vec2 d, float radius) {
+        float getPower(vec2 centerCoord, vec2 d, float radius) {
 
             float len = length(d);
             if(len == 0.0){
@@ -310,7 +316,7 @@ async function main() {
             float localStartY = (d.y > 0.0) ? rCeil : gridHeight - 1.0 - rCeil;
             vec2 localStart = vec2(localStartX, localStartY);
             
-            vec2 v = localCoord - localStart;
+            vec2 v = centerCoord - localStart;
            
             float t = dot(v, unit);
             
@@ -385,32 +391,19 @@ async function main() {
                 return;
             }
 
-            // 좌표 역순 보정: unit값에 따라 grid 좌표를 뒤집음
-            float gridX2 = gridSize.x - 1.0 - (pixel.x - startXY.x);
-            float gridY2 =   gridSize.y - 1.0 - (pixel.y - startXY.y);
-                                       
-                
-              float gridX = 
-             // (unit.x > 0.0) ? 
-              gridSize.x - 1.0 - (pixel.x - startXY.x);
-                                           // :gridX2;
-                                      //  : pixel.x - startXY.x;
-              float gridY = 
-             // (unit.y > 0.0) ? 
-              gridSize.y - 1.0 - (pixel.y - startXY.y);
-                                         //   :gridY2;
-                                       // : pixel.y - startXY.y;
-            vec2 localCoord = vec2(gridX, gridY);
+            // 좌표 역순 보정: unit값에 따라 grid 좌표를 뒤집음          
+            vec2 centerCoord = gridSize - 1.0 - pixel + startXY;
             
-            float movementPower = getPower(localCoord, d, u_radius);
+            float movementPower = getPower(centerCoord, d, u_radius);
           
             float diff = (movementPower * u_strength) / 2.0;
 
             // 기존 변위 텍스처에서 보간 (fastGetVector와 유사한 효과)
             vec2 displacedCoord = pixel - diff * unit;
-            vec2 dispSample = texture(u_displacement, displacedCoord / u_resolution).xy;
-            outDisplacement= dispSample - diff * unit;
+            vec2 targetDisplace = displacedCoord / u_resolution;
         
+            vec2 dispSample = texture(u_displacement, targetDisplace).xy;
+            outDisplacement = dispSample - diff * unit;
             
             return;
         }
@@ -495,17 +488,22 @@ async function main() {
         uniform vec2 u_resolution;
         
         in vec2 v_texCoord;
-         in vec2 i_texCoord;
         out vec4 outColor;
         
         
         void main() {
-            vec2 value = texelFetch(u_displacement, ivec2(i_texCoord) , 0).xy;
+            vec2 value = texture(u_displacement, v_texCoord).xy;
             vec2 dif = value / u_resolution;
 
-      
-            vec4 image =  texture(u_originalTexture, v_texCoord + dif);
-            outColor = image;
+            vec2 target = v_texCoord + dif;
+            if (target.x < 0.0 || target.x > 1.0 ||
+                target.y < 0.0 || target.y > 1.0) {
+                // 경계 외부는 투명색 반환
+                outColor = vec4(0.0, 0.0, 0.0, 0.0);
+            } else {
+                outColor = texture(u_originalTexture, target);
+            }
+            
 
         }
         `;
