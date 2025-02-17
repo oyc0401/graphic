@@ -33,7 +33,8 @@ async function init() {
     try {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-        const response = await fetch("check_r.png");
+        // const response = await fetch("check_r.png");
+        const response = await fetch("cat_4k.jpg");
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
 
@@ -496,14 +497,15 @@ async function main() {
             vec2 dif = value / u_resolution;
 
             vec2 target = v_texCoord + dif;
-            if (target.x < 0.0 || target.x > 1.0 ||
-                target.y < 0.0 || target.y > 1.0) {
-                // 경계 외부는 투명색 반환
-                outColor = vec4(0.0, 0.0, 0.0, 0.0);
-            } else {
-                outColor = texture(u_originalTexture, target);
-            }
-            
+            // 범위 넘어가면 투명하게 되는건 나중에 구현이 더 필요함.
+            // if (target.x < 0.0 || target.x > 1.0 ||
+            //     target.y < 0.0 || target.y > 1.0) {
+            //     // 경계 외부는 투명색 반환
+            //     outColor = vec4(0.0, 0.0, 0.0, 0.0);
+            // } else {
+                
+            // }
+            outColor = texture(u_originalTexture, target);
 
         }
         `;
@@ -545,12 +547,13 @@ async function main() {
     let read = texture;
     let write = resultTexture;
 
-    let radius = 50;
+    let radius = 500;
     let strength = 1;
 
     let start = { x: 100, y: 300 };
-    let end = { x: 200, y: 200 };
+    let end = { x: 2000, y: 2000 };
 
+    let dirtyRect = { x: 0, y: 0, width: 0, height: 0 };
     function changeVector() {
         gl.useProgram(modifyProgram);
         // 유나폼 변수 설정
@@ -559,12 +562,36 @@ async function main() {
             gl.getUniformLocation(modifyProgram, "u_strength"),
             strength,
         );
+
         let startLoc = gl.getUniformLocation(modifyProgram, "u_start");
         gl.uniform2f(startLoc, start.x, height - start.y);
         let endLoc = gl.getUniformLocation(modifyProgram, "u_end");
         gl.uniform2f(endLoc, end.x, height - end.y);
 
+        let ceiledRadius = Math.ceil(radius);
+        let minX = Math.min(start.x, end.x);
+        let maxX = Math.max(start.x, end.x);
+
+        let minY = Math.min(height - start.y, height - end.y);
+        let maxY = Math.max(height - start.y, height - end.y);
+
+        // gl.viewport(
+        //     0,
+        //     0,
+        //     maxX - minX + 1 + 2 * ceiledRadius,
+        //     maxY - minY + 1 + 2 * ceiledRadius,
+        // );
+
         // 쓰기 영역: 내 벡터맵
+
+        // 예: x=100, y=200, 너비=300, 높이=400 영역만 갱신
+        gl.enable(gl.SCISSOR_TEST);
+        dirtyRect.x = minX - ceiledRadius;
+        dirtyRect.y = minY - ceiledRadius;
+        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
+        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+        gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        //gl.clear(gl.COLOR_BUFFER_BIT);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         // 읽기 텍스처 설정
@@ -582,18 +609,55 @@ async function main() {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         // 출력
-        let debugData = new Float32Array(width * height);
-        gl.readPixels(0, 0, width, height, gl.RED, gl.FLOAT, debugData);
-        console.log(debugData.slice(0, 10));
+        //let debugData = new Float32Array(width * height);
+        //gl.readPixels(0, 0, width, height, gl.RED, gl.FLOAT, debugData);
+        // console.log(debugData.slice(0, 10));
 
         let temp = read;
         read = write;
         write = temp;
     }
 
+    // 🛠️ 1️⃣ 전체 화면 크기의 Dirty FBO 생성 (앱 초기화 시 1회만)
+    const dirtyFBO = gl.createFramebuffer();
+    const dirtyTex = gl.createTexture();
+
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, dirtyTex);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        width,
+        height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // FBO 설정
+    gl.bindFramebuffer(gl.FRAMEBUFFER, dirtyFBO);
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        dirtyTex,
+        0,
+    );
+
+    // FBO 정상 구성 확인
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        console.error("FBO 생성 실패!");
+    }
+
     function render() {
+        // 위에서 enable(gl.SCISSOR_TEST); 하고 영역 설정 다함
         gl.useProgram(colorProgram);
         // 쓰기 영역: 내 화면
+        //gl.bindFramebuffer(gl.FRAMEBUFFER, dirtyFBO);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         // 읽는 벡터맵 설정
@@ -602,6 +666,27 @@ async function main() {
 
         //gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        gl.disable(gl.SCISSOR_TEST);
+
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dirtyFBO);
+        // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // 기본 화면
+
+        // gl.blitFramebuffer(
+        //     dirtyRect.x,
+        //     dirtyRect.y,
+        //     dirtyRect.x + dirtyRect.width,
+        //     dirtyRect.y + dirtyRect.height,
+        //     dirtyRect.x,
+        //     dirtyRect.y,
+        //     dirtyRect.x + dirtyRect.width,
+        //     dirtyRect.y + dirtyRect.height,
+        //     gl.COLOR_BUFFER_BIT,
+        //     gl.NEAREST,
+        // );
+
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     }
 
     function plusForce() {
@@ -615,7 +700,7 @@ async function main() {
 
     ///////////////////////
 
-    changeVector();
+     changeVector();
 
     render();
 
@@ -640,15 +725,28 @@ async function main() {
         minusForce();
     });
 
+    let active = false;
     window.addEventListener("pointerdown", (event) => {
+        active = true;
         start = { x: event.clientX, y: event.clientY };
+        end = { x: event.clientX, y: event.clientY };
+    });
+    window.addEventListener("pointermove", (event) => {
+        if (!active) return;
+        //Console.time('GPU 4K Pass');
+        start = end;
+        end = { x: event.clientX, y: event.clientY };
+        //console.log(start, end);
+        changeVector();
+        render();
+        //gl.finish();
+        //console.timeEnd('GPU 4K Pass');
     });
 
     window.addEventListener("pointerup", (event) => {
-        end = { x: event.clientX, y: event.clientY };
-        changeVector();
-        render();
-
-        console.log(start, end);
+        active = false;
+        //end = { x: event.clientX, y: event.clientY };
+        //changeVector();
+        //render();
     });
 }
