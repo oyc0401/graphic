@@ -554,7 +554,16 @@ async function main() {
     let end = { x: 2000, y: 2000 };
 
     let dirtyRect = { x: 0, y: 0, width: 0, height: 0 };
-    function changeVector() {
+
+    function liquify() {
+        let t = Math.floor(radius / 25);
+        let length = Math.hypot(end.x - start.x, end.y - start.y);
+
+        while (length > t) {
+            length -= t;
+        }
+    }
+    function changeVector(start, end) {
         gl.useProgram(modifyProgram);
         // 유나폼 변수 설정
         gl.uniform1f(gl.getUniformLocation(modifyProgram, "u_radius"), radius);
@@ -575,23 +584,9 @@ async function main() {
         let minY = Math.min(height - start.y, height - end.y);
         let maxY = Math.max(height - start.y, height - end.y);
 
-        // gl.viewport(
-        //     0,
-        //     0,
-        //     maxX - minX + 1 + 2 * ceiledRadius,
-        //     maxY - minY + 1 + 2 * ceiledRadius,
-        // );
-
         // 쓰기 영역: 내 벡터맵
 
         // 예: x=100, y=200, 너비=300, 높이=400 영역만 갱신
-        gl.enable(gl.SCISSOR_TEST);
-        dirtyRect.x = minX - ceiledRadius;
-        dirtyRect.y = minY - ceiledRadius;
-        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
-        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
-        gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
-        //gl.clear(gl.COLOR_BUFFER_BIT);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         // 읽기 텍스처 설정
@@ -606,8 +601,18 @@ async function main() {
             0,
         );
 
+        //gl.enable(gl.SCISSOR_TEST);
+        dirtyRect.x = minX - ceiledRadius - 50;
+        dirtyRect.y = minY - ceiledRadius - 50;
+        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius + 100;
+        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius + 100;
+        //gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        //gl.clear(gl.COLOR_BUFFER_BIT);
+        //console.log(dirtyRect);
+        //gl.enable(gl.SCISSOR_TEST);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-
+        // gl.disable(gl.SCISSOR_TEST);
+        // gl.finish();
         // 출력
         //let debugData = new Float32Array(width * height);
         //gl.readPixels(0, 0, width, height, gl.RED, gl.FLOAT, debugData);
@@ -655,6 +660,7 @@ async function main() {
 
     function render() {
         // 위에서 enable(gl.SCISSOR_TEST); 하고 영역 설정 다함
+        //gl.disable(gl.SCISSOR_TEST);
         gl.useProgram(colorProgram);
         // 쓰기 영역: 내 화면
         //gl.bindFramebuffer(gl.FRAMEBUFFER, dirtyFBO);
@@ -666,7 +672,6 @@ async function main() {
 
         //gl.clear(gl.COLOR_BUFFER_BIT);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-
         gl.disable(gl.SCISSOR_TEST);
 
         // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dirtyFBO);
@@ -700,17 +705,17 @@ async function main() {
 
     ///////////////////////
 
-     changeVector();
+    // changeVector();
 
     render();
 
     document.querySelector("#btn").addEventListener("click", () => {
-        changeVector();
-        render();
+        //changeVector();
+        //render();
     });
 
     document.querySelector("#edit").addEventListener("click", () => {
-        changeVector();
+        //changeVector();
     });
 
     document.querySelector("#render").addEventListener("click", () => {
@@ -731,14 +736,28 @@ async function main() {
         start = { x: event.clientX, y: event.clientY };
         end = { x: event.clientX, y: event.clientY };
     });
+
+    let idx = 0;
     window.addEventListener("pointermove", (event) => {
         if (!active) return;
         //Console.time('GPU 4K Pass');
-        start = end;
+
         end = { x: event.clientX, y: event.clientY };
         //console.log(start, end);
-        changeVector();
-        render();
+
+        let length = Math.hypot(end.x - start.x, end.y - start.y);
+        if (length > radius/25 ) {
+            changeVector(start, end);
+            render();
+            console.log(start, end, length);
+            start = end;
+        }
+
+        // if(idx%30 == 0){
+        //      render();
+        // }
+        // idx++
+
         //gl.finish();
         //console.timeEnd('GPU 4K Pass');
     });
@@ -747,6 +766,6 @@ async function main() {
         active = false;
         //end = { x: event.clientX, y: event.clientY };
         //changeVector();
-        //render();
+        render();
     });
 }
