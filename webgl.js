@@ -33,7 +33,7 @@ async function init() {
     try {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-        // const response = await fetch("check_r.png");
+         //const response = await fetch("check_r.png");
         const response = await fetch("cat_4k.jpg");
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
@@ -247,6 +247,16 @@ async function main() {
     // 4️⃣ 프레임버퍼 생성 및 바인딩
     let framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        resultTexture,
+        0,
+    );
+
+    let readFrameBuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
     gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
@@ -543,26 +553,19 @@ async function main() {
     );
     gl.uniform1i(originalTexLoc, 1); // 텍스처 유닛 1에 할당
     //gl.activeTexture(gl.TEXTURE0);
-
+    texture.id = "A";
     let read = texture;
+    resultTexture.id = "B";
     let write = resultTexture;
 
-    let radius = 500;
-    let strength = 1;
+    let radius = 1000;
+    let strength = 0.2;
 
     let start = { x: 100, y: 300 };
     let end = { x: 2000, y: 2000 };
 
     let dirtyRect = { x: 0, y: 0, width: 0, height: 0 };
 
-    function liquify() {
-        let t = Math.floor(radius / 25);
-        let length = Math.hypot(end.x - start.x, end.y - start.y);
-
-        while (length > t) {
-            length -= t;
-        }
-    }
     function changeVector(start, end) {
         gl.useProgram(modifyProgram);
         // 유나폼 변수 설정
@@ -576,13 +579,6 @@ async function main() {
         gl.uniform2f(startLoc, start.x, height - start.y);
         let endLoc = gl.getUniformLocation(modifyProgram, "u_end");
         gl.uniform2f(endLoc, end.x, height - end.y);
-
-        let ceiledRadius = Math.ceil(radius);
-        let minX = Math.min(start.x, end.x);
-        let maxX = Math.max(start.x, end.x);
-
-        let minY = Math.min(height - start.y, height - end.y);
-        let maxY = Math.max(height - start.y, height - end.y);
 
         // 쓰기 영역: 내 벡터맵
 
@@ -601,18 +597,53 @@ async function main() {
             0,
         );
 
+        let ceiledRadius = Math.ceil(radius);
+        let minX = Math.min(start.x, end.x);
+        let maxX = Math.max(start.x, end.x);
+
+        let minY = Math.min(height - start.y, height - end.y);
+        let maxY = Math.max(height - start.y, height - end.y);
         //gl.enable(gl.SCISSOR_TEST);
-        dirtyRect.x = minX - ceiledRadius - 50;
-        dirtyRect.y = minY - ceiledRadius - 50;
-        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius + 100;
-        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius + 100;
-        //gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        dirtyRect.x = minX - ceiledRadius;
+        dirtyRect.y = minY - ceiledRadius;
+        dirtyRect.ex = maxX + ceiledRadius +1 ;
+        dirtyRect.ey = maxY + ceiledRadius +1 ;
+        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
+        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+        gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        
         //gl.clear(gl.COLOR_BUFFER_BIT);
         //console.log(dirtyRect);
-        //gl.enable(gl.SCISSOR_TEST);
+        gl.enable(gl.SCISSOR_TEST);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        // gl.disable(gl.SCISSOR_TEST);
-        // gl.finish();
+
+        gl.finish();
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+        gl.framebufferTexture2D(
+            gl.READ_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            write,
+            0
+        );
+
+        gl.framebufferTexture2D(
+            gl.DRAW_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            read,
+            0
+        );
+        
+        gl.blitFramebuffer(
+            dirtyRect.x, dirtyRect.y, dirtyRect.ex, dirtyRect.ey,// 소스(전체)
+            dirtyRect.x, dirtyRect.y, dirtyRect.ex, dirtyRect.ey,  // 대상(전체)
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST
+        );
         // 출력
         //let debugData = new Float32Array(width * height);
         //gl.readPixels(0, 0, width, height, gl.RED, gl.FLOAT, debugData);
@@ -621,47 +652,29 @@ async function main() {
         let temp = read;
         read = write;
         write = temp;
+
+        console.log('변함',"read:", read.id, "write:", write.id);
     }
 
-    // 🛠️ 1️⃣ 전체 화면 크기의 Dirty FBO 생성 (앱 초기화 시 1회만)
-    const dirtyFBO = gl.createFramebuffer();
-    const dirtyTex = gl.createTexture();
-
-    gl.activeTexture(gl.TEXTURE4);
-    gl.bindTexture(gl.TEXTURE_2D, dirtyTex);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        width,
-        height,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        null,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    // FBO 설정
-    gl.bindFramebuffer(gl.FRAMEBUFFER, dirtyFBO);
-    gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        dirtyTex,
-        0,
-    );
-
-    // FBO 정상 구성 확인
-    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-        console.error("FBO 생성 실패!");
-    }
+    // let renderReadFrameBuffer = gl.createFramebuffer();
+    // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, renderReadFrameBuffer);
+    // gl.framebufferTexture2D(
+    //     gl.FRAMEBUFFER,
+    //     gl.COLOR_ATTACHMENT0,
+    //     gl.TEXTURE_2D,
+    //     resultTexture,
+    //     0,
+    // );
 
     function render() {
         // 위에서 enable(gl.SCISSOR_TEST); 하고 영역 설정 다함
         //gl.disable(gl.SCISSOR_TEST);
         gl.useProgram(colorProgram);
+
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // 기본 화면
+
+        gl.disable(gl.SCISSOR_TEST);
         // 쓰기 영역: 내 화면
         //gl.bindFramebuffer(gl.FRAMEBUFFER, dirtyFBO);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -670,12 +683,8 @@ async function main() {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, read);
 
-        //gl.clear(gl.COLOR_BUFFER_BIT);
+        console.log('렌더:', read.id);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        gl.disable(gl.SCISSOR_TEST);
-
-        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, dirtyFBO);
-        // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // 기본 화면
 
         // gl.blitFramebuffer(
         //     dirtyRect.x,
@@ -737,6 +746,12 @@ async function main() {
         end = { x: event.clientX, y: event.clientY };
     });
 
+    //changeVector({x:100,y:100}, {x:400,y:100});
+    //render();
+
+    //changeVector({x:100,y:200}, {x:400,y:200});
+    //render();
+
     let idx = 0;
     window.addEventListener("pointermove", (event) => {
         if (!active) return;
@@ -746,7 +761,7 @@ async function main() {
         //console.log(start, end);
 
         let length = Math.hypot(end.x - start.x, end.y - start.y);
-        if (length > radius/25 ) {
+        if (length > radius / 25) {
             changeVector(start, end);
             render();
             console.log(start, end, length);
@@ -767,5 +782,7 @@ async function main() {
         //end = { x: event.clientX, y: event.clientY };
         //changeVector();
         render();
+
+        console.log('pointerup')
     });
 }
