@@ -254,7 +254,7 @@ function getPower(ax, ay, dx, dy, radius) {
   // (vx, vy)에서 (cx, cy)까지의 거리(=선분까지의 최소 거리) 계산용
   // cx = t * ux, cy = t * uy
   // 그래서 d = hypot(vx-cx, vy-cy)
-  const cx = t * ux; // proj
+  const cx = t * ux; // prof
   const cy = t * uy;
   const dx2 = vx - cx;
   const dy2 = vy - cy;
@@ -267,7 +267,7 @@ function getPower(ax, ay, dx, dy, radius) {
   // (1) 선분 중심 영역 (0 < t < length) 일 때
   if (0 < t && t < length) {
     const value = Math.min(1, d / radius);
-    const addValue = (value);
+    const addValue = easeInOutCubicIntegral(value);
     power = addValue * radius * 2 * percent;
   }
 
@@ -276,7 +276,7 @@ function getPower(ax, ay, dx, dy, radius) {
   if (vLength < radius) {
     const value = Math.min(1, d / radius);
     const addValue = easeInOutCubicIntegral(value);
-    //power = addValue * radius * 2 * percent;
+    power = addValue * radius * 2 * percent;
   }
 
   // (3) '끝점' 방향 원 영역
@@ -286,7 +286,7 @@ function getPower(ax, ay, dx, dy, radius) {
   if (eLength < radius) {
     const value = Math.min(1, d / radius);
     const addValue = easeInOutCubicIntegral(value);
-    //power = addValue * radius * 2 * percent;
+    power = addValue * radius * 2 * percent;
   }
 
   // (4) 빼기 연산을 위해, 현재 power를 따로 보관
@@ -296,13 +296,13 @@ function getPower(ax, ay, dx, dy, radius) {
   if (vLength < radius) {
     let gradation = (radius + t) / radius / 2;
     // originalCell * (1 - easeInOutCubicIntegralReal(gradation)) 만큼 감소
-    //power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
+    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
   }
 
   // (6) 끝점 쪽 그라데이션 보정
   if (eLength < radius) {
     let gradation = (radius + (length - t)) / radius / 2;
-    //power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
+    power -= originalCell * (1 - easeInOutCubicIntegralReal(gradation));
   }
 
   return power;

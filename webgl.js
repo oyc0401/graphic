@@ -320,6 +320,9 @@ async function main() {
             // radius의 올림값 및 자주 쓰이는 상수
             float rCeil = ceil(radius);
             float doubleRCeil = 2.0 * rCeil;
+            
+            // sqrt를 줄이기위한 제곱 연산
+            float squareR = radius * radius;
         
             // 그리드 크기 계산
             float gridWidth  = abs(d.x) + 1.0 + doubleRCeil;
@@ -352,8 +355,9 @@ async function main() {
             }
         
             // 2) vLength < radius
-            float vLength = length(v);
-            if (vLength < radius) {
+            //float vLength;
+            float dotV = dot(v, v);
+            if (dotV < squareR) {
                 float value = min(1.0, dist / radius);
                 float addValue = easeInOutCubicIntegral(value);
                 power = addValue * radius * 2.0 * percent;
@@ -361,8 +365,9 @@ async function main() {
         
             // 3) eLength < radius
             vec2 eVec = v - d;
-            float eLength = length(eVec);
-            if (eLength < radius) {
+            // float eLength;
+            float dotE = dot(eVec, eVec);
+            if (dotE < squareR) {
                 float value = min(1.0, dist / radius);
                 float addValue = easeInOutCubicIntegral(value);
                 power = addValue * radius * 2.0 * percent;
@@ -370,11 +375,11 @@ async function main() {
         
             // 4) gradation 계산
             float originalCell = power;
-            if (vLength < radius) {
+            if (dotV < squareR) {
                 float gradation = (radius + t) / radius / 2.0;
                 power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
             }
-            if (eLength < radius) {
+            if (dotE < squareR) {
                 float gradation = (radius + (len - t)) / radius / 2.0;
                 power -= originalCell * (1.0 - easeInOutCubicIntegralReal(gradation));
             }
