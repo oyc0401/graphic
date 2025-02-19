@@ -1,5 +1,9 @@
 let canvas = document.querySelector("#canvas");
-let gl = canvas.getContext("webgl2");
+const gl = canvas.getContext("webgl2", {
+    antialias: false,
+    preserveDrawingBuffer: true,
+});
+
 let precomputedTexture;
 let precomputed2Texture;
 
@@ -552,7 +556,7 @@ async function main() {
     );
     gl.uniform1i(originalTexLoc, 1); // 텍스처 유닛 1에 할당
 
-    let radius = 500;
+    let radius = 50;
     let strength = 1;
 
     let start = { x: 100, y: 300 };
@@ -608,8 +612,8 @@ async function main() {
         gl.enable(gl.SCISSOR_TEST);
         gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        gl.disable(gl.SCISSOR_TEST);
-        gl.finish();
+
+        //gl.finish();
 
         // 적용된 텍스처를 read에도 옮기기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
@@ -650,6 +654,8 @@ async function main() {
         // 쓰기 영역: 내 화면
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
+        
+        gl.disable(gl.SCISSOR_TEST);
     }
 
     function plusForce() {
