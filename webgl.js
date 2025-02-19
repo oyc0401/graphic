@@ -1,6 +1,7 @@
 let canvas = document.querySelector("#canvas");
 const gl = canvas.getContext("webgl2", {
-    antialias: false,
+    depth: false,
+    stencil: false,
     preserveDrawingBuffer: true,
 });
 
@@ -38,7 +39,7 @@ async function init() {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
         //const response = await fetch("check_r.png");
-        const response = await fetch("cat_4k.jpg");
+        const response = await fetch("cat_3k.jpg");
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
 
@@ -274,15 +275,12 @@ async function main() {
     let vertexShaderSource = `#version 300 es
         in vec2 a_position;
         out vec2 v_texCoord;
-         out vec2 i_texCoord;
-
+       
         uniform vec2 u_resolution;
         uniform sampler2D u_displacement;
         void main() {
             vec2 tex = a_position * 0.5 + 0.5;
-            ivec2 texSize = textureSize(u_displacement, 0);
             v_texCoord = a_position * 0.5 + 0.5;
-            i_texCoord = vec2(tex * u_resolution);
             gl_Position = vec4(a_position, 0.0, 1.0);
         }
         `;
@@ -299,13 +297,11 @@ async function main() {
         uniform float u_strength;
         
         in vec2 v_texCoord;
-        //flat in ivec2 i_texCoord;
         out vec2 outDisplacement;
 
         // 샘플링을 통한 ease 함수 구현 (정확한 결과를 위해 precomputed 텍스처 사용)
         float easeInOutCubicIntegral(float x) {
           // x를 [0,1]로 가정하고, 1D 텍스처에서 선형 보간
-          //return x;
           return texture(u_precomputed, vec2(x, 0.5)).r;
         }
         float easeInOutCubicIntegralReal(float x) {
@@ -374,8 +370,6 @@ async function main() {
 
         
         void main() {
-        //texelFetch(u_precomputed, ivec2(500, 0), 0).r;
-            //vec2 value = texelFetch(u_displacement, ivec2 (v_texCoord),0).xy;
             vec2 value = texture(u_displacement,v_texCoord ).xy;
             // 해당 픽셀의 좌표 ex) (250,360)
             vec2 pixel = v_texCoord * u_resolution; 
@@ -461,7 +455,7 @@ async function main() {
 
     gl.uniform1i(gl.getUniformLocation(modifyProgram, "u_precomputed"), 2);
 
-    console.log(listData1); // 길이 1000인 1차원 배열
+    //console.log(listData1); // 길이 1000인 1차원 배열
     // 적분2
     const precomputed2Texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE3);
@@ -504,21 +498,20 @@ async function main() {
         in vec2 v_texCoord;
         out vec4 outColor;
         
-        
         void main() {
             vec2 value = texture(u_displacement, v_texCoord).xy;
             vec2 dif = value / u_resolution;
 
             vec2 target = v_texCoord + dif;
             // 범위 넘어가면 투명하게 되는건 나중에 구현이 더 필요함.
-            // if (target.x < 0.0 || target.x > 1.0 ||
-            //     target.y < 0.0 || target.y > 1.0) {
-            //     // 경계 외부는 투명색 반환
-            //     outColor = vec4(0.0, 0.0, 0.0, 0.0);
-            // } else {
-                
-            // }
-            outColor = texture(u_originalTexture, target);
+            if (target.x < 0.0 || target.x > 1.0 ||
+                target.y < 0.0 || target.y > 1.0) {
+                // 경계 외부는 투명색 반환
+                outColor = vec4(0.0, 0.0, 0.0, 0.0);
+            } else {
+                 outColor = texture(u_originalTexture, target);
+            }
+           
 
         }
         `;
@@ -556,7 +549,7 @@ async function main() {
     );
     gl.uniform1i(originalTexLoc, 1); // 텍스처 유닛 1에 할당
 
-    let radius = 50;
+    let radius = 500;
     let strength = 1;
 
     let start = { x: 100, y: 300 };
@@ -654,7 +647,7 @@ async function main() {
         // 쓰기 영역: 내 화면
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        
+
         gl.disable(gl.SCISSOR_TEST);
     }
 
@@ -674,8 +667,14 @@ async function main() {
     render();
 
     document.querySelector("#btn").addEventListener("click", () => {
-        //changeVector();
-        //render();
+        let result = prompt("반지름을 입력해주세요");
+
+        if (result && !isNaN(result)) {
+            radius = parseFloat(result);
+            console.log("입력된 반지름:", radius);
+        } else {
+            console.log("유효한 숫자를 입력해주세요.");
+        }
     });
 
     document.querySelector("#edit").addEventListener("click", () => {
@@ -719,7 +718,7 @@ async function main() {
         if (length > radius / 25) {
             changeVector(start, end);
             render();
-            console.log(start, end, length);
+            //console.log(start, end);
             start = end;
         }
 
@@ -738,6 +737,6 @@ async function main() {
         //changeVector();
         render();
 
-        console.log("pointerup");
+       // console.log("pointerup");
     });
 }
