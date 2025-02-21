@@ -1,13 +1,18 @@
+import {
+    getIntegralEaseInOut,
+    getIntegralEaseInOutDouble,
+} from "./cachedIntegrals";
+// import shaderSrc from "./liquify.glsl";
+
 let canvas = document.querySelector("#canvas");
 const gl = canvas.getContext("webgl2", {
     depth: false,
     stencil: false,
-    antialias:false,
+    antialias: false,
     preserveDrawingBuffer: true,
 });
-
-let precomputedTexture;
-let precomputed2Texture;
+let listData1;
+let listData2;
 
 // 헬퍼 함수
 function createShader(type, source) {
@@ -32,6 +37,11 @@ function createProgram(gl, vertexShader, fragmentShader) {
 
     console.log(gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
+}
+
+async function loadShader(url) {
+    const response = await fetch(url);
+    return await response.text();
 }
 
 // 이미지 업로드함수
@@ -170,33 +180,14 @@ async function init() {
         console.error("이미지 로드 실패:", err);
     }
 }
-let listData1;
-let listNumValues1;
-let listData2;
-let listNumValues2;
 
 async function presetting() {
-    const response1 = await fetch("/data.bin");
-    const arrayBuffer1 = await response1.arrayBuffer();
-    listNumValues1 = arrayBuffer1.byteLength / 4;
-    listData1 = new Float32Array(arrayBuffer1);
-
-    const response2 = await fetch("/integralEase.bin");
-    const arrayBuffer2 = await response2.arrayBuffer();
-    listNumValues2 = arrayBuffer2.byteLength / 4;
-    listData2 = new Float32Array(arrayBuffer2);
-
-    const extFloatLinear =
-        gl.getExtension("OES_texture_float_linear") ||
-        gl.getExtension("EXT_texture_filter_float");
-    if (!extFloatLinear) {
-        console.warn(
-            "This device does not support linear filtering for float textures.",
-        );
-    }
+    listData1 = await getIntegralEaseInOut();
+    listData2 = await getIntegralEaseInOutDouble();
 }
 
 main();
+
 async function main() {
     await presetting();
     await init();
@@ -210,20 +201,21 @@ async function main() {
     if (!ext) {
         console.error("EXT_color_buffer_float not supported!");
     }
-
-    // 1️⃣ Float32Array로 랜덤 데이터 생성
-    const arrayData = new Float32Array(2 * width * height);
-    for (let i = 0; i < arrayData.length; i++) {
-        arrayData[i] = 0;
+    const extFloatLinear =
+        gl.getExtension("OES_texture_float_linear") ||
+        gl.getExtension("EXT_texture_filter_float");
+    if (!extFloatLinear) {
+        console.warn(
+            "This device does not support linear filtering for float textures.",
+        );
     }
-
-    // 2️⃣ 원본 텍스처 생성 및 데이터 업로드
-    const dd = gl.TEXTURE_2D;
-    let texture = gl.createTexture();
+    const emptyData = new Float32Array(width * height * 2);
+    // 원본 텍스처 생성 및 데이터 업로드
+    let displacementTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTex);
     gl.texImage2D(
-        dd,
+        gl.TEXTURE_2D,
         0,
         gl.RG32F,
         width,
@@ -231,42 +223,54 @@ async function main() {
         0,
         gl.RG,
         gl.FLOAT,
-        arrayData,
+        emptyData,
     );
-    // 행렬에 linear를 사용하는 이유는 getVector는 보간으로 값을 가져오기 대문에 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
+    // 행렬에 linear를 사용하는 이유는 기존의 getVector는 보간으로 값을 가져오기 대문에
+    // 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // 3️⃣ 출력용 텍스처 생성
-    let resultTexture = gl.createTexture();
+    // 출력용 텍스처 생성
+    let displacementTexOut = gl.createTexture();
     gl.activeTexture(gl.TEXTURE4);
-    gl.bindTexture(gl.TEXTURE_2D, resultTexture);
-    gl.texImage2D(dd, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RG32F,
+        width,
+        height,
+        0,
+        gl.RG,
+        gl.FLOAT,
+        null,
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // 4️⃣ 프레임버퍼 생성 및 바인딩
+    // 프레임버퍼 생성 및 바인딩
     let framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        resultTexture,
+        displacementTexOut,
         0,
     );
 
+    // 쓰여진 결과를 기본 변위맵에 업로드 하기 위해서
     let readFrameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
     gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        resultTexture,
+        displacementTexOut,
         0,
     );
 
@@ -285,7 +289,9 @@ async function main() {
             gl_Position = vec4(a_position, 0.0, 1.0);
         }
         `;
-    let modifyFragmentShaderSource = `#version 300 es
+    let modifyFragmentShaderSource =await loadShader('liquify.glsl');
+        
+        let ddd = `#version 300 es
         precision highp float;
         
         uniform sampler2D u_displacement;
@@ -461,7 +467,7 @@ async function main() {
         gl.TEXTURE_2D,
         0,
         gl.R32F,
-        listNumValues1,
+        listData1.length,
         1,
         0,
         gl.RED,
@@ -485,7 +491,7 @@ async function main() {
         gl.TEXTURE_2D,
         0,
         gl.R32F,
-        listNumValues2,
+        listData2.length,
         1,
         0,
         gl.RED,
@@ -605,7 +611,7 @@ async function main() {
             gl.FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            resultTexture,
+            displacementTexOut,
             0,
         );
 
@@ -637,7 +643,7 @@ async function main() {
             gl.READ_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            resultTexture,
+            displacementTexOut,
             0,
         );
 
@@ -645,7 +651,7 @@ async function main() {
             gl.DRAW_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            texture,
+            displacementTex,
             0,
         );
 
@@ -758,6 +764,6 @@ async function main() {
         //changeVector();
         render();
 
-       // console.log("pointerup");
+        // console.log("pointerup");
     });
 }
