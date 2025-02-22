@@ -129,6 +129,8 @@ window.onload = async function () {
 
     let liquify = await initLiquifyMode(gl);
 
+    console.log("픽셀유동화 준비 완료!");
+
     let active = false;
     window.addEventListener("pointerdown", (event) => {
         active = true;
@@ -404,7 +406,7 @@ async function initLiquifyMode(gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
- 
+
     gl.uniform1i(
         gl.getUniformLocation(renderProgram, "u_sourse"),
         TEXTURE_UNIT.SOURCE,
