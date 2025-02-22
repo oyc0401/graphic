@@ -3,6 +3,8 @@ import {
     getIntegralEaseInOutMirror,
 } from "./cachedIntegrals";
 
+import { createShader, createProgram, loadShader } from "./glHelper";
+
 let canvas = document.querySelector("#canvas");
 const gl = canvas.getContext("webgl2", {
     depth: false,
@@ -10,49 +12,11 @@ const gl = canvas.getContext("webgl2", {
     antialias: false,
     preserveDrawingBuffer: true,
 });
-let integralData;
-let integralMirrorData;
-
-// 헬퍼 함수
-function createShader(type, source) {
-    let shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-    }
-    return shader;
-}
-
-function createProgram(gl, vertexShader, fragmentShader) {
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (success) {
-        return program;
-    }
-
-    console.log("Program link failed:", gl.getProgramInfoLog(program));
-    gl.deleteProgram(program);
-}
-
-async function loadShader(url) {
-    const response = await fetch(url);
-    return await response.text();
-}
-
-function setTexture(program, number) {}
 
 // 이미지 업로드함수
-async function init() {
+async function drawImage(canvas, gl, url) {
     try {
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-
-        //const response = await fetch("check_r.png");
-        const response = await fetch("../cat_3k.jpg");
+        const response = await fetch(url);
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
 
@@ -62,6 +26,7 @@ async function init() {
 
         // WebGL 텍스처 생성
         const texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
         gl.bindTexture(gl.TEXTURE_2D, texture);
 
         // 이미지를 WebGL 텍스처로 업로드
@@ -83,27 +48,33 @@ async function init() {
         // 간단한 쉐이더 생성
         const vertexShaderSource = `#version 300 es
           in vec2 a_position;
-          in vec2 a_texcoord;
-          out vec2 v_texcoord22;
+          out vec2 v_texcoord;
 
           void main() {
               gl_Position = vec4(a_position, 0, 1);
-              v_texcoord22 = a_texcoord;
+              v_texcoord = a_position * 0.5 + 0.5; 
+              v_texcoord.y = 1.0 - v_texcoord.y;
           }
       `;
 
         const fragmentShaderSource = `#version 300 es
           precision mediump float;
-          in vec2 v_texcoord22;
+          in vec2 v_texcoord;
           uniform sampler2D u_image;
           out vec4 fragColor;
+          
           void main() {
-               fragColor = texture(u_image, v_texcoord22);
+               fragColor = texture(u_image, v_texcoord);
           }
       `;
 
-        const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+        const vertexShader = createShader(
+            gl,
+            gl.VERTEX_SHADER,
+            vertexShaderSource,
+        );
         const fragmentShader = createShader(
+            gl,
             gl.FRAGMENT_SHADER,
             fragmentShaderSource,
         );
@@ -120,25 +91,12 @@ async function init() {
         ]);
         gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
-        const texcoordBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-        const texcoords = new Float32Array([
-            0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0,
-        ]);
-        gl.bufferData(gl.ARRAY_BUFFER, texcoords, gl.STATIC_DRAW);
-
         const positionLocation = gl.getAttribLocation(program, "a_position");
-        const texcoordLocation = gl.getAttribLocation(program, "a_texcoord");
 
         // 위치 버퍼 바인딩
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         gl.enableVertexAttribArray(positionLocation);
         gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-        // 텍스처 좌표 버퍼 바인딩
-        gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-        gl.enableVertexAttribArray(texcoordLocation);
-        gl.vertexAttribPointer(texcoordLocation, 2, gl.FLOAT, false, 0, 0);
 
         // 이미지 렌더링
         gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -152,16 +110,67 @@ async function init() {
     }
 }
 
-async function presetting() {
-    integralData = await getIntegralEaseInOut();
-    integralMirrorData = await getIntegralEaseInOutMirror();
-}
+const TEXTURE_UNIT = {
+    TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
+    DISPLACEMENT: 1, // 변위맵 (Displacement Map)
+    SOURCE: 2, // 원본 이미지 (Source Image)
+    EASE_INTEGRAL: 3, // Ease In-Out Cubic Integral
+    EASE_MIRROR: 4, // Ease In-Out Cubic Mirror
+};
 
-main();
+window.onload = async function () {
+    await drawImage(canvas, gl, "../cat_3k.jpg");
 
-async function main() {
-    await presetting();
-    await init();
+    let start = { x: 0, y: 0 };
+    let end = { x: 0, y: 0 };
+
+    let radius = 500;
+    let force = 1;
+
+    let liquify = await initLiquifyMode(gl);
+
+    let active = false;
+    window.addEventListener("pointerdown", (event) => {
+        active = true;
+        start = { x: event.clientX, y: event.clientY };
+        end = { x: event.clientX, y: event.clientY };
+
+        liquify.setRadius(radius);
+        liquify.setStrength(force);
+    });
+
+    window.addEventListener("pointermove", (event) => {
+        if (!active) return;
+        end = { x: event.clientX, y: event.clientY };
+
+        let length = Math.hypot(end.x - start.x, end.y - start.y);
+        if (length > radius / 25) {
+            liquify.push(start, end);
+            liquify.render();
+            start = end;
+        }
+    });
+
+    window.addEventListener("pointerup", (event) => {
+        active = false;
+        // liquify.render();
+    });
+
+    document.querySelector("#btn").addEventListener("click", () => {
+        let result = prompt("반지름을 입력해주세요");
+
+        if (result && !isNaN(result)) {
+            radius = result;
+            console.log("입력된 반지름:", result);
+        } else {
+            console.log("유효한 숫자를 입력해주세요.");
+        }
+    });
+};
+
+async function initLiquifyMode(gl) {
+    let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
+    let integralMirrorData = await getIntegralEaseInOutMirror();
 
     const width = canvas.width;
     const height = canvas.height;
@@ -176,7 +185,7 @@ async function main() {
         gl.getExtension("OES_texture_float_linear") ||
         gl.getExtension("EXT_texture_filter_float");
     if (!extFloatLinear) {
-        console.warn(
+        console.error(
             "This device does not support linear filtering for float textures.",
         );
     }
@@ -188,16 +197,17 @@ async function main() {
 
       uniform vec2 u_resolution;
       uniform sampler2D u_displacement;
-      
+
       void main() {
           v_texCoord = a_position * 0.5 + 0.5;
           gl_Position = vec4(a_position, 0.0, 1.0);
       }
       `;
 
-    let liquifyPushFragSrc = await loadShader("liquify.glsl");
-    let vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+    let liquifyPushFragSrc = await loadShader("./liquify.c");
+    let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     let liquifyPushShader = createShader(
+        gl,
         gl.FRAGMENT_SHADER,
         liquifyPushFragSrc,
     );
@@ -212,9 +222,9 @@ async function main() {
 
     const emptyData = new Float32Array(width * height * 2);
 
-    // 원본 텍스처 생성 및 데이터 업로드
+    // 변위맵 텍스처 생성 및 데이터 업로드
     let displacementTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, displacementTex);
     gl.texImage2D(
         gl.TEXTURE_2D,
@@ -235,12 +245,12 @@ async function main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(
         gl.getUniformLocation(liquifyPushProgram, "u_displacement"),
-        0,
+        TEXTURE_UNIT.DISPLACEMENT,
     );
 
     // 출력용 텍스처 생성
     let displacementTexOut = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE4);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
     gl.texImage2D(
         gl.TEXTURE_2D,
@@ -259,7 +269,7 @@ async function main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     const integralTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE2);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.EASE_INTEGRAL);
     gl.bindTexture(gl.TEXTURE_2D, integralTex);
     gl.texImage2D(
         gl.TEXTURE_2D,
@@ -277,10 +287,13 @@ async function main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(gl.getUniformLocation(liquifyPushProgram, "u_precomputed"), 2);
+    gl.uniform1i(
+        gl.getUniformLocation(liquifyPushProgram, "u_ease_integral"),
+        TEXTURE_UNIT.EASE_INTEGRAL,
+    );
 
     const integralMirrorTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE3);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.EASE_MIRROR);
     gl.bindTexture(gl.TEXTURE_2D, integralMirrorTex);
     gl.texImage2D(
         gl.TEXTURE_2D,
@@ -299,8 +312,8 @@ async function main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(
-        gl.getUniformLocation(liquifyPushProgram, "u_precomputed2"),
-        3,
+        gl.getUniformLocation(liquifyPushProgram, "u_ease_mirror"),
+        TEXTURE_UNIT.EASE_MIRROR,
     );
 
     // 프레임버퍼 생성 및 바인딩
@@ -340,17 +353,19 @@ async function main() {
     let colorShaderSource = `#version 300 es
       precision highp float;
       uniform sampler2D u_displacement;
-      uniform sampler2D u_originalTexture;  // 원본 텍스처 추가
+      uniform sampler2D u_sourse;  // 원본 텍스처
       uniform vec2 u_resolution;
 
       in vec2 v_texCoord;
       out vec4 outColor;
 
       void main() {
+         
           vec2 value = texture(u_displacement, v_texCoord).xy;
           vec2 dif = value / u_resolution;
 
           vec2 target = v_texCoord + dif;
+      
           // 범위 넘어가면 투명하게 되는건 나중에 구현이 더 필요함.
           // 테두리 보간 해야함!
           if (target.x < 0.0 || target.x > 1.0 ||
@@ -358,12 +373,12 @@ async function main() {
               // 경계 외부는 투명색 반환
               outColor = vec4(0.0, 0.0, 0.0, 0.0);
           } else {
-               outColor = texture(u_originalTexture, target);
+               outColor = texture(u_sourse, target);
           }
       }
       `;
 
-    let renderShader = createShader(gl.FRAGMENT_SHADER, colorShaderSource);
+    let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorShaderSource);
     let renderProgram = createProgram(gl, vertexShader, renderShader);
     gl.useProgram(renderProgram);
     gl.uniform2f(
@@ -371,34 +386,37 @@ async function main() {
         width,
         height,
     );
-    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_displacement"), 0);
+    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_displacement"), 1);
 
     // 원본 이미지 텍스처 생성
     // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
     let originalTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE1);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+
     gl.bindTexture(gl.TEXTURE_2D, originalTexture);
 
+    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_originalTexture"), 1); // 텍스처 유닛 1에 할당
+    gl.uniform1i(
+        gl.getUniformLocation(renderProgram, "u_sourse"),
+        TEXTURE_UNIT.SOURCE,
+    ); // 텍스처 유닛 1에 할당
 
     let posLoc2 = gl.getAttribLocation(renderProgram, "a_position");
     gl.enableVertexAttribArray(posLoc2);
     gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
 
-
     ////////////////
 
     let radius = 500;
     let strength = 1;
-
-    let start = { x: 0, y: 0 };
-    let end = { x: 0, y: 0 };
-
     let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
     function changeVector(start, end) {
@@ -497,49 +515,24 @@ async function main() {
 
         gl.disable(gl.SCISSOR_TEST);
     }
-    
-    ///////////////////////
 
-    render();
+    function destroy() {}
 
-    //////////////////////////
-    document.querySelector("#btn").addEventListener("click", () => {
-        let result = prompt("반지름을 입력해주세요");
+    function setRadius(r) {
+        radius = r;
+    }
 
-        if (result && !isNaN(result)) {
-            radius = parseFloat(result);
-            console.log("입력된 반지름:", radius);
-        } else {
-            console.log("유효한 숫자를 입력해주세요.");
-        }
-    });
-    
-    let active = false;
-    window.addEventListener("pointerdown", (event) => {
-        active = true;
-        start = { x: event.clientX, y: event.clientY };
-        end = { x: event.clientX, y: event.clientY };
-    });
+    function setStrength(s) {
+        strength = s;
+    }
 
-    window.addEventListener("pointermove", (event) => {
-        if (!active) return;
-        //Console.time('GPU 4K Pass');
+    let Liquify = {
+        push: changeVector,
+        render: render,
+        setRadius: setRadius,
+        setStrength: setStrength,
+        destroy: destroy,
+    };
 
-        end = { x: event.clientX, y: event.clientY };
-        //console.log(start, end);
-
-        let length = Math.hypot(end.x - start.x, end.y - start.y);
-        if (length > radius / 25) {
-            changeVector(start, end);
-            render();
-            start = end;
-        }
-    });
-
-    window.addEventListener("pointerup", (event) => {
-        active = false;
-        render();
-
-        // console.log("pointerup");
-    });
+    return Liquify;
 }

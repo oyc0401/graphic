@@ -14,3 +14,12 @@ publicDir = "dist"
 [[ports]]
 localPort = 5173
 externalPort = 80
+
+[rules]
+
+[rules.formatter]
+
+[rules.formatter.fileExtensions]
+
+[rules.formatter.fileExtensions.".js"]
+id = "module:nodejs-18/formatter:prettier"
