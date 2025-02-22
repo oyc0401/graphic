@@ -112,10 +112,10 @@ async function drawImage(canvas, gl, url) {
 
 const TEXTURE_UNIT = {
     TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
-    DISPLACEMENT: 1, // 변위맵 (Displacement Map)
-    SOURCE: 2, // 원본 이미지 (Source Image)
-    EASE_INTEGRAL: 3, // Ease In-Out Cubic Integral
-    EASE_MIRROR: 4, // Ease In-Out Cubic Mirror
+    DISPLACEMENT: 5, // 변위맵 (Displacement Map)
+    SOURCE: 1, // 원본 이미지 (Source Image)
+    EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
+    EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
 };
 
 window.onload = async function () {
@@ -388,7 +388,10 @@ async function initLiquifyMode(gl) {
         width,
         height,
     );
-    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_displacement"), 1);
+    gl.uniform1i(
+        gl.getUniformLocation(renderProgram, "u_displacement"),
+        TEXTURE_UNIT.DISPLACEMENT,
+    );
 
     // 원본 이미지 텍스처 생성
     // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
