@@ -22,10 +22,6 @@ export function createProgram(gl, vertexShader, fragmentShader) {
     return program;
 }
 
-export function tu(textureUnit) {
-    //gl.TEXTURE0 + textureUnit;
-    return 33984 + textureUnit
-}
 export async function loadShader(url) {
     const response = await fetch(url);
     return await response.text();

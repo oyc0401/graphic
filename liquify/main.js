@@ -13,6 +13,7 @@ const gl = canvas.getContext("webgl2", {
     preserveDrawingBuffer: true,
 });
 
+let layerIndex = 0;
 // 이미지 업로드함수
 async function drawImage(canvas, gl, url) {
     try {
@@ -26,24 +27,50 @@ async function drawImage(canvas, gl, url) {
 
         // WebGL 텍스처 생성
         const texture = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.IMAGE);
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 
         // 이미지를 WebGL 텍스처로 업로드
-        gl.texImage2D(
-            gl.TEXTURE_2D,
+        gl.texImage3D(
+            gl.TEXTURE_2D_ARRAY,
             0,
             gl.RGBA,
+            imgBitmap.width,
+            imgBitmap.height,
+            20, // depth (20개 레이어)
+            0,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
-            imgBitmap,
+            null,
         );
 
-        // 텍스처 파라미터 설정
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texSubImage3D(
+            gl.TEXTURE_2D_ARRAY, // 3D 또는 배열 텍스처
+            0, // Mipmap 레벨
+            0,
+            0,
+            layerIndex, // (x, y, z) 위치 (z는 layer index)
+            imgBitmap.width, // 업데이트할 가로 크기
+            imgBitmap.height, // 업데이트할 세로 크기
+            1, // 업데이트할 depth (레이어 개수)
+            gl.RGBA, // 픽셀 데이터 포맷
+            gl.UNSIGNED_BYTE, // 데이터 타입
+            imgBitmap, // 실제 데이터
+        );
+
+        // 텍스처 파라미터
+        gl.texParameteri(
+            gl.TEXTURE_2D_ARRAY,
+            gl.TEXTURE_WRAP_S,
+            gl.CLAMP_TO_EDGE,
+        );
+        gl.texParameteri(
+            gl.TEXTURE_2D_ARRAY,
+            gl.TEXTURE_WRAP_T,
+            gl.CLAMP_TO_EDGE,
+        );
+        gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         // 간단한 쉐이더 생성
         const vertexShaderSource = `#version 300 es
@@ -59,12 +86,14 @@ async function drawImage(canvas, gl, url) {
 
         const fragmentShaderSource = `#version 300 es
           precision mediump float;
+          precision mediump sampler2DArray;
+          
           in vec2 v_texcoord;
-          uniform sampler2D u_image;
+          uniform sampler2DArray u_image;
           out vec4 fragColor;
           
           void main() {
-               fragColor = texture(u_image, v_texcoord);
+               fragColor = texture(u_image, vec3(v_texcoord, 0));
           }
       `;
 
@@ -82,6 +111,11 @@ async function drawImage(canvas, gl, url) {
         // 프로그램 생성 및 링크
         const program = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(program);
+
+        gl.uniform1i(
+            gl.getUniformLocation(program, "u_image"),
+            TEXTURE_UNIT.IMAGE,
+        );
 
         // 버퍼 생성 및 데이터 전송
         const positionBuffer = gl.createBuffer();
@@ -111,11 +145,12 @@ async function drawImage(canvas, gl, url) {
 }
 
 const TEXTURE_UNIT = {
-    TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
-    DISPLACEMENT: 1, // 변위맵 (Displacement Map)
-    SOURCE: 2, // 원본 이미지 (Source Image)
-    EASE_INTEGRAL: 3, // Ease In-Out Cubic Integral
-    EASE_MIRROR: 4, // Ease In-Out Cubic Mirror
+    TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X
+    IMAGE: 1, // 원본 이미지 (Source Image)
+    DISPLACEMENT: 6, // 변위맵 (Displacement Map)
+
+    EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
+    EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
 };
 
 window.onload = async function () {
@@ -130,6 +165,8 @@ window.onload = async function () {
     let liquify = await initLiquifyMode(gl);
 
     let active = false;
+
+    console.log('픽셀유동화 준비 완료!');
     window.addEventListener("pointerdown", (event) => {
         active = true;
         start = { x: event.clientX, y: event.clientY };
@@ -315,6 +352,12 @@ async function initLiquifyMode(gl) {
         gl.getUniformLocation(liquifyPushProgram, "u_ease_mirror"),
         TEXTURE_UNIT.EASE_MIRROR,
     );
+    
+    gl.uniform1f(gl.getUniformLocation(liquifyPushProgram, "u_radius"), 10);
+    gl.uniform1f(gl.getUniformLocation(liquifyPushProgram, "u_strength"), 1);
+
+    gl.uniform2f(gl.getUniformLocation(liquifyPushProgram, "u_start"), 0, 0);
+    gl.uniform2f(gl.getUniformLocation(liquifyPushProgram, "u_end"), 0, 0);
 
     // 프레임버퍼 생성 및 바인딩
     let framebuffer = gl.createFramebuffer();
@@ -352,8 +395,10 @@ async function initLiquifyMode(gl) {
 
     let colorShaderSource = `#version 300 es
       precision highp float;
+      precision mediump sampler2DArray;
+      
       uniform sampler2D u_displacement;
-      uniform sampler2D u_sourse;  // 원본 텍스처
+      uniform sampler2DArray u_image;  // 원본 텍스처
       uniform vec2 u_resolution;
 
       in vec2 v_texCoord;
@@ -365,7 +410,9 @@ async function initLiquifyMode(gl) {
           vec2 dif = value / u_resolution;
 
           vec2 target = v_texCoord + dif;
-      
+          // 이미지 텍스처에 접근 할 때면 y축 뒤집어서 가져오기
+          vec2 reverseTarget = vec2(target.x, 1.0 - target.y);
+          
           // 범위 넘어가면 투명하게 되는건 나중에 구현이 더 필요함.
           // 테두리 보간 해야함!
           if (target.x < 0.0 || target.x > 1.0 ||
@@ -373,7 +420,7 @@ async function initLiquifyMode(gl) {
               // 경계 외부는 투명색 반환
               outColor = vec4(0.0, 0.0, 0.0, 0.0);
           } else {
-               outColor = texture(u_sourse, target);
+               outColor = texture(u_image, vec3(reverseTarget, 0));
           }
       }
       `;
@@ -386,28 +433,15 @@ async function initLiquifyMode(gl) {
         width,
         height,
     );
-    gl.uniform1i(gl.getUniformLocation(renderProgram, "u_displacement"), 1);
-
-    // 원본 이미지 텍스처 생성
-    // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-    let originalTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-    gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(
-        gl.getUniformLocation(renderProgram, "u_sourse"),
-        TEXTURE_UNIT.SOURCE,
-    ); // 텍스처 유닛 1에 할당
+        gl.getUniformLocation(renderProgram, "u_displacement"),
+        TEXTURE_UNIT.DISPLACEMENT,
+    );
+    // 원본이미지 텍스쳐
+    gl.uniform1i(
+        gl.getUniformLocation(renderProgram, "u_image"),
+        TEXTURE_UNIT.IMAGE,
+    );
 
     let posLoc2 = gl.getAttribLocation(renderProgram, "a_position");
     gl.enableVertexAttribArray(posLoc2);
@@ -441,6 +475,8 @@ async function initLiquifyMode(gl) {
             end.x,
             height - end.y,
         );
+        //const layerLocation = gl.getUniformLocation(program, "layerIndex");
+        //gl.uniform1i(layerLocation, layerIndex); // 0번째 레이어 사용
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         // 프레임버퍼에 쓰기 텍스처 넣기
