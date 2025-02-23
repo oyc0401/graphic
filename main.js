@@ -1,17 +1,226 @@
+let container = document.querySelector("#container");
+
 let canvas = document.querySelector("#canvas");
 let ctx = canvas.getContext("2d");
+let canvas_w = 300;
+let canvas_h = 300;
+let canvas_css_w = canvas_w;
+let canvas_css_h = canvas_h;
+let css_left = 0;
+let css_top = 0;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-ctx.fillStyle = "rgb(240,240,240)";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-let canvasSize = Math.hypot(window.innerWidth, window.innerHeight);
-// window.addEventListener("resize", () => {
-//     canvas.width = window.innerWidth;
-//     canvas.height = window.innerHeight;
-// });
+let magnification = 1;
 
-let isDrawing = false;
+let posX = 0;
+let posY = 0;
+
+const brushSize = 10; // 고정된 브러시 크기
+window.onload = function () {
+    canvas.width = canvas_w;
+    canvas.height = canvas_h;
+
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.lineWidth = brushSize; // 고정된 브러시 크기
+    ctx.strokeStyle = "rgba(255,0,0,0.5)"; // 브러시 색상 설정
+
+    resizeScreen();
+};
+
+window.addEventListener("resize", function () {
+    resizeScreen();
+});
+
+// 캔버스 상의 좌표로 변환.
+function to_canvas_coord(x, y) {
+    let p = to_screen_coord(x, y);
+    let px = p.x + canvas_w / 2;
+    let py = p.y + canvas_h / 2;
+    return { x: px, y: py };
+}
+
+// 스크롤시의 좌표로 변환.
+function to_screen_coord(x, y) {
+    let px = (x - window.innerWidth / 2) / magnification + posX;
+    let py = (y - window.innerHeight / 2) / magnification + posY;
+    return { x: px, y: py };
+}
+
+function resizeScreen() {
+    //console.log("pos:", posX, posY);
+    canvas_css_w = canvas_w * magnification;
+    canvas_css_h = canvas_h * magnification;
+    let cal_posX = posX * magnification;
+    let cal_posY = posY * magnification;
+    css_left = (window.innerWidth - canvas_css_w) / 2;
+    css_top = (window.innerHeight - canvas_css_h) / 2;
+
+    canvas.style.left = css_left - cal_posX + "px";
+    canvas.style.top = css_top - cal_posY + "px";
+    canvas.style.width = canvas_css_w + "px";
+    canvas.style.height = canvas_css_h + "px";
+}
+
+window.addEventListener(
+    "wheel",
+    (event) => {
+        console.log("wheel", event);
+
+        if (event.ctrlKey) {
+            event.preventDefault();
+            let new_mag;
+            if (event.deltaY > 0) {
+                new_mag = magnification / 1.2;
+            } else {
+                new_mag = magnification * 1.2;
+            }
+            setMagification(new_mag);
+        } else {
+            if (event.shiftKey) {
+                let delta = event.deltaY;
+                posX += delta;
+            } else {
+                let delta = event.deltaY;
+                posY += delta;
+            }
+        }
+
+        resizeScreen();
+    },
+    { passive: false },
+);
+
+document.addEventListener("gesturestart", function (event) {
+    event.preventDefault();
+});
+
+let last_zoom_pointer_distance;
+let pan_last_pos;
+let first_pointer_time;
+let discard_quick_undo_period = 200;
+let pointer_active = false;
+let pinchAllowed = true;
+
+function cancel() {
+    //alert("cancel!");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+window.addEventListener(
+    "touchstart",
+    (event) => {
+        console.log("$canvas_area.touchstart - captured");
+
+        if (event.touches.length === 1) {
+            first_pointer_time = performance.now();
+        }
+        if (event.touches.length === 2) {
+            last_zoom_pointer_distance = Math.hypot(
+                event.touches[0].clientX - event.touches[1].clientX,
+                event.touches[0].clientY - event.touches[1].clientY,
+            );
+
+            pan_last_pos = average_touches(event.touches);
+        }
+
+        if (event.touches.length == 2) {
+            const elapsed = performance.now() - first_pointer_time;
+
+            // 일정시간 이내에 그리면 지우기
+            if (elapsed <= discard_quick_undo_period) {
+                window.dispatchEvent(new Event("touchend"));
+
+                // 500ms 이내 => 그림 cancel + pinchAllowed = true
+                cancel();
+            }
+            window.dispatchEvent(new Event("pointerup"));
+            console.log("두손가락이면 핀치줌 허용");
+            // 그림그리기 완료
+            // pinchAllowed가 false일때만 그리기 완료됌..
+
+            pointer_active = false;
+            // ---- [중요 수정 2] 그림 그리기를 중단하려면 pointer_active = false
+            // 핀치 줌은 허용
+            pinchAllowed = true;
+        }
+    },
+    true,
+);
+
+window.addEventListener("touchend", (event) => {
+    console.log("touchend");
+
+    // // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
+    if (event.touches === undefined || event.touches.length < 2) {
+        pinchAllowed = false;
+    }
+});
+
+function setMagification(new_scale, anchor_point) {
+    magnification = new_scale;
+}
+
+window.addEventListener("touchmove", (event) => {
+    if (pinchAllowed) {
+        const current_pos = average_touches(event.touches);
+        const distance = Math.hypot(
+            event.touches[0].clientX - event.touches[1].clientX,
+            event.touches[0].clientY - event.touches[1].clientY,
+        );
+
+        // (A) 배율 계산
+        const scaleFactor = distance / last_zoom_pointer_distance;
+        let new_magnification = magnification * scaleFactor;
+        setMagification(new_magnification);
+        last_zoom_pointer_distance = distance;
+
+        console.log(magnification);
+
+        // const clamped_magnification = Math.min(
+        //     MAX_MAGNIFICATION,
+        //     Math.max(MIN_MAGNIFICATION, new_magnification),
+        // );
+        // set_magnification(
+        //     clamped_magnification,
+        //     to_canvas_coords({
+        //         clientX: current_pos.x,
+        //         clientY: current_pos.y,
+        //     }),
+        // );
+
+        const dx = pan_last_pos.x - current_pos.x;
+        const dy = pan_last_pos.y - current_pos.y;
+        // const dpr = devicePixelRatio;
+
+        // 스크롤을 할때 브라우저는 1만큼 이동하라고 시켰으면 실제론 1*dpr를 계산하고. 이를 내림한 값을 브라우저에 저장한다.
+        // 따라서 1을 움직이라고 했을 때 dpr이 2.6이라면 실제로는 floor(1*2.6)을 한 2만큼 스크롤이 움직인다고 여기고.
+        // scrollLeft()는 2/2.6 = 0.7692가 된다. 실제와 약 23%나 차이나는 것이다.
+        // 이것이 프레임당 지속되면 누적이되어 크게 차이난다. 평균 (-0.5,-0.5) 만큼의 차이가 나므로 1초에 30픽셀만큼 오차가 생긴다.
+        // 반올림 하면 오차를 반으로 줄일 수 있지만 완벽히 오차를 제거한 것은 아니다.
+
+        // scaleFactor를 곱해야 제대로 되는것 같은데..?
+        // 확대를 하기 전 거리기준이었으니깐 확대를 반영한 거리만큼 움직여야겠지..?
+        // 계산해보면 그것도 아닌데..?
+
+        posX += dx;
+        posY += dy;
+        resizeScreen();
+        pan_last_pos = current_pos;
+    }
+});
+
+function average_touches(points) {
+    const average = { x: 0, y: 0 };
+    for (const pointer of points) {
+        average.x += pointer.clientX;
+        average.y += pointer.clientY;
+    }
+    average.x /= points.length;
+    average.y /= points.length;
+    return average;
+}
+
+////////////////////////////////
 let points = [
     { x: 864, y: 219 },
     { x: 378, y: 799 },
@@ -21,84 +230,103 @@ let points = [
     { x: 1023, y: 670 },
 ];
 
-const brushSize = 10;
-
 window.addEventListener("pointerdown", (e) => {
-    isDrawing = true;
-    points = [{ x: e.clientX, y: e.clientY }];
-    console.log({ x: e.clientX, y: e.clientY });
+    e.preventDefault();
+    to_screen_coord(e.clientX, e.clientY);
+    pointer_active = true;
+    let point = to_canvas_coord(e.clientX, e.clientY);
+    points = [point];
+    console.log(point);
 });
 
+let power = 1;
 window.addEventListener("pointermove", (e) => {
-    if (!isDrawing) return;
+    e.preventDefault();
+    if (!pointer_active) return;
     requestAnimationFrame(() => {
         // console.log({ x: e.clientX, y: e.clientY });
-        points.push({ x: e.clientX, y: e.clientY });
+        let point = to_canvas_coord(e.clientX, e.clientY);
+        points.push(point);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawSpline();
+        draw();
     });
 });
 
-window.addEventListener("pointerup", () => {
-    isDrawing = false;
+window.addEventListener("pointerup", (e) => {
+    e.preventDefault();
+    pointer_active = false;
 });
 
-ctx.lineJoin = "round";
-ctx.lineCap = "round";
-ctx.lineWidth = brushSize; // 고정된 브러시 크기
-ctx.strokeStyle = "black"; // 브러시 색상 설정
-drawSpline();
+function normalize(vx, vy) {
+    let mag = Math.sqrt(vx * vx + vy * vy);
+    return { x: vx / mag, y: vy / mag };
+}
 
-function catmullRom(p0, p1, p2, p3, t) {
-    let t2 = t * t;
-    let t3 = t2 * t;
+function computeControlPoint(p0, p1, p2, power = 4) {
+    // 벡터 d = p0 - p2
+    let dx = p0.x - p2.x;
+    let dy = p0.y - p2.y;
 
+    // 정규화된 방향 벡터
+    let unit = normalize(dx, dy);
+
+    // 이동 거리 = len(p0, p1) / 4
+    let d = Math.hypot(p1.x - p0.x, p1.y - p0.y) / power;
+
+    // 최종 조절점
     return {
-        x:
-            0.5 *
-            (2 * p1.x +
-                (-p0.x + p2.x) * t +
-                (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
-                (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-        y:
-            0.5 *
-            (2 * p1.y +
-                (-p0.y + p2.y) * t +
-                (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
-                (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+        x: p1.x + unit.x * d,
+        y: p1.y + unit.y * d,
     };
 }
 
-function catmullRomList(p0, p1, p2, p3, segments = 10) {
-    let result = [];
-
-    for (let i = 1; i <= segments; i++) {
-        let t = i / segments;
-        let p = catmullRom(p0, p1, p2, p3, t);
-        result.push(p); // 일정 거리 이상일 때만 점 추가
+draw();
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (points.length == 1) return;
+    if (points.length == 2) {
+        draw0(points[0], points[1]);
+        console.log("직선");
+        return;
     }
-    //console.log(result.length);
-    return result;
-}
+    for (let i = 0; i < points.length - 1; i++) {
+        if (i == 0) {
+            draw1(points[i], points[i + 1], points[i + 2]);
+            // console.log(i, i + 1, i + 2);
+        } else if (i == points.length - 2) {
+            draw3(points[i - 1], points[i], points[i + 1]);
 
-function drawSpline() {
-    if (points.length < 4) return;
-
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 1; i < points.length - 2; i++) {
-        let catmulList = catmullRomList(
-            points[i - 1],
-            points[i],
-            points[i + 1],
-            points[i + 2],
-        );
-        for (let p of catmulList) {
-            ctx.lineTo(p.x, p.y);
+            // console.log(i - 1, i, i + 1);
+        } else {
+            draw2(points[i - 1], points[i], points[i + 1], points[i + 2]);
+            // console.log(i - 1, i, i + 1, i + 2);
         }
     }
+    ctx.stroke(); // 그리기
+}
 
-    ctx.stroke();
+function draw0(p0, p1) {
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
+    ctx.lineTo(p1.x, p1.y);
+}
+//draw1(points[0], points[1], points[2]);
+function draw1(p0, p1, p2) {
+    let a0 = computeControlPoint(p0, p1, p2);
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
+    ctx.quadraticCurveTo(a0.x, a0.y, p1.x, p1.y);
+}
+
+//draw2(points[0], points[1], points[2], points[3]);
+function draw2(p0, p1, p2, p3) {
+    let a0 = computeControlPoint(p2, p1, p0);
+    let a1 = computeControlPoint(p1, p2, p3);
+    ctx.bezierCurveTo(a0.x, a0.y, a1.x, a1.y, p2.x, p2.y);
+}
+
+//draw3(points[1], points[2], points[3]);
+function draw3(p0, p1, p2) {
+    let a0 = computeControlPoint(p2, p1, p0);
+    ctx.quadraticCurveTo(a0.x, a0.y, p2.x, p2.y);
 }
