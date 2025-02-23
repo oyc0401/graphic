@@ -18,7 +18,7 @@ let posY = 0;
 
 const brushSize = 10; // 고정된 브러시 크기
 
-let tool = "BRUSH";
+let action = "BRUSH";
 
 window.onload = function () {
     canvas.width = canvas_w;
@@ -75,8 +75,41 @@ function resizeScreen() {
     canvas.style.height = canvas_css_h + "px";
 }
 
+document.addEventListener("keydown", (event) => {
+    console.log(event);
+    if (event.code == "KeyZ") {
+        event.preventDefault();
+        action = "ZOOM";
+    }
+    if (event.code === "Space") {
+        event.preventDefault();
+        //console.log("스페이스바 눌림!");
+        action = "PAN";
+    }
+    // if (event.code == "ControlLeft") {
+    //     event.preventDefault();
+    //     //action = "ZOOM";
+    // }
+});
+
+document.addEventListener("keyup", (event) => {
+    if (event.code == "KeyZ") {
+        event.preventDefault();
+        if (action != "ZOOM") return;
+        action = "BRUSH";
+    }
+    if (event.code === "Space") {
+        if (action != "PAN") return;
+        action = "BRUSH";
+    }
+    // if (event.code == "ControlLeft") {
+    //     event.preventDefault();
+    //     action = "BRUSH";
+    // }
+});
+
 /**
- * 줌 영역
+ * 휠 줌, 휠스크롤 영역
  */
 function setMagification(new_scale, anchor_point) {
     let factor = 1 - magnification / new_scale;
@@ -95,7 +128,7 @@ window.addEventListener(
     (event) => {
         console.log("wheel", event);
 
-        if (tool == "ZOOM") {
+        if (event.ctrlKey) {
             event.preventDefault();
             let new_mag;
             if (event.deltaY > 0) {
@@ -128,12 +161,11 @@ window.addEventListener(
     { passive: false },
 );
 
-document.addEventListener("gesturestart", function (event) {
-    event.preventDefault();
-});
-
-let lastZoomDistance;
-let panLastPos;
+/**
+ * 핀지줌 영역
+ */
+let lastPinchDistance;
+let lastPinchCenterPos;
 let first_pointer_time = 0;
 let discard_quick_undo_period = 200;
 
@@ -142,27 +174,19 @@ function cancel() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
-document.addEventListener("keydown", (event) => {
-    if (event.code === "Space") {
-        //console.log("스페이스바 눌림!");
-        event.preventDefault(); // 기본 동작(페이지 스크롤 방지)
-        tool = "PAN";
+function average_touches(points) {
+    const average = { x: 0, y: 0 };
+    for (const pointer of points) {
+        average.x += pointer.clientX;
+        average.y += pointer.clientY;
     }
-    if (event.code == "ControlLeft") {
-        event.preventDefault();
-        tool = "ZOOM";
-    }
-});
+    average.x /= points.length;
+    average.y /= points.length;
+    return average;
+}
 
-document.addEventListener("keyup", (event) => {
-    if (event.code === "Space") {
-        // console.log("스페이스바 떼짐!");
-        tool = "BRUSH";
-    }
-    if (event.code == "ControlLeft") {
-        event.preventDefault();
-        tool = "BRUSH";
-    }
+document.addEventListener("gesturestart", function (event) {
+    event.preventDefault();
 });
 
 window.addEventListener(
@@ -187,57 +211,58 @@ window.addEventListener(
             }
             window.dispatchEvent(new Event("pointerup"));
             console.log("두손가락이면 핀치줌 시작");
-            tool = "PINCH";
+            action = "PINCH";
 
-            lastZoomDistance = Math.hypot(
+            lastPinchCenterPos = average_touches(event.touches);
+
+            lastPinchDistance = Math.hypot(
                 event.touches[0].clientX - event.touches[1].clientX,
                 event.touches[0].clientY - event.touches[1].clientY,
             );
-
-            panLastPos = average_touches(event.touches);
         }
     },
     true,
 );
 
 window.addEventListener("touchmove", (event) => {
-    if (tool != "PINCH") return;
+    if (action != "PINCH") return;
 
-    const nowPanPos = average_touches(event.touches);
+    // 핀치 팬
+    const pinchCenterPos = average_touches(event.touches);
+    const dx = lastPinchCenterPos.x - pinchCenterPos.x;
+    const dy = lastPinchCenterPos.y - pinchCenterPos.y;
+    posX += dx / clamped_magnification; // 이게 new_magnification이여야하는지 아징 못정함.
+    posY += dy / clamped_magnification;
+
+    lastPinchCenterPos = pinchCenterPos;
+
+    // 핀지줌
     const distance = Math.hypot(
         event.touches[0].clientX - event.touches[1].clientX,
         event.touches[0].clientY - event.touches[1].clientY,
     );
 
-    // (A) 배율 계산
-    const scaleFactor = distance / lastZoomDistance;
+    const scaleFactor = distance / lastPinchDistance;
     let new_magnification = magnification * scaleFactor;
-
-    lastZoomDistance = distance;
-
-    // console.log(magnification, current_pos);
+    lastPinchDistance = distance;
 
     const clamped_magnification = Math.min(
         MAX_MAGNIFICATION,
         Math.max(MIN_MAGNIFICATION, new_magnification),
     );
-    const dx = panLastPos.x - nowPanPos.x;
-    const dy = panLastPos.y - nowPanPos.y;
-    posX += dx / clamped_magnification; // 이게 new_magnification이여야하는지 아징 못정함.
-    posY += dy / clamped_magnification;
 
     setMagification(
         clamped_magnification,
-        to_screen_coord(nowPanPos.x, nowPanPos.y),
+        to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
     );
 
+    // 렌더링
     resizeScreen();
-    panLastPos = nowPanPos;
 });
 
 window.addEventListener("touchend", (event) => {
     console.log("touchend");
-    if (tool != "PINCH") return;
+    if (action != "PINCH") return;
     if (event.touches.length >= 2) {
         // 세번째 손가락 뗀거임.
         return;
@@ -245,29 +270,18 @@ window.addEventListener("touchend", (event) => {
 
     // // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
     if (event.touches === undefined || event.touches.length < 2) {
-        tool = "BRUSH";
+        action = "BRUSH";
     }
 });
 
-function average_touches(points) {
-    const average = { x: 0, y: 0 };
-    for (const pointer of points) {
-        average.x += pointer.clientX;
-        average.y += pointer.clientY;
-    }
-    average.x /= points.length;
-    average.y /= points.length;
-    return average;
-}
-
 /**
- * 팬 영역
+ * 마우스 팬 영역
  */
 let lastClientX;
 let lastClientY;
 let panmoveStart = false; // 이건 팬도구 마우스가 클릭 되었는지 여부
 window.addEventListener("pointerdown", (e) => {
-    if (tool != "PAN") return;
+    if (action != "PAN") return;
     lastClientX = e.clientX;
     lastClientY = e.clientY;
     //let pointer = to_screen_coord(e.clientX, e.clientY);
@@ -308,7 +322,7 @@ let points = [
 let pointer_active = false;
 window.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    if (tool != "BRUSH") return;
+    if (action != "BRUSH") return;
     to_screen_coord(e.clientX, e.clientY);
     pointer_active = true;
     let point = to_canvas_coord(e.clientX, e.clientY);
