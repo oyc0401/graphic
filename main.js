@@ -10,6 +10,8 @@ let css_left = 0;
 let css_top = 0;
 
 let magnification = 1;
+let MIN_MAGNIFICATION = 0.1;
+let MAX_MAGNIFICATION = 20;
 
 let posX = 0;
 let posY = 0;
@@ -47,6 +49,15 @@ function to_screen_coord(x, y) {
 }
 
 function resizeScreen() {
+    // 스크롤 범위 제한!
+    let maxW = (window.innerWidth / magnification + canvas_w) / 2 - 2;
+    let clampPositionX = Math.min(maxW, Math.max(-maxW, posX));
+    let maxH = (window.innerHeight / magnification + canvas_h) / 2 - 2;
+    let clampPositionY = Math.min(maxH, Math.max(-maxH, posY));
+
+    posX = clampPositionX;
+    posY = clampPositionY;
+
     //console.log("pos:", posX, posY);
     canvas_css_w = canvas_w * magnification;
     canvas_css_h = canvas_h * magnification;
@@ -74,15 +85,24 @@ window.addEventListener(
             } else {
                 new_mag = magnification * 1.2;
             }
-            setMagification(new_mag);
+            const clamped_magnification = Math.min(
+                MAX_MAGNIFICATION,
+                Math.max(MIN_MAGNIFICATION, new_mag),
+            );
+            setMagification(
+                clamped_magnification,
+                to_screen_coord(event.clientX, event.clientY),
+            );
         } else {
             if (event.shiftKey) {
                 let delta = event.deltaY;
-                posX += delta;
+                posX += delta / magnification;
             } else {
                 let delta = event.deltaY;
-                posY += delta;
+                posY += delta / magnification;
             }
+
+            console.log(posX, posY);
         }
 
         resizeScreen();
@@ -157,6 +177,14 @@ window.addEventListener("touchend", (event) => {
 });
 
 function setMagification(new_scale, anchor_point) {
+    let factor = 1 - magnification / new_scale;
+
+    let diff_x = anchor_point.x - posX;
+    let diff_y = anchor_point.y - posY;
+    posX += diff_x * factor;
+    posY += diff_y * factor;
+
+    console.log("배율:", new_scale);
     magnification = new_scale;
 }
 
@@ -171,39 +199,25 @@ window.addEventListener("touchmove", (event) => {
         // (A) 배율 계산
         const scaleFactor = distance / last_zoom_pointer_distance;
         let new_magnification = magnification * scaleFactor;
-        setMagification(new_magnification);
+
         last_zoom_pointer_distance = distance;
 
-        console.log(magnification);
+        // console.log(magnification, current_pos);
 
-        // const clamped_magnification = Math.min(
-        //     MAX_MAGNIFICATION,
-        //     Math.max(MIN_MAGNIFICATION, new_magnification),
-        // );
-        // set_magnification(
-        //     clamped_magnification,
-        //     to_canvas_coords({
-        //         clientX: current_pos.x,
-        //         clientY: current_pos.y,
-        //     }),
-        // );
-
+        const clamped_magnification = Math.min(
+            MAX_MAGNIFICATION,
+            Math.max(MIN_MAGNIFICATION, new_magnification),
+        );
         const dx = pan_last_pos.x - current_pos.x;
         const dy = pan_last_pos.y - current_pos.y;
-        // const dpr = devicePixelRatio;
+        posX += dx / clamped_magnification; // 이게 new_magnification이여야하는지 아징 못정함.
+        posY += dy / clamped_magnification;
 
-        // 스크롤을 할때 브라우저는 1만큼 이동하라고 시켰으면 실제론 1*dpr를 계산하고. 이를 내림한 값을 브라우저에 저장한다.
-        // 따라서 1을 움직이라고 했을 때 dpr이 2.6이라면 실제로는 floor(1*2.6)을 한 2만큼 스크롤이 움직인다고 여기고.
-        // scrollLeft()는 2/2.6 = 0.7692가 된다. 실제와 약 23%나 차이나는 것이다.
-        // 이것이 프레임당 지속되면 누적이되어 크게 차이난다. 평균 (-0.5,-0.5) 만큼의 차이가 나므로 1초에 30픽셀만큼 오차가 생긴다.
-        // 반올림 하면 오차를 반으로 줄일 수 있지만 완벽히 오차를 제거한 것은 아니다.
+        setMagification(
+            clamped_magnification,
+            to_screen_coord(current_pos.x, current_pos.y),
+        );
 
-        // scaleFactor를 곱해야 제대로 되는것 같은데..?
-        // 확대를 하기 전 거리기준이었으니깐 확대를 반영한 거리만큼 움직여야겠지..?
-        // 계산해보면 그것도 아닌데..?
-
-        posX += dx;
-        posY += dy;
         resizeScreen();
         pan_last_pos = current_pos;
     }
