@@ -231,8 +231,8 @@ window.addEventListener("touchmove", (event) => {
     const pinchCenterPos = average_touches(event.touches);
     const dx = lastPinchCenterPos.x - pinchCenterPos.x;
     const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-    posX += dx / clamped_magnification; // 이게 new_magnification이여야하는지 아징 못정함.
-    posY += dy / clamped_magnification;
+    posX += dx / magnification; // 이게 new_magnification이여야하는지 아징 못정함.
+    posY += dy / magnification;
 
     lastPinchCenterPos = pinchCenterPos;
 
@@ -244,7 +244,6 @@ window.addEventListener("touchmove", (event) => {
 
     const scaleFactor = distance / lastPinchDistance;
     let new_magnification = magnification * scaleFactor;
-    lastPinchDistance = distance;
 
     const clamped_magnification = Math.min(
         MAX_MAGNIFICATION,
@@ -256,6 +255,8 @@ window.addEventListener("touchmove", (event) => {
         to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
     );
 
+    lastPinchDistance = distance;
+    
     // 렌더링
     resizeScreen();
 });
