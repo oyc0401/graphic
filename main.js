@@ -1,7 +1,11 @@
 let container = document.querySelector("#container");
 
+let layer_area = document.querySelector("#layer-area");
 let canvas = document.querySelector("#canvas");
+let draw_canvas = document.querySelector("#draw-canvas");
 let ctx = canvas.getContext("2d");
+let draw_ctx = draw_canvas.getContext("2d");
+
 let canvas_w = 300;
 let canvas_h = 300;
 let canvas_css_w = canvas_w;
@@ -24,10 +28,13 @@ window.onload = function () {
     canvas.width = canvas_w;
     canvas.height = canvas_h;
 
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.lineWidth = brushSize; // 고정된 브러시 크기
-    ctx.strokeStyle = "rgba(255,0,0,0.5)"; // 브러시 색상 설정
+    draw_canvas.width = canvas_w;
+    draw_canvas.height = canvas_h;
+
+    draw_ctx.lineJoin = "round";
+    draw_ctx.lineCap = "round";
+    draw_ctx.lineWidth = brushSize; // 고정된 브러시 크기
+    draw_ctx.strokeStyle = "rgba(255,0,0,0.5)"; // 브러시 색상 설정
 
     resizeScreen();
 };
@@ -69,10 +76,10 @@ function resizeScreen() {
     css_left = (window.innerWidth - canvas_css_w) / 2;
     css_top = (window.innerHeight - canvas_css_h) / 2;
 
-    canvas.style.left = css_left - cal_posX + "px";
-    canvas.style.top = css_top - cal_posY + "px";
-    canvas.style.width = canvas_css_w + "px";
-    canvas.style.height = canvas_css_h + "px";
+    layer_area.style.left = css_left - cal_posX + "px";
+    layer_area.style.top = css_top - cal_posY + "px";
+    layer_area.style.width = canvas_css_w + "px";
+    layer_area.style.height = canvas_css_h + "px";
 }
 
 document.addEventListener("keydown", (event) => {
@@ -171,7 +178,7 @@ let discard_quick_undo_period = 200;
 
 function cancel() {
     //alert("cancel!");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw_ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function average_touches(points) {
@@ -256,7 +263,7 @@ window.addEventListener("touchmove", (event) => {
     );
 
     lastPinchDistance = distance;
-    
+
     // 렌더링
     resizeScreen();
 });
@@ -347,6 +354,10 @@ window.addEventListener("pointerup", (e) => {
     e.preventDefault();
     if (!pointer_active) return;
     pointer_active = false;
+    requestAnimationFrame(() => {
+        ctx.drawImage(draw_canvas, 0, 0);
+        draw_ctx.clearRect(0, 0, canvas_w, canvas_h);
+    });
 });
 
 function normalize(vx, vy) {
@@ -374,7 +385,7 @@ function computeControlPoint(p0, p1, p2, power = 4) {
 
 draw();
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    draw_ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (points.length == 1) return;
     if (points.length == 2) {
         draw0(points[0], points[1]);
@@ -394,31 +405,31 @@ function draw() {
             // console.log(i - 1, i, i + 1, i + 2);
         }
     }
-    ctx.stroke(); // 그리기
+    draw_ctx.stroke(); // 그리기
 }
 
 function draw0(p0, p1) {
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
-    ctx.lineTo(p1.x, p1.y);
+    draw_ctx.beginPath();
+    draw_ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
+    draw_ctx.lineTo(p1.x, p1.y);
 }
 //draw1(points[0], points[1], points[2]);
 function draw1(p0, p1, p2) {
     let a0 = computeControlPoint(p0, p1, p2);
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
-    ctx.quadraticCurveTo(a0.x, a0.y, p1.x, p1.y);
+    draw_ctx.beginPath();
+    draw_ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
+    draw_ctx.quadraticCurveTo(a0.x, a0.y, p1.x, p1.y);
 }
 
 //draw2(points[0], points[1], points[2], points[3]);
 function draw2(p0, p1, p2, p3) {
     let a0 = computeControlPoint(p2, p1, p0);
     let a1 = computeControlPoint(p1, p2, p3);
-    ctx.bezierCurveTo(a0.x, a0.y, a1.x, a1.y, p2.x, p2.y);
+    draw_ctx.bezierCurveTo(a0.x, a0.y, a1.x, a1.y, p2.x, p2.y);
 }
 
 //draw3(points[1], points[2], points[3]);
 function draw3(p0, p1, p2) {
     let a0 = computeControlPoint(p2, p1, p0);
-    ctx.quadraticCurveTo(a0.x, a0.y, p2.x, p2.y);
+    draw_ctx.quadraticCurveTo(a0.x, a0.y, p2.x, p2.y);
 }
