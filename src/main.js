@@ -1,32 +1,34 @@
 // function initState() {
-    let container = document.querySelector("#container");
+let container = document.querySelector("#container");
 
-    let layer_area = document.querySelector("#layer-area");
-    let canvas = document.querySelector("#canvas");
-    let draw_canvas = document.querySelector("#draw-canvas");
-    let ctx = canvas.getContext("2d");
-    let draw_ctx = draw_canvas.getContext("2d");
+let layer_area = document.querySelector("#layer-area");
+let canvas = document.querySelector("#canvas");
+let draw_canvas = document.querySelector("#draw-canvas");
+let ctx = canvas.getContext("2d");
+let draw_ctx = draw_canvas.getContext("2d");
 
-    let canvas_w = 300;
-    let canvas_h = 300;
-    let canvas_css_w = canvas_w;
-    let canvas_css_h = canvas_h;
-    let css_left = 0;
-    let css_top = 0;
+let canvas_w = 300;
+let canvas_h = 300;
+let canvas_css_w = canvas_w;
+let canvas_css_h = canvas_h;
+let css_left = 0;
+let css_top = 0;
 
-    let magnification = 1;
-    let MIN_MAGNIFICATION = 0.1;
-    let MAX_MAGNIFICATION = 20;
+let magnification = 1;
+let MIN_MAGNIFICATION = 0.1;
+let MAX_MAGNIFICATION = 20;
 
-    let posX = 0;
-    let posY = 0;
+let posX = 0;
+let posY = 0;
 
-    const brushSize = 10; // 고정된 브러시 크기
+const brushSize = 10; // 고정된 브러시 크기
 
-    let action = "BRUSH";
-
+let action = "BRUSH";
+let bouncingRect = container.getBoundingClientRect();
 
 window.onload = function () {
+    bouncingRect = container.getBoundingClientRect();
+
     canvas.width = canvas_w;
     canvas.height = canvas_h;
 
@@ -55,16 +57,20 @@ function to_canvas_coord(x, y) {
 
 // 스크롤시의 좌표로 변환.
 function to_screen_coord(x, y) {
-    let px = (x - window.innerWidth / 2) / magnification + posX;
-    let py = (y - window.innerHeight / 2) / magnification + posY;
+    let px =
+        (x - bouncingRect.width / 2 - bouncingRect.x) / magnification + posX;
+    let py =
+        (y - bouncingRect.height / 2 - bouncingRect.y) / magnification + posY;
     return { x: px, y: py };
 }
 
 function resizeScreen() {
+    bouncingRect = container.getBoundingClientRect();
+
     // 스크롤 범위 제한!
-    let maxW = (window.innerWidth / magnification + canvas_w) / 2 - 2;
+    let maxW = (bouncingRect.width / magnification + canvas_w) / 2 - 2;
     let clampPositionX = Math.min(maxW, Math.max(-maxW, posX));
-    let maxH = (window.innerHeight / magnification + canvas_h) / 2 - 2;
+    let maxH = (bouncingRect.height / magnification + canvas_h) / 2 - 2;
     let clampPositionY = Math.min(maxH, Math.max(-maxH, posY));
 
     posX = clampPositionX;
@@ -75,8 +81,8 @@ function resizeScreen() {
     canvas_css_h = canvas_h * magnification;
     let cal_posX = posX * magnification;
     let cal_posY = posY * magnification;
-    css_left = (window.innerWidth - canvas_css_w) / 2;
-    css_top = (window.innerHeight - canvas_css_h) / 2;
+    css_left = (bouncingRect.width - canvas_css_w) / 2;
+    css_top = (bouncingRect.height - canvas_css_h) / 2;
 
     layer_area.style.left = css_left - cal_posX + "px";
     layer_area.style.top = css_top - cal_posY + "px";
