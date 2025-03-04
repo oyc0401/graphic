@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { layer } from "./main";
-import { to_canvas_coord, to_screen_coord } from "./main";
+import { to_canvas_coord, to_screen_coord } from "./position";
 let points = [
     { x: 864, y: 219 },
     { x: 378, y: 799 },
