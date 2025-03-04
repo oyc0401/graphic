@@ -23,7 +23,7 @@ body {
 }
 
 #layer-area {
-  background-color: white;
+  background-color: #AAAAAA;
   cursor: crosshair;
   image-rendering: pixelated;
   position: absolute;

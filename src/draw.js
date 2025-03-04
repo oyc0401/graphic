@@ -1,6 +1,9 @@
 import { paintState } from "./main";
-import { layer } from "./main";
+import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
+import { getLayerWorker } from "./worker/workerPool";
+import * as Comlink from "comlink";
+
 let points = [
     { x: 864, y: 219 },
     { x: 378, y: 799 },
@@ -12,37 +15,76 @@ let points = [
 
 let pointer_active = false;
 
-export function initDraw() {
+export function cancel() {
+    layer.draw_ctx.clearRect(0, 0, position.width, position.height);
+}
+
+export let layer = {
+    canvas: document.querySelector("#canvas"),
+    draw_canvas: document.querySelector("#draw-canvas"),
+    //ctx: document.querySelector("#canvas").getContext("2d"),
+    //draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
+    width: 300,
+    height: 300,
+    reset() {
+        // 이 작업은 캔버스의 내용을 모두 지우고, 크기를 조정합니다.
+        this.canvas.width = position.width;
+        this.canvas.height = position.height;
+
+        this.draw_canvas.width = position.width;
+        this.draw_canvas.height = position.height;
+    },
+};
+
+export async function initDraw() {
+    layer.reset();
+
+    const worker = getLayerWorker();
+    const offscreen = layer.canvas.transferControlToOffscreen();
+    const draw_offscreen = layer.draw_canvas.transferControlToOffscreen();
+
+    await worker.makeLayer(
+        "layerId",
+        "name",
+        Comlink.transfer(offscreen, [offscreen]),
+        Comlink.transfer(draw_offscreen, [draw_offscreen]),
+        layer.width,
+        layer.height,
+        0,
+    );
+
     window.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
         to_screen_coord(e.clientX, e.clientY);
         pointer_active = true;
         let point = to_canvas_coord(e.clientX, e.clientY);
-        points = [point];
-        console.log(point);
+        //points = [point];
+        const worker = getLayerWorker();
+        worker.paintStart("layerId", point, "black", 20, "BRUSH");
     });
 
     window.addEventListener("pointermove", (e) => {
         e.preventDefault();
         if (!pointer_active) return;
-        requestAnimationFrame(() => {
-            // console.log({ x: e.clientX, y: e.clientY });
-            let point = to_canvas_coord(e.clientX, e.clientY);
-            points.push(point);
 
-            draw();
-        });
+        let point = to_canvas_coord(e.clientX, e.clientY);
+        const worker = getLayerWorker();
+
+        worker.paint(
+            "layerId",
+            point,
+            "black",
+            10, //PaintJSState.stroke_size,
+        );
     });
 
     window.addEventListener("pointerup", (e) => {
         e.preventDefault();
         if (!pointer_active) return;
         pointer_active = false;
-        requestAnimationFrame(() => {
-            layer.ctx.drawImage(layer.draw_canvas, 0, 0);
-            layer.draw_ctx.clearRect(0, 0, layer.width, layer.height);
-        });
+        const worker = getLayerWorker();
+        worker.pointerUp("layerId");
     });
 }
 

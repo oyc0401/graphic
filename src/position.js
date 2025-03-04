@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { cancel } from "./main";
+import { cancel } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -41,6 +41,8 @@ export function initPosition() {
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
+
+  
 
   /**
    * 휠 스크롤 영역
