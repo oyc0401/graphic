@@ -1,28 +1,30 @@
-let container = document.querySelector("#container");
+// function initState() {
+    let container = document.querySelector("#container");
 
-let layer_area = document.querySelector("#layer-area");
-let canvas = document.querySelector("#canvas");
-let draw_canvas = document.querySelector("#draw-canvas");
-let ctx = canvas.getContext("2d");
-let draw_ctx = draw_canvas.getContext("2d");
+    let layer_area = document.querySelector("#layer-area");
+    let canvas = document.querySelector("#canvas");
+    let draw_canvas = document.querySelector("#draw-canvas");
+    let ctx = canvas.getContext("2d");
+    let draw_ctx = draw_canvas.getContext("2d");
 
-let canvas_w = 300;
-let canvas_h = 300;
-let canvas_css_w = canvas_w;
-let canvas_css_h = canvas_h;
-let css_left = 0;
-let css_top = 0;
+    let canvas_w = 300;
+    let canvas_h = 300;
+    let canvas_css_w = canvas_w;
+    let canvas_css_h = canvas_h;
+    let css_left = 0;
+    let css_top = 0;
 
-let magnification = 1;
-let MIN_MAGNIFICATION = 0.1;
-let MAX_MAGNIFICATION = 20;
+    let magnification = 1;
+    let MIN_MAGNIFICATION = 0.1;
+    let MAX_MAGNIFICATION = 20;
 
-let posX = 0;
-let posY = 0;
+    let posX = 0;
+    let posY = 0;
 
-const brushSize = 10; // 고정된 브러시 크기
+    const brushSize = 10; // 고정된 브러시 크기
 
-let action = "BRUSH";
+    let action = "BRUSH";
+
 
 window.onload = function () {
     canvas.width = canvas_w;
