@@ -1,44 +1,47 @@
-// function initState() {
+import { initDraw } from "./draw";
+
 let container = document.querySelector("#container");
-
 let layer_area = document.querySelector("#layer-area");
-let canvas = document.querySelector("#canvas");
-let draw_canvas = document.querySelector("#draw-canvas");
-let ctx = canvas.getContext("2d");
-let draw_ctx = draw_canvas.getContext("2d");
-
-let canvas_w = 300;
-let canvas_h = 300;
-let canvas_css_w = canvas_w;
-let canvas_css_h = canvas_h;
-let css_left = 0;
-let css_top = 0;
-
-let magnification = 1;
-let MIN_MAGNIFICATION = 0.1;
-let MAX_MAGNIFICATION = 20;
-
-let posX = 0;
-let posY = 0;
-
+let bouncingRect = container.getBoundingClientRect();
 const brushSize = 10; // 고정된 브러시 크기
 
-let action = "BRUSH";
-let bouncingRect = container.getBoundingClientRect();
+export let layer = {
+    canvas: document.querySelector("#canvas"),
+    draw_canvas: document.querySelector("#draw-canvas"),
+    ctx: document.querySelector("#canvas").getContext("2d"),
+    draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
+    width: 300,
+    height: 300,
+};
+
+let positionState = {
+    x: 0,
+    y: 0,
+    width: 300,
+    height: 300,
+    magnification: 1,
+};
+
+export let paintState = {
+    action: "BRUSH",
+};
+
+const MIN_MAGNIFICATION = 0.1;
+const MAX_MAGNIFICATION = 20;
 
 window.onload = function () {
     bouncingRect = container.getBoundingClientRect();
 
-    canvas.width = canvas_w;
-    canvas.height = canvas_h;
+    layer.canvas.width = positionState.width;
+    layer.canvas.height = positionState.height;
 
-    draw_canvas.width = canvas_w;
-    draw_canvas.height = canvas_h;
+    layer.draw_canvas.width = positionState.width;
+    layer.draw_canvas.height = positionState.height;
 
-    draw_ctx.lineJoin = "round";
-    draw_ctx.lineCap = "round";
-    draw_ctx.lineWidth = brushSize; // 고정된 브러시 크기
-    draw_ctx.strokeStyle = "rgba(255,0,0,0.5)"; // 브러시 색상 설정
+    layer.draw_ctx.lineJoin = "round";
+    layer.draw_ctx.lineCap = "round";
+    layer.draw_ctx.lineWidth = brushSize; // 고정된 브러시 크기
+    layer.draw_ctx.strokeStyle = "rgba(255,0,0,0.5)"; // 브러시 색상 설정
 
     resizeScreen();
 };
@@ -48,19 +51,23 @@ window.addEventListener("resize", function () {
 });
 
 // 캔버스 상의 좌표로 변환.
-function to_canvas_coord(x, y) {
+export function to_canvas_coord(x, y) {
     let p = to_screen_coord(x, y);
-    let px = p.x + canvas_w / 2;
-    let py = p.y + canvas_h / 2;
+    let px = p.x + positionState.width / 2;
+    let py = p.y + positionState.height / 2;
     return { x: px, y: py };
 }
 
 // 스크롤시의 좌표로 변환.
-function to_screen_coord(x, y) {
+export function to_screen_coord(x, y) {
     let px =
-        (x - bouncingRect.width / 2 - bouncingRect.x) / magnification + posX;
+        (x - bouncingRect.width / 2 - bouncingRect.x) /
+            positionState.magnification +
+        positionState.x;
     let py =
-        (y - bouncingRect.height / 2 - bouncingRect.y) / magnification + posY;
+        (y - bouncingRect.height / 2 - bouncingRect.y) /
+            positionState.magnification +
+        positionState.y;
     return { x: px, y: py };
 }
 
@@ -68,21 +75,29 @@ function resizeScreen() {
     bouncingRect = container.getBoundingClientRect();
 
     // 스크롤 범위 제한!
-    let maxW = (bouncingRect.width / magnification + canvas_w) / 2 - 2;
-    let clampPositionX = Math.min(maxW, Math.max(-maxW, posX));
-    let maxH = (bouncingRect.height / magnification + canvas_h) / 2 - 2;
-    let clampPositionY = Math.min(maxH, Math.max(-maxH, posY));
+    let maxW =
+        (bouncingRect.width / positionState.magnification +
+            positionState.width) /
+            2 -
+        2;
+    let clampPositionX = Math.min(maxW, Math.max(-maxW, positionState.x));
+    let maxH =
+        (bouncingRect.height / positionState.magnification +
+            positionState.height) /
+            2 -
+        2;
+    let clampPositionY = Math.min(maxH, Math.max(-maxH, positionState.y));
 
-    posX = clampPositionX;
-    posY = clampPositionY;
+    positionState.x = clampPositionX;
+    positionState.y = clampPositionY;
 
-    //console.log("pos:", posX, posY);
-    canvas_css_w = canvas_w * magnification;
-    canvas_css_h = canvas_h * magnification;
-    let cal_posX = posX * magnification;
-    let cal_posY = posY * magnification;
-    css_left = (bouncingRect.width - canvas_css_w) / 2;
-    css_top = (bouncingRect.height - canvas_css_h) / 2;
+    //console.log("pos:", positionState.x, positionState.y);
+    let canvas_css_w = positionState.width * positionState.magnification;
+    let canvas_css_h = positionState.height * positionState.magnification;
+    let cal_posX = positionState.x * positionState.magnification;
+    let cal_posY = positionState.y * positionState.magnification;
+    let css_left = (bouncingRect.width - canvas_css_w) / 2;
+    let css_top = (bouncingRect.height - canvas_css_h) / 2;
 
     layer_area.style.left = css_left - cal_posX + "px";
     layer_area.style.top = css_top - cal_posY + "px";
@@ -91,35 +106,35 @@ function resizeScreen() {
 }
 
 document.addEventListener("keydown", (event) => {
-    console.log(event);
+    //console.log(event);
     if (event.code == "KeyZ") {
         event.preventDefault();
-        action = "ZOOM";
+        paintState.action = "ZOOM";
     }
     if (event.code === "Space") {
         event.preventDefault();
         //console.log("스페이스바 눌림!");
-        action = "PAN";
+        paintState.action = "PAN";
     }
     // if (event.code == "ControlLeft") {
     //     event.preventDefault();
-    //     //action = "ZOOM";
+    //     //paintState.action = "ZOOM";
     // }
 });
 
 document.addEventListener("keyup", (event) => {
     if (event.code == "KeyZ") {
         event.preventDefault();
-        if (action != "ZOOM") return;
-        action = "BRUSH";
+        if (paintState.action != "ZOOM") return;
+        paintState.action = "BRUSH";
     }
     if (event.code === "Space") {
-        if (action != "PAN") return;
-        action = "BRUSH";
+        if (paintState.action != "PAN") return;
+        paintState.action = "BRUSH";
     }
     // if (event.code == "ControlLeft") {
     //     event.preventDefault();
-    //     action = "BRUSH";
+    //     paintState.action = "BRUSH";
     // }
 });
 
@@ -127,29 +142,29 @@ document.addEventListener("keyup", (event) => {
  * 휠 줌, 휠스크롤 영역
  */
 function setMagification(new_scale, anchor_point) {
-    let factor = 1 - magnification / new_scale;
+    let factor = 1 - positionState.magnification / new_scale;
 
-    let diff_x = anchor_point.x - posX;
-    let diff_y = anchor_point.y - posY;
-    posX += diff_x * factor;
-    posY += diff_y * factor;
+    let diff_x = anchor_point.x - positionState.x;
+    let diff_y = anchor_point.y - positionState.y;
+    positionState.x += diff_x * factor;
+    positionState.y += diff_y * factor;
 
     console.log("배율:", new_scale);
-    magnification = new_scale;
+    positionState.magnification = new_scale;
 }
 
 window.addEventListener(
     "wheel",
     (event) => {
-        console.log("wheel", event);
+        // console.log("wheel", event);
 
         if (event.ctrlKey) {
             event.preventDefault();
             let new_mag;
             if (event.deltaY > 0) {
-                new_mag = magnification / 1.2;
+                new_mag = positionState.magnification / 1.2;
             } else {
-                new_mag = magnification * 1.2;
+                new_mag = positionState.magnification * 1.2;
             }
             const clamped_magnification = Math.min(
                 MAX_MAGNIFICATION,
@@ -162,13 +177,13 @@ window.addEventListener(
         } else {
             if (event.shiftKey) {
                 let delta = event.deltaY;
-                posX += delta / magnification;
+                positionState.x += delta / positionState.magnification;
             } else {
                 let delta = event.deltaY;
-                posY += delta / magnification;
+                positionState.y += delta / positionState.magnification;
             }
 
-            console.log(posX, posY);
+            //console.log(positionState.x, positionState.y);
         }
 
         resizeScreen();
@@ -185,8 +200,7 @@ let first_pointer_time = 0;
 let discard_quick_undo_period = 200;
 
 function cancel() {
-    //alert("cancel!");
-    draw_ctx.clearRect(0, 0, canvas.width, canvas.height);
+    layer.draw_ctx.clearRect(0, 0, positionState.width, positionState.height);
 }
 
 function average_touches(points) {
@@ -226,7 +240,7 @@ window.addEventListener(
             }
             window.dispatchEvent(new Event("pointerup"));
             console.log("두손가락이면 핀치줌 시작");
-            action = "PINCH";
+            paintState.action = "PINCH";
 
             lastPinchCenterPos = average_touches(event.touches);
 
@@ -240,14 +254,14 @@ window.addEventListener(
 );
 
 window.addEventListener("touchmove", (event) => {
-    if (action != "PINCH") return;
+    if (paintState.action != "PINCH") return;
 
     // 핀치 팬
     const pinchCenterPos = average_touches(event.touches);
     const dx = lastPinchCenterPos.x - pinchCenterPos.x;
     const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-    posX += dx / magnification; // 이게 new_magnification이여야하는지 아징 못정함.
-    posY += dy / magnification;
+    positionState.x += dx / positionState.magnification; // 이게 new_magnification이여야하는지 아징 못정함.
+    positionState.y += dy / positionState.magnification;
 
     lastPinchCenterPos = pinchCenterPos;
 
@@ -258,7 +272,7 @@ window.addEventListener("touchmove", (event) => {
     );
 
     const scaleFactor = distance / lastPinchDistance;
-    let new_magnification = magnification * scaleFactor;
+    let new_magnification = positionState.magnification * scaleFactor;
 
     const clamped_magnification = Math.min(
         MAX_MAGNIFICATION,
@@ -278,7 +292,7 @@ window.addEventListener("touchmove", (event) => {
 
 window.addEventListener("touchend", (event) => {
     console.log("touchend");
-    if (action != "PINCH") return;
+    if (paintState.action != "PINCH") return;
     if (event.touches.length >= 2) {
         // 세번째 손가락 뗀거임.
         return;
@@ -286,7 +300,7 @@ window.addEventListener("touchend", (event) => {
 
     // // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
     if (event.touches === undefined || event.touches.length < 2) {
-        action = "BRUSH";
+        paintState.action = "BRUSH";
     }
 });
 
@@ -297,7 +311,7 @@ let lastClientX;
 let lastClientY;
 let panmoveStart = false; // 이건 팬도구 마우스가 클릭 되었는지 여부
 window.addEventListener("pointerdown", (e) => {
-    if (action != "PAN") return;
+    if (paintState.action != "PAN") return;
     lastClientX = e.clientX;
     lastClientY = e.clientY;
     //let pointer = to_screen_coord(e.clientX, e.clientY);
@@ -310,8 +324,8 @@ window.addEventListener("pointermove", (e) => {
 
     let dx = lastClientX - e.clientX;
     let dy = lastClientY - e.clientY;
-    posX += dx / magnification;
-    posY += dy / magnification;
+    positionState.x += dx / positionState.magnification;
+    positionState.y += dy / positionState.magnification;
 
     lastClientX = e.clientX;
     lastClientY = e.clientY;
@@ -323,121 +337,5 @@ window.addEventListener("pointerup", (e) => {
     panmoveStart = false;
 });
 ////////////////////////////////
-/**
- * 브러시 영역
- */
-let points = [
-    { x: 864, y: 219 },
-    { x: 378, y: 799 },
-    { x: 142, y: 484 },
-    { x: 430, y: 117 },
-    { x: 836, y: 126 },
-    { x: 1023, y: 670 },
-];
 
-let pointer_active = false;
-window.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    if (action != "BRUSH") return;
-    to_screen_coord(e.clientX, e.clientY);
-    pointer_active = true;
-    let point = to_canvas_coord(e.clientX, e.clientY);
-    points = [point];
-    console.log(point);
-});
-
-window.addEventListener("pointermove", (e) => {
-    e.preventDefault();
-    if (!pointer_active) return;
-    requestAnimationFrame(() => {
-        // console.log({ x: e.clientX, y: e.clientY });
-        let point = to_canvas_coord(e.clientX, e.clientY);
-        points.push(point);
-
-        draw();
-    });
-});
-
-window.addEventListener("pointerup", (e) => {
-    e.preventDefault();
-    if (!pointer_active) return;
-    pointer_active = false;
-    requestAnimationFrame(() => {
-        ctx.drawImage(draw_canvas, 0, 0);
-        draw_ctx.clearRect(0, 0, canvas_w, canvas_h);
-    });
-});
-
-function normalize(vx, vy) {
-    let mag = Math.sqrt(vx * vx + vy * vy);
-    return { x: vx / mag, y: vy / mag };
-}
-
-function computeControlPoint(p0, p1, p2, power = 4) {
-    // 벡터 d = p0 - p2
-    let dx = p0.x - p2.x;
-    let dy = p0.y - p2.y;
-
-    // 정규화된 방향 벡터
-    let unit = normalize(dx, dy);
-
-    // 이동 거리 = len(p0, p1) / 4
-    let d = Math.hypot(p1.x - p0.x, p1.y - p0.y) / power;
-
-    // 최종 조절점
-    return {
-        x: p1.x + unit.x * d,
-        y: p1.y + unit.y * d,
-    };
-}
-
-draw();
-function draw() {
-    draw_ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (points.length == 1) return;
-    if (points.length == 2) {
-        draw0(points[0], points[1]);
-        console.log("직선");
-        return;
-    }
-    for (let i = 0; i < points.length - 1; i++) {
-        if (i == 0) {
-            draw1(points[i], points[i + 1], points[i + 2]);
-            // console.log(i, i + 1, i + 2);
-        } else if (i == points.length - 2) {
-            draw3(points[i - 1], points[i], points[i + 1]);
-
-            // console.log(i - 1, i, i + 1);
-        } else {
-            draw2(points[i - 1], points[i], points[i + 1], points[i + 2]);
-            // console.log(i - 1, i, i + 1, i + 2);
-        }
-    }
-    draw_ctx.stroke(); // 그리기
-}
-
-function draw0(p0, p1) {
-    draw_ctx.beginPath();
-    draw_ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
-    draw_ctx.lineTo(p1.x, p1.y);
-}
-//draw1(points[0], points[1], points[2]);
-function draw1(p0, p1, p2) {
-    let a0 = computeControlPoint(p0, p1, p2);
-    draw_ctx.beginPath();
-    draw_ctx.moveTo(p0.x, p0.y); // 시작점으로 이동
-    draw_ctx.quadraticCurveTo(a0.x, a0.y, p1.x, p1.y);
-}
-
-//draw2(points[0], points[1], points[2], points[3]);
-function draw2(p0, p1, p2, p3) {
-    let a0 = computeControlPoint(p2, p1, p0);
-    let a1 = computeControlPoint(p1, p2, p3);
-    draw_ctx.bezierCurveTo(a0.x, a0.y, a1.x, a1.y, p2.x, p2.y);
-}
-
-//draw3(points[1], points[2], points[3]);
-function draw3(p0, p1, p2) {
-    let a0 = computeControlPoint(p2, p1, p0);
-    draw_ctx.quadraticCurveTo(a0.x, a0.y, p2.x, p2.y);
-}
+initDraw();
