@@ -13,10 +13,9 @@ export let paintState = {
         this.bouncingRect = this.container.getBoundingClientRect();
     },
 };
-
-function main() {
+async function main() {
     initPosition();
-    initDraw();
+    await initDraw();
 
     initiaize();
 }

@@ -25,6 +25,9 @@ interface Pointer {
 }
 
 export const workerApi = {
+  /**
+   * 새로운 레이어를 만듭니다.
+   */
   async makeLayer(
     layerId: string,
     name: string,
@@ -58,20 +61,30 @@ export const workerApi = {
     layers = {};
   },
 
-  paintStart(layerId: string, pointer: Pointer, color, size: number, tool) {
+  paintStart(layerId: string, pointer: Pointer, tool) {
     const layer = getLayer(layerId);
-    layer.drawStart(pointer, color, size, tool);
+    layer.drawStart(pointer, tool);
   },
 
-  paint(layerId: string, pointer: Pointer, color, size: number) {
+  paint(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
-    layer.pushDrawPointer(pointer, color, size); // 도구의 종류는 포인터 시작할 때 정해짐
+    layer.pushDrawPointer(pointer); // 도구의 종류는 포인터 시작할 때 정해짐
     layer.paint();
   },
 
   pointerUp(layerId: string) {
     const layer = getLayer(layerId);
     layer.pointerUp();
+  },
+  
+  setColor(layerId,color) {
+    const layer = getLayer(layerId);
+    layer.setBrushColor(color);
+  },
+  
+  setSize(layerId,size) {
+    const layer = getLayer(layerId);
+    layer.setBrushSize(size);
   },
 
   eraserStart(layerId: string, pointer: Pointer, width: number, tool) {
@@ -82,11 +95,12 @@ export const workerApi = {
       }, 0);
     });
   },
+  
   eraser(layerId: string, pointer: Pointer, size: number) {
     requestAnimationFrame(() => {
       setTimeout(() => {
         const layer = getLayer(layerId);
-        layer.pushDrawPointer(pointer, "white", size);
+        layer.pushDrawPointer(pointer);
         layer.eraser();
       }, 0);
     });

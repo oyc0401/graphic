@@ -4,15 +4,6 @@ import { to_canvas_coord, to_screen_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
-let points = [
-    { x: 864, y: 219 },
-    { x: 378, y: 799 },
-    { x: 142, y: 484 },
-    { x: 430, y: 117 },
-    { x: 836, y: 126 },
-    { x: 1023, y: 670 },
-];
-
 let pointer_active = false;
 
 export function cancel() {
@@ -36,6 +27,8 @@ export let layer = {
     },
 };
 
+const layerId = "SingleLayer";
+const layerName = "SingleLayerName";
 export async function initDraw() {
     layer.reset();
 
@@ -44,8 +37,8 @@ export async function initDraw() {
     const draw_offscreen = layer.draw_canvas.transferControlToOffscreen();
 
     await worker.makeLayer(
-        "layerId",
-        "name",
+        layerId,
+        layerName,
         Comlink.transfer(offscreen, [offscreen]),
         Comlink.transfer(draw_offscreen, [draw_offscreen]),
         layer.width,
@@ -53,15 +46,20 @@ export async function initDraw() {
         0,
     );
 
+    worker.setColor(layerId, "rgba(255,0,0,0.3)");
+    worker.setSize(layerId, 20);
+
     window.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
         to_screen_coord(e.clientX, e.clientY);
         pointer_active = true;
         let point = to_canvas_coord(e.clientX, e.clientY);
-        //points = [point];
         const worker = getLayerWorker();
-        worker.paintStart("layerId", point, "black", 20, "BRUSH");
+
+        worker.setColor(layerId, "rgba(255,0,0,0.3)");
+        worker.setSize(layerId, 20);
+        worker.paintStart(layerId, point, "BRUSH");
     });
 
     window.addEventListener("pointermove", (e) => {
@@ -71,12 +69,7 @@ export async function initDraw() {
         let point = to_canvas_coord(e.clientX, e.clientY);
         const worker = getLayerWorker();
 
-        worker.paint(
-            "layerId",
-            point,
-            "black",
-            10, //PaintJSState.stroke_size,
-        );
+        worker.paint(layerId, point);
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -84,9 +77,11 @@ export async function initDraw() {
         if (!pointer_active) return;
         pointer_active = false;
         const worker = getLayerWorker();
-        worker.pointerUp("layerId");
+        worker.pointerUp(layerId);
     });
 }
+
+///////////////////////////////////////////////////
 
 function normalize(vx, vy) {
     let mag = Math.sqrt(vx * vx + vy * vy);
@@ -110,6 +105,8 @@ function computeControlPoint(p0, p1, p2, power = 4) {
         y: p1.y + unit.y * d,
     };
 }
+
+let points = [];
 
 function draw() {
     layer.draw_ctx.clearRect(0, 0, canvas.width, canvas.height);

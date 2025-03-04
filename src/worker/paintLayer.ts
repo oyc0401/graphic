@@ -15,6 +15,8 @@ export class PaintLayer {
   draw_pointers: { x; y; size; color }[];
   tool: string;
   tools: { [key: string]: Tool };
+  brushColor: string;
+  brushSize: number;
 
   start = { x: 0, y: 0 };
   end = { x: 0, y: 0 };
@@ -90,32 +92,38 @@ export class PaintLayer {
     draw_canvas.height = height;
   }
 
-  pushDrawPointer(pointer, color, size) {
+  pushDrawPointer(pointer) {
     if (this.draw_pointers.length == 0) {
       this.start = { x: pointer.x, y: pointer.y };
       this.end = { x: pointer.x, y: pointer.y };
-      this.maxSize = size;
+      this.maxSize = this.brushSize;
     }
 
     this.draw_pointers.push({
       x: pointer.x,
       y: pointer.y,
-      color,
-      size,
+      color: this.brushColor,
+      size: this.brushSize,
     });
 
     if (pointer.x < this.start.x) this.start.x = pointer.x;
     if (pointer.y < this.start.y) this.start.y = pointer.y;
     if (this.end.x < pointer.x) this.end.x = pointer.x;
     if (this.end.y < pointer.y) this.end.y = pointer.y;
-    if (this.maxSize < size) this.maxSize = size;
+    if (this.maxSize < this.brushSize) this.maxSize = this.brushSize;
   }
 
-  drawStart(pointer, color, size, tool) {
+  setBrushColor(color) {
+    this.brushColor = color;
+  }
+  setBrushSize(size) {
+    this.brushSize = size;
+  }
+
+  drawStart(pointer, tool) {
     this.tool = tool;
     this.draw_pointers = [];
-    this.pushDrawPointer(pointer, color, size);
-
+    this.pushDrawPointer(pointer);
   }
 
   paint() {
@@ -152,7 +160,7 @@ export class PaintLayer {
 
     this.tool = tool;
     this.draw_pointers = [];
-    this.pushDrawPointer(pointer, "white", size);
+    this.pushDrawPointer(pointer);
   }
 
   eraser() {
