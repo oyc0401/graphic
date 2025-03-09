@@ -1,5 +1,107 @@
 //import { stamp_brush_canvas } from "../src/image-mani";
 import { bresenham_dense_line, bresenham_line } from "./imageHelper";
+import { createShader, createProgram } from "./glHelper";
+
+const TEXTURE_UNIT = {
+  TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
+  SOURCE: 1, // 원본 이미지 (Source Image)
+  ALPHAMAP: 2, // 브러시 알파맵
+  //EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
+  //EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
+};
+
+/**
+ * 싱글톤, 처음 시작할 때만 glsl 컴파일 함.
+ */
+let brushManager;
+export function getBrushManager(canvas, gl, width, height) {
+  if (!brushManager) {
+    let alphaMap = [[]];
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0, 0, 0, 0);
+
+    const ext = gl.getExtension("EXT_color_buffer_float");
+    if (!ext) {
+      console.error("EXT_color_buffer_float not supported!");
+    }
+    const extFloatLinear =
+      gl.getExtension("OES_texture_float_linear") ||
+      gl.getExtension("EXT_texture_filter_float");
+    if (!extFloatLinear) {
+      console.error(
+        "This device does not support linear filtering for float textures.",
+      );
+    }
+
+    let vertexShaderSource = `#version 300 es
+    in vec2 a_position;
+    out vec2 v_texCoord; // 좌표변환: 0 ~ 1
+
+    uniform vec2 u_resolution;
+    uniform sampler2D u_alphaMap;
+
+    void main() {
+        v_texCoord = a_position * 0.5 + 0.5;
+        gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+    `;
+
+    let brushShaderSource = `
+    `;
+    let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
+
+    let brushProgram = createProgram(gl, vertexShader, brushShader);
+    gl.useProgram(brushProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(brushProgram, "u_resolution"),
+      width,
+      height,
+    );
+
+    const emptyData = new Float32Array(width * height);
+
+    // 알파맵 텍스처 생성 및 데이터 업로드
+    let alphaTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHAMAP);
+    gl.bindTexture(gl.TEXTURE_2D, alphaTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG32F,
+      width,
+      height,
+      0,
+      gl.RG,
+      gl.FLOAT,
+      emptyData,
+    );
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.uniform1i(
+        gl.getUniformLocation(brushProgram, "u_alphaMap"),
+        TEXTURE_UNIT.ALPHAMAP,
+    );
+
+    // 알파맵 텍스쳐 만들고
+    // 버텍스 셰이더 코드 적고 (풀 스크린)
+    // 프래그먼트 셰이더 적고
+    // 텍스처 바인딩 하고
+    // 기존 이미지 텍스쳐 업로드 하고
+    // draw()함수 내부에서 rgba, 사이즈 유니폼 업데이트하고, 시저테스트로 구역 정하고 알파맵 변환 시키고
+    // render() 함수에선 알파맵과 rgb를 기준으로 이미지에 렌더링하고
+
+    brushManager = {};
+  }
+
+  return brushManager;
+}
+
 export class Tool {
   paint(ctx, draw_pointers) {}
 }
@@ -130,7 +232,12 @@ export class PixelEraser extends Tool {
 
         const iterate_line = size > 1 ? bresenham_dense_line : bresenham_line;
         iterate_line(prev_x, prev_y, x, y, (dx, dy) => {
-          ctx.clearRect(Math.ceil(dx-size/2), Math.ceil(dy-size/2), size, size);
+          ctx.clearRect(
+            Math.ceil(dx - size / 2),
+            Math.ceil(dy - size / 2),
+            size,
+            size,
+          );
         });
       }
     }

@@ -59,7 +59,7 @@ export async function initDraw() {
 
         worker.setColor(layerId, "rgba(255,0,0,0.3)");
         worker.setSize(layerId, 20);
-        worker.paintStart(layerId, point, "BRUSH");
+        worker.drawStart(layerId, point, "BRUSH");
     });
 
     window.addEventListener("pointermove", (e) => {
@@ -69,7 +69,7 @@ export async function initDraw() {
         let point = to_canvas_coord(e.clientX, e.clientY);
         const worker = getLayerWorker();
 
-        worker.paint(layerId, point);
+        worker.draw(layerId, point);
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -77,7 +77,7 @@ export async function initDraw() {
         if (!pointer_active) return;
         pointer_active = false;
         const worker = getLayerWorker();
-        worker.pointerUp(layerId);
+        worker.drawEnd(layerId);
     });
 }
 

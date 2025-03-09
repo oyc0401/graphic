@@ -326,8 +326,8 @@
         await loadPrecomputedData(url);
         await loadPrecomputedData2("/integralEase.bin");
 
-        let grid = generateGradientGrid(5, 0, radius);
-        grid = generateCylinderCut(5, 0, radius);
+        let grid = generateGradientGrid(50, 0, radius);
+        //grid = generateCylinderCut(50, 0, radius);
         //console.table(grid.map((row) => row.map((v) => v.toFixed(2))));
 
         displayResultTable(grid, radius);

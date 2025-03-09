@@ -11,6 +11,9 @@ function getLayer(layerId) {
   return layers[layerId];
 }
 
+let brushColor = "black";
+let brushSize = 12;
+
 let selection: {
   layerId: string;
   canvas: OffscreenCanvas;
@@ -61,29 +64,31 @@ export const workerApi = {
     layers = {};
   },
 
-  paintStart(layerId: string, pointer: Pointer, tool) {
+  drawStart(layerId: string, pointer: Pointer, tool) {
     const layer = getLayer(layerId);
     layer.drawStart(pointer, tool);
   },
 
-  paint(layerId: string, pointer: Pointer) {
+  draw(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
-    layer.pushDrawPointer(pointer); // 도구의 종류는 포인터 시작할 때 정해짐
-    layer.paint();
+    //layer.pushDrawPointer(pointer); // 도구의 종류는 포인터 시작할 때 정해짐
+    layer.draw(pointer);
   },
 
-  pointerUp(layerId: string) {
+  drawEnd(layerId: string) {
     const layer = getLayer(layerId);
-    layer.pointerUp();
+    layer.drawEnd();
   },
-  
-  setColor(layerId,color) {
+
+  setColor(layerId, color) {
     const layer = getLayer(layerId);
+    brushColor = color;
     layer.setBrushColor(color);
   },
-  
-  setSize(layerId,size) {
+
+  setSize(layerId, size) {
     const layer = getLayer(layerId);
+    brushSize = size;
     layer.setBrushSize(size);
   },
 
@@ -95,7 +100,7 @@ export const workerApi = {
       }, 0);
     });
   },
-  
+
   eraser(layerId: string, pointer: Pointer, size: number) {
     requestAnimationFrame(() => {
       setTimeout(() => {

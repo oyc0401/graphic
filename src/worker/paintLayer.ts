@@ -1,5 +1,5 @@
 import { PencilTool, BrushTool, PixelEraser, Tool } from "./tools";
-
+import { getBrushManager } from "./tools";
 export class PaintLayer {
   id: string;
   name: string;
@@ -25,6 +25,7 @@ export class PaintLayer {
   main_temp_canvas: OffscreenCanvas;
   main_temp_ctx: OffscreenCanvasRenderingContext2D;
 
+  lastPointer;
   constructor(
     id: string,
     name: string,
@@ -40,8 +41,8 @@ export class PaintLayer {
     this.name = name;
     this.main_canvas = main_canvas;
     this.draw_canvas = draw_canvas;
-    this.main_ctx = main_canvas.getContext("2d");
-    this.draw_ctx = draw_canvas.getContext("2d");
+    this.main_ctx = main_canvas.getContext("webgl2");
+    this.draw_ctx = draw_canvas.getContext("webgl2");
     this.main_ctx.imageSmoothingEnabled = false;
     this.draw_ctx.imageSmoothingEnabled = false;
     this.priority = priority;
@@ -67,16 +68,17 @@ export class PaintLayer {
       this.main_ctx.fillStyle = this.background;
       this.main_ctx.fillRect(0, 0, this.width, this.height);
     } else {
-      this.main_ctx.clearRect(0, 0, this.width, this.height);
+      // this.main_ctx.clearRect(0, 0, this.width, this.height);
     }
   }
 
   clear() {
     if (this.background) {
       this.main_ctx.fillStyle = this.background;
-      this.main_ctx.fillRect(0, 0, this.width, this.height);
+      //this.main_ctx.fillRect(0, 0, this.width, this.height);
     } else {
-      this.main_ctx.clearRect(0, 0, this.width, this.height);
+      //this.main_canvas.width = this.main_canvas.width
+      //this.main_ctx.clearRect(0, 0, this.width, this.height);
     }
     this.draw_pointers = [];
   }
@@ -123,21 +125,35 @@ export class PaintLayer {
   drawStart(pointer, tool) {
     this.tool = tool;
     this.draw_pointers = [];
-    this.pushDrawPointer(pointer);
+    this.lastPointer = pointer;
+    //this.pushDrawPointer(pointer);
+
+    // 먼저, 지금 텍스쳐는 한곳에 저장해두고.
+    // 드로우 배열을 초기화 시킨다. 드로우 배열은 해당 좌표에 얼마나 그려졌는지 표시하는 배열이다.
+    // 드로우배열이 1이면 투명도가 1이다.
+    // 만약 색이 투명도가 처음부터 낮은 색이라면, 그 투명도가 저장되고
+    // 펜압 또는 경계보간으로 인해 낮은 투명도 위에 더높은 투명도가 덮어씌워지면 높은 투명도를 반영한다.
+    // 그럼 처음부터 rgb와 알파값은 따로 4군데로 보관해야겠다.
+    // ctx.clearDrawMap();
+
+    let drawManager = getBrushManager(
+      this.main_canvas,
+      this.main_ctx,
+      this.width,
+      this.height,
+    );
   }
 
-  paint() {
+  draw(pointer) {
     if (this.tool == "PENCIL") {
       this.tools[this.tool].paint(this.draw_ctx, this.draw_pointers);
     } else if (this.tool == "BRUSH") {
-      // 해당 도구는 한번에 모든 선을 그리기때문에, 초기화 해줘야함.
-      // 이거 나중에 그린 영역만 지우도록 만들어야함.
-      this.draw_ctx.clearRect(0, 0, this.width, this.height);
-      this.tools[this.tool].paint(this.draw_ctx, this.draw_pointers);
+      // ctx.drawBrush(lastX, lastY, x, y);
+      // ctx.renderBrush(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
     }
   }
 
-  pointerUp() {
+  drawEnd() {
     if (this.tool == "PENCIL") {
       this.main_ctx.drawImage(this.draw_canvas, 0, 0);
     } else if (this.tool == "BRUSH") {
