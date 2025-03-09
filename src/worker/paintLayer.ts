@@ -157,11 +157,11 @@ export class PaintLayer {
     if (this.tool == "PENCIL") {
       this.main_ctx.drawImage(this.draw_canvas, 0, 0);
     } else if (this.tool == "BRUSH") {
-      this.main_ctx.drawImage(this.draw_canvas, 0, 0);
+      //this.main_ctx.drawImage(this.draw_canvas, 0, 0);
       // paintBrush(this.main_ctx, this.draw_pointers);
     }
 
-    this.draw_ctx.clearRect(0, 0, this.width, this.height);
+   // this.draw_ctx.clearRect(0, 0, this.width, this.height);
     this.draw_pointers = [];
     this.tool == "no";
   }

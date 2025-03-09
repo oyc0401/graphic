@@ -47,7 +47,21 @@ export function getBrushManager(canvas, gl, width, height) {
     }
     `;
 
-    let brushShaderSource = `
+    let brushShaderSource = `#version 300 es
+    precision highp float;
+
+    uniform sampler2D u_alphaMap;
+
+    uniform vec2 u_start;
+    uniform vec2 u_end;
+
+    in vec2 v_texCoord;
+    out float outAlpha;
+    
+    void main() {
+       
+        outAlpha = 0.5;
+    }
     `;
     let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
@@ -70,11 +84,11 @@ export function getBrushManager(canvas, gl, width, height) {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.RG32F,
+      gl.R32F,
       width,
       height,
       0,
-      gl.RG,
+      gl.RED,
       gl.FLOAT,
       emptyData,
     );
@@ -84,8 +98,52 @@ export function getBrushManager(canvas, gl, width, height) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(
-        gl.getUniformLocation(brushProgram, "u_alphaMap"),
-        TEXTURE_UNIT.ALPHAMAP,
+      gl.getUniformLocation(brushProgram, "u_alphaMap"),
+      TEXTURE_UNIT.ALPHAMAP,
+    );
+
+    // 출력용 텍스처 생성
+    let aplhaTexOut = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, aplhaTexOut);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      null,
+    );
+    
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // 프레임버퍼 생성 및 바인딩
+    let framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      aplhaTexOut,
+      0,
+    );
+
+    // 쓰여진 결과를 blit으로 기본 변위맵에 업로드 하기 위해서
+    let readFrameBuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+    gl.framebufferTexture2D(
+      // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      aplhaTexOut,
+      0,
     );
 
     // 알파맵 텍스쳐 만들고
