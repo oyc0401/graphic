@@ -1,3 +1,4 @@
+import { getGlHelper } from "./glHelper";
 import { PencilTool, BrushTool, PixelEraser, Tool } from "./tools";
 import { getBrushManager } from "./tools";
 export class PaintLayer {
@@ -7,8 +8,8 @@ export class PaintLayer {
   draw_canvas: OffscreenCanvas;
   width: number;
   height: number;
-  main_ctx: OffscreenCanvasRenderingContext2D;
-  draw_ctx: OffscreenCanvasRenderingContext2D;
+  main_ctx: WebGL2RenderingContext;
+  draw_ctx: WebGL2RenderingContext;
   priority: number;
   background?: string;
   dataBlob?: Blob;
@@ -26,6 +27,8 @@ export class PaintLayer {
   main_temp_ctx: OffscreenCanvasRenderingContext2D;
 
   lastPointer;
+
+  drawManager;
   constructor(
     id: string,
     name: string,
@@ -48,8 +51,8 @@ export class PaintLayer {
       preserveDrawingBuffer: true,
     });
     this.draw_ctx = draw_canvas.getContext("webgl2");
-    this.main_ctx.imageSmoothingEnabled = false;
-    this.draw_ctx.imageSmoothingEnabled = false;
+    //this.main_ctx.imageSmoothingEnabled = false;
+    //this.draw_ctx.imageSmoothingEnabled = false;
     this.priority = priority;
     this.background = background;
     this.dataBlob = dataBlob;
@@ -68,10 +71,10 @@ export class PaintLayer {
   async init() {
     if (this.dataBlob) {
       const imageBitmap = await createImageBitmap(this.dataBlob);
-      this.main_ctx.drawImage(imageBitmap, 0, 0);
+      //this.main_ctx.drawImage(imageBitmap, 0, 0);
     } else if (this.background) {
-      this.main_ctx.fillStyle = this.background;
-      this.main_ctx.fillRect(0, 0, this.width, this.height);
+      //this.main_ctx.fillStyle = this.background;
+      //this.main_ctx.fillRect(0, 0, this.width, this.height);
     } else {
       // this.main_ctx.clearRect(0, 0, this.width, this.height);
     }
@@ -79,11 +82,12 @@ export class PaintLayer {
 
   clear() {
     if (this.background) {
-      this.main_ctx.fillStyle = this.background;
+      //this.main_ctx.fillStyle = this.background;
       //this.main_ctx.fillRect(0, 0, this.width, this.height);
     } else {
       //this.main_canvas.width = this.main_canvas.width
-      //this.main_ctx.clearRect(0, 0, this.width, this.height);
+      let glHelper = getGlHelper(this.main_ctx);
+      glHelper.clearRect(0, 0, this.width, this.height);
     }
     this.draw_pointers = [];
   }
@@ -165,22 +169,21 @@ export class PaintLayer {
 
   drawEnd() {
     if (this.tool == "PENCIL") {
-      this.main_ctx.drawImage(this.draw_canvas, 0, 0);
+      //this.main_ctx.drawImage(this.draw_canvas, 0, 0);
     } else if (this.tool == "BRUSH") {
       //this.main_ctx.drawImage(this.draw_canvas, 0, 0);
       // paintBrush(this.main_ctx, this.draw_pointers);
     }
 
-    // this.draw_ctx.clearRect(0, 0, this.width, this.height);
     this.draw_pointers = [];
     this.tool == "no";
   }
 
   eraserStart(pointer, size, tool) {
     if (tool == "ERASER") {
-      this.main_temp_canvas = new OffscreenCanvas(this.width, this.height);
-      this.main_temp_ctx = this.main_temp_canvas.getContext("2d");
-      this.main_temp_ctx.drawImage(this.main_canvas, 0, 0);
+      //this.main_temp_canvas = new OffscreenCanvas(this.width, this.height);
+      //this.main_temp_ctx = this.main_temp_canvas.getContext("2d");
+      //this.main_temp_ctx.drawImage(this.main_canvas, 0, 0);
     } else if (tool == "PIXEL_ERASER") {
     }
 
@@ -207,20 +210,20 @@ export class PaintLayer {
       // 많이지울때는 그냥 티가 별로 안난다고 믿자.
 
       if (w * h < 600 * 600) {
-        this.main_ctx.clearRect(s.x, s.y, w, h);
+        //this.main_ctx.clearRect(s.x, s.y, w, h);
         //this.draw_ctx.save();
         //this.draw_ctx.globalCompositeOperation = "copy";
-        this.main_ctx.drawImage(
-          this.main_temp_canvas,
-          s.x,
-          s.y,
-          w,
-          h,
-          s.x,
-          s.y,
-          w,
-          h,
-        );
+        // this.main_ctx.drawImage(
+        //   this.main_temp_canvas,
+        //   s.x,
+        //   s.y,
+        //   w,
+        //   h,
+        //   s.x,
+        //   s.y,
+        //   w,
+        //   h,
+        // );
         //this.draw_ctx.restore();
 
         // 범위 테스트용
@@ -239,10 +242,10 @@ export class PaintLayer {
     if (this.tool == "ERASER") {
       eraser(this.main_temp_ctx, this.draw_pointers);
 
-      this.main_ctx.save();
-      this.main_ctx.globalCompositeOperation = "copy";
-      this.main_ctx.drawImage(this.main_temp_canvas, 0, 0);
-      this.main_ctx.restore();
+      // this.main_ctx.save();
+      // this.main_ctx.globalCompositeOperation = "copy";
+      // this.main_ctx.drawImage(this.main_temp_canvas, 0, 0);
+      // this.main_ctx.restore();
       // this.main_temp_ctx.reset();
       // this.main_temp_canvas.메모리제거();
     } else {

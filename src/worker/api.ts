@@ -133,7 +133,7 @@ export const workerApi = {
       const beforeHeight = layer.height;
 
       const canvas = layer.main_canvas;
-      const ctx = layer.main_ctx;
+      const ctx = layer.main_gl;
 
       temp_ctx.drawImage(canvas, 0, 0);
 
@@ -192,7 +192,7 @@ export const workerApi = {
       view_canvas,
       view_ctx,
       layer.main_canvas,
-      layer.main_ctx,
+      layer.main_gl,
       x,
       y,
       width,
@@ -201,7 +201,7 @@ export const workerApi = {
   },
   unselect(layerId, x, y, width, height) {
     const layer = getLayer(layerId);
-    layer.main_ctx.drawImage(selection.canvas, x, y, width, height);
+    layer.main_gl.drawImage(selection.canvas, x, y, width, height);
     selection = null;
   },
 

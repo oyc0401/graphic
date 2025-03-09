@@ -26,3 +26,114 @@ export async function loadShader(url) {
     const response = await fetch(url);
     return await response.text();
 }
+
+const glHelpers = new Map();
+
+/**
+ * gl 관련 유틸리티 프로그램 모음
+ */
+export function getGlHelper(gl) {
+    if (glHelpers.has(gl)) {
+        return glHelpers.get(gl);
+    }
+
+    const clearTexture = createClearTextureFunc(gl);
+    const clearRect = createClearRectFunc(gl);
+    /////
+    const helper = {
+        clearTexture,
+        clearRect,
+    };
+
+    glHelpers.set(gl, helper);
+
+    return helper;
+}
+
+/**
+ * 특정 영역을 초기화 해주는 함수
+ */
+function createClearRectFunc(gl) {
+    return (x, y, width, height) => {
+        gl.enable(gl.SCISSOR_TEST); // 특정 영역만 클리어할 수 있도록 활성화
+        gl.scissor(x, y, width, height); // 클리어할 영역 설정
+
+        gl.clearColor(0, 0, 0, 0.0); // 클리어
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.disable(gl.SCISSOR_TEST); // 원래 상태로 복구
+    };
+}
+
+/**
+ * 텍스쳐를 초기화 해주는 프로그램
+ */
+function createClearTextureFunc(gl) {
+    // 1. FBO 생성
+    const fbo = gl.createFramebuffer();
+
+    // 2. 쉐이더 프로그램 생성
+    const vsSource = `#version 300 es
+        precision highp float;
+        in vec2 a_position;
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+        }`;
+
+    const fsSource = `#version 300 es
+        precision highp float;
+        out float fragColor;
+
+        uniform float u_clearValue;
+
+        void main() {
+            fragColor = u_clearValue;
+        }`;
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+    gl.useProgram(program);
+
+    // 3. 풀스크린 사각형 렌더링
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+        gl.STATIC_DRAW,
+    );
+
+    const positionLocation = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const clearTexture = (texture, width, height, clearValue = 0.0) => {
+        gl.useProgram(program);
+        gl.viewport(0, 0, width, height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            texture,
+            0,
+        );
+
+        gl.uniform1f(
+            gl.getUniformLocation(program, "u_clearValue"),
+            clearValue,
+        );
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+
+    // // ✅ 리소스 해제 함수 추가 (WebGL 리소스 관리)
+    // clearTexture.dispose = () => {
+    //     gl.deleteFramebuffer(fbo);
+    //     gl.deleteProgram(program);
+    //     gl.deleteBuffer(quadBuffer);
+    // };
+
+    return clearTexture;
+}

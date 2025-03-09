@@ -26,3 +26,65 @@ export async function loadShader(url) {
     const response = await fetch(url);
     return await response.text();
 }
+
+export function initializeTexture(
+    gl,
+    texture,
+    width,
+    height,
+    clearValue = 0.0,
+) {
+    // 1. FBO 생성
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        texture,
+        0,
+    );
+
+    // 2. 쉐이더 프로그램 생성
+    const vsSource = `#version 300 es
+    precision highp float;
+    in vec2 a_position;
+    void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+    }`;
+
+    const fsSource = `#version 300 es
+    precision highp float;
+    out float fragColor;
+    void main() {
+        fragColor = float(${clearValue});
+    }`;
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+    gl.useProgram(program);
+
+    // 3. 풀스크린 사각형 렌더링
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+        gl.STATIC_DRAW,
+    );
+
+    const positionLocation = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    // 4. 렌더링하여 텍스처 초기화
+    gl.viewport(0, 0, width, height);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    // 5. 정리
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteBuffer(quadBuffer);
+    gl.deleteProgram(program);
+}

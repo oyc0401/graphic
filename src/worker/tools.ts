@@ -1,6 +1,6 @@
 //import { stamp_brush_canvas } from "../src/image-mani";
 import { bresenham_dense_line, bresenham_line } from "./imageHelper";
-import { createShader, createProgram } from "./glHelper";
+import { createShader, createProgram, getGlHelper } from "./glHelper";
 
 const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
@@ -15,24 +15,27 @@ const TEXTURE_UNIT = {
  */
 let brushManager;
 export function getBrushManager(canvas, gl, width, height) {
-  if (!brushManager) {
-    gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
+  if (brushManager) {
+    return brushManager;
+  }
 
-    const ext = gl.getExtension("EXT_color_buffer_float");
-    if (!ext) {
-      console.error("EXT_color_buffer_float not supported!");
-    }
-    const extFloatLinear =
-      gl.getExtension("OES_texture_float_linear") ||
-      gl.getExtension("EXT_texture_filter_float");
-    if (!extFloatLinear) {
-      console.error(
-        "This device does not support linear filtering for float textures.",
-      );
-    }
+  gl.viewport(0, 0, width, height);
+  gl.clearColor(0, 0, 0, 0);
 
-    let vertexShaderSource = `#version 300 es
+  const ext = gl.getExtension("EXT_color_buffer_float");
+  if (!ext) {
+    console.error("EXT_color_buffer_float not supported!");
+  }
+  const extFloatLinear =
+    gl.getExtension("OES_texture_float_linear") ||
+    gl.getExtension("EXT_texture_filter_float");
+  if (!extFloatLinear) {
+    console.error(
+      "This device does not support linear filtering for float textures.",
+    );
+  }
+
+  let vertexShaderSource = `#version 300 es
     in vec2 a_position;
     out vec2 v_texCoord; // 좌표변환: 0 ~ 1
 
@@ -45,7 +48,7 @@ export function getBrushManager(canvas, gl, width, height) {
     }
     `;
 
-    let brushShaderSource = `#version 300 es
+  let brushShaderSource = `#version 300 es
     precision highp float;
     
     uniform sampler2D u_alphaMap;
@@ -73,6 +76,9 @@ export function getBrushManager(canvas, gl, width, height) {
         // 테두리 보간
         if (u_radius - dist < 1.0) {
           newAlpha = (u_radius - dist) * u_alpha;
+         
+          // 이렇게 하면 도트 그리기
+          // newAlpha = (u_radius - dist) < 0.5 ? 0.0 : u_alpha;
         }
       } else {
         newAlpha = 0.0;
@@ -86,101 +92,101 @@ export function getBrushManager(canvas, gl, width, height) {
       }
     }
     `;
-    let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
+  let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+  let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
 
-    let brushProgram = createProgram(gl, vertexShader, brushShader);
-    gl.useProgram(brushProgram);
+  let brushProgram = createProgram(gl, vertexShader, brushShader);
+  gl.useProgram(brushProgram);
 
-    gl.uniform2f(
-      gl.getUniformLocation(brushProgram, "u_resolution"),
-      width,
-      height,
-    );
+  gl.uniform2f(
+    gl.getUniformLocation(brushProgram, "u_resolution"),
+    width,
+    height,
+  );
 
-    const emptyData = new Float32Array(width * height);
+  const emptyData = new Float32Array(width * height);
 
-    // 알파맵 텍스처 생성 및 데이터 업로드
-    let alphaTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHAMAP);
-    gl.bindTexture(gl.TEXTURE_2D, alphaTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R32F,
-      width,
-      height,
-      0,
-      gl.RED,
-      gl.FLOAT,
-      emptyData,
-    );
+  // 알파맵 텍스처 생성 및 데이터 업로드
+  let alphaTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHAMAP);
+  gl.bindTexture(gl.TEXTURE_2D, alphaTex);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.R32F,
+    width,
+    height,
+    0,
+    gl.RED,
+    gl.FLOAT,
+    emptyData,
+  );
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(
-      gl.getUniformLocation(brushProgram, "u_alphaMap"),
-      TEXTURE_UNIT.ALPHAMAP,
-    );
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.uniform1i(
+    gl.getUniformLocation(brushProgram, "u_alphaMap"),
+    TEXTURE_UNIT.ALPHAMAP,
+  );
 
-    // 출력용 텍스처 생성
-    let alphaTexOut = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, alphaTexOut);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R32F,
-      width,
-      height,
-      0,
-      gl.RED,
-      gl.FLOAT,
-      null,
-    );
+  // 출력용 텍스처 생성
+  let alphaTexOut = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+  gl.bindTexture(gl.TEXTURE_2D, alphaTexOut);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.R32F,
+    width,
+    height,
+    0,
+    gl.RED,
+    gl.FLOAT,
+    null,
+  );
 
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // 프레임버퍼 생성 및 바인딩
-    let framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      alphaTexOut,
-      0,
-    );
+  // 프레임버퍼 생성 및 바인딩
+  let framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    alphaTexOut,
+    0,
+  );
 
-    // 쓰여진 결과를 blit으로 기본 변위맵에 업로드 하기 위해서
-    let readFrameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-    gl.framebufferTexture2D(
-      // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      alphaTexOut,
-      0,
-    );
+  // 쓰여진 결과를 blit으로 기본 변위맵에 업로드 하기 위해서
+  let readFrameBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+  gl.framebufferTexture2D(
+    // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    alphaTexOut,
+    0,
+  );
 
-    let positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
-      gl.STATIC_DRAW,
-    );
-    let posLoc = gl.getAttribLocation(brushProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  let positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
+    gl.STATIC_DRAW,
+  );
+  let posLoc = gl.getAttribLocation(brushProgram, "a_position");
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    let renderShaderSource = `#version 300 es
+  let renderShaderSource = `#version 300 es
       precision highp float;
       
       uniform sampler2D u_alphaMap;
@@ -208,22 +214,149 @@ export function getBrushManager(canvas, gl, width, height) {
       }
       `;
 
-    let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
-    let renderProgram = createProgram(gl, vertexShader, renderShader);
-    gl.useProgram(renderProgram);
+  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
+  let renderProgram = createProgram(gl, vertexShader, renderShader);
+  gl.useProgram(renderProgram);
+  gl.uniform2f(
+    gl.getUniformLocation(renderProgram, "u_resolution"),
+    width,
+    height,
+  );
+  gl.uniform1i(
+    gl.getUniformLocation(renderProgram, "u_alphaMap"),
+    TEXTURE_UNIT.ALPHAMAP,
+  );
+
+  // 원본 이미지 텍스처 생성
+  // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
+  let originalTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+
+  gl.bindTexture(gl.TEXTURE_2D, originalTexture);
+
+  // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  gl.uniform1i(
+    gl.getUniformLocation(renderProgram, "u_sourse"),
+    TEXTURE_UNIT.SOURCE,
+  ); // 텍스처 유닛 1에 할당
+
+  let posLoc2 = gl.getAttribLocation(renderProgram, "a_position");
+  gl.enableVertexAttribArray(posLoc2);
+  gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
+
+  ///////////////////////////////////////
+
+  let radius = 5;
+  let alpha = 0.3;
+  //let strength = 1;
+  let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+
+  function draw(start, end) {
+    gl.useProgram(brushProgram);
+    // 유나폼 변수 설정
+    gl.uniform1f(gl.getUniformLocation(brushProgram, "u_radius"), radius);
+    gl.uniform1f(gl.getUniformLocation(brushProgram, "u_alpha"), alpha);
+
     gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_resolution"),
-      width,
-      height,
+      gl.getUniformLocation(brushProgram, "u_start"),
+      start.x,
+      height - start.y,
     );
-    gl.uniform1i(
-      gl.getUniformLocation(renderProgram, "u_alphaMap"),
-      TEXTURE_UNIT.ALPHAMAP,
+    gl.uniform2f(
+      gl.getUniformLocation(brushProgram, "u_end"),
+      end.x,
+      height - end.y,
     );
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    // 프레임버퍼에 쓰기 텍스처 넣기
+    // 이전에 blit할때 다른거 지정되어있었음
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      alphaTexOut,
+      0,
+    );
+
+    let ceiledRadius = Math.ceil(radius);
+    let minX = Math.min(start.x, end.x);
+    let maxX = Math.max(start.x, end.x);
+    let minY = Math.min(height - start.y, height - end.y);
+    let maxY = Math.max(height - start.y, height - end.y);
+
+    dirtyRect.x = minX - ceiledRadius;
+    dirtyRect.y = minY - ceiledRadius;
+    dirtyRect.ex = maxX + ceiledRadius + 1;
+    dirtyRect.ey = maxY + ceiledRadius + 1;
+    dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
+    dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+
+    // SCISSOR TEST로 일부만 렌더링
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    //gl.finish();
+
+    // 적용된 텍스처를 read에도 옮기기
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+    gl.framebufferTexture2D(
+      gl.READ_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      alphaTexOut,
+      0,
+    );
+
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      alphaTex,
+      0,
+    );
+
+    gl.blitFramebuffer(
+      dirtyRect.x,
+      dirtyRect.y,
+      dirtyRect.ex,
+      dirtyRect.ey, // 소스
+      dirtyRect.x,
+      dirtyRect.y,
+      dirtyRect.ex,
+      dirtyRect.ey, // 대상
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
+  }
+
+  function render() {
+    gl.useProgram(renderProgram);
+    // 쓰기 영역: 내 화면
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.disable(gl.SCISSOR_TEST);
+  }
+
+  function reset() {
+    let glHelper = getGlHelper(gl);
+    glHelper.clearTexture(alphaTex, width, height, 0);
 
     // 원본 이미지 텍스처 생성
     // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-    let originalTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
 
     gl.bindTexture(gl.TEXTURE_2D, originalTexture);
@@ -232,164 +365,13 @@ export function getBrushManager(canvas, gl, width, height) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    gl.uniform1i(
-      gl.getUniformLocation(renderProgram, "u_sourse"),
-      TEXTURE_UNIT.SOURCE,
-    ); // 텍스처 유닛 1에 할당
-
-    let posLoc2 = gl.getAttribLocation(renderProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc2);
-    gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
-
-    ///////////////////////////////////////
-
-    let radius = 10;
-    let alpha = 0.3;
-    //let strength = 1;
-    let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
-
-    function draw(start, end) {
-      gl.useProgram(brushProgram);
-      // 유나폼 변수 설정
-      gl.uniform1f(gl.getUniformLocation(brushProgram, "u_radius"), radius);
-      gl.uniform1f(gl.getUniformLocation(brushProgram, "u_alpha"), alpha);
-
-      gl.uniform2f(
-        gl.getUniformLocation(brushProgram, "u_start"),
-        start.x,
-        height - start.y,
-      );
-      gl.uniform2f(
-        gl.getUniformLocation(brushProgram, "u_end"),
-        end.x,
-        height - end.y,
-      );
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      // 프레임버퍼에 쓰기 텍스처 넣기
-      // 이전에 blit할때 다른거 지정되어있었음
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        alphaTexOut,
-        0,
-      );
-
-      let ceiledRadius = Math.ceil(radius);
-      let minX = Math.min(start.x, end.x);
-      let maxX = Math.max(start.x, end.x);
-      let minY = Math.min(height - start.y, height - end.y);
-      let maxY = Math.max(height - start.y, height - end.y);
-
-      dirtyRect.x = minX - ceiledRadius;
-      dirtyRect.y = minY - ceiledRadius;
-      dirtyRect.ex = maxX + ceiledRadius + 1;
-      dirtyRect.ey = maxY + ceiledRadius + 1;
-      dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
-      dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
-
-      // SCISSOR TEST로 일부만 렌더링
-      gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-      //gl.finish();
-
-      // 적용된 텍스처를 read에도 옮기기
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-      gl.framebufferTexture2D(
-        gl.READ_FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        alphaTexOut,
-        0,
-      );
-
-      gl.framebufferTexture2D(
-        gl.DRAW_FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        alphaTex,
-        0,
-      );
-
-      gl.blitFramebuffer(
-        dirtyRect.x,
-        dirtyRect.y,
-        dirtyRect.ex,
-        dirtyRect.ey, // 소스
-        dirtyRect.x,
-        dirtyRect.y,
-        dirtyRect.ex,
-        dirtyRect.ey, // 대상
-        gl.COLOR_BUFFER_BIT,
-        gl.NEAREST,
-      );
-    }
-
-    function render() {
-      gl.useProgram(renderProgram);
-      // 쓰기 영역: 내 화면
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-      gl.disable(gl.SCISSOR_TEST);
-    }
-
-    function reset() {
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHAMAP);
-      gl.bindTexture(gl.TEXTURE_2D, alphaTex);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.R32F,
-        width,
-        height,
-        0,
-        gl.RED,
-        gl.FLOAT,
-        emptyData,
-      );
-
-
-
-
-      // 원본 이미지 텍스처 생성
-      // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-      gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-      // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
- 
-    }
-    reset();
-    // 알파맵 텍스쳐 만들고
-    // 버텍스 셰이더 코드 적고 (풀 스크린)
-    // 프래그먼트 셰이더 적고
-    // 텍스처 바인딩 하고
-    // 기존 이미지 텍스쳐 업로드 하고
-    // draw()함수 내부에서 rgba, 사이즈 유니폼 업데이트하고, 시저테스트로 구역 정하고 알파맵 변환 시키고
-    // render() 함수에선 알파맵과 rgb를 기준으로 이미지에 렌더링하고
-
-    brushManager = {
-      render,
-      draw,
-      reset,
-    };
   }
+
+  brushManager = {
+    render,
+    draw,
+    reset,
+  };
 
   return brushManager;
 }
