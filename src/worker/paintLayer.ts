@@ -41,7 +41,12 @@ export class PaintLayer {
     this.name = name;
     this.main_canvas = main_canvas;
     this.draw_canvas = draw_canvas;
-    this.main_ctx = main_canvas.getContext("webgl2");
+    this.main_ctx = main_canvas.getContext("webgl2", {
+      depth: false,
+      stencil: false,
+      antialias: false,
+      preserveDrawingBuffer: true,
+    });
     this.draw_ctx = draw_canvas.getContext("webgl2");
     this.main_ctx.imageSmoothingEnabled = false;
     this.draw_ctx.imageSmoothingEnabled = false;
@@ -136,18 +141,23 @@ export class PaintLayer {
     // 그럼 처음부터 rgb와 알파값은 따로 4군데로 보관해야겠다.
     // ctx.clearDrawMap();
 
-    let drawManager = getBrushManager(
+    this.drawManager = getBrushManager(
       this.main_canvas,
       this.main_ctx,
       this.width,
       this.height,
     );
+
+    this.drawManager.reset();
   }
 
   draw(pointer) {
     if (this.tool == "PENCIL") {
       this.tools[this.tool].paint(this.draw_ctx, this.draw_pointers);
     } else if (this.tool == "BRUSH") {
+      this.drawManager.draw(this.lastPointer, pointer);
+      this.drawManager.render();
+      this.lastPointer = pointer;
       // ctx.drawBrush(lastX, lastY, x, y);
       // ctx.renderBrush(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
     }
@@ -161,7 +171,7 @@ export class PaintLayer {
       // paintBrush(this.main_ctx, this.draw_pointers);
     }
 
-   // this.draw_ctx.clearRect(0, 0, this.width, this.height);
+    // this.draw_ctx.clearRect(0, 0, this.width, this.height);
     this.draw_pointers = [];
     this.tool == "no";
   }

@@ -17,13 +17,13 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  background-color: gray;
+  background-color: #EEEEEE;
   width: 100%;
   overflow: hidden;
 }
 
 #layer-area {
-  background-color: #AAAAAA;
+  background-color: white;
   cursor: crosshair;
   image-rendering: pixelated;
   position: absolute;
