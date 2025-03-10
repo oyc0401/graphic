@@ -29,6 +29,17 @@ export let layer = {
 
 const layerId = "SingleLayer";
 const layerName = "SingleLayerName";
+
+let toolId = "brush";
+
+window.changeTool = function () {
+    if (toolId == "brush") {
+        toolId = "eraser";
+    } else {
+        toolId = "brush";
+    }
+};
+
 export async function initDraw() {
     layer.reset();
 
@@ -59,7 +70,11 @@ export async function initDraw() {
 
         worker.setColor(layerId, "rgba(255,0,0,0.3)");
         worker.setSize(layerId, 20);
-        worker.drawStart(layerId, point, "BRUSH");
+        if (toolId == "brush") {
+            worker.drawStart(layerId, point, "BRUSH");
+        } else {
+            worker.eraserStart(layerId, point);
+        }
     });
 
     window.addEventListener("pointermove", (e) => {
@@ -69,7 +84,11 @@ export async function initDraw() {
         let point = to_canvas_coord(e.clientX, e.clientY);
         const worker = getLayerWorker();
 
-        worker.draw(layerId, point);
+        if (toolId == "brush") {
+            worker.draw(layerId, point);
+        } else {
+            worker.eraser(layerId, point);
+        }
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -77,7 +96,11 @@ export async function initDraw() {
         if (!pointer_active) return;
         pointer_active = false;
         const worker = getLayerWorker();
-        worker.drawEnd(layerId);
+        if (toolId == "brush") {
+            worker.drawEnd(layerId);
+        } else {
+             worker.eraserUp(layerId);
+        }
     });
 }
 

@@ -1,6 +1,6 @@
 import { getGlHelper } from "./glHelper";
 import { PencilTool, BrushTool, PixelEraser, Tool } from "./tools";
-import { getBrushManager } from "./tools";
+import { getBrushManager, getEraserManager } from "./tools";
 export class PaintLayer {
   id: string;
   name: string;
@@ -178,102 +178,35 @@ export class PaintLayer {
     this.draw_pointers = [];
     this.tool == "no";
   }
+  eraserManager;
+  eraserStart(pointer, tool) {
 
-  eraserStart(pointer, size, tool) {
-    if (tool == "ERASER") {
+      this.eraserManager = getEraserManager(
+        this.main_canvas,
+        this.main_ctx,
+        this.width,
+        this.height,
+      );
+
+      this.eraserManager.reset();
+      this.lastPointer = pointer;
       //this.main_temp_canvas = new OffscreenCanvas(this.width, this.height);
       //this.main_temp_ctx = this.main_temp_canvas.getContext("2d");
       //this.main_temp_ctx.drawImage(this.main_canvas, 0, 0);
-    } else if (tool == "PIXEL_ERASER") {
-    }
+   
 
     this.tool = tool;
     this.draw_pointers = [];
-    this.pushDrawPointer(pointer);
+    //this.pushDrawPointer(pointer);
   }
 
-  eraser() {
-    if (this.tool == "ERASER") {
-      let size = this.maxSize;
-      let s = {
-        x: Math.floor(this.start.x - size),
-        y: Math.floor(this.start.y - size),
-      };
-      let end = {
-        x: Math.ceil(this.end.x + size),
-        y: Math.ceil(this.end.y + size),
-      };
-      let w = end.x - s.x;
-      let h = end.y - s.y;
-
-      // 적은 영역일때는 중복되어 지워지는게 티가 많이 남
-      // 많이지울때는 그냥 티가 별로 안난다고 믿자.
-
-      if (w * h < 600 * 600) {
-        //this.main_ctx.clearRect(s.x, s.y, w, h);
-        //this.draw_ctx.save();
-        //this.draw_ctx.globalCompositeOperation = "copy";
-        // this.main_ctx.drawImage(
-        //   this.main_temp_canvas,
-        //   s.x,
-        //   s.y,
-        //   w,
-        //   h,
-        //   s.x,
-        //   s.y,
-        //   w,
-        //   h,
-        // );
-        //this.draw_ctx.restore();
-
-        // 범위 테스트용
-        // this.draw_ctx.fillStyle = "rgba(255,0,0,0.1)";
-        // this.draw_ctx.fillRect(s.x, s.y, w, h);
-        eraser(this.main_ctx, this.draw_pointers);
-      } else {
-        eraser(this.main_ctx, this.draw_pointers);
-      }
-    } else if (this.tool == "PIXEL_ERASER") {
-      this.tools[this.tool].paint(this.main_ctx, this.draw_pointers);
-    }
+  eraser(pointer) {
+ 
+      this.eraserManager.draw(this.lastPointer, pointer);
+      this.eraserManager.render();
+      this.lastPointer = pointer;
+    
   }
 
-  eraserUp() {
-    if (this.tool == "ERASER") {
-      eraser(this.main_temp_ctx, this.draw_pointers);
-
-      // this.main_ctx.save();
-      // this.main_ctx.globalCompositeOperation = "copy";
-      // this.main_ctx.drawImage(this.main_temp_canvas, 0, 0);
-      // this.main_ctx.restore();
-      // this.main_temp_ctx.reset();
-      // this.main_temp_canvas.메모리제거();
-    } else {
-      //
-    }
-
-    this.draw_pointers = [];
-  }
-}
-
-function eraser(ctx, draw_pointers) {
-  ctx.save();
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "red";
-  ctx.beginPath();
-
-  for (let i = 0; i < draw_pointers.length; i++) {
-    let draw_pointer = draw_pointers[i];
-    let { x, y, size } = draw_pointer;
-    ctx.lineWidth = size;
-    if (i == 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  }
-  ctx.stroke();
-  ctx.restore();
+  eraserUp() {}
 }

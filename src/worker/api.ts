@@ -92,32 +92,19 @@ export const workerApi = {
     layer.setBrushSize(size);
   },
 
-  eraserStart(layerId: string, pointer: Pointer, width: number, tool) {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const layer = getLayer(layerId);
-        layer.eraserStart(pointer, width, tool);
-      }, 0);
-    });
+  eraserStart(layerId: string, pointer: Pointer, tool = "ERASER") {
+    const layer = getLayer(layerId);
+    layer.eraserStart(pointer, tool);
   },
 
-  eraser(layerId: string, pointer: Pointer, size: number) {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const layer = getLayer(layerId);
-        layer.pushDrawPointer(pointer);
-        layer.eraser();
-      }, 0);
-    });
+  eraser(layerId: string, pointer: Pointer) {
+    const layer = getLayer(layerId);
+    layer.eraser(pointer);
   },
 
   eraserUp(layerId: string) {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        const layer = getLayer(layerId);
-        layer.eraserUp();
-      }, 0);
-    });
+    const layer = getLayer(layerId);
+    layer.eraserUp();
   },
 
   updateSize(width, height, set_canvas_css) {
