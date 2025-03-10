@@ -35,22 +35,18 @@ export const workerApi = {
     layerId: string,
     name: string,
     main_canvas: OffscreenCanvas,
-    draw_canvas: OffscreenCanvas,
     width: number,
     height: number,
     priority: number,
-    background?: string,
     dataBlob?: Blob,
   ) {
     const layer = new PaintLayer(
       layerId,
       name,
       main_canvas,
-      draw_canvas,
       width,
       height,
       priority,
-      background,
       dataBlob,
     );
 
@@ -64,47 +60,40 @@ export const workerApi = {
     layers = {};
   },
 
-  drawStart(layerId: string, pointer: Pointer, tool) {
+    setStrokeColor(layerId, r, g, b) {
     const layer = getLayer(layerId);
-    layer.drawStart(pointer, tool);
+    brushColor = "color";
+    layer.setStrokeColor(r, g, b);
   },
 
-  draw(layerId: string, pointer: Pointer) {
-    const layer = getLayer(layerId);
-    //layer.pushDrawPointer(pointer); // 도구의 종류는 포인터 시작할 때 정해짐
-    layer.draw(pointer);
-  },
-
-  drawEnd(layerId: string) {
-    const layer = getLayer(layerId);
-    layer.drawEnd();
-  },
-
-  setColor(layerId, color) {
-    const layer = getLayer(layerId);
-    brushColor = color;
-    layer.setBrushColor(color);
-  },
-
-  setSize(layerId, size) {
+    setStrokeSize(layerId, size) {
     const layer = getLayer(layerId);
     brushSize = size;
-    layer.setBrushSize(size);
+    layer.setStrokeSize(size);
+  },
+  setAlpha(layerId, alpha) {
+    const layer = getLayer(layerId);
+    layer.setAlpha(alpha);
   },
 
-  eraserStart(layerId: string, pointer: Pointer, tool = "ERASER") {
+  drawStart(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
-    layer.eraserStart(pointer, tool);
+    layer.drawStart(pointer);
   },
 
-  eraser(layerId: string, pointer: Pointer) {
+  drawTo(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
-    layer.eraser(pointer);
+    layer.drawTo(pointer);
   },
 
-  eraserUp(layerId: string) {
+  eraserStart(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
-    layer.eraserUp();
+    layer.eraserStart(pointer);
+  },
+
+  eraserTo(layerId: string, pointer: Pointer) {
+    const layer = getLayer(layerId);
+    layer.eraserTo(pointer);
   },
 
   updateSize(width, height, set_canvas_css) {
@@ -197,85 +186,6 @@ export const workerApi = {
   },
 
   saveFile(paintId: string) {
-    saveFileImmediately(paintId);
+    //saveFileImmediately(paintId);
   },
 };
-
-async function saveFileImmediately(paintId: string) {
-  try {
-    // 2) 레이어 메타데이터 저장
-    const layerList = [];
-
-    let sortedLayers = Object.values(layers).sort(
-      (a, b) => a.priority - b.priority,
-    );
-
-    for (const layer of sortedLayers) {
-      if (selection && selection.layerId == layer.id) {
-        // 기존 canvas와 동일한 크기의 새로운 canvas 생성
-        const temp_canvas = new OffscreenCanvas(layer.width, layer.height);
-
-        // 기존 canvas의 내용을 복사
-        const temp_ctx = temp_canvas.getContext("2d");
-        temp_ctx.drawImage(layer.main_canvas, 0, 0);
-
-        temp_ctx.drawImage(selection.canvas, selection.x, selection.y);
-
-        layerList.push({
-          layerId: layer.id,
-          name: layer.name,
-          paintId: paintId,
-          dataBlob: await toBlobAsync(temp_canvas),
-          priority: layer.priority,
-          background: layer.background,
-        });
-      } else {
-        layerList.push({
-          layerId: layer.id,
-          name: layer.name,
-          paintId: paintId,
-          dataBlob: await toBlobAsync(layer.main_canvas),
-          priority: layer.priority,
-          background: layer.background,
-        });
-      }
-    }
-
-    console.log(layerList);
-    //await layerRepository.setLayers(paintId, layerList);
-
-    // //PaintJSState.layerStore = [];
-    // for (let layerObj of layerList) {
-    //   let { layerId, dataBlob } = layerObj;
-    //   const url = URL.createObjectURL(dataBlob);
-    //   PaintJSState.layerStore[layerId].imageUrl = url;
-    // }
-
-    // const now = new Date();
-    // PaintMobXState.lastChanged = now.getTime();
-
-    console.warn("Paint saved. paintId =", paintId);
-  } catch (error) {
-    console.error(
-      "An unexpected error occurred in saveFileImmediately:",
-      error,
-    );
-  }
-}
-
-async function toBlobAsync(
-  offscreenCanvas: OffscreenCanvas,
-  type = "image/png",
-  quality?: number,
-) {
-  const options = {
-    type,
-    quality,
-  };
-
-  return offscreenCanvas.convertToBlob(options).catch((error) => {
-    throw new Error(
-      "Failed to create Blob from OffscreenCanvas: " + error.message,
-    );
-  });
-}

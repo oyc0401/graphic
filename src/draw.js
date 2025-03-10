@@ -45,20 +45,15 @@ export async function initDraw() {
 
     const worker = getLayerWorker();
     const offscreen = layer.canvas.transferControlToOffscreen();
-    const draw_offscreen = layer.draw_canvas.transferControlToOffscreen();
 
     await worker.makeLayer(
         layerId,
         layerName,
         Comlink.transfer(offscreen, [offscreen]),
-        Comlink.transfer(draw_offscreen, [draw_offscreen]),
         layer.width,
         layer.height,
         0,
     );
-
-    worker.setColor(layerId, "rgba(255,0,0,0.3)");
-    worker.setSize(layerId, 20);
 
     window.addEventListener("pointerdown", (e) => {
         e.preventDefault();
@@ -68,11 +63,16 @@ export async function initDraw() {
         let point = to_canvas_coord(e.clientX, e.clientY);
         const worker = getLayerWorker();
 
-        worker.setColor(layerId, "rgba(255,0,0,0.3)");
-        worker.setSize(layerId, 20);
         if (toolId == "brush") {
-            worker.drawStart(layerId, point, "BRUSH");
+            worker.setStrokeColor(layerId, 0, 255, 0);
+            worker.setStrokeSize(layerId, 5);
+            worker.setAlpha(layerId, 0.8);
+
+            worker.drawStart(layerId, point);
         } else {
+            worker.setStrokeSize(layerId, 10);
+            worker.setAlpha(layerId, 1);
+            
             worker.eraserStart(layerId, point);
         }
     });
@@ -85,9 +85,9 @@ export async function initDraw() {
         const worker = getLayerWorker();
 
         if (toolId == "brush") {
-            worker.draw(layerId, point);
+            worker.drawTo(layerId, point);
         } else {
-            worker.eraser(layerId, point);
+            worker.eraserTo(layerId, point);
         }
     });
 
@@ -97,9 +97,9 @@ export async function initDraw() {
         pointer_active = false;
         const worker = getLayerWorker();
         if (toolId == "brush") {
-            worker.drawEnd(layerId);
+            // worker.drawEnd(layerId);
         } else {
-             worker.eraserUp(layerId);
+            // worker.eraserEnd(layerId);
         }
     });
 }
