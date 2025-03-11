@@ -11,6 +11,8 @@ const paintOption = {
   alpha: 1,
 };
 
+let history = [];
+
 export class PaintLayer {
   id: string;
   name: string;
@@ -43,6 +45,7 @@ export class PaintLayer {
       stencil: false,
       antialias: false,
       preserveDrawingBuffer: true,
+      //premultipliedAlpha: true,
     });
     if (!gl) {
       throw Error("Can't make webgl2 context");
@@ -131,4 +134,41 @@ export class PaintLayer {
     this.drawManager.eraser();
     this.lastPointer = pointer;
   }
+
+  cancel(){
+    this.drawManager.cancel();
+  }
+
+  appendHistory() {
+    // 지금 상태를 히스토리에 넣기!
+
+    let imageTexture = makeImageTex(this.main_canvas, this.main_ctx);
+    history.push(imageTexture);
+  }
+}
+const TEXTURE_UNIT = {
+  TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
+  SOURCE: 1, // 원본 이미지 (Source Image)
+  PATHMAP: 2, // 브러시, 지우개 알파맵
+  //EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
+  //EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
+};
+
+function makeImageTex(canvas, gl) {
+  let originalTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+
+  gl.bindTexture(gl.TEXTURE_2D, originalTexture);
+
+  // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  return originalTexture;
 }

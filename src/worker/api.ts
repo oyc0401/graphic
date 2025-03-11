@@ -11,9 +11,6 @@ function getLayer(layerId) {
   return layers[layerId];
 }
 
-let brushColor = "black";
-let brushSize = 12;
-
 let selection: {
   layerId: string;
   canvas: OffscreenCanvas;
@@ -21,6 +18,7 @@ let selection: {
   // source: OffscreenCanvas;
   // source_ctx: OffscreenCanvasRenderingContext2D;
 } = null;
+
 
 interface Pointer {
   x: number;
@@ -60,15 +58,13 @@ export const workerApi = {
     layers = {};
   },
 
-    setStrokeColor(layerId, r, g, b) {
+  setStrokeColor(layerId, r, g, b) {
     const layer = getLayer(layerId);
-    brushColor = "color";
     layer.setStrokeColor(r, g, b);
   },
 
-    setStrokeSize(layerId, size) {
+  setStrokeSize(layerId, size) {
     const layer = getLayer(layerId);
-    brushSize = size;
     layer.setStrokeSize(size);
   },
   setAlpha(layerId, alpha) {
@@ -94,6 +90,16 @@ export const workerApi = {
   eraserTo(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
     layer.eraserTo(pointer);
+  },
+
+  strokeEnd(){
+    // 히스토리에 하나 추가하기!
+  },
+
+  cancel(layerId){
+    // 그리기 전 (현재) 히스토리로 돌아간다. 
+    const layer = getLayer(layerId);
+    layer.cancel();
   },
 
   updateSize(width, height, set_canvas_css) {
