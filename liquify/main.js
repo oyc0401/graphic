@@ -119,7 +119,7 @@ const TEXTURE_UNIT = {
 };
 
 window.onload = async function () {
-    await drawImage(canvas, gl, "../cat_3k.jpg");
+    await drawImage(canvas, gl, "../legacy/cat_3k.jpg");
 
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };

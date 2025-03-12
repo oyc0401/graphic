@@ -7,8 +7,13 @@ import * as Comlink from "comlink";
 let pointer_active = false;
 
 export function cancel() {
-   // const worker = getLayerWorker();
-    //worker.cancel(layerId);
+    pointer_active = false;
+    const worker = getLayerWorker();
+    worker.cancel(layerId);
+}
+
+export function endDrawing() {
+    pointer_active = false;
 }
 
 export let layer = {
@@ -33,8 +38,6 @@ const layerName = "SingleLayerName";
 
 let toolId = "brush";
 
-window.cancel = cancel;
-
 window.changeTool = function () {
     if (toolId == "brush") {
         toolId = "eraser";
@@ -44,11 +47,14 @@ window.changeTool = function () {
     return toolId;
 };
 
-
-let changeBtn = document.querySelector('#changeTool');
-changeBtn.addEventListener('click',()=>{
+let changeBtn = document.querySelector("#changeTool");
+changeBtn.addEventListener("click", () => {
     window.changeTool();
-})
+});
+
+document.querySelector("#cancel").addEventListener("click", () => {
+    cancel();
+});
 
 export async function initDraw() {
     layer.reset();
@@ -64,44 +70,48 @@ export async function initDraw() {
         layer.height,
         0,
     );
+    document
+        .querySelector("#container")
+        .addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            if (paintState.action != "BRUSH") return;
+            if (pointer_active) return;
+            to_screen_coord(e.clientX, e.clientY);
+            pointer_active = true;
+            let point = to_canvas_coord(e.clientX, e.clientY);
+            const worker = getLayerWorker();
 
-    window.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        if (paintState.action != "BRUSH") return;
-        to_screen_coord(e.clientX, e.clientY);
-        pointer_active = true;
-        let point = to_canvas_coord(e.clientX, e.clientY);
-        const worker = getLayerWorker();
+            if (toolId == "brush") {
+                worker.setStrokeColor(layerId, 0, 255, 255);
+                worker.setStrokeSize(layerId, 5);
+                worker.setAlpha(layerId, 0.2);
 
-        if (toolId == "brush") {
-            worker.setStrokeColor(layerId, 0, 255, 255);
-            worker.setStrokeSize(layerId, 5);
-            worker.setAlpha(layerId, 0.2);
+                worker.drawStart(layerId, point);
+            } else {
+                worker.setStrokeSize(layerId, 10);
+                worker.setAlpha(layerId, 1);
 
-            worker.drawStart(layerId, point);
-        } else {
-            worker.setStrokeSize(layerId, 10);
-            worker.setAlpha(layerId, 1);
+                worker.eraserStart(layerId, point);
+            }
+        });
 
-            worker.eraserStart(layerId, point);
-        }
-    });
+    document
+        .querySelector("#container")
+        .addEventListener("pointermove", (e) => {
+            e.preventDefault();
+            if (!pointer_active) return;
 
-    window.addEventListener("pointermove", (e) => {
-        e.preventDefault();
-        if (!pointer_active) return;
+            let point = to_canvas_coord(e.clientX, e.clientY);
+            const worker = getLayerWorker();
 
-        let point = to_canvas_coord(e.clientX, e.clientY);
-        const worker = getLayerWorker();
+            if (toolId == "brush") {
+                worker.drawTo(layerId, point);
+            } else {
+                worker.eraserTo(layerId, point);
+            }
+        });
 
-        if (toolId == "brush") {
-            worker.drawTo(layerId, point);
-        } else {
-            worker.eraserTo(layerId, point);
-        }
-    });
-
-    window.addEventListener("pointerup", (e) => {
+    document.querySelector("#container").addEventListener("pointerup", (e) => {
         e.preventDefault();
         if (!pointer_active) return;
         pointer_active = false;

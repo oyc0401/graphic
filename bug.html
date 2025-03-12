@@ -13,17 +13,57 @@
                 justify-content: center;
                 height: 100vh;
                 background-color: white;
+                user-select: none;
+                -webkit-user-select: none; /* 사파리 대응 */
+                -moz-user-select: none;
+                -ms-user-select: none;
+                overscroll-behavior: none;
+                /* 배경 스크롤 방지 */
+                touch-action: none;
             }
             canvas {
                 display: block;
                 image-rendering: pixelated;
             }
+            #myCanvas {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: none; /* 클릭 방지 */
+            }
         </style>
     </head>
     <body>
         <canvas id="canvas"></canvas>
-
+        <canvas id="myCanvas"></canvas>
         <script>
+            (function () {
+                // 캔버스 가져오기
+                const canvas = document.getElementById("myCanvas");
+                const ctx = canvas.getContext("2d");
+
+                // 캔버스 크기 조정 함수
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    drawText(); // 크기 변경 시 다시 그리기
+                }
+
+                // 텍스트 그리기 함수
+                function drawText() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); // 이전 내용 지우기
+                    ctx.font = "bold 32px Arial"; // 글꼴 설정
+                    ctx.fillStyle = "white"; // 글씨 색상
+                    ctx.textAlign = "center"; // 가로 정렬
+                    ctx.textBaseline = "middle"; // 세로 정렬
+                    ctx.fillText("뭘 봐?", canvas.width / 2, canvas.height / 2); // 중앙 정렬
+                }
+
+                // 윈도우 크기 변경 시 캔버스 다시 그리기
+                window.addEventListener("resize", resizeCanvas);
+                resizeCanvas(); // 초기 실행
+            })();
             function createShader(gl, type, source) {
                 let shader = gl.createShader(type);
                 gl.shaderSource(shader, source);
@@ -51,22 +91,8 @@
             }
 
             let canvas = document.querySelector("#canvas");
-            let gl = canvas.getContext("webgl2", { premultipliedAlpha: true }); // iOS에서는 기본적으로 true일 가능성이 높음
+            let gl = canvas.getContext("webgl2", { premultipliedAlpha: true });
 
-            // 캔버스 크기 설정
-            function resizeCanvas() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-            resizeCanvas();
-            window.addEventListener("resize", resizeCanvas);
-            // var ext = gl.getExtension("EXT_sRGB");
-            // if (!ext) {
-            //     console.log("EXT_sRGB extension not supported.");
-            // } else {
-            //     console.log("EXT_sRGB extension is supported.");
-            // }
             // 정점 셰이더
             let vertexShaderSource = `#version 300 es
                 precision highp float;
@@ -116,26 +142,23 @@
             gl.useProgram(program);
             gl.bindVertexArray(vao);
 
-            // 블렌딩 설정 (iOS 대응)
-           // gl.enable(gl.BLEND);
-            //gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // Premultiplied Alpha 블렌딩
-
             function render() {
                 gl.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
             }
 
+            // 캔버스 크기 설정
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                render();
+            }
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas);
+
             render();
-
-
-            // canvas.addEventListener("pointerdown", () => {
-            //     const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-            //     gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-            //     console.log(pixels.slice(0, 20)); // 첫 20개 픽셀 값 출력 (RGBA 순서)
-            //     alert(pixels.slice(0, 20))
-            // });
-
         </script>
     </body>
 </html>

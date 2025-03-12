@@ -311,7 +311,8 @@ export function getBrushManager(canvas, gl, width, height) {
 
       void main() {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
-        outColor = imageColor;
+        
+        outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
       }
       `;
 
@@ -340,6 +341,7 @@ export function getBrushManager(canvas, gl, width, height) {
   let alpha = 0.5;
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
+  let isDrawing = false;
   ///////////
 
   function stroke(start, end) {
@@ -388,7 +390,7 @@ export function getBrushManager(canvas, gl, width, height) {
     dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
 
     // SCISSOR TEST로 일부만 렌더링
-    // gl.enable(gl.SCISSOR_TEST);
+     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -449,12 +451,15 @@ export function getBrushManager(canvas, gl, width, height) {
   }
 
   function cancel() {
-    gl.useProgram(eraserProgram);
+    gl.disable(gl.SCISSOR_TEST);
+
+    gl.useProgram(cancelProgram);
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    
 
-    gl.disable(gl.SCISSOR_TEST);
+  
   }
 
   function reset() {

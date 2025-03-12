@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { cancel } from "./draw";
+import { cancel,endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -129,8 +129,11 @@ export function initPosition() {
 
           // 일정시간 이내에 그리면 지우기
           if (elapsed <= discard_quick_undo_period) {
+            //alert('!');
             cancel();
           }
+
+          endDrawing();
           window.dispatchEvent(new Event("pointerup"));
           console.log("두손가락이면 핀치줌 시작");
           paintState.action = "PINCH";
