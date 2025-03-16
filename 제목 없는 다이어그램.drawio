@@ -17,16 +17,16 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-5" value="pointerdown&lt;div&gt;브러시 드로우 시작&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="480" width="120" height="60" as="geometry" />
+          <mxGeometry x="280" y="360" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="B5Aq6NU6MRqTEen8UPBE-7" target="B5Aq6NU6MRqTEen8UPBE-9">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-7" value="pointermove&lt;div&gt;브러시 드로우 이동&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="360" width="120" height="60" as="geometry" />
+          <mxGeometry x="440" y="360" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-9" value="pointerend&lt;div&gt;브러시 드로우 종료&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="440" y="360" width="120" height="60" as="geometry" />
+          <mxGeometry x="600" y="360" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-11" value="window" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="110" y="255" width="60" height="30" as="geometry" />
@@ -40,17 +40,17 @@
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="B5Aq6NU6MRqTEen8UPBE-15" target="B5Aq6NU6MRqTEen8UPBE-16">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="B5Aq6NU6MRqTEen8UPBE-15" value="touchstart&lt;div&gt;터치 핀치줌 시작&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="600" y="360" width="120" height="60" as="geometry" />
+        <mxCell id="B5Aq6NU6MRqTEen8UPBE-15" value="touchstart&lt;div&gt;터치 핀치줌 시작&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="760" y="360" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="B5Aq6NU6MRqTEen8UPBE-16" target="B5Aq6NU6MRqTEen8UPBE-17">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-16" value="touchmove&lt;div&gt;핀치줌 이동&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="600" y="240" width="120" height="60" as="geometry" />
+          <mxGeometry x="760" y="240" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="B5Aq6NU6MRqTEen8UPBE-17" value="touchend&lt;div&gt;핀치줌 종료&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="760" y="240" width="120" height="60" as="geometry" />
+          <mxGeometry x="920" y="240" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
