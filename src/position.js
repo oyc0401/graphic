@@ -1,13 +1,13 @@
 import { paintState } from "./main";
-import { cancel,endDrawing } from "./draw";
+import { cancel, endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
 export let position = {
   x: 0,
   y: 0,
-  width: 300,
-  height: 300,
+  width: 500,
+  height: 500,
   scale: 1,
   resizeScreen() {
     paintState.updateBouncingRect();
@@ -41,8 +41,6 @@ export function initPosition() {
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
-
-  
 
   /**
    * 휠 스크롤 영역
@@ -111,7 +109,8 @@ export function initPosition() {
       event.preventDefault();
     });
 
-    window.addEventListener(
+      document
+      .querySelector("#container").addEventListener(
       "touchstart",
       (event) => {
         console.log("$canvas_area.touchstart - captured");
@@ -232,7 +231,12 @@ export function initPosition() {
       panmoveStart = false;
     });
   })();
+
+  
 }
+// 이게...
+// 캔버스 밖을 움직이면 pan이 되게 해야하는데, 이 로직들도 진짜 세세하게 다이어그램 그려야겠다.
+// 처음 드로잉 중일 때 메뉴에서 시작했다가 끌고 내려오는 포인터.
 
 function setMagification(new_scale, anchor_point) {
   let factor = 1 - position.scale / new_scale;

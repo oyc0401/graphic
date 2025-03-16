@@ -99,8 +99,7 @@ export class PaintLayer {
       this.width,
       this.height,
     );
-    console.log('reseted')
-
+    
     this.drawManager.reset();
     this.lastPointer = pointer;
 

@@ -21,8 +21,8 @@ export let layer = {
     draw_canvas: document.querySelector("#draw-canvas"),
     //ctx: document.querySelector("#canvas").getContext("2d"),
     //draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
-    width: 300,
-    height: 300,
+    width: 500,
+    height: 500,
     reset() {
         // 이 작업은 캔버스의 내용을 모두 지우고, 크기를 조정합니다.
         this.canvas.width = position.width;
@@ -70,14 +70,17 @@ export async function initDraw() {
         layer.height,
         0,
     );
+
+    //let pointerId;
     document
-        .querySelector("#container")
+        .querySelector("#layer-area")
         .addEventListener("pointerdown", (e) => {
             e.preventDefault();
             if (paintState.action != "BRUSH") return;
             if (pointer_active) return;
             to_screen_coord(e.clientX, e.clientY);
             pointer_active = true;
+            //pointerId = e.pointerId;
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
 
@@ -98,10 +101,14 @@ export async function initDraw() {
     document
         .querySelector("#container")
         .addEventListener("pointermove", (e) => {
+            console.log('move!')
             e.preventDefault();
             if (!pointer_active) return;
+            
+            //if (pointerId != e.pointerId) return; // 이렇게 안해도 되는 이유는 모바일 캡쳐 때문임.
 
             let point = to_canvas_coord(e.clientX, e.clientY);
+
             const worker = getLayerWorker();
 
             if (toolId == "brush") {
