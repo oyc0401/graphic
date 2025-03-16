@@ -1,4 +1,4 @@
-import { paintState, pressedKeys, setKeyEvents } from "./main";
+import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
@@ -224,17 +224,22 @@ export function initPosition() {
   (function () {
     let lastClientX;
     let lastClientY;
-    let panmoveStart = false; // 이건 팬도구 마우스가 클릭 되었는지 여부
-    window.addEventListener("pointerdown", (e) => {
-      if (paintState.action != "PAN") return;
-      lastClientX = e.clientX;
-      lastClientY = e.clientY;
-      panmoveStart = true;
-    });
+    
+    document
+      .querySelector("#container")
+      .addEventListener("pointerdown", (e) => {
+        if (paintState.action != "PAN") return;
+
+        // 팬 시작시에 e에 좌표가 없을 수도 있음..
+        lastClientX = e.clientX;
+        lastClientY = e.clientY;
+
+        console.log("팬 시작!");
+      });
 
     window.addEventListener("pointermove", (e) => {
       if (paintState.action != "PAN") return;
-      if (!panmoveStart) return;
+      if (!paintState.pointerdown) return;
 
       let dx = lastClientX - e.clientX;
       let dy = lastClientY - e.clientY;
@@ -246,17 +251,7 @@ export function initPosition() {
       position.resizeScreen();
     });
 
-    window.addEventListener("pointerup", (e) => {
-      if (paintState.action != "PAN") return;
-      if (!panmoveStart) return;
-      panmoveStart = false;
-      // 여기서 키보드 팬이 눌려있으면 팬 그대로 가도록 해야함
-      if (!pressedKeys["Space"]) {
-        setLastTool();
-      }
-
-      setKeyEvents();
-    });
+    window.addEventListener("pointerup", (e) => {});
   })();
 }
 // 이게...

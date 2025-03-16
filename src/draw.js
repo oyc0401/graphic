@@ -14,7 +14,13 @@ export function cancel() {
 }
 
 export function endDrawing() {
-    document.querySelector("#container").dispatchEvent(new Event("pointerup")); // 브러시 드로우 포인터 업
+    console.log("endDrawing!");
+    const worker = getLayerWorker();
+    if (toolId == "brush") {
+        worker.drawEnd(layerId);
+    } else {
+        worker.eraserEnd(layerId);
+    }
 }
 
 export let layer = {
@@ -74,14 +80,12 @@ export async function initDraw() {
 
     //let pointerId;
     document
-       .querySelector("#container")
+        .querySelector("#container")
         .addEventListener("pointerdown", (e) => {
             e.preventDefault();
             if (paintState.action != "BRUSH") return;
-            if (pointer_active) return;
             to_screen_coord(e.clientX, e.clientY);
-            pointer_active = true;
-            //pointerId = e.pointerId;
+
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
 
@@ -103,13 +107,10 @@ export async function initDraw() {
         .querySelector("#container")
         .addEventListener("pointermove", (e) => {
             e.preventDefault();
+            if (!paintState.pointerdown) return;
             if (paintState.action != "BRUSH") {
-                endDrawing();
                 return;
             }
-            if (!pointer_active) return;
-
-            //if (pointerId != e.pointerId) return; // 이렇게 안해도 되는 이유는 모바일 캡쳐 때문임.
 
             let point = to_canvas_coord(e.clientX, e.clientY);
 
@@ -124,13 +125,7 @@ export async function initDraw() {
 
     document.querySelector("#container").addEventListener("pointerup", (e) => {
         e.preventDefault();
-        if (!pointer_active) return;
-        pointer_active = false;
-        const worker = getLayerWorker();
-        if (toolId == "brush") {
-            worker.drawEnd(layerId);
-        } else {
-            worker.eraserEnd(layerId);
-        }
+        if (paintState.action != "BRUSH") return;
+        endDrawing();
     });
 }
