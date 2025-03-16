@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { cancel, endDrawing } from "./draw";
+import { cancel, resetImageTexture } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -123,7 +123,7 @@ export function initPosition() {
     document.querySelector("#container").addEventListener(
       "touchstart",
       (event) => {
-        console.log("$canvas_area.touchstart - captured");
+        console.log("touchstart - captured");
         // 이때 0-> 2, 1->3 이렇게 1프레임 안에 두개의 손가락 터치 되는거 예외처리 해야함.
         if (event.touches.length > 2) {
           // 세번째 손가락은 무시
@@ -138,11 +138,10 @@ export function initPosition() {
 
           // 일정시간 이내에 그리면 지우기
           if (elapsed <= discard_quick_undo_period) {
-            //alert('!');
             cancel();
           }
 
-          endDrawing();
+          resetImageTexture();
 
           console.log("두손가락이면 핀치줌 시작");
           setPinchEvent();
@@ -193,30 +192,15 @@ export function initPosition() {
     });
 
     window.addEventListener("touchend", (event) => {
-      console.log("touchend");
       if (paintState.action != "PINCH") return;
-      if (event.touches.length >= 2) {
-        // 세번째 손가락 뗀거임.
-        return;
-      }
+      if (event.touches.length >= 2) return; // 세번째 손가락 뗀거임.
 
-      // // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
+      // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
       if (event.touches === undefined || event.touches.length < 2) {
         setLastTool();
       }
     });
   })();
-
-  // document
-  //   .querySelector("#container")
-  //   .addEventListener("pointerdown", (event) => {
-  //     if (paintState.action != "BRUSH") return;
-  //     if (event.target === event.currentTarget) {
-  //       console.log("부모의 빈 부분이 클릭됨");
-
-  //      // setPanEvent();
-  //     }
-  //   });
 
   /**
    * 마우스 팬 영역
@@ -224,13 +208,12 @@ export function initPosition() {
   (function () {
     let lastClientX;
     let lastClientY;
-    
+
     document
       .querySelector("#container")
       .addEventListener("pointerdown", (e) => {
         if (paintState.action != "PAN") return;
 
-        // 팬 시작시에 e에 좌표가 없을 수도 있음..
         lastClientX = e.clientX;
         lastClientY = e.clientY;
 
@@ -250,8 +233,6 @@ export function initPosition() {
       lastClientY = e.clientY;
       position.resizeScreen();
     });
-
-    window.addEventListener("pointerup", (e) => {});
   })();
 }
 // 이게...

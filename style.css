@@ -82,3 +82,7 @@ button{
 .crosshair{
   cursor: crosshair;
 }
+
+.zoom{
+  cursor: zoom-in;
+}

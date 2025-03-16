@@ -1,4 +1,4 @@
-import { initDraw, endDrawing } from "./draw";
+import { initDraw, resetImageTexture } from "./draw";
 import { initPosition, position } from "./position";
 window.onload = main;
 
@@ -39,12 +39,12 @@ export let pressedKeys = {
     KeyZ: false,
 };
 
-function setCursor() {
+export function setCursor() {
     const container = document.querySelector("#container");
     if (!container) return;
 
     // 모든 상태 초기화
-    container.classList.remove("grab", "grabbing", "crosshair");
+    container.classList.remove("grab", "grabbing", "crosshair", "zoom");
 
     if (paintState.action === "PAN") {
         if (paintState.pointerdown) {
@@ -54,12 +54,13 @@ function setCursor() {
         }
     } else if (paintState.action === "BRUSH") {
         container.classList.add("crosshair");
+    } else if (paintState.action === "ZOOM") {
+        container.classList.add("zoom");
     }
-    // ZOOM일 때는 모든 클래스를 제거한 상태 유지
 }
 
 // 누르고 있는 키에 따라서 도구를 바꿈
-function changeKeyAction() {
+export function applyKeyAction() {
     paintState.action = "BRUSH";
     // 이전에 뭔가 작동중이면 안바꿈
     if (paintState.pointerdown) {
@@ -76,28 +77,18 @@ function changeKeyAction() {
 document.querySelector("#container").addEventListener(
     "pointerdown",
     (_) => {
-        console.log("pointerdown");
         paintState.pointerdown = true;
         setCursor();
-    },
-    true,
-);
-window.addEventListener(
-    "pointermove",
-    (e) => {
-        // 이건 모바일에서 버그나니깐 모바일 되는거에선 쓰지 말기!
-        paintState.clientX = e.clientX;
-        paintState.clientY = e.clientY;
+        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
     },
     true,
 );
 window.addEventListener(
     "pointerup",
     (_) => {
-        console.log("pointerup");
         paintState.pointerdown = false;
-        changeKeyAction();
         setCursor();
+        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
     },
     true,
 );
@@ -113,14 +104,14 @@ function setKey() {
                 pressedKeys["KeyZ"] = true;
                 // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
 
-                changeKeyAction();
+                applyKeyAction();
                 setCursor();
             }
             if (event.code === "Space") {
                 event.preventDefault();
                 pressedKeys["Space"] = true;
 
-                changeKeyAction();
+                applyKeyAction();
                 setCursor();
             }
         });
@@ -130,14 +121,14 @@ function setKey() {
                 event.preventDefault();
                 pressedKeys["KeyZ"] = false;
 
-                changeKeyAction();
+                applyKeyAction();
                 setCursor();
             }
             if (event.code === "Space") {
                 event.preventDefault();
                 pressedKeys["Space"] = false;
 
-                changeKeyAction();
+                applyKeyAction();
                 setCursor();
             }
         });

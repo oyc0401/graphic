@@ -1,19 +1,21 @@
-import { paintState } from "./main";
+import { paintState, applyKeyAction, setCursor } from "./main";
 import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
-let pointer_active = false;
-
+/**
+ * 원본 텍스쳐로 돌려놓기
+ */
 export function cancel() {
     const worker = getLayerWorker();
     worker.cancel(layerId);
-
-    endDrawing();
 }
 
-export function endDrawing() {
+/**
+ * 현재 이미지를 원본 텍스쳐에 덮어쓰기
+ */
+export function resetImageTexture() {
     console.log("endDrawing!");
     const worker = getLayerWorker();
     if (toolId == "brush") {
@@ -78,7 +80,9 @@ export async function initDraw() {
         0,
     );
 
-    //let pointerId;
+    // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
+    let pointerActive = false;
+
     document
         .querySelector("#container")
         .addEventListener("pointerdown", (e) => {
@@ -86,6 +90,7 @@ export async function initDraw() {
             if (paintState.action != "BRUSH") return;
             to_screen_coord(e.clientX, e.clientY);
 
+            pointerActive = true;
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
 
@@ -108,9 +113,8 @@ export async function initDraw() {
         .addEventListener("pointermove", (e) => {
             e.preventDefault();
             if (!paintState.pointerdown) return;
-            if (paintState.action != "BRUSH") {
-                return;
-            }
+            if (paintState.action != "BRUSH") return;
+            if (!pointerActive) return;
 
             let point = to_canvas_coord(e.clientX, e.clientY);
 
@@ -126,6 +130,11 @@ export async function initDraw() {
     document.querySelector("#container").addEventListener("pointerup", (e) => {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
-        endDrawing();
+        pointerActive = false;
+
+        resetImageTexture();
+
+        applyKeyAction();
+        setCursor();
     });
 }
