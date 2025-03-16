@@ -1,4 +1,4 @@
-import { paintState, pressedKeys,setKeyEvents } from "./main";
+import { paintState, pressedKeys, setKeyEvents } from "./main";
 import { cancel, endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
@@ -42,14 +42,14 @@ export function initPosition() {
     position.resizeScreen();
   });
 
-  function setPinchEvent(){
+  function setPinchEvent() {
     paintState.action = "PINCH";
   }
-  function setPanEvent(){
+  function setPanEvent() {
     paintState.action = "PAN";
   }
 
-  function setLastTool(){
+  function setLastTool() {
     paintState.action = "BRUSH";
   }
 
@@ -147,7 +147,6 @@ export function initPosition() {
           console.log("두손가락이면 핀치줌 시작");
           setPinchEvent();
 
-
           lastPinchCenterPos = average_touches(event.touches);
 
           lastPinchDistance = Math.hypot(
@@ -208,15 +207,16 @@ export function initPosition() {
     });
   })();
 
-  document
-    .querySelector("#container")
-    .addEventListener("pointerdown", (event) => {
-      if (paintState.action == "PINCH") return;
-      if (event.target === event.currentTarget) {
-        console.log("부모의 빈 부분이 클릭됨");
-        setPanEvent();
-      }
-    });
+  // document
+  //   .querySelector("#container")
+  //   .addEventListener("pointerdown", (event) => {
+  //     if (paintState.action != "BRUSH") return;
+  //     if (event.target === event.currentTarget) {
+  //       console.log("부모의 빈 부분이 클릭됨");
+
+  //      // setPanEvent();
+  //     }
+  //   });
 
   /**
    * 마우스 팬 영역
@@ -251,12 +251,11 @@ export function initPosition() {
       if (!panmoveStart) return;
       panmoveStart = false;
       // 여기서 키보드 팬이 눌려있으면 팬 그대로 가도록 해야함
-      if(!pressedKeys['Space']){
-         setLastTool();
+      if (!pressedKeys["Space"]) {
+        setLastTool();
       }
 
       setKeyEvents();
-     
     });
   })();
 }

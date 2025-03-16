@@ -55,6 +55,7 @@ function setKey() {
             if (event.code == "KeyZ") {
                 event.preventDefault();
                 pressedKeys["KeyZ"] = true;
+                // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
 
                 setKeyEvents();
             }
