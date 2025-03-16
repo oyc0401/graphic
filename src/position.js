@@ -322,7 +322,7 @@ window.addEventListener("pointerup", (e) => {
   let zoomH = Math.abs(sy - ey);
 
   // 그냥 클릭 시
-  if (zoomW <10|| zoomH <10) {
+  if (zoomW < 10 || zoomH < 10) {
     let new_mag = position.scale;
     if (e.button === 0) {
       new_mag = position.scale * 1.2;
