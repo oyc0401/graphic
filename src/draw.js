@@ -14,6 +14,9 @@ export function cancel() {
 
 export function endDrawing() {
     pointer_active = false;
+    document
+        .querySelector("#container")
+        .dispatchEvent(new Event("pointerup")); // 브러시 드로우 포인터 업
 }
 
 export let layer = {
@@ -101,10 +104,9 @@ export async function initDraw() {
     document
         .querySelector("#container")
         .addEventListener("pointermove", (e) => {
-            console.log('move!')
             e.preventDefault();
             if (!pointer_active) return;
-            
+
             //if (pointerId != e.pointerId) return; // 이렇게 안해도 되는 이유는 모바일 캡쳐 때문임.
 
             let point = to_canvas_coord(e.clientX, e.clientY);
@@ -124,9 +126,9 @@ export async function initDraw() {
         pointer_active = false;
         const worker = getLayerWorker();
         if (toolId == "brush") {
-            // worker.drawEnd(layerId);
+            worker.drawEnd(layerId);
         } else {
-            // worker.eraserEnd(layerId);
+            worker.eraserEnd(layerId);
         }
     });
 }

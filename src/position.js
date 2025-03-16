@@ -1,4 +1,4 @@
-import { paintState } from "./main";
+import { paintState, pressedKeys,setKeyEvents } from "./main";
 import { cancel, endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
@@ -41,6 +41,17 @@ export function initPosition() {
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
+
+  function setPinchEvent(){
+    paintState.action = "PINCH";
+  }
+  function setPanEvent(){
+    paintState.action = "PAN";
+  }
+
+  function setLastTool(){
+    paintState.action = "BRUSH";
+  }
 
   /**
    * 휠 스크롤 영역
@@ -92,7 +103,7 @@ export function initPosition() {
     let lastPinchDistance;
     let lastPinchCenterPos;
     let first_pointer_time = 0;
-    let discard_quick_undo_period = 200;
+    let discard_quick_undo_period = 150;
 
     function average_touches(points) {
       const average = { x: 0, y: 0 };
@@ -109,8 +120,7 @@ export function initPosition() {
       event.preventDefault();
     });
 
-      document
-      .querySelector("#container").addEventListener(
+    document.querySelector("#container").addEventListener(
       "touchstart",
       (event) => {
         console.log("$canvas_area.touchstart - captured");
@@ -133,9 +143,10 @@ export function initPosition() {
           }
 
           endDrawing();
-          window.dispatchEvent(new Event("pointerup"));
+
           console.log("두손가락이면 핀치줌 시작");
-          paintState.action = "PINCH";
+          setPinchEvent();
+
 
           lastPinchCenterPos = average_touches(event.touches);
 
@@ -145,7 +156,7 @@ export function initPosition() {
           );
         }
       },
-      true,
+      true, // 캡쳐링 단계에서 실행
     );
 
     window.addEventListener("touchmove", (event) => {
@@ -192,10 +203,20 @@ export function initPosition() {
 
       // // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
       if (event.touches === undefined || event.touches.length < 2) {
-        paintState.action = "BRUSH";
+        setLastTool();
       }
     });
   })();
+
+  document
+    .querySelector("#container")
+    .addEventListener("pointerdown", (event) => {
+      if (paintState.action == "PINCH") return;
+      if (event.target === event.currentTarget) {
+        console.log("부모의 빈 부분이 클릭됨");
+        setPanEvent();
+      }
+    });
 
   /**
    * 마우스 팬 영역
@@ -208,12 +229,11 @@ export function initPosition() {
       if (paintState.action != "PAN") return;
       lastClientX = e.clientX;
       lastClientY = e.clientY;
-      //let pointer = to_screen_coord(e.clientX, e.clientY);
-      //lastPointer = pointer;
       panmoveStart = true;
     });
 
     window.addEventListener("pointermove", (e) => {
+      if (paintState.action != "PAN") return;
       if (!panmoveStart) return;
 
       let dx = lastClientX - e.clientX;
@@ -227,12 +247,18 @@ export function initPosition() {
     });
 
     window.addEventListener("pointerup", (e) => {
+      if (paintState.action != "PAN") return;
       if (!panmoveStart) return;
       panmoveStart = false;
+      // 여기서 키보드 팬이 눌려있으면 팬 그대로 가도록 해야함
+      if(!pressedKeys['Space']){
+         setLastTool();
+      }
+
+      setKeyEvents();
+     
     });
   })();
-
-  
 }
 // 이게...
 // 캔버스 밖을 움직이면 pan이 되게 해야하는데, 이 로직들도 진짜 세세하게 다이어그램 그려야겠다.

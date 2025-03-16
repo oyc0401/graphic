@@ -31,30 +31,53 @@ function initiaize() {
 /**
  * 단축키
  */
+export let pressedKeys = {
+    Space: false,
+    KeyZ: false,
+};
+
+export function setKeyEvents() {
+    paintState.action = "BRUSH";
+    if (pressedKeys.Space) {
+        paintState.action = "PAN";
+    }
+    if (pressedKeys.KeyZ) {
+        paintState.action = "ZOOM";
+    }
+}
+
 function setKey() {
     (function () {
         document.addEventListener("keydown", (event) => {
             //console.log(event);
+            if (event.repeat) return; // OS 기본 딜레이 방지
+
             if (event.code == "KeyZ") {
                 event.preventDefault();
-                paintState.action = "ZOOM";
+                pressedKeys["KeyZ"] = true;
+
+                setKeyEvents();
             }
             if (event.code === "Space") {
                 event.preventDefault();
-                //console.log("스페이스바 눌림!");
-                paintState.action = "PAN";
+                pressedKeys["Space"] = true;
+
+                setKeyEvents();
             }
         });
 
         document.addEventListener("keyup", (event) => {
             if (event.code == "KeyZ") {
                 event.preventDefault();
-                if (paintState.action != "ZOOM") return;
-                paintState.action = "BRUSH";
+                pressedKeys["KeyZ"] = false;
+
+                setKeyEvents();
             }
             if (event.code === "Space") {
-                if (paintState.action != "PAN") return;
-                paintState.action = "BRUSH";
+                event.preventDefault();
+                pressedKeys["Space"] = false;
+
+                setKeyEvents();
             }
         });
     })();

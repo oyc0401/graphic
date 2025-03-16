@@ -19,7 +19,6 @@ let selection: {
   // source_ctx: OffscreenCanvasRenderingContext2D;
 } = null;
 
-
 interface Pointer {
   x: number;
   y: number;
@@ -81,6 +80,10 @@ export const workerApi = {
     const layer = getLayer(layerId);
     layer.drawTo(pointer);
   },
+  drawEnd(layerId: string) {
+    const layer = getLayer(layerId);
+    layer.drawEnd();
+  },
 
   eraserStart(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
@@ -91,13 +94,17 @@ export const workerApi = {
     const layer = getLayer(layerId);
     layer.eraserTo(pointer);
   },
+  eraserEnd(layerId: string) {
+    const layer = getLayer(layerId);
+    layer.drawEnd();
+  },
 
-  strokeEnd(){
+  strokeEnd() {
     // 히스토리에 하나 추가하기!
   },
 
-  cancel(layerId){
-    // 그리기 전 (현재) 히스토리로 돌아간다. 
+  cancel(layerId) {
+    // 그리기 전 (현재) 히스토리로 돌아간다.
     const layer = getLayer(layerId);
     layer.cancel();
   },

@@ -99,8 +99,8 @@ export class PaintLayer {
       this.width,
       this.height,
     );
-    
-    this.drawManager.reset();
+
+    //this.drawManager.reset(); // 이거 어짜피 포인터 뗄 때 원본 텍스처 리셋하는데 빼도 될듯.
     this.lastPointer = pointer;
 
     this.drawManager.setAlpha(paintOption.alpha);
@@ -112,6 +112,10 @@ export class PaintLayer {
     this.drawManager.stroke(this.lastPointer, pointer);
     this.drawManager.brush();
     this.lastPointer = pointer;
+  }
+
+  drawEnd() {
+    this.drawManager.reset();
   }
 
   eraserStart(pointer: Pointer) {
@@ -135,7 +139,7 @@ export class PaintLayer {
     this.lastPointer = pointer;
   }
 
-  cancel(){
+  cancel() {
     this.drawManager.cancel();
   }
 
