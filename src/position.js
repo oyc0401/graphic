@@ -1,4 +1,4 @@
-import { paintState } from "./main";
+import { paintState, applyKeyAction, setCursor } from "./main";
 import { cancel, resetImageTexture } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
@@ -271,3 +271,90 @@ export function to_screen_coord(x, y) {
     position.y;
   return { x: px, y: py };
 }
+
+let sx, sy;
+let ex, ey;
+let activeZoom = false;
+document.querySelector("#container").addEventListener("pointerdown", (e) => {
+  if (paintState.action != "ZOOM") return;
+  if (activeZoom) return;
+  sx = e.clientX;
+  sy = e.clientY;
+  ex = e.clientX;
+  ey = e.clientY;
+  activeZoom = true;
+  let zoomArea = document.querySelector("#zoom-area");
+  zoomArea.style.visibility = "visible";
+  console.log("확대");
+  zoomArea.style.left = `${sx}px`;
+  zoomArea.style.top = `${sy}px`;
+  zoomArea.style.width = `0px`;
+  zoomArea.style.height = `0px`;
+});
+
+window.addEventListener("pointermove", (e) => {
+  if (paintState.action != "ZOOM") return;
+  if (!paintState.pointerdown) return;
+  if (!activeZoom) return;
+  ex = e.clientX;
+  ey = e.clientY;
+  let zoomArea = document.querySelector("#zoom-area");
+  let startX = sx < ex ? sx : ex;
+  let startY = sy < ey ? sy : ey;
+  let zoomW = Math.abs(sx - ex);
+  let zoomH = Math.abs(sy - ey);
+  zoomArea.style.left = `${startX}px`;
+  zoomArea.style.top = `${startY}px`;
+  zoomArea.style.width = `${zoomW}px`;
+  zoomArea.style.height = `${zoomH}px`;
+});
+
+window.addEventListener("pointerup", (e) => {
+  if (paintState.action != "ZOOM") return;
+  if (!activeZoom) return;
+
+  let zoomArea = document.querySelector("#zoom-area");
+  zoomArea.style.visibility = "hidden";
+  let cx = (sx + ex) / 2;
+  let cy = (sy + ey) / 2;
+
+  let zoomW = Math.abs(sx - ex);
+  let zoomH = Math.abs(sy - ey);
+
+  // 그냥 클릭 시
+  if (zoomW <10|| zoomH <10) {
+    let new_mag = position.scale;
+    if (e.button === 0) {
+      new_mag = position.scale * 1.2;
+    } else if (e.button === 2) {
+      new_mag = position.scale / 1.2;
+    }
+    const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
+    setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
+  } else {
+    let px = paintState.bouncingRect.width / zoomW;
+    let py = paintState.bouncingRect.height / zoomH;
+    let minScale = px < py ? px : py;
+
+    let topMargin = 80;
+    let centerX = paintState.bouncingRect.width / 2;
+    let centerY = paintState.bouncingRect.height / 2;
+
+    let dx = cx - centerX;
+    let dy = cy - centerY - topMargin / minScale;
+    position.x += dx / position.scale;
+    position.y += dy / position.scale;
+
+    let new_mag = position.scale * minScale;
+    const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
+
+    setMagification(clamped_scale, to_screen_coord(centerX, centerY));
+  }
+
+  position.resizeScreen();
+
+  activeZoom = false;
+
+  applyKeyAction();
+  setCursor();
+});

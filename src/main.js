@@ -1,4 +1,4 @@
-import { initDraw, resetImageTexture } from "./draw";
+import { initDraw } from "./draw";
 import { initPosition, position } from "./position";
 window.onload = main;
 
@@ -61,15 +61,16 @@ export function setCursor() {
 
 // 누르고 있는 키에 따라서 도구를 바꿈
 export function applyKeyAction() {
-    paintState.action = "BRUSH";
-    // 이전에 뭔가 작동중이면 안바꿈
     if (paintState.pointerdown) {
         return;
     }
+    paintState.action = "BRUSH";
+    // 이전에 뭔가 작동중이면 안바꿈
     if (pressedKeys.Space) {
         paintState.action = "PAN";
     }
     if (pressedKeys.KeyZ) {
+        console.log("zoom 누르는중");
         paintState.action = "ZOOM";
     }
 }
@@ -134,3 +135,5 @@ function setKey() {
         });
     })();
 }
+
+window.addEventListener("contextmenu", (event) => event.preventDefault());

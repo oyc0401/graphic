@@ -130,6 +130,7 @@ export async function initDraw() {
     document.querySelector("#container").addEventListener("pointerup", (e) => {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
+        if (!pointerActive) return;
         pointerActive = false;
 
         resetImageTexture();

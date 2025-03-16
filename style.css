@@ -66,6 +66,13 @@ canvas {
 }
 
 
+#zoom-area{
+  background: rgba(0,0,0,0.1);
+  position: absolute;
+  z-index: 3000;
+}
+
+
 button{
   height: 44px;
   width: 64px;
