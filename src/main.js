@@ -42,10 +42,11 @@ export let pressedKeys = {
 export function setCursor() {
     const container = document.querySelector("#container");
     if (!container) return;
+    let brushCursor = document.querySelector("#brush-cursor");
 
     // 모든 상태 초기화
     container.classList.remove("grab", "grabbing", "crosshair", "zoom");
-
+    brushCursor.style.visibility = "hidden";
     if (paintState.action === "PAN") {
         if (paintState.pointerdown) {
             container.classList.add("grabbing");
@@ -53,7 +54,15 @@ export function setCursor() {
             container.classList.add("grab");
         }
     } else if (paintState.action === "BRUSH") {
+        let brushSize = 10;
+        let scaledBrushSize = brushSize * position.scale;
         container.classList.add("crosshair");
+
+        brushCursor.style.visibility = "visible";
+        brushCursor.style.left = `${pointerX - scaledBrushSize / 2}px`;
+        brushCursor.style.top = `${pointerY - scaledBrushSize / 2}px`;
+        brushCursor.style.width = `${scaledBrushSize}px`;
+        brushCursor.style.height = `${scaledBrushSize}px`;
     } else if (paintState.action === "ZOOM") {
         container.classList.add("zoom");
     }
@@ -77,8 +86,16 @@ export function applyKeyAction() {
 
 document.querySelector("#container").addEventListener(
     "pointerdown",
-    (_) => {
+    (e) => {
         paintState.pointerdown = true;
+        setCursor();
+        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
+    },
+    true,
+);
+document.querySelector("#container").addEventListener(
+    "pointermove",
+    (e) => {
         setCursor();
         // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
     },
@@ -86,13 +103,28 @@ document.querySelector("#container").addEventListener(
 );
 window.addEventListener(
     "pointerup",
-    (_) => {
+    (e) => {
         paintState.pointerdown = false;
         setCursor();
         // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
     },
     true,
 );
+let pointerX = 0,
+    pointerY = 0; // 전역 변수로 저장
+
+window.addEventListener(
+    "pointermove",
+    (event) => {
+        // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
+        pointerX = event.clientX;
+        pointerY = event.clientY;
+        setCursor();
+    },
+    true,
+);
+
+// 마우스 이동 감지하여 좌표 저장
 
 function setKey() {
     (function () {

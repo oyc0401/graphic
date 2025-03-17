@@ -11,7 +11,8 @@ body {
   display: flex;
   flex-direction: column;
   user-select: none;
-  -webkit-user-select: none; /* 사파리 대응 */
+  -webkit-user-select: none;
+  /* 사파리 대응 */
   -moz-user-select: none;
   -ms-user-select: none;
   overflow: hidden;
@@ -60,37 +61,57 @@ canvas {
 }
 
 #header {
+  z-index: 100000;
   height: 80px;
   width: 100%;
   background: green;
+  position: absolute;
+  top: 0px;
+  left: 0px;
 
 }
 
+#header-space {
+  height: 80px;
+  width: 100%;
+}
 
-#zoom-area{
-  background: rgba(0,0,0,0.1);
+
+#zoom-area {
+  background: rgba(0, 0, 0, 0.1);
   position: absolute;
   z-index: 3000;
 }
 
+#brush-cursor {
+  background: transparent;
+  border: 1px solid black;
+  border-radius: 10000px;
+  position: absolute;
+  z-index: 3000;
+  pointer-events: none;
+}
 
-button{
+
+button {
   height: 44px;
   width: 64px;
 }
 
-.grab{
+.grab {
   cursor: grab;
 }
 
-.grabbing{
+.grabbing {
   cursor: grabbing;
 }
 
-.crosshair{
-  cursor: crosshair;
+.crosshair {
+  cursor: none;
+  /* cursor:url("./src/circleCursor.png") 12 12, auto;  */
+
 }
 
-.zoom{
+.zoom {
   cursor: zoom-in;
 }

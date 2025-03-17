@@ -78,6 +78,7 @@ export function initPosition() {
             clamped_scale,
             to_screen_coord(event.clientX, event.clientY),
           );
+          setCursor();
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
@@ -331,6 +332,7 @@ window.addEventListener("pointerup", (e) => {
     }
     const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
     setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
+    setCursor();
   } else {
     let px = paintState.bouncingRect.width / zoomW;
     let py = paintState.bouncingRect.height / zoomH;
@@ -349,6 +351,7 @@ window.addEventListener("pointerup", (e) => {
     const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
 
     setMagification(clamped_scale, to_screen_coord(centerX, centerY));
+    setCursor();
   }
 
   position.resizeScreen();
