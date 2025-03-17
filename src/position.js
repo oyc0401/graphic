@@ -108,8 +108,8 @@ export function initPosition() {
     let firstPointerTime = 0;
     let lastDoubleTouchTime = 0;
 
-    const twoFingerTapInterval  = 75; // 이중클릭 범위
-    const doubleTapInterval  = 250; // 더블클릭 범위
+    const twoFingerTapInterval = 75; // 이중클릭 범위
+    const doubleTapInterval = 250; // 더블클릭 범위
 
     function averageTouches() {
       if (pointers.size < 2) throw new Error("포인터가 2개 미만"); // 포인터가 2개 미만이면 평균 계산 불가
@@ -159,17 +159,17 @@ export function initPosition() {
 
         if (pointers.size === 2) {
           const elapsed = performance.now() - firstPointerTime;
-          if (elapsed <= twoFingerTapInterval ) {
+          if (elapsed <= twoFingerTapInterval) {
             cancel();
             let now = performance.now();
-            if (now - lastDoubleTouchTime <= doubleTapInterval ) {
-               alert(`더블터치! ${now - lastDoubleTouchTime}`);
+            if (now - lastDoubleTouchTime <= doubleTapInterval) {
+              alert(`더블터치! ${now - lastDoubleTouchTime}`);
               lastDoubleTouchTime = 0;
             } else {
               lastDoubleTouchTime = now;
             }
           }
-          
+
           endDrawing();
           console.log("두 손가락 감지됨, 핀치 줌 시작");
           setPinchEvent();
