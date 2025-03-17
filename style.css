@@ -86,10 +86,12 @@ canvas {
 #brush-cursor {
   background: transparent;
   border: 1px solid black;
+  outline: 1px solid white;
   border-radius: 10000px;
   position: absolute;
   z-index: 3000;
   pointer-events: none;
+mix-blend-mode: difference ;
 }
 
 

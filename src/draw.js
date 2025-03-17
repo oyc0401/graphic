@@ -99,7 +99,7 @@ export async function initDraw() {
             const worker = getLayerWorker();
 
             if (toolId == "brush") {
-                worker.setStrokeColor(layerId, 0, 255, 255);
+                worker.setStrokeColor(layerId, 10, 10, 0);
                 worker.setStrokeSize(layerId, paintState.brushSize);
                 worker.setAlpha(layerId, paintState.brushAlpha);
 

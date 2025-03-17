@@ -332,9 +332,9 @@ window.addEventListener("pointerup", (e) => {
   if (zoomW < 10 || zoomH < 10) {
     let new_mag = position.scale;
     if (e.button === 0) {
-      new_mag = position.scale * 1.2;
+      new_mag = position.scale * 1.5;
     } else if (e.button === 2) {
-      new_mag = position.scale / 1.2;
+      new_mag = position.scale / 1.5;
     }
     const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
     setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
@@ -354,6 +354,13 @@ window.addEventListener("pointerup", (e) => {
     position.y += dy / position.scale;
 
     let new_mag = position.scale * minScale;
+
+    // if (e.button === 0) {
+    //   new_mag = position.scale * minScale;
+    // } else if (e.button === 2) {
+    //   new_mag = position.scale / minScale;
+    // }
+    
     const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
 
     setMagification(clamped_scale, to_screen_coord(centerX, centerY));
