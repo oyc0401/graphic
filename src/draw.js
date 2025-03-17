@@ -15,9 +15,12 @@ export function cancel() {
 /**
  * 현재 이미지를 원본 텍스쳐에 덮어쓰기
  */
-export function resetImageTexture() {
+export function endDrawing() {
     console.log("endDrawing!");
+    pointerActive = false;
+    
     const worker = getLayerWorker();
+    // resetImageTexture
     if (toolId == "brush") {
         worker.drawEnd(layerId);
     } else {
@@ -69,6 +72,8 @@ document.querySelector("#cancel").addEventListener("click", () => {
     cancel();
 });
 
+ let pointerActive = false;
+
 export async function initDraw() {
     layer.reset();
 
@@ -85,7 +90,7 @@ export async function initDraw() {
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
-    let pointerActive = false;
+   
 
     document
         .querySelector("#container")
@@ -93,6 +98,7 @@ export async function initDraw() {
             e.preventDefault();
             if (paintState.action != "BRUSH") return;
             to_screen_coord(e.clientX, e.clientY);
+            console.log("brushStart!");
 
             pointerActive = true;
             let point = to_canvas_coord(e.clientX, e.clientY);
@@ -137,9 +143,17 @@ export async function initDraw() {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
         if (!pointerActive) return;
-        pointerActive = false;
 
-        resetImageTexture();
+        let point = to_canvas_coord(e.clientX, e.clientY);
+        const worker = getLayerWorker();
+        if (toolId == "brush") {
+            worker.drawTo(layerId, point);
+        } else {
+            worker.eraserTo(layerId, point);
+        }
+
+        pointerActive = false;
+        endDrawing();
 
         applyKeyAction();
         setCursor();

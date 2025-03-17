@@ -1,5 +1,5 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
-import { cancel, resetImageTexture } from "./draw";
+import { cancel, endDrawing } from "./draw";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -101,106 +101,250 @@ export function initPosition() {
    * 핀지줌 영역
    */
   (function () {
+    let pointerIndex = 0;
+
     let lastPinchDistance;
     let lastPinchCenterPos;
-    let first_pointer_time = 0;
-    let discard_quick_undo_period = 150;
+    let firstPointerTime = 0;
+    let lastDoubleTouchTime = 0;
 
-    function average_touches(points) {
-      const average = { x: 0, y: 0 };
-      for (const pointer of points) {
-        average.x += pointer.clientX;
-        average.y += pointer.clientY;
-      }
-      average.x /= points.length;
-      average.y /= points.length;
-      return average;
+    const twoFingerTapInterval  = 75; // 이중클릭 범위
+    const doubleTapInterval  = 250; // 더블클릭 범위
+
+    function averageTouches() {
+      if (pointers.size < 2) throw new Error("포인터가 2개 미만"); // 포인터가 2개 미만이면 평균 계산 불가
+
+      // 1. pointerId를 오름차순 정렬하여 가장 낮은 두 개 선택
+      const sortedPointers = [...pointers.values()].sort(
+        (a, b) => a.index - b.index,
+      );
+      const firstPoint = sortedPointers[0];
+      const secondPoint = sortedPointers[1];
+
+      // 3. 두 포인터의 평균 좌표 계산
+      return {
+        x: (firstPoint.clientX + secondPoint.clientX) / 2,
+        y: (firstPoint.clientY + secondPoint.clientY) / 2,
+      };
     }
 
-    document.addEventListener("gesturestart", function (event) {
+    document.addEventListener("gesturestart", (event) => {
       event.preventDefault();
     });
 
+    let pointers = new Map(); // pointerId -> {x, y} 저장
+
     document.querySelector("#container").addEventListener(
-      "touchstart",
+      "pointerdown",
       (event) => {
-        console.log("touchstart - captured");
-        // 이때 0-> 2, 1->3 이렇게 1프레임 안에 두개의 손가락 터치 되는거 예외처리 해야함.
-        if (event.touches.length > 2) {
-          // 세번째 손가락은 무시
-          return;
-        }
-        if (event.touches.length === 1) {
-          first_pointer_time = performance.now();
+        event.preventDefault();
+        console.log("pointerdown - captured", event.pointerId);
+
+        if (!pointers.has(event.pointerId)) {
+          console.log("포인터 추가", event.pointerId);
+          pointers.set(event.pointerId, {
+            index: pointerIndex,
+            clientX: event.clientX,
+            clientY: event.clientY,
+          });
+          pointerIndex++;
+        } else {
+          alert("포인터 아이디가 이미 있는데 또 pointerdown? 버그임");
         }
 
-        if (event.touches.length == 2) {
-          const elapsed = performance.now() - first_pointer_time;
+        // 핀치 줌
+        if (pointers.size === 1) {
+          firstPointerTime = performance.now();
+        }
 
-          // 일정시간 이내에 그리면 지우기
-          if (elapsed <= discard_quick_undo_period) {
+        if (pointers.size === 2) {
+          const elapsed = performance.now() - firstPointerTime;
+          if (elapsed <= twoFingerTapInterval ) {
             cancel();
+            let now = performance.now();
+            if (now - lastDoubleTouchTime <= doubleTapInterval ) {
+               alert(`더블터치! ${now - lastDoubleTouchTime}`);
+              lastDoubleTouchTime = 0;
+            } else {
+              lastDoubleTouchTime = now;
+            }
           }
-
-          resetImageTexture();
-
-          console.log("두손가락이면 핀치줌 시작");
+          
+          endDrawing();
+          console.log("두 손가락 감지됨, 핀치 줌 시작");
           setPinchEvent();
 
-          lastPinchCenterPos = average_touches(event.touches);
-
+          lastPinchCenterPos = averageTouches();
+          const points = Array.from(pointers.values());
           lastPinchDistance = Math.hypot(
-            event.touches[0].clientX - event.touches[1].clientX,
-            event.touches[0].clientY - event.touches[1].clientY,
+            points[0].clientX - points[1].clientX,
+            points[0].clientY - points[1].clientY,
           );
         }
       },
-      true, // 캡쳐링 단계에서 실행
+      true,
     );
 
-    window.addEventListener("touchmove", (event) => {
-      if (paintState.action != "PINCH") return;
+    window.addEventListener("pointermove", (event) => {
+      if (!pointers.has(event.pointerId)) return;
+      Object.assign(pointers.get(event.pointerId), {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
 
-      // 핀치 팬
-      const pinchCenterPos = average_touches(event.touches);
+      // 핀치 줌
+      if (paintState.action !== "PINCH") return;
+      if (pointers.size < 2) return; // 두 손가락이 없으면 무시
+
+      const pinchCenterPos = averageTouches();
       const dx = lastPinchCenterPos.x - pinchCenterPos.x;
       const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-      position.x += dx / position.scale; // 이게 new_scale이여야하는지 아징 못정함.
+      position.x += dx / position.scale;
       position.y += dy / position.scale;
-
       lastPinchCenterPos = pinchCenterPos;
 
-      // 핀지줌
+      const points = Array.from(pointers.values());
       const distance = Math.hypot(
-        event.touches[0].clientX - event.touches[1].clientX,
-        event.touches[0].clientY - event.touches[1].clientY,
+        points[0].clientX - points[1].clientX,
+        points[0].clientY - points[1].clientY,
       );
 
       const scaleFactor = distance / lastPinchDistance;
-      let new_scale = position.scale * scaleFactor;
-
-      const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_scale));
+      let newScale = position.scale * scaleFactor;
+      const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
 
       setMagification(
-        clamped_scale,
+        clampedScale,
         to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
       );
-
       lastPinchDistance = distance;
 
-      // 렌더링
       position.resizeScreen();
     });
 
-    window.addEventListener("touchend", (event) => {
-      if (paintState.action != "PINCH") return;
-      if (event.touches.length >= 2) return; // 세번째 손가락 뗀거임.
+    window.addEventListener(
+      "pointerup",
+      (event) => {
+        if (pointers.has(event.pointerId)) {
+          pointers.delete(event.pointerId);
+          console.log("포인터 제거!", event.pointerId);
+        }
 
-      // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
-      if (event.touches === undefined || event.touches.length < 2) {
-        setLastTool();
-      }
-    });
+        // 핀치 줌
+        if (paintState.action !== "PINCH") return;
+
+        if (pointers.size == 0) {
+          setLastTool();
+        }
+      },
+      true,
+    );
+
+    window.addEventListener(
+      "pointercancel",
+      (event) => {
+        if (pointers.has(event.pointerId)) {
+          pointers.delete(event.pointerId);
+          console.log("포인터 제거!", event.pointerId);
+        }
+      },
+      true,
+    );
+
+    // document.querySelector("#container").addEventListener(
+    //   "pointerdown",
+    //   (event) => {
+    //     event.preventDefault();
+    //     console.log(event);
+    //     console.log("pointerdown - captured");
+    //     // 이때 0-> 2, 1->3 이렇게 1프레임 안에 두개의 손가락 터치 되는거 예외처리 해야함.
+
+    //     if (pointers.length < 2) {
+    //       pointers.push({
+    //         pointerId: event.pointerId,
+    //         pointerType: event.pointerType,
+    //         clientX: event.clientX,
+    //         clientY: event.clientY,
+    //       });
+    //     } else {
+    //       return;
+    //     }
+
+    //     if (pointers.length === 1) {
+    //       first_pointer_time = performance.now();
+    //     }
+
+    //     if (pointers.length === 2) {
+    //       const elapsed = performance.now() - first_pointer_time;
+
+    //       // 일정시간 이내에 그리면 지우기
+    //       if (elapsed <= discard_quick_undo_period) {
+    //         cancel();
+    //       }
+
+    //       resetImageTexture();
+
+    //       console.log("두손가락이면 핀치줌 시작");
+    //       setPinchEvent();
+
+    //       lastPinchCenterPos = average_touches(event.touches);
+
+    //       lastPinchDistance = Math.hypot(
+    //         event.touches[0].clientX - event.touches[1].clientX,
+    //         event.touches[0].clientY - event.touches[1].clientY,
+    //       );
+    //     }
+    //   },
+    //   true, // 캡쳐링 단계에서 실행
+    // );
+
+    // window.addEventListener("pointermove", (event) => {
+    //   if (paintState.action != "PINCH") return;
+
+    //   // 핀치 팬
+    //   const pinchCenterPos = average_touches(event.touches);
+    //   const dx = lastPinchCenterPos.x - pinchCenterPos.x;
+    //   const dy = lastPinchCenterPos.y - pinchCenterPos.y;
+    //   position.x += dx / position.scale; // 이게 new_scale이여야하는지 아징 못정함.
+    //   position.y += dy / position.scale;
+
+    //   lastPinchCenterPos = pinchCenterPos;
+
+    //   // 핀지줌
+    //   const distance = Math.hypot(
+    //     event.touches[0].clientX - event.touches[1].clientX,
+    //     event.touches[0].clientY - event.touches[1].clientY,
+    //   );
+
+    //   const scaleFactor = distance / lastPinchDistance;
+    //   let new_scale = position.scale * scaleFactor;
+
+    //   const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_scale));
+
+    //   setMagification(
+    //     clamped_scale,
+    //     to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
+    //   );
+
+    //   lastPinchDistance = distance;
+
+    //   // 렌더링
+    //   position.resizeScreen();
+    // });
+
+    // window.addEventListener("pointerup", (event) => {
+    //   if (paintState.action != "PINCH") return;
+    //   if (event.touches.length >= 2) return; // 세번째 손가락 뗀거임.
+    //   // 손 뗐는데, 배열에 있는 녀석이면 배열에서 제거하기.
+    //   if (arr.some((obj) => obj.pointerId === event.pointerId)) {
+    //     arr = arr.filter((e) => e.pointerId !== event.pointerId);
+    //   }
+
+    //   // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
+    //   if (event.touches === undefined || event.touches.length < 2) {
+    //     setLastTool();
+    //   }
+    // });
   })();
 
   /**
