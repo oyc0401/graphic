@@ -5,7 +5,8 @@ window.onload = main;
 //////////////////////////
 export let paintState = {
     action: "BRUSH",
-    brushSize: 10,
+    brushSize: 5,
+    brushAlpha: 0.3,
     container: document.querySelector("#container"),
     layer_area: document.querySelector("#layer-area"),
     bouncingRect: null,
@@ -54,8 +55,8 @@ export function setCursor() {
             container.classList.add("grab");
         }
     } else if (paintState.action === "BRUSH") {
-        let brushSize = 10;
-        let scaledBrushSize = brushSize * position.scale;
+
+        let scaledBrushSize = paintState.brushSize * position.scale;
         container.classList.add("crosshair");
 
         brushCursor.style.visibility = "visible";

@@ -64,7 +64,8 @@ export const workerApi = {
 
   setStrokeSize(layerId, size) {
     const layer = getLayer(layerId);
-    layer.setStrokeSize(size);
+    let radius = (size - 1) / 2 + 1; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
+    layer.setStrokeSize(radius);
   },
   setAlpha(layerId, alpha) {
     const layer = getLayer(layerId);

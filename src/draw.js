@@ -50,8 +50,12 @@ let toolId = "brush";
 window.changeTool = function () {
     if (toolId == "brush") {
         toolId = "eraser";
+        paintState.brushSize = 10;
+        paintState.brushAlpha = 1;
     } else {
         toolId = "brush";
+        paintState.brushSize = 5;
+        paintState.brushAlpha = 0.3;
     }
     return toolId;
 };
@@ -96,15 +100,17 @@ export async function initDraw() {
 
             if (toolId == "brush") {
                 worker.setStrokeColor(layerId, 0, 255, 255);
-                worker.setStrokeSize(layerId, 5);
-                worker.setAlpha(layerId, 0.2);
+                worker.setStrokeSize(layerId, paintState.brushSize);
+                worker.setAlpha(layerId, paintState.brushAlpha);
 
                 worker.drawStart(layerId, point);
+                worker.drawTo(layerId, point);
             } else {
-                worker.setStrokeSize(layerId, 10);
-                worker.setAlpha(layerId, 1);
+                worker.setStrokeSize(layerId, paintState.brushSize);
+                worker.setAlpha(layerId, paintState.brushAlpha);
 
                 worker.eraserStart(layerId, point);
+                worker.eraserTo(layerId, point);
             }
         });
 

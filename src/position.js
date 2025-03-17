@@ -234,6 +234,12 @@ export function initPosition() {
       lastClientY = e.clientY;
       position.resizeScreen();
     });
+
+    window.addEventListener("pointerup", (e) => {
+      if (paintState.action != "PAN") return;
+      applyKeyAction();
+      setCursor();
+    });
   })();
 }
 // 이게...

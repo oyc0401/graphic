@@ -77,7 +77,7 @@ export function getBrushManager(canvas, gl, width, height) {
           newAlpha = (u_radius - dist) * u_alpha;
          
           // 이렇게 하면 도트 그리기
-          // newAlpha = (u_radius - dist) < 0.5 ? 0.0 : u_alpha;
+           //newAlpha = (u_radius - dist) < 0.5 ? 0.0 : u_alpha;
         }
       } else {
         newAlpha = 0.0;
