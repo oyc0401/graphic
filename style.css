@@ -91,7 +91,7 @@ canvas {
   position: absolute;
   z-index: 3000;
   pointer-events: none;
-mix-blend-mode: difference ;
+  mix-blend-mode: difference;
 }
 
 
@@ -108,10 +108,8 @@ button {
   cursor: grabbing;
 }
 
-.crosshair {
+.brush {
   cursor: none;
-  /* cursor:url("./src/circleCursor.png") 12 12, auto;  */
-
 }
 
 .zoom {

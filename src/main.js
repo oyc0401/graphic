@@ -14,6 +14,8 @@ export let paintState = {
         this.bouncingRect = this.container.getBoundingClientRect();
     },
     pointerdown: false,
+    pointerX: 0,
+    pointerY: 0,
 };
 async function main() {
     initPosition();
@@ -30,6 +32,41 @@ function initiaize() {
     setKey();
 
     setCursor();
+
+    document.querySelector("#container").addEventListener(
+        "pointerdown",
+        (_) => {
+            paintState.pointerdown = true;
+            setCursor();
+            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
+        },
+        true,
+    );
+
+    window.addEventListener(
+        "pointerup",
+        (_) => {
+            paintState.pointerdown = false;
+            setCursor();
+            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
+        },
+        true,
+    );
+
+    window.addEventListener(
+        "pointermove",
+        (event) => {
+            if (event.pointerType == "mouse") {
+                // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
+                paintState.pointerX = event.clientX;
+                paintState.pointerY = event.clientY;
+                setCursor();
+            }
+        },
+        true,
+    );
+
+    window.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
 /**
@@ -46,7 +83,7 @@ export function setCursor() {
     let brushCursor = document.querySelector("#brush-cursor");
 
     // 모든 상태 초기화
-    container.classList.remove("grab", "grabbing", "crosshair", "zoom");
+    container.classList.remove("grab", "grabbing", "brush", "zoom");
     brushCursor.style.visibility = "hidden";
     if (paintState.action === "PAN") {
         if (paintState.pointerdown) {
@@ -55,13 +92,11 @@ export function setCursor() {
             container.classList.add("grab");
         }
     } else if (paintState.action === "BRUSH") {
-
         let scaledBrushSize = paintState.brushSize * position.scale;
-        container.classList.add("crosshair");
-
+        container.classList.add("brush");
         brushCursor.style.visibility = "visible";
-        brushCursor.style.left = `${pointerX - scaledBrushSize / 2}px`;
-        brushCursor.style.top = `${pointerY - scaledBrushSize / 2}px`;
+        brushCursor.style.left = `${paintState.pointerX - scaledBrushSize / 2}px`;
+        brushCursor.style.top = `${paintState.pointerY - scaledBrushSize / 2}px`;
         brushCursor.style.width = `${scaledBrushSize}px`;
         brushCursor.style.height = `${scaledBrushSize}px`;
     } else if (paintState.action === "ZOOM") {
@@ -84,48 +119,6 @@ export function applyKeyAction() {
         paintState.action = "ZOOM";
     }
 }
-
-document.querySelector("#container").addEventListener(
-    "pointerdown",
-    (e) => {
-        paintState.pointerdown = true;
-        setCursor();
-        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
-    },
-    true,
-);
-document.querySelector("#container").addEventListener(
-    "pointermove",
-    (e) => {
-        setCursor();
-        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
-    },
-    true,
-);
-window.addEventListener(
-    "pointerup",
-    (e) => {
-        paintState.pointerdown = false;
-        setCursor();
-        // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
-    },
-    true,
-);
-let pointerX = 0,
-    pointerY = 0; // 전역 변수로 저장
-
-window.addEventListener(
-    "pointermove",
-    (event) => {
-        // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
-        pointerX = event.clientX;
-        pointerY = event.clientY;
-        setCursor();
-    },
-    true,
-);
-
-// 마우스 이동 감지하여 좌표 저장
 
 function setKey() {
     (function () {
@@ -168,5 +161,3 @@ function setKey() {
         });
     })();
 }
-
-window.addEventListener("contextmenu", (event) => event.preventDefault());
