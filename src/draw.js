@@ -49,20 +49,6 @@ const layerId = "SingleLayer";
 const layerName = "SingleLayerName";
 
 let toolId = "brush";
-document.querySelector("#select-brush").addEventListener("click", () => {
-    toolId = "brush";
-    paintState.brushSize = 5;
-    paintState.brushAlpha = 0.3;
-
-    updateUI();
-});
-
-document.querySelector("#select-eraser").addEventListener("click", () => {
-    toolId = "eraser";
-    paintState.brushSize = 10;
-    paintState.brushAlpha = 1;
-    updateUI();
-});
 
 function updateUI() {
     document.querySelector("#select-brush").classList.remove("selected");
@@ -75,7 +61,30 @@ function updateUI() {
     }
 }
 
-updateUI();
+export function initUI() {
+    updateUI();
+
+    document.querySelector("#select-brush").addEventListener("click", () => {
+        toolId = "brush";
+        paintState.brushSize = 5;
+        paintState.brushAlpha = 0.3;
+
+        updateUI();
+    });
+
+    document.querySelector("#select-eraser").addEventListener("click", () => {
+        toolId = "eraser";
+        paintState.brushSize = 10;
+        paintState.brushAlpha = 1;
+        updateUI();
+    });
+
+    document.querySelector("#select-liquify").addEventListener("click", () => {
+        //alert("픽셀유동화!");
+
+        
+    });
+}
 
 let pointerActive = false;
 

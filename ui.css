@@ -2,7 +2,7 @@
   z-index: 100000;
   height: 44px;
   width: 100%;
-  background: #FFFFFF;
+  background: #F5F5F5;
   position: absolute;
   top: 0px;
   left: 0px;
@@ -17,12 +17,13 @@
   z-index: 100000;
   height: 88px;
   width: 100%;
-  background: #F2F5FA;
+  background: #FFFFFF;
   position: absolute;
   top: 44px;
   left: 0px;
   padding-left: 8px;
   gap: 8px;
+  border-bottom: 1px #E2E2E2 solid;
 }
 
 #header-space {
@@ -39,9 +40,13 @@
   cursor: pointer;
 }
 
+
 .selected {
-  background: white;
+  background: #F5F5F5;
+  /* border: 1px #E2E2E2 solid; */
 }
+
+
 
 .div-bar {
   height: 60px;

@@ -1,4 +1,4 @@
-import { initDraw } from "./draw";
+import { initDraw, initUI } from "./draw";
 import { initPosition, position } from "./position";
 window.onload = main;
 
@@ -18,8 +18,12 @@ export let paintState = {
     pointerY: 0,
 };
 async function main() {
+    initUI();
+    
     initPosition();
+    
     await initDraw();
+    
 
     initiaize();
 }
