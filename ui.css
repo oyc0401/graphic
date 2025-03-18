@@ -1,0 +1,50 @@
+#header {
+  z-index: 100000;
+  height: 44px;
+  width: 100%;
+  background: #FFFFFF;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+
+}
+
+#menu-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: center;
+  z-index: 100000;
+  height: 88px;
+  width: 100%;
+  background: #F2F5FA;
+  position: absolute;
+  top: 44px;
+  left: 0px;
+  padding-left: 8px;
+  gap: 8px;
+}
+
+#header-space {
+  height: 132px;
+  width: 100%;
+}
+
+.select-button {
+  width: 54px;
+  height: 80px;
+  background: transparent;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.selected {
+  background: white;
+}
+
+.div-bar {
+  height: 60px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}

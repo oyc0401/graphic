@@ -60,21 +60,7 @@ canvas {
   z-index: 2;
 }
 
-#header {
-  z-index: 100000;
-  height: 80px;
-  width: 100%;
-  background: green;
-  position: absolute;
-  top: 0px;
-  left: 0px;
 
-}
-
-#header-space {
-  height: 80px;
-  width: 100%;
-}
 
 
 #zoom-area {

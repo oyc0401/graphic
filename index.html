@@ -9,14 +9,20 @@
     />
 
     <title>WEBGL!</title>
+    <link href="/ui.css" rel="stylesheet" />
     <link href="/style.css" rel="stylesheet" />
   </head>
   <body class="body">
     <div id="header">
-      <button id="changeTool">도구 변환</button>
-      <button id="cancel">취소</button>
     </div>
-    <div id='header-space'></div>
+    <div id="menu-bar">
+      <button class="select-button">선택</button>
+      <div class="div-bar"></div>
+      <button id="select-brush" class="select-button">브러시</button>
+      <div class="div-bar"></div>
+      <button id="select-eraser" class="select-button">지우개</button>
+    </div>
+    <div id="header-space"></div>
     <div id="container">
       <div id="layer-area">
         <div class="layer">
@@ -27,13 +33,13 @@
     </div>
 
     <div id="zoom-area"></div>
-    <div id='brush-cursor'></div>
+    <div id="brush-cursor"></div>
 
     <script type="module" src="src/main.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>
-       eruda.init();
+      eruda.init();
     </script>
     <!-- <style>
           .log-box {

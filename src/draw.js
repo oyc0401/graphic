@@ -18,7 +18,7 @@ export function cancel() {
 export function endDrawing() {
     console.log("endDrawing!");
     pointerActive = false;
-    
+
     const worker = getLayerWorker();
     // resetImageTexture
     if (toolId == "brush") {
@@ -49,30 +49,35 @@ const layerId = "SingleLayer";
 const layerName = "SingleLayerName";
 
 let toolId = "brush";
+document.querySelector("#select-brush").addEventListener("click", () => {
+    toolId = "brush";
+    paintState.brushSize = 5;
+    paintState.brushAlpha = 0.3;
 
-window.changeTool = function () {
+    updateUI();
+});
+
+document.querySelector("#select-eraser").addEventListener("click", () => {
+    toolId = "eraser";
+    paintState.brushSize = 10;
+    paintState.brushAlpha = 1;
+    updateUI();
+});
+
+function updateUI() {
+    document.querySelector("#select-brush").classList.remove("selected");
+    document.querySelector("#select-eraser").classList.remove("selected");
+
     if (toolId == "brush") {
-        toolId = "eraser";
-        paintState.brushSize = 10;
-        paintState.brushAlpha = 1;
+        document.querySelector("#select-brush").classList.add("selected");
     } else {
-        toolId = "brush";
-        paintState.brushSize = 5;
-        paintState.brushAlpha = 0.3;
+        document.querySelector("#select-eraser").classList.add("selected");
     }
-    return toolId;
-};
+}
 
-let changeBtn = document.querySelector("#changeTool");
-changeBtn.addEventListener("click", () => {
-    window.changeTool();
-});
+updateUI();
 
-document.querySelector("#cancel").addEventListener("click", () => {
-    cancel();
-});
-
- let pointerActive = false;
+let pointerActive = false;
 
 export async function initDraw() {
     layer.reset();
@@ -90,7 +95,6 @@ export async function initDraw() {
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
-   
 
     document
         .querySelector("#container")
