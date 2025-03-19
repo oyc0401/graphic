@@ -18,6 +18,13 @@ export function getBrushManager(canvas, gl, width, height) {
     return drawManagers.get(gl);
   }
 
+  const brushManager = makeBrushManager(canvas, gl, width, height);
+  drawManagers.set(gl, brushManager);
+
+  return brushManager;
+}
+
+function makeBrushManager(canvas, gl, width, height) {
   gl.viewport(0, 0, width, height);
   gl.clearColor(0, 0, 0, 0);
 
@@ -34,6 +41,9 @@ export function getBrushManager(canvas, gl, width, height) {
     );
   }
 
+  // 원본 이미지 텍스처 생성
+  let sourceTextureManager = getSourceTextureManager(canvas, gl);
+
   let vertexShaderSource = `#version 300 es
     in vec2 a_position;
     out vec2 v_texCoord; // 좌표변환: 0 ~ 1
@@ -49,40 +59,40 @@ export function getBrushManager(canvas, gl, width, height) {
 
   let strokeShaderSource = `#version 300 es
     precision highp float;
-    
+
     uniform sampler2D u_pathMap;
-    
+
     uniform vec2 u_start;
     uniform vec2 u_end;
     uniform float u_radius;
     uniform vec2 u_resolution;
     uniform float u_alpha;
-    
+
     in vec2 v_texCoord;
     out float outAlpha;
-    
+
     void main() {
       float basicAlpha = texture(u_pathMap, v_texCoord).x; // 원래 해당 좌표의 투명도
       vec2 pixelCoord = v_texCoord * u_resolution; // 텍스쳐 좌표를 픽셀 단위로 변환
-    
+
       vec2 ab = u_end - u_start;
       float t = clamp(dot(pixelCoord - u_start, ab) / dot(ab, ab), 0.0, 1.0);
       vec2 closestPoint = u_start + ab * t;
       float dist = length(pixelCoord - closestPoint);
-    
+
       float newAlpha = u_alpha;
       if (dist < u_radius) {
         // 테두리 보간
         if (u_radius - dist < 1.0) {
           newAlpha = (u_radius - dist) * u_alpha;
-         
+
           // 이렇게 하면 도트 그리기
            //newAlpha = (u_radius - dist) < 0.5 ? 0.0 : u_alpha;
         }
       } else {
         newAlpha = 0.0;
       }
-    
+
       // 더 투명도가 높은 것 선택.
       if (basicAlpha < newAlpha) {
         outAlpha = newAlpha;
@@ -186,29 +196,11 @@ export function getBrushManager(canvas, gl, width, height) {
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
   //////////////////////////
 
-  // 원본 이미지 텍스처 생성
-  // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-  let originalTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-  gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-  // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   //////////////////////////
   //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   let brushShaderSource = `#version 300 es
       precision highp float;
-      
+
       uniform sampler2D u_pathMap;
       uniform sampler2D u_sourse;  // 원본 텍스처
       uniform vec2 u_resolution;
@@ -221,15 +213,15 @@ export function getBrushManager(canvas, gl, width, height) {
         float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
         vec4 brushColor = vec4(u_color, value); // 새로운 색
-    
+
         // Premultiplied Alpha 적용
         vec3 premultBrush = brushColor.rgb * brushColor.a; // RGB에 알파를 미리 곱함
         vec3 premultImage = imageColor.rgb * imageColor.a;
-    
+
         // 블렌딩 (Premultiplied 방식)
         vec3 blendedRGB = premultImage * (1.0 - brushColor.a) + premultBrush;
         float blendedAlpha = imageColor.a + brushColor.a * (1.0 - imageColor.a); 
-    
+
         // 최종 색상
         outColor = vec4(blendedRGB, blendedAlpha);
       }
@@ -311,7 +303,7 @@ export function getBrushManager(canvas, gl, width, height) {
 
       void main() {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
-        
+
         outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
       }
       `;
@@ -341,7 +333,6 @@ export function getBrushManager(canvas, gl, width, height) {
   let alpha = 0.5;
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
-  let isDrawing = false;
   ///////////
 
   function stroke(start, end) {
@@ -390,7 +381,7 @@ export function getBrushManager(canvas, gl, width, height) {
     dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
 
     // SCISSOR TEST로 일부만 렌더링
-     gl.enable(gl.SCISSOR_TEST);
+    gl.enable(gl.SCISSOR_TEST);
     gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -457,27 +448,13 @@ export function getBrushManager(canvas, gl, width, height) {
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-    
-
-  
   }
 
   function reset() {
     let glHelper = getGlHelper(gl);
     glHelper.clearTexture(pathTex, width, height, 0);
 
-    // 원본 이미지 텍스처 생성
-    // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-    gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    //gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    // gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, f);
+    sourceTextureManager.uploadCurrent();
   }
 
   function setAlpha(newAlpha) {
@@ -504,7 +481,55 @@ export function getBrushManager(canvas, gl, width, height) {
     setColor,
     cancel,
   };
-  drawManagers.set(gl, brushManager);
 
   return brushManager;
+}
+
+
+
+/**
+ * 소스 텍스쳐는 텍스처 슬롯 1번을 차지하고 있습니다.
+ */
+const sourceTextureManagers = new Map();
+
+export function getSourceTextureManager(canvas, gl) {
+  if (sourceTextureManagers.has(gl)) {
+    return sourceTextureManagers.get(gl);
+  }
+
+  const sourceTextureManager = makeSourceTextureManager(canvas, gl);
+  sourceTextureManagers.set(gl, sourceTextureManager);
+
+  return sourceTextureManager;
+}
+
+function makeSourceTextureManager(canvas, gl) {
+  let sourceTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+  gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  uploadCurrent();
+
+  // 이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
+  function uploadCurrent() {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+
+    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  }
+
+  let sourceTextureManager = {
+    texture: sourceTexture,
+    uploadCurrent,
+  };
+
+  return sourceTextureManager;
 }

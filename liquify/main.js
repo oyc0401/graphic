@@ -127,7 +127,7 @@ window.onload = async function () {
     let radius = 500;
     let force = 1;
 
-    let liquify = await initLiquifyMode(gl);
+    let liquify = await initLiquifyMode(canvas,gl);
 
     console.log("픽셀유동화 준비 완료!");
 
@@ -170,7 +170,7 @@ window.onload = async function () {
     });
 };
 
-async function initLiquifyMode(gl) {
+async function initLiquifyMode(canvas,gl) {
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
 
