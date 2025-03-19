@@ -1,3 +1,4 @@
+import { getSourceTextureManager } from "../src/worker/tools";
 import {
     getIntegralEaseInOut,
     getIntegralEaseInOutMirror,
@@ -127,7 +128,7 @@ window.onload = async function () {
     let radius = 500;
     let force = 1;
 
-    let liquify = await initLiquifyMode(canvas,gl);
+    let liquify = await initLiquifyMode(canvas, gl);
 
     console.log("픽셀유동화 준비 완료!");
 
@@ -170,7 +171,7 @@ window.onload = async function () {
     });
 };
 
-async function initLiquifyMode(canvas,gl) {
+async function initLiquifyMode(canvas, gl) {
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
 
@@ -191,6 +192,9 @@ async function initLiquifyMode(canvas,gl) {
             "This device does not support linear filtering for float textures.",
         );
     }
+
+    // 원본 이미지 텍스처 생성
+    let sourceTextureManager = getSourceTextureManager(canvas, gl);
 
     // 셰이더 프로그램 생성
     let vertexShaderSource = `#version 300 es
@@ -393,23 +397,6 @@ async function initLiquifyMode(canvas,gl) {
         TEXTURE_UNIT.DISPLACEMENT,
     );
 
-    // 원본 이미지 텍스처 생성
-    // (이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드)
-    let originalTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-    gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
     gl.uniform1i(
         gl.getUniformLocation(renderProgram, "u_sourse"),
         TEXTURE_UNIT.SOURCE,
@@ -522,8 +509,6 @@ async function initLiquifyMode(canvas,gl) {
         gl.disable(gl.SCISSOR_TEST);
     }
 
-    function destroy() {}
-
     function setRadius(r) {
         radius = r;
     }
@@ -537,7 +522,6 @@ async function initLiquifyMode(canvas,gl) {
         render: render,
         setRadius: setRadius,
         setStrength: setStrength,
-        destroy: destroy,
     };
 
     return Liquify;

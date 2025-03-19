@@ -42,20 +42,8 @@ function makeBrushManager(canvas, gl, width, height) {
   }
 
   // 원본 이미지 텍스처 생성
-  let sourceTextureManager = getSourceTextureManager(canvas, gl);
-
-  let vertexShaderSource = `#version 300 es
-    in vec2 a_position;
-    out vec2 v_texCoord; // 좌표변환: 0 ~ 1
-
-    uniform vec2 u_resolution;
-    uniform sampler2D u_pathMap;
-
-    void main() {
-      v_texCoord = a_position * 0.5 + 0.5;
-      gl_Position = vec4(a_position, 0.0, 1.0);
-    }
-    `;
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const fullQuadVertexShader = getFullQuadVertexShader(gl);
 
   let strokeShaderSource = `#version 300 es
     precision highp float;
@@ -101,10 +89,9 @@ function makeBrushManager(canvas, gl, width, height) {
       }
     }
     `;
-  let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   let strokeShader = createShader(gl, gl.FRAGMENT_SHADER, strokeShaderSource);
 
-  let strokeProgram = createProgram(gl, vertexShader, strokeShader);
+  let strokeProgram = createProgram(gl, fullQuadVertexShader, strokeShader);
   gl.useProgram(strokeProgram);
 
   gl.uniform2f(
@@ -228,7 +215,7 @@ function makeBrushManager(canvas, gl, width, height) {
       `;
 
   let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
-  let brushProgram = createProgram(gl, vertexShader, brushShader);
+  let brushProgram = createProgram(gl, fullQuadVertexShader, brushShader);
   gl.useProgram(brushProgram);
   gl.uniform2f(
     gl.getUniformLocation(brushProgram, "u_resolution"),
@@ -270,7 +257,7 @@ function makeBrushManager(canvas, gl, width, height) {
       `;
 
   let eraserShader = createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource);
-  let eraserProgram = createProgram(gl, vertexShader, eraserShader);
+  let eraserProgram = createProgram(gl, fullQuadVertexShader, eraserShader);
   gl.useProgram(eraserProgram);
   gl.uniform2f(
     gl.getUniformLocation(eraserProgram, "u_resolution"),
@@ -291,40 +278,40 @@ function makeBrushManager(canvas, gl, width, height) {
   gl.enableVertexAttribArray(posLoc3);
   gl.vertexAttribPointer(posLoc3, 2, gl.FLOAT, false, 0, 0);
 
-  //////////////////////////////
+  // //////////////////////////////
 
-  let cancelShaderSource = `#version 300 es
-      precision highp float;
+  // let cancelShaderSource = `#version 300 es
+  //     precision highp float;
 
-      uniform sampler2D u_sourse;  // 원본 텍스처
+  //     uniform sampler2D u_sourse;  // 원본 텍스처
 
-      in vec2 v_texCoord;
-      out vec4 outColor;
+  //     in vec2 v_texCoord;
+  //     out vec4 outColor;
 
-      void main() {
-        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+  //     void main() {
+  //       vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
 
-        outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
-      }
-      `;
+  //       outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+  //     }
+  //     `;
 
-  let cancelShader = createShader(gl, gl.FRAGMENT_SHADER, cancelShaderSource);
-  let cancelProgram = createProgram(gl, vertexShader, cancelShader);
-  gl.useProgram(cancelProgram);
-  gl.uniform2f(
-    gl.getUniformLocation(cancelProgram, "u_resolution"),
-    width,
-    height,
-  );
+  // let cancelShader = createShader(gl, gl.FRAGMENT_SHADER, cancelShaderSource);
+  // let cancelProgram = createProgram(gl, fullQuadVertexShader, cancelShader);
+  // gl.useProgram(cancelProgram);
+  // gl.uniform2f(
+  //   gl.getUniformLocation(cancelProgram, "u_resolution"),
+  //   width,
+  //   height,
+  // );
 
-  gl.uniform1i(
-    gl.getUniformLocation(cancelProgram, "u_sourse"),
-    TEXTURE_UNIT.SOURCE,
-  );
+  // gl.uniform1i(
+  //   gl.getUniformLocation(cancelProgram, "u_sourse"),
+  //   TEXTURE_UNIT.SOURCE,
+  // );
 
-  let posLoc4 = gl.getAttribLocation(cancelProgram, "a_position");
-  gl.enableVertexAttribArray(posLoc4);
-  gl.vertexAttribPointer(posLoc4, 2, gl.FLOAT, false, 0, 0);
+  // let posLoc4 = gl.getAttribLocation(cancelProgram, "a_position");
+  // gl.enableVertexAttribArray(posLoc4);
+  // gl.vertexAttribPointer(posLoc4, 2, gl.FLOAT, false, 0, 0);
 
   //////////////////////
 
@@ -442,12 +429,7 @@ function makeBrushManager(canvas, gl, width, height) {
   }
 
   function cancel() {
-    gl.disable(gl.SCISSOR_TEST);
-
-    gl.useProgram(cancelProgram);
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    sourceTextureManager.restore();
   }
 
   function reset() {
@@ -483,6 +465,38 @@ function makeBrushManager(canvas, gl, width, height) {
   };
 
   return brushManager;
+}
+
+const fullQuadVertexShaders = new Map();
+
+/**
+ * in vec2 a_position;
+ */
+export function getFullQuadVertexShader(gl) {
+  if (fullQuadVertexShaders.has(gl)) {
+    return fullQuadVertexShaders.get(gl);
+  }
+
+  const fullQuadVertexShader = makeFullQuadVertexShader(gl);
+  fullQuadVertexShaders.set(gl, fullQuadVertexShader);
+
+  return fullQuadVertexShader;
+}
+
+function makeFullQuadVertexShader(gl) {
+  let vertexShaderSource = `#version 300 es
+  in vec2 a_position;
+  out vec2 v_texCoord; // 좌표변환: 0 ~ 1
+
+  void main() {
+    v_texCoord = a_position * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+  `;
+
+  let vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+
+  return vertexShader;
 }
 
 
@@ -526,9 +540,50 @@ function makeSourceTextureManager(canvas, gl) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   }
 
+  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+
+  let cancelShaderSource = `#version 300 es
+      precision highp float;
+
+      uniform sampler2D u_sourse;  // 원본 텍스처
+
+      in vec2 v_texCoord;
+      out vec4 outColor;
+
+      void main() {
+        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+
+        outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+      }
+      `;
+
+  let cancelShader = createShader(gl, gl.FRAGMENT_SHADER, cancelShaderSource);
+  let cancelProgram = createProgram(gl, fullQuadVertexShader, cancelShader);
+  gl.useProgram(cancelProgram);
+
+  gl.uniform1i(
+    gl.getUniformLocation(cancelProgram, "u_sourse"),
+    TEXTURE_UNIT.SOURCE,
+  );
+
+  let posLoc = gl.getAttribLocation(cancelProgram, "a_position");
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  // 캔버스를 소스 텍스쳐로 돌려놓기
+  function restore() {
+    gl.disable(gl.SCISSOR_TEST);
+
+    gl.useProgram(cancelProgram);
+    // 쓰기 영역: 내 화면
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
   let sourceTextureManager = {
     texture: sourceTexture,
     uploadCurrent,
+    restore,
   };
 
   return sourceTextureManager;
