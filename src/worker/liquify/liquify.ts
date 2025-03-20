@@ -34,10 +34,10 @@ async function makeLiquifyManager(canvas, gl) {
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
 
-    const width = canvas.width;
-    const height = canvas.height;
-    gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
+    // const width = canvas.width;
+    // const height = canvas.height;
+    // gl.viewport(0, 0, width, height);
+    // gl.clearColor(0, 0, 0, 0);
 
     const ext = gl.getExtension("EXT_color_buffer_float");
     if (!ext) {
@@ -69,29 +69,29 @@ async function makeLiquifyManager(canvas, gl) {
     );
     gl.useProgram(liquifyPushProgram);
 
-    gl.uniform2f(
-        gl.getUniformLocation(liquifyPushProgram, "u_resolution"),
-        width,
-        height,
-    );
+    // gl.uniform2f(
+    //     gl.getUniformLocation(liquifyPushProgram, "u_resolution"),
+    //     width,
+    //     height,
+    // );
 
-    const emptyData = new Float32Array(width * height * 2);
+    // const emptyData = new Float32Array(width * height * 2);
 
     // 변위맵 텍스처 생성 및 데이터 업로드
     let displacementTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, displacementTex);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RG32F,
-        width,
-        height,
-        0,
-        gl.RG,
-        gl.FLOAT,
-        emptyData,
-    );
+    // gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0,
+    //     gl.RG32F,
+    //     width,
+    //     height,
+    //     0,
+    //     gl.RG,
+    //     gl.FLOAT,
+    //     emptyData,
+    // );
     // 행렬에 linear를 사용하는 이유는 기존의 getVector는 보간으로 값을 가져오기 대문에
     // 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -107,17 +107,17 @@ async function makeLiquifyManager(canvas, gl) {
     let displacementTexOut = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RG32F,
-        width,
-        height,
-        0,
-        gl.RG,
-        gl.FLOAT,
-        null,
-    );
+    // gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0,
+    //     gl.RG32F,
+    //     width,
+    //     height,
+    //     0,
+    //     gl.RG,
+    //     gl.FLOAT,
+    //     null,
+    // );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -239,11 +239,11 @@ async function makeLiquifyManager(canvas, gl) {
     let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorShaderSource);
     let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
     gl.useProgram(renderProgram);
-    gl.uniform2f(
-        gl.getUniformLocation(renderProgram, "u_resolution"),
-        width,
-        height,
-    );
+    // gl.uniform2f(
+    //     gl.getUniformLocation(renderProgram, "u_resolution"),
+    //     width,
+    //     height,
+    // );
     gl.uniform1i(
         gl.getUniformLocation(renderProgram, "u_displacement"),
         TEXTURE_UNIT.DISPLACEMENT,
@@ -269,21 +269,89 @@ async function makeLiquifyManager(canvas, gl) {
     let sourceDisplacementTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RG32F,
-        width,
-        height,
-        0,
-        gl.RG,
-        gl.FLOAT,
-        emptyData,
-    );
+    // gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0,
+    //     gl.RG32F,
+    //     width,
+    //     height,
+    //     0,
+    //     gl.RG,
+    //     gl.FLOAT,
+    //     emptyData,
+    // );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    function setSize() {
+        const width = paintOptions.width;
+        const height = paintOptions.height;
+
+        gl.viewport(0, 0, width, height);
+        gl.clearColor(0, 0, 0, 0);
+
+        gl.useProgram(liquifyPushProgram);
+
+        gl.uniform2f(
+            gl.getUniformLocation(liquifyPushProgram, "u_resolution"),
+            width,
+            height,
+        );
+
+        gl.useProgram(renderProgram);
+        gl.uniform2f(
+            gl.getUniformLocation(renderProgram, "u_resolution"),
+            width,
+            height,
+        );
+
+        const emptyData = new Float32Array(width * height * 2);
+
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+        gl.bindTexture(gl.TEXTURE_2D, displacementTex);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RG32F,
+            width,
+            height,
+            0,
+            gl.RG,
+            gl.FLOAT,
+            emptyData,
+        );
+
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+        gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RG32F,
+            width,
+            height,
+            0,
+            gl.RG,
+            gl.FLOAT,
+            null,
+        );
+
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+        gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RG32F,
+            width,
+            height,
+            0,
+            gl.RG,
+            gl.FLOAT,
+            emptyData,
+        );
+    }
+    setSize();
 
     function startStroke(pointer) {
         pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
@@ -315,6 +383,8 @@ async function makeLiquifyManager(canvas, gl) {
     }
 
     function changeVector(start, end) {
+        let height = paintOptions.height;
+
         gl.useProgram(liquifyPushProgram);
         // 유나폼 변수 설정
         gl.uniform1f(
@@ -417,6 +487,8 @@ async function makeLiquifyManager(canvas, gl) {
     }
 
     function cancel() {
+        let height = paintOptions.height;
+
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
 
@@ -466,6 +538,7 @@ async function makeLiquifyManager(canvas, gl) {
     }
 
     function endStroke() {
+        let height = paintOptions.height;
         // 사실 근데 캔슬되서 엔드가 호출되면 엔드는 필요없음...
 
         //sourceDisplacementTex에 현재 displace맵을 업로드 하는데, 이때 pathDirtyRect범위에 있는 것들만 업로드.
@@ -520,6 +593,9 @@ async function makeLiquifyManager(canvas, gl) {
         strength = s;
     }
     function reset() {
+        let width = paintOptions.width;
+        let height = paintOptions.height;
+
         let glHelper = getGlHelper(gl);
         glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
         glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
@@ -534,7 +610,7 @@ async function makeLiquifyManager(canvas, gl) {
         cancel,
         endStroke,
         reset,
-
+        setSize,
         setStrength,
     };
 

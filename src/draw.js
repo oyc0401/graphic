@@ -1,7 +1,6 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
 import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
-import { workerApi } from "./worker/api";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
@@ -43,8 +42,6 @@ export let layer = {
     draw_canvas: document.querySelector("#draw-canvas"),
     //ctx: document.querySelector("#canvas").getContext("2d"),
     //draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
-    width: 500,
-    height: 500,
     reset() {
         // 이 작업은 캔버스의 내용을 모두 지우고, 크기를 조정합니다.
         this.canvas.width = position.width;
@@ -118,8 +115,8 @@ export async function initDraw() {
         layerId,
         layerName,
         Comlink.transfer(offscreen, [offscreen]),
-        layer.width,
-        layer.height,
+        position.width,
+        position.height,
         0,
     );
 

@@ -6,11 +6,6 @@ interface Pointer {
   x: number;
   y: number;
 }
-const paintOption = {
-  color: { r: 0, g: 0, b: 0 },
-  radius: 1,
-  alpha: 1,
-};
 
 let history = [];
 
@@ -55,7 +50,7 @@ export class PaintLayer {
     this.priority = priority;
     this.dataBlob = dataBlob;
 
-    this.setSize(width, height);
+    this.initSize(width, height);
 
     this.init();
   }
@@ -79,6 +74,22 @@ export class PaintLayer {
   }
 
   setSize(width, height) {
+    paintOptions.width = width;
+    paintOptions.height = height;
+
+    this.width = width;
+    this.height = height;
+    this.main_canvas.width = width;
+    this.main_canvas.height = height;
+
+    this.drawManager.setSize();
+    this.liquifyManager.setSize();
+  }
+
+  initSize(width, height) {
+    paintOptions.width = width;
+    paintOptions.height = height;
+
     this.width = width;
     this.height = height;
     this.main_canvas.width = width;
@@ -117,7 +128,7 @@ export class PaintLayer {
     this.drawManager.brush();
     this.lastPointer = pointer;
   }
-  
+
   drawCancel() {
     this.drawManager.cancel();
   }

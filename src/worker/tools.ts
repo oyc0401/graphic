@@ -12,6 +12,8 @@ export const TEXTURE_UNIT = {
 };
 
 export let paintOptions = {
+  width: 900,
+  height: 900,
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
@@ -36,21 +38,24 @@ export let paintOptions = {
  */
 const drawManagers = new Map();
 
-export function getBrushManager(canvas, gl, width, height) {
+export function getBrushManager(canvas, gl) {
   if (drawManagers.has(gl)) {
     return drawManagers.get(gl);
   }
 
-  const brushManager = makeBrushManager(canvas, gl, width, height);
+  const brushManager = makeBrushManager(canvas, gl);
   drawManagers.set(gl, brushManager);
 
   return brushManager;
 }
 
-function makeBrushManager(canvas, gl, width, height) {
-  gl.viewport(0, 0, width, height);
-  gl.clearColor(0, 0, 0, 0);
-
+function makeBrushManager(canvas, gl) {
+  // let width = paintOptions.width;
+  //  let height = paintOptions.height;
+  
+   // gl.viewport(0, 0, width, height);
+   //  gl.clearColor(0, 0, 0, 0);
+  
   const ext = gl.getExtension("EXT_color_buffer_float");
   if (!ext) {
     console.error("EXT_color_buffer_float not supported!");
@@ -117,34 +122,36 @@ function makeBrushManager(canvas, gl, width, height) {
   let strokeProgram = createProgram(gl, fullQuadVertexShader, strokeShader);
   gl.useProgram(strokeProgram);
 
-  gl.uniform2f(
-    gl.getUniformLocation(strokeProgram, "u_resolution"),
-    width,
-    height,
-  );
+  // gl.uniform2f(
+  //   gl.getUniformLocation(strokeProgram, "u_resolution"),
+  //   width,
+  //   height,
+  // );
 
-  const emptyData = new Float32Array(width * height);
+ // const emptyData = new Float32Array(width * height);
 
   // 알파맵 텍스처 생성 및 데이터 업로드
   let pathTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
   gl.bindTexture(gl.TEXTURE_2D, pathTex);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.R32F,
-    width,
-    height,
-    0,
-    gl.RED,
-    gl.FLOAT,
-    emptyData,
-  );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  // gl.texImage2D(
+  //   gl.TEXTURE_2D,
+  //   0,
+  //   gl.R32F,
+  //   width,
+  //   height,
+  //   0,
+  //   gl.RED,
+  //   gl.FLOAT,
+  //   emptyData,
+  // );
+
   gl.uniform1i(
     gl.getUniformLocation(strokeProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -154,22 +161,23 @@ function makeBrushManager(canvas, gl, width, height) {
   let pathTexOut = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
   gl.bindTexture(gl.TEXTURE_2D, pathTexOut);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.R32F,
-    width,
-    height,
-    0,
-    gl.RED,
-    gl.FLOAT,
-    null,
-  );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  // gl.texImage2D(
+  //   gl.TEXTURE_2D,
+  //   0,
+  //   gl.R32F,
+  //   width,
+  //   height,
+  //   0,
+  //   gl.RED,
+  //   gl.FLOAT,
+  //   null,
+  // );
 
   // 프레임버퍼 생성 및 바인딩
   let framebuffer = gl.createFramebuffer();
@@ -240,11 +248,11 @@ function makeBrushManager(canvas, gl, width, height) {
   let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
   let brushProgram = createProgram(gl, fullQuadVertexShader, brushShader);
   gl.useProgram(brushProgram);
-  gl.uniform2f(
-    gl.getUniformLocation(brushProgram, "u_resolution"),
-    width,
-    height,
-  );
+  // gl.uniform2f(
+  //   gl.getUniformLocation(brushProgram, "u_resolution"),
+  //   width,
+  //   height,
+  // );
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -282,11 +290,11 @@ function makeBrushManager(canvas, gl, width, height) {
   let eraserShader = createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource);
   let eraserProgram = createProgram(gl, fullQuadVertexShader, eraserShader);
   gl.useProgram(eraserProgram);
-  gl.uniform2f(
-    gl.getUniformLocation(eraserProgram, "u_resolution"),
-    width,
-    height,
-  );
+  // gl.uniform2f(
+  //   gl.getUniformLocation(eraserProgram, "u_resolution"),
+  //   width,
+  //   height,
+  // );
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -305,8 +313,77 @@ function makeBrushManager(canvas, gl, width, height) {
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
   ///////////
+  
+  function setSize() {
+    let width = paintOptions.width;
+    let height = paintOptions.height;
 
+    console.log(paintOptions)
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0, 0, 0, 0);
+
+    gl.useProgram(strokeProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(strokeProgram, "u_resolution"),
+      width,
+      height,
+    );
+
+    gl.useProgram(brushProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(brushProgram, "u_resolution"),
+      width,
+      height,
+    );
+     gl.useProgram(eraserProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(eraserProgram, "u_resolution"),
+      width,
+      height,
+    );
+
+    const emptyData = new Float32Array(width * height);
+
+    // 알파맵 텍스처 데이터 업로드
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+    gl.bindTexture(gl.TEXTURE_2D, pathTex);
+
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      emptyData,
+    );
+
+    // 출력용 텍스처
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, pathTexOut);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      null,
+    );
+
+    reset();
+    
+  }
+  
+  setSize();
+  
   function stroke(start, end) {
+    let height = paintOptions.height;
+    
     gl.useProgram(strokeProgram);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
@@ -427,7 +504,7 @@ function makeBrushManager(canvas, gl, width, height) {
 
   function reset() {
     let glHelper = getGlHelper(gl);
-    glHelper.clearTexture(pathTex, width, height, 0);
+    glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
 
     // 위는 해야하지만,
     // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
@@ -440,6 +517,7 @@ function makeBrushManager(canvas, gl, width, height) {
     eraser,
     reset,
     cancel,
+    setSize,
   };
 
   return brushManager;
@@ -565,3 +643,9 @@ function makeSourceTextureManager(canvas, gl) {
   return sourceTextureManager;
 }
 
+function resizeScreen(width, heigth) {
+
+
+
+  
+}

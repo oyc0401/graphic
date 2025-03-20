@@ -49,6 +49,7 @@ export const workerApi = {
 
     saveLayer(layerId, layer);
 
+ 
     console.log("layers:", layers, width, height);
   },
 
@@ -131,45 +132,12 @@ export const workerApi = {
     layer.cancel();
   },
 
-  updateSize(width, height, set_canvas_css) {
+  updateSize(width, height) {
     console.log("[worker] size:", width, height);
-    const firstLayer = Object.values(layers)[0];
-    let temp_canvas = new OffscreenCanvas(firstLayer.width, firstLayer.height);
-    let temp_ctx = temp_canvas.getContext("2d");
-
-    temp_ctx.globalCompositeOperation = "copy";
 
     for (const layer of Object.values(layers)) {
-      const beforeWidth = layer.width;
-      const beforeHeight = layer.height;
-
-      const canvas = layer.main_canvas;
-      const ctx = layer.main_gl;
-
-      temp_ctx.drawImage(canvas, 0, 0);
-
-      // 캔버스 초기화
       layer.setSize(width, height);
-
-      if (layer.background) {
-        ctx.fillStyle = layer.background;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.clearRect(0, 0, beforeWidth, beforeHeight);
-      }
-
-      // 기존 영역은 기존 그림으로 그리기
-      ctx.drawImage(temp_canvas, 0, 0);
     }
-
-    // 캔버스 메모리 할당 해제
-    temp_canvas.width = 0;
-    temp_canvas.height = 0;
-    temp_ctx = null;
-    temp_canvas = null;
-
-    requestAnimationFrame(() => {
-      set_canvas_css();
-    });
   },
 
   makeSelection(layerId, canvas, width, height, imageData) {

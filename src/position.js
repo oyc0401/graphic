@@ -1,5 +1,6 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
-import { cancel, endDrawing } from "./draw";
+import { cancel, endDrawing, layer } from "./draw";
+import { getLayerWorker } from "./worker/workerPool";
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -526,3 +527,21 @@ export function to_screen_coord(x, y) {
     position.y;
   return { x: px, y: py };
 }
+
+function changeSize() {
+  let newWidth = 300;
+  let newHeight = 300;
+  const worker = getLayerWorker();
+  worker.updateSize(300, 300);
+  let diffX = position.width - newWidth;
+  let diffY = position.height - newHeight;
+  position.x += diffX / 2;
+  position.y += diffY / 2;
+
+  position.width = newWidth;
+  position.height = newHeight;
+
+  position.resizeScreen();
+}
+
+window.changeSize = changeSize;
