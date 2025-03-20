@@ -102,6 +102,9 @@
         <mxCell id="6wiaA6puWI5cDe3y5h9X-5" value="to" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="760" y="800" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="6wiaA6puWI5cDe3y5h9X-6" target="6wiaA6puWI5cDe3y5h9X-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-6" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1081" y="800" width="120" height="60" as="geometry" />
         </mxCell>
@@ -117,14 +120,17 @@
         <mxCell id="6wiaA6puWI5cDe3y5h9X-12" value="to" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="760" y="1040" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="6wiaA6puWI5cDe3y5h9X-13" target="6wiaA6puWI5cDe3y5h9X-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-13" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1081" y="920" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-14" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1081" y="1040" width="120" height="60" as="geometry" />
-        </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-15" value="init" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="440" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="6wiaA6puWI5cDe3y5h9X-16" target="6wiaA6puWI5cDe3y5h9X-35">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-16" value="reset" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1242" y="1040" width="120" height="60" as="geometry" />
@@ -136,7 +142,7 @@
           <mxGeometry x="440" y="920" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-19" value="브러시는 매 스트크로마다 변위맵이 초기화되어야 하는데&lt;div&gt;픽셀유동화의 변위맵 초기화는 완전 마지막에 되어야함.&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1171" y="1140" width="330" height="40" as="geometry" />
+          <mxGeometry x="1280" y="1120" width="330" height="40" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-20" value="cancel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="922" y="920" width="120" height="60" as="geometry" />
@@ -144,32 +150,44 @@
         <mxCell id="6wiaA6puWI5cDe3y5h9X-21" value="cancel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="922" y="800" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-22" value="이 캔슬은 원본 텍스쳐를 현재 프레임버퍼에 복사한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="920" y="680" width="310" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-22" value="draw의 캔슬은 원본 텍스쳐를 현재 프레임버퍼에 복사한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="765" y="1140" width="340" height="30" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-23" value="하지만 픽셀유동화 캔슬은 어떻게 처리를 할까?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="920" y="720" width="270" height="30" as="geometry" />
+          <mxGeometry x="780" y="1180" width="270" height="30" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-24" value="컴파일하는데 오래걸릴 수도있으니&lt;div&gt;맨 처음에 실행하기&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="400" y="720" width="210" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-25" value="원본 변위맵" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1340" y="543" width="90" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-25" value="원본 변위맵" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#3A5431;fillColor=#6d8764;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1240" width="90" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-26" value="변위맵" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1525" y="543" width="60" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-26" value="변위맵" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=#3A5431;fillColor=#6d8764;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="985" y="1240" width="60" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-27" value="드로우 시작을 하기 전에 원본 변위맵을 저장해놓는다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1335" y="605" width="310" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-27" value="드로우 시작을 하기 전에는 원본 변위맵 = 변위맵일 것 이다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1302" width="340" height="30" as="geometry" />
         </mxCell>
         <mxCell id="6wiaA6puWI5cDe3y5h9X-28" value="드로우 작업을 할때는 변위맵만 사용한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1365" y="640" width="240" height="30" as="geometry" />
+          <mxGeometry x="827" y="1340" width="240" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-29" value="드로우 엔드에선 변형된 변위맵의 일부을 원본 변위맵에 blink한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1305" y="685" width="370" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-29" value="드로우 엔드에선 변형된 변위맵의 일부을 원본 변위맵에 bllt한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="765" y="1382" width="370" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="6wiaA6puWI5cDe3y5h9X-30" value="캔슬이 일어나면, 현재 작업하고있는 변위맵의 영역을 원본 변위맵으로 blink하고, 렌더링한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1240" y="730" width="520" height="30" as="geometry" />
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-30" value="캔슬이 일어나면, 현재 작업하고 있는 변위맵의 영역에 원본 변위맵의 데이터를 blit하고, 렌더링한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="685" y="1427" width="550" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-31" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;sourseMap&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;upload&lt;/font&gt;&lt;/div&gt;" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="920" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-33" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;sourseMap&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;upload&lt;/font&gt;&lt;/div&gt;" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="800" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-35" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;sourseMap&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;upload&lt;/font&gt;&lt;/div&gt;" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="1040" width="70" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-37" value="cancel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;" vertex="1" parent="1">
+          <mxGeometry x="920" y="1040" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
