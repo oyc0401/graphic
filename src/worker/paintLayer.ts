@@ -1,6 +1,6 @@
 import { getGlHelper } from "./glHelper";
 import { getLiquifyManager } from "./liquify/liquify";
-import { getBrushManager } from "./tools";
+import { getBrushManager, paintOptions } from "./tools";
 
 interface Pointer {
   x: number;
@@ -86,15 +86,18 @@ export class PaintLayer {
   }
 
   setStrokeColor(r, g, b) {
-    paintOption.color = { r, g, b };
+   // paintOption.color = { r, g, b };
+     paintOptions.setColor({ r, g, b} );
   }
 
   setStrokeSize(strokeSize) {
-    paintOption.radius = strokeSize;
+   // paintOption.radius = strokeSize;
+    paintOptions.setRadius(strokeSize);
   }
 
   setAlpha(alpha) {
-    paintOption.alpha = alpha;
+   // paintOption.alpha = alpha;
+    paintOptions.setAlpha(alpha);
   }
 
   drawInit() {
@@ -107,10 +110,6 @@ export class PaintLayer {
   }
   drawStart(pointer: Pointer) {
     this.lastPointer = pointer;
-
-    this.drawManager.setAlpha(paintOption.alpha);
-    this.drawManager.setRadius(paintOption.radius);
-    this.drawManager.setColor(paintOption.color);
   }
 
   drawTo(pointer: Pointer) {
@@ -133,9 +132,6 @@ export class PaintLayer {
   }
   eraserStart(pointer: Pointer) {
     this.lastPointer = pointer;
-
-    this.drawManager.setAlpha(paintOption.alpha);
-    this.drawManager.setRadius(paintOption.radius);
   }
 
   eraserTo(pointer: Pointer) {
@@ -178,4 +174,3 @@ export class PaintLayer {
   //   history.push(imageTexture);
   // }
 }
-

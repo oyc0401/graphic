@@ -116,7 +116,7 @@ export async function initDraw() {
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
-    
+
     document
         .querySelector("#container")
         .addEventListener("pointerdown", (e) => {

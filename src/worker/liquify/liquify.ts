@@ -1,7 +1,7 @@
 import {
     TEXTURE_UNIT,
     getSourceTextureManager,
-    getFullQuadVertexShader,
+    getFullQuadVertexShader,paintOptions
 } from "../tools";
 import {
     getIntegralEaseInOut,
@@ -259,7 +259,6 @@ async function makeLiquifyManager(canvas, gl) {
 
     ////////////////
 
-    let radius = 20;
     let strength = 1;
     let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
@@ -268,7 +267,7 @@ async function makeLiquifyManager(canvas, gl) {
         // 유나폼 변수 설정
         gl.uniform1f(
             gl.getUniformLocation(liquifyPushProgram, "u_radius"),
-            radius,
+            paintOptions.radius,
         );
         gl.uniform1f(
             gl.getUniformLocation(liquifyPushProgram, "u_strength"),
@@ -297,7 +296,7 @@ async function makeLiquifyManager(canvas, gl) {
             0,
         );
 
-        let ceiledRadius = Math.ceil(radius);
+        let ceiledRadius = Math.ceil(paintOptions.radius);
         let minX = Math.min(start.x, end.x);
         let maxX = Math.max(start.x, end.x);
         let minY = Math.min(height - start.y, height - end.y);
@@ -360,10 +359,6 @@ async function makeLiquifyManager(canvas, gl) {
         gl.disable(gl.SCISSOR_TEST);
     }
 
-    function setRadius(r) {
-        radius = r;
-    }
-
     function setStrength(s) {
         strength = s;
     }
@@ -378,7 +373,6 @@ async function makeLiquifyManager(canvas, gl) {
         push: changeVector,
         render: render,
         reset,
-        setRadius: setRadius,
         setStrength: setStrength,
     };
 

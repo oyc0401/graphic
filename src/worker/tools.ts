@@ -4,10 +4,30 @@ export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   SOURCE: 1, // 원본 이미지 (Source Image)
   PATHMAP: 2, // 브러시, 지우개 알파맵
-  
+
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
   EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
   EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
+};
+
+export let paintOptions = {
+  radius: 10,
+  color: [0, 0, 0],
+  alpha: 0.5,
+
+  setAlpha(newAlpha) {
+    paintOptions.alpha = newAlpha;
+  },
+
+  setRadius(newRadius) {
+    paintOptions.radius = newRadius;
+  },
+
+  setColor({ r, g, b }) {
+    paintOptions.color[0] = r / 255;
+    paintOptions.color[1] = g / 255;
+    paintOptions.color[2] = b / 255;
+  },
 };
 
 /**
@@ -280,46 +300,7 @@ function makeBrushManager(canvas, gl, width, height) {
   gl.enableVertexAttribArray(posLoc3);
   gl.vertexAttribPointer(posLoc3, 2, gl.FLOAT, false, 0, 0);
 
-  // //////////////////////////////
-
-  // let cancelShaderSource = `#version 300 es
-  //     precision highp float;
-
-  //     uniform sampler2D u_sourse;  // 원본 텍스처
-
-  //     in vec2 v_texCoord;
-  //     out vec4 outColor;
-
-  //     void main() {
-  //       vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
-
-  //       outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
-  //     }
-  //     `;
-
-  // let cancelShader = createShader(gl, gl.FRAGMENT_SHADER, cancelShaderSource);
-  // let cancelProgram = createProgram(gl, fullQuadVertexShader, cancelShader);
-  // gl.useProgram(cancelProgram);
-  // gl.uniform2f(
-  //   gl.getUniformLocation(cancelProgram, "u_resolution"),
-  //   width,
-  //   height,
-  // );
-
-  // gl.uniform1i(
-  //   gl.getUniformLocation(cancelProgram, "u_sourse"),
-  //   TEXTURE_UNIT.SOURCE,
-  // );
-
-  // let posLoc4 = gl.getAttribLocation(cancelProgram, "a_position");
-  // gl.enableVertexAttribArray(posLoc4);
-  // gl.vertexAttribPointer(posLoc4, 2, gl.FLOAT, false, 0, 0);
-
   //////////////////////
-
-  let color = [0, 0, 0];
-  let radius = 1;
-  let alpha = 0.5;
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
   ///////////
@@ -331,8 +312,14 @@ function makeBrushManager(canvas, gl, width, height) {
     gl.bindTexture(gl.TEXTURE_2D, pathTex);
 
     // 유나폼 변수 설정
-    gl.uniform1f(gl.getUniformLocation(strokeProgram, "u_radius"), radius);
-    gl.uniform1f(gl.getUniformLocation(strokeProgram, "u_alpha"), alpha);
+    gl.uniform1f(
+      gl.getUniformLocation(strokeProgram, "u_radius"),
+      paintOptions.radius,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(strokeProgram, "u_alpha"),
+      paintOptions.alpha,
+    );
 
     gl.uniform2f(
       gl.getUniformLocation(strokeProgram, "u_start"),
@@ -356,7 +343,7 @@ function makeBrushManager(canvas, gl, width, height) {
       0,
     );
 
-    let ceiledRadius = Math.ceil(radius);
+    let ceiledRadius = Math.ceil(paintOptions.radius);
     let minX = Math.min(start.x, end.x);
     let maxX = Math.max(start.x, end.x);
     let minY = Math.min(height - start.y, height - end.y);
@@ -413,7 +400,10 @@ function makeBrushManager(canvas, gl, width, height) {
   function brush() {
     gl.useProgram(brushProgram);
 
-    gl.uniform3fv(gl.getUniformLocation(brushProgram, "u_color"), color);
+    gl.uniform3fv(
+      gl.getUniformLocation(brushProgram, "u_color"),
+      paintOptions.color,
+    );
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -441,28 +431,11 @@ function makeBrushManager(canvas, gl, width, height) {
     sourceTextureManager.uploadCurrent();
   }
 
-  function setAlpha(newAlpha) {
-    alpha = newAlpha;
-  }
-
-  function setRadius(newRadius) {
-    radius = newRadius;
-  }
-
-  function setColor({ r, g, b }) {
-    color[0] = r / 255;
-    color[1] = g / 255;
-    color[2] = b / 255;
-  }
-
   let brushManager = {
     stroke,
     brush,
     eraser,
     reset,
-    setAlpha,
-    setRadius,
-    setColor,
     cancel,
   };
 
@@ -592,8 +565,4 @@ function makeSourceTextureManager(canvas, gl) {
 function makeLiquifyManager(canvas, gl) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const fullQuadVertexShader = getFullQuadVertexShader(gl);
-
-
-  
 }
-
