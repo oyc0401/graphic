@@ -5,6 +5,7 @@ export const TEXTURE_UNIT = {
   SOURCE: 1, // 원본 이미지 (Source Image)
   PATHMAP: 2, // 브러시, 지우개 알파맵
 
+  SOURCE_DISPLACEMENT: 4,
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
   EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
   EASE_MIRROR: 7, // Ease In-Out Cubic Mirror

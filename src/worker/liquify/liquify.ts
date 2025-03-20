@@ -1,7 +1,8 @@
 import {
     TEXTURE_UNIT,
     getSourceTextureManager,
-    getFullQuadVertexShader,paintOptions
+    getFullQuadVertexShader,
+    paintOptions,
 } from "../tools";
 import {
     getIntegralEaseInOut,
@@ -260,7 +261,16 @@ async function makeLiquifyManager(canvas, gl) {
     ////////////////
 
     let strength = 1;
-    let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+     let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+    function startDraw(pointer){
+        pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
+
+    
+    }
+
+    function endDraw(){
+        
+    }
 
     function changeVector(start, end) {
         gl.useProgram(liquifyPushProgram);
@@ -301,6 +311,8 @@ async function makeLiquifyManager(canvas, gl) {
         let maxX = Math.max(start.x, end.x);
         let minY = Math.min(height - start.y, height - end.y);
         let maxY = Math.max(height - start.y, height - end.y);
+
+        let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
         dirtyRect.x = minX - ceiledRadius;
         dirtyRect.y = minY - ceiledRadius;
