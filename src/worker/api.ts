@@ -86,7 +86,6 @@ export const workerApi = {
     layer.drawEnd();
   },
 
- 
   eraserStart(layerId: string, pointer: Pointer) {
     const layer = getLayer(layerId);
     layer.eraserStart(pointer);
@@ -109,17 +108,17 @@ export const workerApi = {
     const layer = getLayer(layerId);
     layer.liquifyTo(pointer);
   },
+  liquifyCancel(layerId: string) {
+    const layer = getLayer(layerId);
+    layer.liquifyCancel();
+  },
   liquifyEnd(layerId: string) {
     const layer = getLayer(layerId);
-  layer.liquifyEnd();
+    layer.liquifyEnd();
   },
-  liquifyReset(layerId: string){
+  liquifyReset(layerId: string) {
     const layer = getLayer(layerId);
     layer.liquifyReset();
-  },
-  liquifyCancel(layerId: string){
-     const layer = getLayer(layerId);
-      layer.liquifyCancel();
   },
 
   strokeEnd() {

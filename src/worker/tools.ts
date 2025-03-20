@@ -429,6 +429,8 @@ function makeBrushManager(canvas, gl, width, height) {
     let glHelper = getGlHelper(gl);
     glHelper.clearTexture(pathTex, width, height, 0);
 
+    // 위는 해야하지만,
+    // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
     sourceTextureManager.uploadCurrent();
   }
 

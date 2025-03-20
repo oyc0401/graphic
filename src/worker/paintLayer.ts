@@ -117,6 +117,10 @@ export class PaintLayer {
     this.drawManager.brush();
     this.lastPointer = pointer;
   }
+  
+  drawCancel() {
+    this.drawManager.cancel();
+  }
 
   drawEnd() {
     this.drawManager.reset();
@@ -139,9 +143,12 @@ export class PaintLayer {
     this.drawManager.eraser();
     this.lastPointer = pointer;
   }
-
   cancel() {
     this.drawManager.cancel();
+  }
+
+  eraserEnd() {
+    this.drawManager.reset();
   }
 
   liquifyManager;
@@ -161,17 +168,17 @@ export class PaintLayer {
     this.liquifyManager.render();
     this.lastPointer = pointer;
   }
+  liquifyCancel() {
+    this.liquifyManager.cancel();
+  }
 
   liquifyEnd() {
     this.liquifyManager.endStroke();
   }
+
   liquifyReset() {
     console.log("리퀴파이 리셋!");
     this.liquifyManager.reset();
-  }
-
-  liquifyCancel() {
-    this.liquifyManager.cancel();
   }
 
   // appendHistory() {

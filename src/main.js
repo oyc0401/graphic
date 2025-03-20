@@ -97,7 +97,9 @@ export function setCursor() {
     } else if (paintState.action === "BRUSH") {
         let scaledBrushSize = paintState.brushSize * position.scale;
         container.classList.add("brush");
-        brushCursor.style.visibility = "visible";
+        if (!("ontouchstart" in window)) {
+            brushCursor.style.visibility = "visible";
+        }
         brushCursor.style.left = `${paintState.pointerX - scaledBrushSize / 2}px`;
         brushCursor.style.top = `${paintState.pointerY - scaledBrushSize / 2}px`;
         brushCursor.style.width = `${scaledBrushSize}px`;

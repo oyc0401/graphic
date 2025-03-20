@@ -416,7 +416,58 @@ async function makeLiquifyManager(canvas, gl) {
         gl.disable(gl.SCISSOR_TEST);
     }
 
+    function cancel() {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+        gl.framebufferTexture2D(
+            gl.READ_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            sourceDisplacementTex,
+            0,
+        );
+
+        gl.framebufferTexture2D(
+            gl.DRAW_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            displacementTex,
+            0,
+        );
+
+        // gl.blitFramebuffer(
+        //     0,
+        //     0,
+        //     width,
+        //     height, // 소스
+        //     0,
+        //     0,
+        //     width,
+        //     height, // 대상
+        //     gl.COLOR_BUFFER_BIT,
+        //     gl.NEAREST,
+        // );
+
+        gl.blitFramebuffer(
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 소스
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 대상
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+        );
+
+        render();
+    }
+
     function endStroke() {
+        // 사실 근데 캔슬되서 엔드가 호출되면 엔드는 필요없음...
+
         //sourceDisplacementTex에 현재 displace맵을 업로드 하는데, 이때 pathDirtyRect범위에 있는 것들만 업로드.
         // 적용된 텍스처를 read에도 옮기기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
@@ -465,60 +516,26 @@ async function makeLiquifyManager(canvas, gl) {
         );
     }
 
-    function cancel() {
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-        gl.framebufferTexture2D(
-            gl.READ_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            sourceDisplacementTex,
-            0,
-        );
-
-        gl.framebufferTexture2D(
-            gl.DRAW_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTex,
-            0,
-        );
-
-        gl.blitFramebuffer(
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 소스
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 대상
-            gl.COLOR_BUFFER_BIT,
-            gl.NEAREST,
-        );
-
-        render();
-    }
-
     function setStrength(s) {
         strength = s;
     }
     function reset() {
         let glHelper = getGlHelper(gl);
         glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
+        glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
 
         sourceTextureManager.uploadCurrent();
     }
 
     let Liquify = {
+        startStroke,
         push: changeVector,
         render: render,
-        reset,
-        startStroke,
-        setStrength: setStrength,
         cancel,
         endStroke,
+        reset,
+
+        setStrength,
     };
 
     return Liquify;
