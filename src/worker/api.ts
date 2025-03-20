@@ -110,11 +110,16 @@ export const workerApi = {
     layer.liquifyTo(pointer);
   },
   liquifyEnd(layerId: string) {
-    //const layer = getLayer(layerId);
+    const layer = getLayer(layerId);
+  layer.liquifyEnd();
   },
   liquifyReset(layerId: string){
     const layer = getLayer(layerId);
     layer.liquifyReset();
+  },
+  liquifyCancel(layerId: string){
+     const layer = getLayer(layerId);
+      layer.liquifyCancel();
   },
 
   strokeEnd() {

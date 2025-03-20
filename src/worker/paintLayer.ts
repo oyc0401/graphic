@@ -86,17 +86,17 @@ export class PaintLayer {
   }
 
   setStrokeColor(r, g, b) {
-   // paintOption.color = { r, g, b };
-     paintOptions.setColor({ r, g, b} );
+    // paintOption.color = { r, g, b };
+    paintOptions.setColor({ r, g, b });
   }
 
   setStrokeSize(strokeSize) {
-   // paintOption.radius = strokeSize;
+    // paintOption.radius = strokeSize;
     paintOptions.setRadius(strokeSize);
   }
 
   setAlpha(alpha) {
-   // paintOption.alpha = alpha;
+    // paintOption.alpha = alpha;
     paintOptions.setAlpha(alpha);
   }
 
@@ -154,6 +154,7 @@ export class PaintLayer {
   }
   async liquifyStart(pointer: Pointer) {
     this.lastPointer = pointer;
+    this.liquifyManager.startStroke(pointer);
   }
   liquifyTo(pointer: Pointer) {
     this.liquifyManager.push(this.lastPointer, pointer);
@@ -161,10 +162,16 @@ export class PaintLayer {
     this.lastPointer = pointer;
   }
 
-  liquifyEnd() {}
+  liquifyEnd() {
+    this.liquifyManager.endStroke();
+  }
   liquifyReset() {
     console.log("리퀴파이 리셋!");
     this.liquifyManager.reset();
+  }
+
+  liquifyCancel() {
+    this.liquifyManager.cancel();
   }
 
   // appendHistory() {

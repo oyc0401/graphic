@@ -563,7 +563,3 @@ function makeSourceTextureManager(canvas, gl) {
   return sourceTextureManager;
 }
 
-function makeLiquifyManager(canvas, gl) {
-  const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const fullQuadVertexShader = getFullQuadVertexShader(gl);
-}

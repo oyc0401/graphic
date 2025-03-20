@@ -261,15 +261,57 @@ async function makeLiquifyManager(canvas, gl) {
     ////////////////
 
     let strength = 1;
-     let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
-    function startDraw(pointer){
+    let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+
+    /////////////////////////////
+
+    // 취소 구현...
+    let sourceDisplacementTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RG32F,
+        width,
+        height,
+        0,
+        gl.RG,
+        gl.FLOAT,
+        emptyData,
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    function startStroke(pointer) {
         pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
 
-    
+        let ceiledRadius = Math.ceil(paintOptions.radius);
+
+        console.log("시작!");
+        pathDirtyRect.x = pointer.x - ceiledRadius;
+        pathDirtyRect.y = pointer.y - ceiledRadius;
+        pathDirtyRect.ex = pointer.x + ceiledRadius;
+        pathDirtyRect.ey = pointer.y + ceiledRadius;
+        pathDirtyRect.width = 2 * ceiledRadius + 1;
+        pathDirtyRect.height = 2 * ceiledRadius + 1;
     }
 
-    function endDraw(){
-        
+    function updatePathDirtyRect(pointer) {
+        let ceiledRadius = Math.ceil(paintOptions.radius);
+        let minX = Math.min(pathDirtyRect.x, pointer.x - ceiledRadius);
+        let maxX = Math.max(pathDirtyRect.ex, pointer.x + ceiledRadius);
+        let minY = Math.min(pathDirtyRect.y, pointer.y - ceiledRadius);
+        let maxY = Math.max(pathDirtyRect.ey, pointer.y + ceiledRadius);
+
+        pathDirtyRect.x = minX;
+        pathDirtyRect.y = minY;
+        pathDirtyRect.ex = maxX;
+        pathDirtyRect.ey = maxY;
+
+        //console.log(pathDirtyRect);
     }
 
     function changeVector(start, end) {
@@ -316,10 +358,13 @@ async function makeLiquifyManager(canvas, gl) {
 
         dirtyRect.x = minX - ceiledRadius;
         dirtyRect.y = minY - ceiledRadius;
-        dirtyRect.ex = maxX + ceiledRadius + 1;
-        dirtyRect.ey = maxY + ceiledRadius + 1;
+        dirtyRect.ex = maxX + ceiledRadius;
+        dirtyRect.ey = maxY + ceiledRadius;
         dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
         dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+
+        updatePathDirtyRect(start);
+        updatePathDirtyRect(end);
 
         // SCISSOR TEST로 일부만 렌더링
         gl.enable(gl.SCISSOR_TEST);
@@ -371,6 +416,91 @@ async function makeLiquifyManager(canvas, gl) {
         gl.disable(gl.SCISSOR_TEST);
     }
 
+    function endStroke() {
+        //sourceDisplacementTex에 현재 displace맵을 업로드 하는데, 이때 pathDirtyRect범위에 있는 것들만 업로드.
+        // 적용된 텍스처를 read에도 옮기기
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+        gl.framebufferTexture2D(
+            gl.READ_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            displacementTex,
+            0,
+        );
+
+        gl.framebufferTexture2D(
+            gl.DRAW_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            sourceDisplacementTex,
+            0,
+        );
+
+        // gl.blitFramebuffer(
+        //     0,
+        //     0,
+        //     width,
+        //     height, // 소스
+        //     0,
+        //     0,
+        //     width,
+        //     height, // 대상
+        //     gl.COLOR_BUFFER_BIT,
+        //     gl.NEAREST,
+        // );
+
+        gl.blitFramebuffer(
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 소스
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 대상
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+        );
+    }
+
+    function cancel() {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+        gl.framebufferTexture2D(
+            gl.READ_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            sourceDisplacementTex,
+            0,
+        );
+
+        gl.framebufferTexture2D(
+            gl.DRAW_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            displacementTex,
+            0,
+        );
+
+        gl.blitFramebuffer(
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 소스
+            pathDirtyRect.x,
+            height - pathDirtyRect.y,
+            pathDirtyRect.ex,
+            height - pathDirtyRect.ey, // 대상
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+        );
+
+        render();
+    }
+
     function setStrength(s) {
         strength = s;
     }
@@ -385,7 +515,10 @@ async function makeLiquifyManager(canvas, gl) {
         push: changeVector,
         render: render,
         reset,
+        startStroke,
         setStrength: setStrength,
+        cancel,
+        endStroke,
     };
 
     return Liquify;

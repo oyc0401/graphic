@@ -1,4 +1,4 @@
-import { initDraw, initUI } from "./draw";
+import { initDraw, initUI, cancel, endDrawing } from "./draw";
 import { initPosition, position } from "./position";
 window.onload = main;
 
@@ -19,11 +19,10 @@ export let paintState = {
 };
 async function main() {
     initUI();
-    
+
     initPosition();
-    
+
     await initDraw();
-    
 
     initiaize();
 }
@@ -127,7 +126,6 @@ export function applyKeyAction() {
 function setKey() {
     (function () {
         document.addEventListener("keydown", (event) => {
-            //console.log(event);
             if (event.repeat) return; // OS 기본 딜레이 방지
 
             if (event.code == "KeyZ") {
@@ -144,6 +142,12 @@ function setKey() {
 
                 applyKeyAction();
                 setCursor();
+            }
+
+            if (event.code === "Escape") {
+                console.log("취소!");
+                cancel();
+                endDrawing();
             }
         });
 

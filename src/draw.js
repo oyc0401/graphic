@@ -10,7 +10,14 @@ import * as Comlink from "comlink";
  */
 export function cancel() {
     const worker = getLayerWorker();
-    worker.cancel(layerId);
+
+    if (toolId == "brush") {
+        worker.cancel(layerId);
+    } else if (toolId == "eraser") {
+        worker.cancel(layerId);
+    } else if (toolId == "liquify") {
+        worker.liquifyCancel(layerId);
+    }
 }
 
 /**
@@ -27,6 +34,7 @@ export function endDrawing() {
     } else if (toolId == "eraser") {
         worker.eraserEnd(layerId);
     } else if (toolId == "liquify") {
+        worker.liquifyEnd(layerId);
     }
 }
 
@@ -92,7 +100,7 @@ export function initUI() {
 
     document.querySelector("#select-liquify").addEventListener("click", () => {
         toolId = "liquify";
-        paintState.brushSize = 10;
+        paintState.brushSize = 100;
         paintState.brushAlpha = 1;
         updateUI();
     });
