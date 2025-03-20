@@ -532,7 +532,7 @@ function changeSize() {
   let newWidth = 300;
   let newHeight = 300;
   const worker = getLayerWorker();
-  worker.updateSize(300, 300);
+  worker.updateSize(newWidth, newHeight);
   let diffX = position.width - newWidth;
   let diffY = position.height - newHeight;
   position.x += diffX / 2;

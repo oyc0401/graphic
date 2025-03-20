@@ -350,6 +350,8 @@ async function makeLiquifyManager(canvas, gl) {
             gl.FLOAT,
             emptyData,
         );
+
+         clearMap();
     }
     setSize();
 
@@ -593,14 +595,18 @@ async function makeLiquifyManager(canvas, gl) {
         strength = s;
     }
     function reset() {
+        clearMap();
+
+        sourceTextureManager.uploadCurrent();
+    }
+
+    function clearMap() {
         let width = paintOptions.width;
         let height = paintOptions.height;
 
         let glHelper = getGlHelper(gl);
         glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
         glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
-
-        sourceTextureManager.uploadCurrent();
     }
 
     let Liquify = {
@@ -612,6 +618,7 @@ async function makeLiquifyManager(canvas, gl) {
         reset,
         setSize,
         setStrength,
+        clearMap,
     };
 
     return Liquify;

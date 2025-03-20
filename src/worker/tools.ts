@@ -52,10 +52,10 @@ export function getBrushManager(canvas, gl) {
 function makeBrushManager(canvas, gl) {
   // let width = paintOptions.width;
   //  let height = paintOptions.height;
-  
-   // gl.viewport(0, 0, width, height);
-   //  gl.clearColor(0, 0, 0, 0);
-  
+
+  // gl.viewport(0, 0, width, height);
+  //  gl.clearColor(0, 0, 0, 0);
+
   const ext = gl.getExtension("EXT_color_buffer_float");
   if (!ext) {
     console.error("EXT_color_buffer_float not supported!");
@@ -128,7 +128,7 @@ function makeBrushManager(canvas, gl) {
   //   height,
   // );
 
- // const emptyData = new Float32Array(width * height);
+  // const emptyData = new Float32Array(width * height);
 
   // 알파맵 텍스처 생성 및 데이터 업로드
   let pathTex = gl.createTexture();
@@ -313,12 +313,12 @@ function makeBrushManager(canvas, gl) {
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
   ///////////
-  
+
   function setSize() {
     let width = paintOptions.width;
     let height = paintOptions.height;
 
-    console.log(paintOptions)
+    console.log(paintOptions);
     gl.viewport(0, 0, width, height);
     gl.clearColor(0, 0, 0, 0);
 
@@ -335,7 +335,7 @@ function makeBrushManager(canvas, gl) {
       width,
       height,
     );
-     gl.useProgram(eraserProgram);
+    gl.useProgram(eraserProgram);
     gl.uniform2f(
       gl.getUniformLocation(eraserProgram, "u_resolution"),
       width,
@@ -375,15 +375,14 @@ function makeBrushManager(canvas, gl) {
       null,
     );
 
-    reset();
-    
+    clearMap();
   }
-  
+
   setSize();
-  
+
   function stroke(start, end) {
     let height = paintOptions.height;
-    
+
     gl.useProgram(strokeProgram);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
@@ -503,12 +502,15 @@ function makeBrushManager(canvas, gl) {
   }
 
   function reset() {
-    let glHelper = getGlHelper(gl);
-    glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
-
+    clearMap();
     // 위는 해야하지만,
     // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
     sourceTextureManager.uploadCurrent();
+  }
+
+  function clearMap() {
+    let glHelper = getGlHelper(gl);
+    glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
 
   let brushManager = {
@@ -518,6 +520,7 @@ function makeBrushManager(canvas, gl) {
     reset,
     cancel,
     setSize,
+    clearMap,
   };
 
   return brushManager;
@@ -585,13 +588,33 @@ function makeSourceTextureManager(canvas, gl) {
 
   // 이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent() {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
-    // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+
+    gl.copyTexSubImage2D(
+      gl.TEXTURE_2D, // 타겟 텍스처
+      0, // 레벨
+      0,
+      0, // 텍스처 내에서 복사할 시작 좌표
+      0,
+      0, // 프레임버퍼에서 복사할 시작 좌표
+      paintOptions.width,
+      paintOptions.height, // 복사할 크기
+    );
   }
 
   const fullQuadVertexShader = getFullQuadVertexShader(gl);
@@ -643,9 +666,83 @@ function makeSourceTextureManager(canvas, gl) {
   return sourceTextureManager;
 }
 
-function resizeScreen(width, heigth) {
+export function resizeScreen(canvas, gl, newWidth, newHeight) {
+  // 1) 기존 캔버스 크기 저장
+  const oldWidth = paintOptions.width;
+  const oldHeight = paintOptions.height;
 
+  // 2) 기존 화면을 임시로 저장할 텍스처 생성
+  const oldTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE17);
+  gl.bindTexture(gl.TEXTURE_2D, oldTexture);
+  // WebGL2에서는 texImage2D로 먼저 공간(크기) 할당해주고, 이후 copyTexImage2D 사용
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    oldWidth,
+    oldHeight,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
 
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  gl.copyTexSubImage2D(
+    gl.TEXTURE_2D, // 타겟 텍스처
+    0, // 레벨
+    0,
+    0, // 텍스처 내에서 복사할 시작 좌표
+    0,
+    0, // 프레임버퍼에서 복사할 시작 좌표
+    oldWidth,
+    oldHeight, // 복사할 크기
+  );
+
+  // 4) 캔버스 리사이즈
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  paintOptions.width = newWidth;
+  paintOptions.height = newHeight;
+  gl.viewport(0, 0, newWidth, newHeight);
+
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  // 텍스처를 프레임버퍼에 첨부
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    oldTexture,
+    0,
+  );
+
+  // 이제 화면으로 blit (복사)하기 위해
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // null은 기본 화면 프레임버퍼
+
+  let diffHeight = newHeight - oldHeight;
+  gl.blitFramebuffer(
+    0,
+    0,
+    oldWidth,
+    oldHeight,
+    0,
+    diffHeight,
+    oldWidth,
+    oldHeight + diffHeight,
+    gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+    gl.NEAREST,
+  );
+
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  sourceTextureManager.uploadCurrent();
 }
