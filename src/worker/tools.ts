@@ -1,11 +1,13 @@
 import { createShader, createProgram, getGlHelper } from "./glHelper";
 
-const TEXTURE_UNIT = {
+export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   SOURCE: 1, // 원본 이미지 (Source Image)
   PATHMAP: 2, // 브러시, 지우개 알파맵
-  //EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
-  //EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
+  
+  DISPLACEMENT: 5, // 변위맵 (Displacement Map)
+  EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
+  EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
 };
 
 /**
@@ -477,10 +479,10 @@ export function getFullQuadVertexShader(gl) {
     return fullQuadVertexShaders.get(gl);
   }
 
-  const fullQuadVertexShader = makeFullQuadVertexShader(gl);
-  fullQuadVertexShaders.set(gl, fullQuadVertexShader);
+  const vertexShader = makeFullQuadVertexShader(gl);
+  fullQuadVertexShaders.set(gl, vertexShader);
 
-  return fullQuadVertexShader;
+  return vertexShader;
 }
 
 function makeFullQuadVertexShader(gl) {
@@ -498,8 +500,6 @@ function makeFullQuadVertexShader(gl) {
 
   return vertexShader;
 }
-
-
 
 /**
  * 소스 텍스쳐는 텍스처 슬롯 1번을 차지하고 있습니다.
@@ -588,3 +588,12 @@ function makeSourceTextureManager(canvas, gl) {
 
   return sourceTextureManager;
 }
+
+function makeLiquifyManager(canvas, gl) {
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+
+
+  
+}
+

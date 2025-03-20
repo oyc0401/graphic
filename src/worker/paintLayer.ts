@@ -1,4 +1,5 @@
 import { getGlHelper } from "./glHelper";
+import { getLiquifyManager } from "./liquify/liquify";
 import { getBrushManager } from "./tools";
 
 interface Pointer {
@@ -66,6 +67,10 @@ export class PaintLayer {
     } else {
       // this.main_ctx.clearRect(0, 0, this.width, this.height);
     }
+
+    this.drawInit();
+    this.eraserInit();
+    await this.liquifyInit();
   }
 
   clear() {
@@ -92,15 +97,15 @@ export class PaintLayer {
     paintOption.alpha = alpha;
   }
 
-  drawStart(pointer: Pointer) {
+  drawInit() {
     this.drawManager = getBrushManager(
       this.main_canvas,
       this.main_ctx,
       this.width,
       this.height,
     );
-
-    //this.drawManager.reset(); // 이거 어짜피 포인터 뗄 때 원본 텍스처 리셋하는데 빼도 될듯.
+  }
+  drawStart(pointer: Pointer) {
     this.lastPointer = pointer;
 
     this.drawManager.setAlpha(paintOption.alpha);
@@ -118,15 +123,15 @@ export class PaintLayer {
     this.drawManager.reset();
   }
 
-  eraserStart(pointer: Pointer) {
+  eraserInit() {
     this.drawManager = getBrushManager(
       this.main_canvas,
       this.main_ctx,
       this.width,
       this.height,
     );
-
-    this.drawManager.reset();
+  }
+  eraserStart(pointer: Pointer) {
     this.lastPointer = pointer;
 
     this.drawManager.setAlpha(paintOption.alpha);
@@ -143,36 +148,34 @@ export class PaintLayer {
     this.drawManager.cancel();
   }
 
-  appendHistory() {
-    // 지금 상태를 히스토리에 넣기!
+  liquifyManager;
 
-    let imageTexture = makeImageTex(this.main_canvas, this.main_ctx);
-    history.push(imageTexture);
+  async liquifyInit() {
+    this.liquifyManager = await getLiquifyManager(
+      this.main_canvas,
+      this.main_ctx,
+    );
   }
+  async liquifyStart(pointer: Pointer) {
+    this.lastPointer = pointer;
+  }
+  liquifyTo(pointer: Pointer) {
+    this.liquifyManager.push(this.lastPointer, pointer);
+    this.liquifyManager.render();
+    this.lastPointer = pointer;
+  }
+
+  liquifyEnd() {}
+  liquifyReset() {
+    console.log("리퀴파이 리셋!");
+    this.liquifyManager.reset();
+  }
+
+  // appendHistory() {
+  //   // 지금 상태를 히스토리에 넣기!
+
+  //   let imageTexture = makeImageTex(this.main_canvas, this.main_ctx);
+  //   history.push(imageTexture);
+  // }
 }
-const TEXTURE_UNIT = {
-  TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
-  SOURCE: 1, // 원본 이미지 (Source Image)
-  PATHMAP: 2, // 브러시, 지우개 알파맵
-  //EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
-  //EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
-};
 
-function makeImageTex(canvas, gl) {
-  let originalTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-
-  gl.bindTexture(gl.TEXTURE_2D, originalTexture);
-
-  // canvas를 webgl로 옮길 때 좌측하단이 0,0가 되므로, y축 반전을 해줘야함.
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  return originalTexture;
-}

@@ -1,6 +1,7 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
 import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
+import { workerApi } from "./worker/api";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
@@ -23,8 +24,9 @@ export function endDrawing() {
     // resetImageTexture
     if (toolId == "brush") {
         worker.drawEnd(layerId);
-    } else {
+    } else if (toolId == "eraser") {
         worker.eraserEnd(layerId);
+    } else if (toolId == "liquify") {
     }
 }
 
@@ -56,15 +58,21 @@ function updateUI() {
 
     if (toolId == "brush") {
         document.querySelector("#select-brush").classList.add("selected");
-    } else {
+    } else if (toolId == "eraser") {
         document.querySelector("#select-eraser").classList.add("selected");
+    } else if (toolId == "liquify") {
     }
 }
 
 export function initUI() {
     updateUI();
 
+    const worker = getLayerWorker();
+
     document.querySelector("#select-brush").addEventListener("click", () => {
+        if (toolId == "liquify") {
+            worker.liquifyReset(layerId);
+        }
         toolId = "brush";
         paintState.brushSize = 5;
         paintState.brushAlpha = 0.3;
@@ -73,6 +81,9 @@ export function initUI() {
     });
 
     document.querySelector("#select-eraser").addEventListener("click", () => {
+        if (toolId == "liquify") {
+            worker.liquifyReset(layerId);
+        }
         toolId = "eraser";
         paintState.brushSize = 10;
         paintState.brushAlpha = 1;
@@ -80,9 +91,10 @@ export function initUI() {
     });
 
     document.querySelector("#select-liquify").addEventListener("click", () => {
-        //alert("픽셀유동화!");
-
-        
+        toolId = "liquify";
+        paintState.brushSize = 10;
+        paintState.brushAlpha = 1;
+        updateUI();
     });
 }
 
@@ -104,7 +116,7 @@ export async function initDraw() {
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
-
+    
     document
         .querySelector("#container")
         .addEventListener("pointerdown", (e) => {
@@ -124,35 +136,40 @@ export async function initDraw() {
 
                 worker.drawStart(layerId, point);
                 worker.drawTo(layerId, point);
-            } else {
+            } else if (toolId == "eraser") {
                 worker.setStrokeSize(layerId, paintState.brushSize);
                 worker.setAlpha(layerId, paintState.brushAlpha);
 
                 worker.eraserStart(layerId, point);
                 worker.eraserTo(layerId, point);
+            } else if (toolId == "liquify") {
+                worker.setStrokeSize(layerId, paintState.brushSize);
+                worker.setAlpha(layerId, paintState.brushAlpha);
+
+                worker.liquifyStart(layerId, point);
             }
         });
 
-    document
-        .querySelector("#container")
-        .addEventListener("pointermove", (e) => {
-            e.preventDefault();
-            if (!paintState.pointerdown) return;
-            if (paintState.action != "BRUSH") return;
-            if (!pointerActive) return;
+    window.addEventListener("pointermove", (e) => {
+        e.preventDefault();
+        if (!paintState.pointerdown) return;
+        if (paintState.action != "BRUSH") return;
+        if (!pointerActive) return;
 
-            let point = to_canvas_coord(e.clientX, e.clientY);
+        let point = to_canvas_coord(e.clientX, e.clientY);
 
-            const worker = getLayerWorker();
+        const worker = getLayerWorker();
 
-            if (toolId == "brush") {
-                worker.drawTo(layerId, point);
-            } else {
-                worker.eraserTo(layerId, point);
-            }
-        });
+        if (toolId == "brush") {
+            worker.drawTo(layerId, point);
+        } else if (toolId == "eraser") {
+            worker.eraserTo(layerId, point);
+        } else if (toolId == "liquify") {
+            worker.liquifyTo(layerId, point);
+        }
+    });
 
-    document.querySelector("#container").addEventListener("pointerup", (e) => {
+    window.addEventListener("pointerup", (e) => {
         e.preventDefault();
         if (paintState.action != "BRUSH") return;
         if (!pointerActive) return;
@@ -161,8 +178,9 @@ export async function initDraw() {
         const worker = getLayerWorker();
         if (toolId == "brush") {
             worker.drawTo(layerId, point);
-        } else {
+        } else if (toolId == "eraser") {
             worker.eraserTo(layerId, point);
+        } else if (toolId == "liquify") {
         }
 
         pointerActive = false;
