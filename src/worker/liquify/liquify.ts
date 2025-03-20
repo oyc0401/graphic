@@ -15,22 +15,18 @@ import {
     getGlHelper,
 } from "../glHelper";
 
-
 const liquifyManagerStore = new Map();
 
 export function getLiquifyManager(canvas, gl) {
-  if (liquifyManagerStore.has(gl)) {
-    return liquifyManagerStore.get(gl);
-  }
+    if (liquifyManagerStore.has(gl)) {
+        return liquifyManagerStore.get(gl);
+    }
 
-  const brushManager = makeLiquifyManager(canvas, gl);
-      liquifyManagerStore.set(gl, brushManager);
+    const brushManager = makeLiquifyManager(canvas, gl);
+    liquifyManagerStore.set(gl, brushManager);
 
-  return brushManager;
+    return brushManager;
 }
-
-
-
 
 async function makeLiquifyManager(canvas, gl) {
     console.log("make liquify");
@@ -374,6 +370,8 @@ async function makeLiquifyManager(canvas, gl) {
     function reset() {
         let glHelper = getGlHelper(gl);
         glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
+
+        sourceTextureManager.uploadCurrent();
     }
 
     let Liquify = {
