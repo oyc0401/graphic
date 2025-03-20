@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" version="26.1.1">
   <diagram name="페이지-1" id="KI2YWs6Z4tRQypgn3INm">
-    <mxGraphModel dx="1434" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1195" dy="622" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -86,6 +86,72 @@
         </mxCell>
         <mxCell id="CvbDaOpJvyQx7RuB5bKg-3" value="pointercancel&lt;div&gt;핀치줌 종료&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
           <mxGeometry x="760" y="140" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-1" value="Brush" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-2" value="Eraser" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-3" value="Liquify" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-4" value="start" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-5" value="to" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-6" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-7" value="start" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-8" value="start" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-11" value="to" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-12" value="to" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-13" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-14" value="end" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-15" value="init" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="440" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-16" value="reset" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1081" y="1040" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-17" value="init" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-18" value="init" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-19" value="브러시는 매 스트크로마다 변위맵이 초기화되어야 하는데&lt;div&gt;픽셀유동화의 변위맵 초기화는 완전 마지막에 되어야함.&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="1140" width="330" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-20" value="cancel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-21" value="cancel" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="800" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-22" value="이 캔슬은 원본 텍스쳐를 현재 프레임버퍼에 복사한다." style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="800" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-23" value="하지만 픽셀유동화 캔슬은 어떻게 처리를 할까?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1399" y="840" width="270" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="6wiaA6puWI5cDe3y5h9X-24" value="컴파일하는데 오래걸릴 수도있으니&lt;div&gt;맨 처음에 실행하기&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="720" width="210" height="40" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
