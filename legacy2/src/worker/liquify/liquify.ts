@@ -289,7 +289,7 @@ async function makeLiquifyManager(canvas, gl) {
         const width = paintOptions.width;
         const height = paintOptions.height;
 
-        gl.viewport(0, 0, width, height);
+       // gl.viewport(0, 0, width, height);
         gl.clearColor(0, 0, 0, 0);
 
         gl.useProgram(liquifyPushProgram);

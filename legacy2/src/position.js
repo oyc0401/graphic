@@ -1,5 +1,5 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
-import { cancel, endDrawing, layer } from "./draw";
+import { cancel, endDrawing } from "./draw";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
@@ -33,10 +33,10 @@ export let position = {
     let css_left = (paintState.bouncingRect.width - canvas_css_w) / 2;
     let css_top = (paintState.bouncingRect.height - canvas_css_h) / 2;
 
-    paintState.layer_area.style.left = css_left - cal_posX + "px";
-    paintState.layer_area.style.top = css_top - cal_posY + "px";
-    paintState.layer_area.style.width = canvas_css_w + "px";
-    paintState.layer_area.style.height = canvas_css_h + "px";
+    // paintState.layer_area.style.left = css_left - cal_posX + "px";
+    // paintState.layer_area.style.top = css_top - cal_posY + "px";
+    // paintState.layer_area.style.width = canvas_css_w + "px";
+    // paintState.layer_area.style.height = canvas_css_h + "px";
   },
 };
 
@@ -512,9 +512,12 @@ function setMagification(new_scale, anchor_point) {
 // 캔버스 상의 좌표로 변환.
 export function to_canvas_coord(x, y) {
   let p = to_screen_coord(x, y);
-  let px = p.x + position.width / 2;
-  let py = p.y + position.height / 2;
-  return { x: px, y: py };
+  console.log(x,y);
+ // let px = p.x + position.width / 2;
+  //let py = p.y + position.height / 2;
+  let px = p.x + position.width ;
+  let py = p.y + position.height ;
+  return { x,y:y-133};
 }
 
 // 스크롤시의 좌표로 변환.
@@ -530,37 +533,37 @@ export function to_screen_coord(x, y) {
   return { x: px, y: py };
 }
 
-async function changeSize(number = 300) {
-  let newWidth = number * 2;
-  let newHeight = number;
+// async function changeSize(number = 300) {
+//  //  let newWidth = number * 2;
+//  //  let newHeight = number;
 
-  const worker = getLayerWorker();
+//  //  const worker = getLayerWorker();
 
-  // 메인 스레드에서 제공할 콜백 함수
-  const callback = Comlink.proxy({
-    updateUI: () => {
-      console.log("워커가 메인에게 보냄:");
-      //document.body.style.backgroundColor = msg; // 예시: CSS 변경
-    },
-  });
+//  //  // 메인 스레드에서 제공할 콜백 함수
+//  //  const callback = Comlink.proxy({
+//  //    updateUI: () => {
+//  //      console.log("워커가 메인에게 보냄:");
+//  //      //document.body.style.backgroundColor = msg; // 예시: CSS 변경
+//  //    },
+//  //  });
 
-  // 콜백을 워커에 전달
-  await worker.initCallback(callback);
+//  //  // 콜백을 워커에 전달
+//  //  await worker.initCallback(callback);
 
-  await worker.updateSize(newWidth, newHeight);
+//  //  await worker.updateSize(newWidth, newHeight);
 
-  let diffX = position.width - newWidth;
-  let diffY = position.height - newHeight;
-  position.x += diffX / 2;
-  position.y += diffY / 2;
+//  //  let diffX = position.width - newWidth;
+//  //  let diffY = position.height - newHeight;
+//  //  position.x += diffX / 2;
+//  //  position.y += diffY / 2;
 
-  position.width = newWidth;
-  position.height = newHeight;
+//  //  position.width = newWidth;
+//  //  position.height = newHeight;
 
-  // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
-  // 아예 캔버스를 ㅈㄴ 늘릴까..?
- // position.resizeScreen();
-  console.log("css 변경!");
-}
+//  //  // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
+//  //  // 아예 캔버스를 ㅈㄴ 늘릴까..?
+//  // // position.resizeScreen();
+//  //  console.log("css 변경!");
+// }
 
-window.changeSize = changeSize;
+// window.changeSize = changeSize;

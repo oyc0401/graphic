@@ -17,6 +17,8 @@ export let paintOptions = {
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
+  x: 100,
+  y: 100,
 
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;
@@ -317,9 +319,12 @@ function makeBrushManager(canvas, gl) {
   function setSize() {
     let width = paintOptions.width;
     let height = paintOptions.height;
+    let x = paintOptions.x;
+    let y = paintOptions.y;
 
     //console.log(paintOptions);
-    gl.viewport(0, 0, width, height);
+    gl.viewport(x, y, x + width, y + height);
+     console.log('뷰포트1')
     gl.clearColor(0, 0, 0, 0);
 
     gl.useProgram(strokeProgram);
@@ -381,8 +386,15 @@ function makeBrushManager(canvas, gl) {
   setSize();
 
   function stroke(start, end) {
+    let width = paintOptions.width;
     let height = paintOptions.height;
+    let x = paintOptions.x;
+    let y = paintOptions.y;
+    
+   //gl.viewport(x, y, 600, 600);
+    console.log('뷰포트4')
 
+    
     gl.useProgram(strokeProgram);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
@@ -438,6 +450,7 @@ function makeBrushManager(canvas, gl) {
     gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
+    // gl.viewport(0, 0, width, height);
     //gl.finish();
 
     // 적용된 텍스처를 read에도 옮기기
@@ -672,6 +685,8 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
   // 1) 기존 캔버스 크기 저장
   const oldWidth = paintOptions.width;
   const oldHeight = paintOptions.height;
+  const x = paintOptions.x;
+  const y = paintOptions.y;
 
   // 2) 기존 화면을 임시로 저장할 텍스처 생성
   const oldTexture = gl.createTexture();
@@ -713,7 +728,8 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
   canvas.height = newHeight;
   paintOptions.width = newWidth;
   paintOptions.height = newHeight;
-  gl.viewport(0, 0, newWidth, newHeight);
+
+ // gl.viewport(x, y, x + width, y + height);
 
   const framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -750,5 +766,5 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
 
   gl.finish();
 
-  console.log('webgl 변경!')
+  console.log("webgl 변경!");
 }

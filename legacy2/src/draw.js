@@ -37,21 +37,6 @@ export function endDrawing() {
     }
 }
 
-export let layer = {
-    canvas: document.querySelector("#canvas"),
-    draw_canvas: document.querySelector("#draw-canvas"),
-    //ctx: document.querySelector("#canvas").getContext("2d"),
-    //draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
-    reset() {
-        // 이 작업은 캔버스의 내용을 모두 지우고, 크기를 조정합니다.
-        this.canvas.width = position.width;
-        this.canvas.height = position.height;
-
-        this.draw_canvas.width = position.width;
-        this.draw_canvas.height = position.height;
-    },
-};
-
 const layerId = "SingleLayer";
 const layerName = "SingleLayerName";
 
@@ -106,10 +91,12 @@ export function initUI() {
 let pointerActive = false;
 
 export async function initDraw() {
-    layer.reset();
-
     const worker = getLayerWorker();
-    const offscreen = layer.canvas.transferControlToOffscreen();
+    let canvas = document.querySelector("#canvas");
+    const offscreen = canvas.transferControlToOffscreen();
+
+    let screenWidth = paintState.bouncingRect.width;
+    let screenHeight = paintState.bouncingRect.height;
 
     await worker.makeLayer(
         layerId,
@@ -118,6 +105,8 @@ export async function initDraw() {
         position.width,
         position.height,
         0,
+        screenWidth,
+        screenHeight,
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
