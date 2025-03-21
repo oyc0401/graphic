@@ -1,6 +1,8 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
 import { cancel, endDrawing, layer } from "./draw";
 import { getLayerWorker } from "./worker/workerPool";
+import * as Comlink from "comlink";
+
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 
@@ -528,11 +530,25 @@ export function to_screen_coord(x, y) {
   return { x: px, y: py };
 }
 
-function changeSize() {
-  let newWidth = 300;
-  let newHeight = 300;
+async function changeSize(number = 300) {
+  let newWidth = number * 2;
+  let newHeight = number;
+
   const worker = getLayerWorker();
-  worker.updateSize(newWidth, newHeight);
+
+  // 메인 스레드에서 제공할 콜백 함수
+  const callback = Comlink.proxy({
+    updateUI: () => {
+      console.log("워커가 메인에게 보냄:");
+      //document.body.style.backgroundColor = msg; // 예시: CSS 변경
+    },
+  });
+
+  // 콜백을 워커에 전달
+  await worker.initCallback(callback);
+
+  await worker.updateSize(newWidth, newHeight);
+
   let diffX = position.width - newWidth;
   let diffY = position.height - newHeight;
   position.x += diffX / 2;
@@ -541,7 +557,10 @@ function changeSize() {
   position.width = newWidth;
   position.height = newHeight;
 
-  position.resizeScreen();
+  // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
+  // 아예 캔버스를 ㅈㄴ 늘릴까..?
+ // position.resizeScreen();
+  console.log("css 변경!");
 }
 
 window.changeSize = changeSize;

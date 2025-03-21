@@ -12,8 +12,8 @@ export const TEXTURE_UNIT = {
 };
 
 export let paintOptions = {
-  width: 900,
-  height: 900,
+  width: 100,
+  height: 100,
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
@@ -318,7 +318,7 @@ function makeBrushManager(canvas, gl) {
     let width = paintOptions.width;
     let height = paintOptions.height;
 
-    console.log(paintOptions);
+    //console.log(paintOptions);
     gl.viewport(0, 0, width, height);
     gl.clearColor(0, 0, 0, 0);
 
@@ -505,6 +505,8 @@ function makeBrushManager(canvas, gl) {
     clearMap();
     // 위는 해야하지만,
     // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
+    // 근데, 이게.. 어쩔수 없어서 그냥 두자.
+    // 캔슬이 그리 자주나나? 캔슬은 핀치줌인데, 일어나도 1초간은 어짜피 드로우 안할거같음.
     sourceTextureManager.uploadCurrent();
   }
 
@@ -745,4 +747,8 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
 
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   sourceTextureManager.uploadCurrent();
+
+  gl.finish();
+
+  console.log('webgl 변경!')
 }

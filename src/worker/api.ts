@@ -11,6 +11,8 @@ function getLayer(layerId) {
   return layers[layerId];
 }
 
+let mainThreadApi;
+
 let selection: {
   layerId: string;
   canvas: OffscreenCanvas;
@@ -49,8 +51,11 @@ export const workerApi = {
 
     saveLayer(layerId, layer);
 
- 
     console.log("layers:", layers, width, height);
+  },
+
+  initCallback(cb) {
+    mainThreadApi = cb; // 메인에서 받은 객체 저장
   },
 
   resetLayer() {
@@ -138,6 +143,8 @@ export const workerApi = {
     for (const layer of Object.values(layers)) {
       layer.setSize(width, height);
     }
+
+   console.log('webgl 이후여야함!')
   },
 
   makeSelection(layerId, canvas, width, height, imageData) {
