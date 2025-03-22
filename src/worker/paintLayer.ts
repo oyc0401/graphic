@@ -17,7 +17,9 @@ export class PaintLayer {
   height: number;
   main_ctx: WebGL2RenderingContext;
   priority: number;
-  dataBlob?: Blob;
+
+  screenWidth;
+  screenHeight;
 
   tool: string;
   lastPointer: Pointer;
@@ -31,7 +33,8 @@ export class PaintLayer {
     width: number,
     height: number,
     priority: number,
-    dataBlob?: Blob,
+    screenWidth,
+    screenHeight,
   ) {
     this.id = id;
     this.name = name;
@@ -48,21 +51,15 @@ export class PaintLayer {
     }
     this.main_ctx = gl;
     this.priority = priority;
-    this.dataBlob = dataBlob;
 
+    this.screenWidth = screenWidth;
+    this.screenHeight = screenHeight;
     this.initSize(width, height);
 
     this.init();
   }
 
   async init() {
-    if (this.dataBlob) {
-      //const imageBitmap = await createImageBitmap(this.dataBlob);
-      //this.main_ctx.drawImage(imageBitmap, 0, 0);
-    } else {
-      // this.main_ctx.clearRect(0, 0, this.width, this.height);
-    }
-
     this.drawInit();
     this.eraserInit();
     await this.liquifyInit();
@@ -74,16 +71,11 @@ export class PaintLayer {
   }
 
   setSize(width, height) {
- 
-  
-    
     this.width = width;
     this.height = height;
-    
 
-    resizeScreen(this.main_canvas, this.main_ctx, width, height);
+    //resizeScreen(this.main_canvas, this.main_ctx, width, height);
 
- 
     this.drawManager.setSize();
     this.liquifyManager.setSize();
   }
@@ -92,10 +84,12 @@ export class PaintLayer {
     paintOptions.width = width;
     paintOptions.height = height;
 
+    paintOptions.screenWidth = this.screenWidth;
+    paintOptions.screenHeight = this.screenHeight;
     this.width = width;
     this.height = height;
-    this.main_canvas.width = width;
-    this.main_canvas.height = height;
+    this.main_canvas.width = this.screenWidth;
+    this.main_canvas.height = this.screenHeight;
   }
 
   setStrokeColor(r, g, b) {
@@ -114,12 +108,7 @@ export class PaintLayer {
   }
 
   drawInit() {
-    this.drawManager = getBrushManager(
-      this.main_canvas,
-      this.main_ctx,
-      this.width,
-      this.height,
-    );
+    this.drawManager = getBrushManager(this.main_canvas, this.main_ctx);
   }
   drawStart(pointer: Pointer) {
     this.lastPointer = pointer;
@@ -140,12 +129,7 @@ export class PaintLayer {
   }
 
   eraserInit() {
-    this.drawManager = getBrushManager(
-      this.main_canvas,
-      this.main_ctx,
-      this.width,
-      this.height,
-    );
+    this.drawManager = getBrushManager(this.main_canvas, this.main_ctx);
   }
   eraserStart(pointer: Pointer) {
     this.lastPointer = pointer;

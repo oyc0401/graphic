@@ -4,7 +4,7 @@ export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   SOURCE: 1, // 원본 이미지 (Source Image)
   PATHMAP: 2, // 브러시, 지우개 알파맵
-
+  TARGET: 3,
   SOURCE_DISPLACEMENT: 4,
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
   EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
@@ -17,6 +17,9 @@ export let paintOptions = {
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
+
+  screenWidth: 800,
+  screenHeight: 800,
 
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;
@@ -380,6 +383,31 @@ function makeBrushManager(canvas, gl) {
 
   setSize();
 
+  offscreenTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TARGET);
+  gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    paintOptions.width,
+    paintOptions.height,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
+
+  offscreenFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    offscreenTex,
+    0,
+  );
+
   function stroke(start, end) {
     let height = paintOptions.height;
 
@@ -482,19 +510,66 @@ function makeBrushManager(canvas, gl) {
       paintOptions.color,
     );
     // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.disable(gl.SCISSOR_TEST);
+
+    // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenFBO);
+
+    // 쓰기 버퍼: 기본 프레임버퍼 (화면)
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    
+    // blit 수행
+    let x = (paintOptions.screenWidth - paintOptions.width) / 2;
+    let y = (paintOptions.screenHeight - paintOptions.height) / 2;
+
+    gl.blitFramebuffer(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height, // src 영역
+      x,
+      y,
+      x + paintOptions.width,
+      y + paintOptions.height, // dst 영역
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST, // 또는 gl.LINEAR
+    );
   }
 
   function eraser() {
     gl.useProgram(eraserProgram);
     // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.disable(gl.SCISSOR_TEST);
+
+
+    // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenFBO);
+
+    // 쓰기 버퍼: 기본 프레임버퍼 (화면)
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    // blit 수행
+    let x = (paintOptions.screenWidth - paintOptions.width) / 2;
+    let y = (paintOptions.screenHeight - paintOptions.height) / 2;
+
+    gl.blitFramebuffer(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height, // src 영역
+      x,
+      y,
+      x + paintOptions.width,
+      y + paintOptions.height, // dst 영역
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST, // 또는 gl.LINEAR
+    );
   }
 
   function cancel() {
@@ -590,7 +665,7 @@ function makeSourceTextureManager(canvas, gl) {
 
   // 이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
@@ -655,7 +730,7 @@ function makeSourceTextureManager(canvas, gl) {
 
     gl.useProgram(cancelProgram);
     // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
@@ -695,7 +770,7 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
 
   gl.copyTexSubImage2D(
     gl.TEXTURE_2D, // 타겟 텍스처
@@ -709,8 +784,9 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
   );
 
   // 4) 캔버스 리사이즈
-  canvas.width = newWidth;
-  canvas.height = newHeight;
+  console.log("resizeScreen()");
+  // canvas.width = paintOptions.screenWidth;
+  //canvas.height = paintOptions.screenHeight;
   paintOptions.width = newWidth;
   paintOptions.height = newHeight;
   gl.viewport(0, 0, newWidth, newHeight);
@@ -750,5 +826,9 @@ export function resizeScreen(canvas, gl, newWidth, newHeight) {
 
   gl.finish();
 
-  console.log('webgl 변경!')
+  console.log("webgl 변경!");
 }
+
+let offscreenTex;
+
+let offscreenFBO;

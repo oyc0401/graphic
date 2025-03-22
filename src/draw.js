@@ -39,16 +39,12 @@ export function endDrawing() {
 
 export let layer = {
     canvas: document.querySelector("#canvas"),
-    draw_canvas: document.querySelector("#draw-canvas"),
     //ctx: document.querySelector("#canvas").getContext("2d"),
     //draw_ctx: document.querySelector("#draw-canvas").getContext("2d"),
     reset() {
         // 이 작업은 캔버스의 내용을 모두 지우고, 크기를 조정합니다.
         this.canvas.width = position.width;
         this.canvas.height = position.height;
-
-        this.draw_canvas.width = position.width;
-        this.draw_canvas.height = position.height;
     },
 };
 
@@ -108,6 +104,7 @@ let pointerActive = false;
 export async function initDraw() {
     layer.reset();
 
+    console.log(paintState.bouncingRect);
     const worker = getLayerWorker();
     const offscreen = layer.canvas.transferControlToOffscreen();
 
@@ -118,6 +115,8 @@ export async function initDraw() {
         position.width,
         position.height,
         0,
+        paintState.bouncingRect.width,
+        paintState.bouncingRect.height,
     );
 
     // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
@@ -163,6 +162,7 @@ export async function initDraw() {
 
         let point = to_canvas_coord(e.clientX, e.clientY);
 
+        console.log("current point", point);
         const worker = getLayerWorker();
 
         if (toolId == "brush") {

@@ -22,14 +22,14 @@ async function main() {
 
     initPosition();
 
+  paintState.updateBouncingRect();
+  
     await initDraw();
 
     initiaize();
 }
 
 function initiaize() {
-    paintState.updateBouncingRect();
-
     position.resizeScreen();
 
     setKey();

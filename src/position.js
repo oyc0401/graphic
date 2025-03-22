@@ -14,29 +14,29 @@ export let position = {
   scale: 1,
   resizeScreen() {
     paintState.updateBouncingRect();
-    // 스크롤 범위 제한!
-    let maxW =
-      (paintState.bouncingRect.width / this.scale + this.width) / 2 - 2;
-    let clampPositionX = Math.min(maxW, Math.max(-maxW, this.x));
-    let maxH =
-      (paintState.bouncingRect.height / this.scale + this.height) / 2 - 2;
-    let clampPositionY = Math.min(maxH, Math.max(-maxH, this.y));
+    // // 스크롤 범위 제한!
+    // let maxW =
+    //   (paintState.bouncingRect.width / this.scale + this.width) / 2 - 2;
+    // let clampPositionX = Math.min(maxW, Math.max(-maxW, this.x));
+    // let maxH =
+    //   (paintState.bouncingRect.height / this.scale + this.height) / 2 - 2;
+    // let clampPositionY = Math.min(maxH, Math.max(-maxH, this.y));
 
-    this.x = clampPositionX;
-    this.y = clampPositionY;
+    // this.x = clampPositionX;
+    // this.y = clampPositionY;
 
-    //console.log("pos:", positionState.x, positionState.y);
-    let canvas_css_w = this.width * this.scale;
-    let canvas_css_h = this.height * this.scale;
-    let cal_posX = this.x * this.scale;
-    let cal_posY = this.y * this.scale;
-    let css_left = (paintState.bouncingRect.width - canvas_css_w) / 2;
-    let css_top = (paintState.bouncingRect.height - canvas_css_h) / 2;
+    // //console.log("pos:", positionState.x, positionState.y);
+    // let canvas_css_w = this.width * this.scale;
+    // let canvas_css_h = this.height * this.scale;
+    // let cal_posX = this.x * this.scale;
+    // let cal_posY = this.y * this.scale;
+    // let css_left = (paintState.bouncingRect.width - canvas_css_w) / 2;
+    // let css_top = (paintState.bouncingRect.height - canvas_css_h) / 2;
 
-    paintState.layer_area.style.left = css_left - cal_posX + "px";
-    paintState.layer_area.style.top = css_top - cal_posY + "px";
-    paintState.layer_area.style.width = canvas_css_w + "px";
-    paintState.layer_area.style.height = canvas_css_h + "px";
+    // paintState.layer_area.style.left = css_left - cal_posX + "px";
+    // paintState.layer_area.style.top = css_top - cal_posY + "px";
+    // paintState.layer_area.style.width = canvas_css_w + "px";
+    // paintState.layer_area.style.height = canvas_css_h + "px";
   },
 };
 

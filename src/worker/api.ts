@@ -37,7 +37,8 @@ export const workerApi = {
     width: number,
     height: number,
     priority: number,
-    dataBlob?: Blob,
+    screenWidth,
+    screenHeight,
   ) {
     const layer = new PaintLayer(
       layerId,
@@ -46,7 +47,8 @@ export const workerApi = {
       width,
       height,
       priority,
-      dataBlob,
+      screenWidth,
+      screenHeight,
     );
 
     saveLayer(layerId, layer);
@@ -144,7 +146,7 @@ export const workerApi = {
       layer.setSize(width, height);
     }
 
-   console.log('webgl 이후여야함!')
+    console.log("webgl 이후여야함!");
   },
 
   makeSelection(layerId, canvas, width, height, imageData) {
