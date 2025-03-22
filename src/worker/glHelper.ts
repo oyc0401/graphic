@@ -113,7 +113,6 @@ function createClearTextureFunc(gl) {
     const clearTexture = (texture, width, height, clearValue = 0.0) => {
         gl.useProgram(program);
         gl.viewport(0, 0, width, height);
-        console.log('뷰포트2')
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
@@ -184,7 +183,6 @@ function createClearTextureFuncvec2(gl) {
     const clearTexture = (texture, width, height, clearValue = [0.0, 0.0]) => {
         gl.useProgram(program);
         gl.viewport(0, 0, width, height);
-         console.log('뷰포트3')
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER,

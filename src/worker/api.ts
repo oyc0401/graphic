@@ -1,69 +1,66 @@
-import { makePaintManager, paintOptions } from "./tool";
+import { PaintLayer } from "./paintLayer";
+import { cut_out_background } from "./imageHelper";
 
-let layerData;
+// DB
+let layers: { [key: string]: PaintLayer } = {};
 
 function saveLayer(layerId, layer) {
-  layerData = layer;
+  layers[layerId] = layer;
 }
 function getLayer(layerId) {
-  return layerData;
+  return layers[layerId];
 }
+
+let mainThreadApi;
+
+let selection: {
+  layerId: string;
+  canvas: OffscreenCanvas;
+  ctx: OffscreenCanvasRenderingContext2D;
+  // source: OffscreenCanvas;
+  // source_ctx: OffscreenCanvasRenderingContext2D;
+} = null;
 
 interface Pointer {
   x: number;
   y: number;
 }
 
-let paintManager;
-
 export const workerApi = {
   /**
    * 새로운 레이어를 만듭니다.
    */
-  async initState(
-    canvas: OffscreenCanvas,
+  async makeLayer(
+    layerId: string,
+    name: string,
+    main_canvas: OffscreenCanvas,
     width: number,
     height: number,
-    screenWidth: number,
-    screenHeight: number,
+    priority: number,
+    dataBlob?: Blob,
   ) {
-    console.log("새로운 시작!");
+    const layer = new PaintLayer(
+      layerId,
+      name,
+      main_canvas,
+      width,
+      height,
+      priority,
+      dataBlob,
+    );
 
-    let gl = canvas.getContext("webgl2", {
-      depth: false,
-      stencil: false,
-      antialias: false,
-      preserveDrawingBuffer: false,
-      //premultipliedAlpha: true,
-    });
-    if (!gl) {
-      throw Error("Can't make webgl2 context");
-    }
+    saveLayer(layerId, layer);
 
-    canvas.width = screenWidth;
-    canvas.height = screenHeight;
-    console.log(screenWidth, screenHeight);
-    paintOptions.width = width;
-    paintOptions.height = height;
-    paintOptions.screenWidth = screenWidth;
-    paintOptions.screenHeight = screenHeight;
-
-    paintManager = makePaintManager(canvas, gl);
-    //paintManager.reset();
-    paintManager.stroke({ x: 30, y: 30 }, { x: 470, y: 470 });
-    // gl.viewport(200, 200, 600, 600);
-    paintManager.brush();
-
-    //gl.viewport(0, 0, 800, 400);
-    paintManager.brush();
+    console.log("layers:", layers, width, height);
   },
 
-  drawStart(pointer: Pointer) {
-    console.log("drawStart:", pointer);
+  initCallback(cb) {
+    mainThreadApi = cb; // 메인에서 받은 객체 저장
   },
 
-  drawTo(pointer: Pointer) {
-    console.log("drawTo:", pointer);
+  resetLayer() {
+    selection = null;
+    layers = {};
   },
 
   setStrokeColor(layerId, r, g, b) {
@@ -81,16 +78,15 @@ export const workerApi = {
     layer.setAlpha(alpha);
   },
 
-  // drawStart(layerId: string, pointer: Pointer) {
-  //   //console.log(pointer)
-  //   const layer = getLayer(layerId);
-  //   layer.drawStart(pointer);
-  // },
+  drawStart(layerId: string, pointer: Pointer) {
+    const layer = getLayer(layerId);
+    layer.drawStart(pointer);
+  },
 
-  // drawTo(layerId: string, pointer: Pointer) {
-  //   const layer = getLayer(layerId);
-  //   layer.drawTo(pointer);
-  // },
+  drawTo(layerId: string, pointer: Pointer) {
+    const layer = getLayer(layerId);
+    layer.drawTo(pointer);
+  },
   drawEnd(layerId: string) {
     const layer = getLayer(layerId);
     layer.drawEnd();
@@ -139,5 +135,67 @@ export const workerApi = {
     // 그리기 전 (현재) 히스토리로 돌아간다.
     const layer = getLayer(layerId);
     layer.cancel();
+  },
+
+  updateSize(width, height) {
+    console.log("[worker] size:", width, height);
+
+    for (const layer of Object.values(layers)) {
+      layer.setSize(width, height);
+    }
+
+   console.log('webgl 이후여야함!')
+  },
+
+  makeSelection(layerId, canvas, width, height, imageData) {
+    selection = {
+      layerId,
+      canvas,
+      ctx: canvas.getContext("2d"),
+    };
+
+    //let source = new OffscreenCanvas(width, height);
+    // let source_ctx = source.getContext("2d");
+    //selection.source = source;
+    //selection.source_ctx = source_ctx;
+
+    if (imageData) {
+      console.log(imageData);
+      selection.ctx.putImageData(imageData, 0, 0);
+      //source_ctx.putImageData(imageData, 0, 0);
+    } else {
+      selection.ctx.fillStyle = "blue";
+      selection.ctx.fillRect(0, 0, width, height);
+      //source_ctx.drawImage(layer.main_canvas, 0, 0);
+    }
+  },
+  cut_out_background(layerId, x, y, width, height) {
+    let view_canvas = selection.canvas;
+    let view_ctx = selection.ctx;
+    const layer = getLayer(layerId);
+
+    cut_out_background(
+      view_canvas,
+      view_ctx,
+      layer.main_canvas,
+      layer.main_gl,
+      x,
+      y,
+      width,
+      height,
+    );
+  },
+  unselect(layerId, x, y, width, height) {
+    const layer = getLayer(layerId);
+    layer.main_gl.drawImage(selection.canvas, x, y, width, height);
+    selection = null;
+  },
+
+  updateSelectionInfo(layerId, x, y) {
+    //selection.x = x;
+  },
+
+  saveFile(paintId: string) {
+    //saveFileImmediately(paintId);
   },
 };

@@ -1,179 +1,173 @@
-import * as Comlink from "comlink";
-import { getLayerWorker } from "./worker/workerPool";
+import { initDraw, initUI, cancel, endDrawing } from "./draw";
+import { initPosition, position } from "./position";
+window.onload = main;
 
-if (window) {
-  window.onload = main;
-}
-let paintState = {
-  action: "BRUSH",
-  brushSize: 5,
-  brushAlpha: 0.3,
-  container: null,
-  bouncingRect: null,
-  updateBouncingRect() {
-    this.bouncingRect = this.container.getBoundingClientRect();
-  },
-  pointerdown: false,
-  pointerX: 0,
-  pointerY: 0,
-  initiaize() {
-    paintState.container = document.querySelector("#container");
-  },
+//////////////////////////
+export let paintState = {
+    action: "BRUSH",
+    brushSize: 5,
+    brushAlpha: 0.3,
+    container: document.querySelector("#container"),
+    layer_area: document.querySelector("#layer-area"),
+    bouncingRect: null,
+    updateBouncingRect() {
+        this.bouncingRect = this.container.getBoundingClientRect();
+    },
+    pointerdown: false,
+    pointerX: 0,
+    pointerY: 0,
 };
-let position = {
-  x: 0,
-  y: 0,
-  width: 500,
-  height: 500,
-  scale: 1,
-  resizeScreen() {},
-  initiaize() {
-    paintState.updateBouncingRect();
-  },
-};
-
-// 캔버스 상의 좌표로 변환.
-export function to_canvas_coord(x, y) {
-  //let p = to_screen_coord(x, y);
-  console.log(x, y);
-  // let px = p.x + position.width / 2;
-  //let py = p.y + position.height / 2;
-  // let px = p.x + position.width;
-  // let py = p.y + position.height;
-  return { x, y: y - 133 };
-}
-
-// 스크롤시의 좌표로 변환.
-export function to_screen_coord(x, y) {
-  let px =
-    (x - paintState.bouncingRect.width / 2 - paintState.bouncingRect.x) /
-      position.scale +
-    position.x;
-  let py =
-    (y - paintState.bouncingRect.height / 2 - paintState.bouncingRect.y) /
-      position.scale +
-    position.y;
-  return { x: px, y: py };
-}
-
 async function main() {
-  paintState.initiaize();
-  position.initiaize();
+    initUI();
 
-  position.width = 500;
-  position.height = 500;
+    initPosition();
 
-  await initiaize();
+    await initDraw();
 
-  positionInit();
+    initiaize();
 }
 
-async function initiaize() {
-  let canvas = document.querySelector("#canvas");
+function initiaize() {
+    paintState.updateBouncingRect();
 
-  const offscreen = canvas.transferControlToOffscreen();
+    position.resizeScreen();
 
-  let screenWidth = paintState.bouncingRect.width;
-  let screenHeight = paintState.bouncingRect.height;
+    setKey();
 
-  const worker = getLayerWorker();
+    setCursor();
 
-  await worker.initState(
-    Comlink.transfer(offscreen, [offscreen]),
-    position.width,
-    position.height,
-    screenWidth,
-    screenHeight,
-  );
+    document.querySelector("#container").addEventListener(
+        "pointerdown",
+        (_) => {
+            paintState.pointerdown = true;
+            setCursor();
+            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
+        },
+        true,
+    );
 
-  let toolId = "brush";
+    window.addEventListener(
+        "pointerup",
+        (_) => {
+            paintState.pointerdown = false;
+            setCursor();
+            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
+        },
+        true,
+    );
 
-  let pointerActive = false;
+    window.addEventListener(
+        "pointermove",
+        (event) => {
+            if (event.pointerType == "mouse") {
+                // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
+                paintState.pointerX = event.clientX;
+                paintState.pointerY = event.clientY;
+                setCursor();
+            }
+        },
+        true,
+    );
 
-  document.querySelector("#container").addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    if (paintState.action != "BRUSH") return;
-    //to_screen_coord(e.clientX, e.clientY);
-    console.log("brushStart!");
-
-    pointerActive = true;
-    let point = to_canvas_coord(e.clientX, e.clientY);
-    const worker = getLayerWorker();
-
-    // worker.setStrokeColor( 10, 10, 0);
-    // worker.setStrokeSize( paintState.brushSize);
-    // worker.setAlpha( paintState.brushAlpha);
-
-    worker.drawStart(point);
-    worker.drawTo(point);
-  });
-
-  window.addEventListener("pointermove", (e) => {
-    e.preventDefault();
-    if (!paintState.pointerdown) return;
-    if (paintState.action != "BRUSH") return;
-    if (!pointerActive) return;
-
-    let point = to_canvas_coord(e.clientX, e.clientY);
-
-    const worker = getLayerWorker();
-
-    worker.drawTo( point);
-  });
-
-  window.addEventListener("pointerup", (e) => {
-    e.preventDefault();
-    if (paintState.action != "BRUSH") return;
-    if (!pointerActive) return;
-
-    let point = to_canvas_coord(e.clientX, e.clientY);
-    const worker = getLayerWorker();
-
-    worker.drawTo(point);
-
-    pointerActive = false;
-    // endDrawing();
-
-    // applyKeyAction();
-    // setCursor();
-  });
+    window.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
-function positionInit() {
-  document.querySelector("#container").addEventListener(
-    "pointerdown",
-    (_) => {
-      paintState.pointerdown = true;
-      setCursor();
-      // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
-    },
-    true,
-  );
+/**
+ * 단축키
+ */
+export let pressedKeys = {
+    Space: false,
+    KeyZ: false,
+};
 
-  window.addEventListener(
-    "pointerup",
-    (_) => {
-      paintState.pointerdown = false;
-      setCursor();
-      // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
-    },
-    true,
-  );
+export function setCursor() {
+    const container = document.querySelector("#container");
+    if (!container) return;
+    let brushCursor = document.querySelector("#brush-cursor");
 
-  window.addEventListener(
-    "pointermove",
-    (event) => {
-      if (event.pointerType == "mouse") {
-        // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
-        paintState.pointerX = event.clientX;
-        paintState.pointerY = event.clientY;
-        setCursor();
-      }
-    },
-    true,
-  );
-
-  window.addEventListener("contextmenu", (event) => event.preventDefault());
+    // 모든 상태 초기화
+    container.classList.remove("grab", "grabbing", "brush", "zoom");
+    brushCursor.style.visibility = "hidden";
+    if (paintState.action === "PAN") {
+        if (paintState.pointerdown) {
+            container.classList.add("grabbing");
+        } else {
+            container.classList.add("grab");
+        }
+    } else if (paintState.action === "BRUSH") {
+        let scaledBrushSize = paintState.brushSize * position.scale;
+        container.classList.add("brush");
+        if (!("ontouchstart" in window)) {
+            brushCursor.style.visibility = "visible";
+        }
+        brushCursor.style.left = `${paintState.pointerX - scaledBrushSize / 2}px`;
+        brushCursor.style.top = `${paintState.pointerY - scaledBrushSize / 2}px`;
+        brushCursor.style.width = `${scaledBrushSize}px`;
+        brushCursor.style.height = `${scaledBrushSize}px`;
+    } else if (paintState.action === "ZOOM") {
+        container.classList.add("zoom");
+    }
 }
 
-function setCursor() {}
+// 누르고 있는 키에 따라서 도구를 바꿈
+export function applyKeyAction() {
+    if (paintState.pointerdown) {
+        return;
+    }
+    paintState.action = "BRUSH";
+    // 이전에 뭔가 작동중이면 안바꿈
+    if (pressedKeys.Space) {
+        paintState.action = "PAN";
+    }
+    if (pressedKeys.KeyZ) {
+        console.log("zoom 누르는중");
+        paintState.action = "ZOOM";
+    }
+}
+
+function setKey() {
+    (function () {
+        document.addEventListener("keydown", (event) => {
+            if (event.repeat) return; // OS 기본 딜레이 방지
+
+            if (event.code == "KeyZ") {
+                event.preventDefault();
+                pressedKeys["KeyZ"] = true;
+                // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
+
+                applyKeyAction();
+                setCursor();
+            }
+            if (event.code === "Space") {
+                event.preventDefault();
+                pressedKeys["Space"] = true;
+
+                applyKeyAction();
+                setCursor();
+            }
+
+            if (event.code === "Escape") {
+                console.log("취소!");
+                cancel();
+                endDrawing();
+            }
+        });
+
+        document.addEventListener("keyup", (event) => {
+            if (event.code == "KeyZ") {
+                event.preventDefault();
+                pressedKeys["KeyZ"] = false;
+
+                applyKeyAction();
+                setCursor();
+            }
+            if (event.code === "Space") {
+                event.preventDefault();
+                pressedKeys["Space"] = false;
+
+                applyKeyAction();
+                setCursor();
+            }
+        });
+    })();
+}

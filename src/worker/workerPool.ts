@@ -1,5 +1,5 @@
 import * as Comlink from "comlink";
-import { workerApi } from "./api";
+import { workerApi } from "../worker/api";
 
 type WorkerApi = typeof workerApi;
 
@@ -26,3 +26,4 @@ function getWorkerObject() {
 export function getLayerWorker() {
   return getWorkerObject().workerApi;
 }
+
