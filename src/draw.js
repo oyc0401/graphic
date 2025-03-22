@@ -162,7 +162,7 @@ export async function initDraw() {
 
         let point = to_canvas_coord(e.clientX, e.clientY);
 
-        console.log("current point", point);
+       // console.log("current point", point);
         const worker = getLayerWorker();
 
         if (toolId == "brush") {
