@@ -1,3 +1,5 @@
+import { makePaintManager, paintOptions } from "./tool";
+
 let layerData;
 
 function saveLayer(layerId, layer) {
@@ -12,6 +14,8 @@ interface Pointer {
   y: number;
 }
 
+let paintManager;
+
 export const workerApi = {
   /**
    * 새로운 레이어를 만듭니다.
@@ -23,12 +27,43 @@ export const workerApi = {
     screenWidth: number,
     screenHeight: number,
   ) {
-    console.log('새로운 시작!')
+    console.log("새로운 시작!");
+
+    let gl = canvas.getContext("webgl2", {
+      depth: false,
+      stencil: false,
+      antialias: false,
+      preserveDrawingBuffer: false,
+      //premultipliedAlpha: true,
+    });
+    if (!gl) {
+      throw Error("Can't make webgl2 context");
+    }
+
+    canvas.width = screenWidth;
+    canvas.height = screenHeight;
+    console.log(screenWidth, screenHeight);
+    paintOptions.width = width;
+    paintOptions.height = height;
+    paintOptions.screenWidth = screenWidth;
+    paintOptions.screenHeight = screenHeight;
+
+    paintManager = makePaintManager(canvas, gl);
+    //paintManager.reset();
+    paintManager.stroke({ x: 30, y: 30 }, { x: 470, y: 470 });
+    // gl.viewport(200, 200, 600, 600);
+    paintManager.brush();
+
+    //gl.viewport(0, 0, 800, 400);
+    paintManager.brush();
   },
 
-  resetLayer() {
-    selection = null;
-    layers = {};
+  drawStart(pointer: Pointer) {
+    console.log("drawStart:", pointer);
+  },
+
+  drawTo(pointer: Pointer) {
+    console.log("drawTo:", pointer);
   },
 
   setStrokeColor(layerId, r, g, b) {
@@ -46,16 +81,16 @@ export const workerApi = {
     layer.setAlpha(alpha);
   },
 
-  drawStart(layerId: string, pointer: Pointer) {
-    //console.log(pointer)
-    const layer = getLayer(layerId);
-    layer.drawStart(pointer);
-  },
+  // drawStart(layerId: string, pointer: Pointer) {
+  //   //console.log(pointer)
+  //   const layer = getLayer(layerId);
+  //   layer.drawStart(pointer);
+  // },
 
-  drawTo(layerId: string, pointer: Pointer) {
-    const layer = getLayer(layerId);
-    layer.drawTo(pointer);
-  },
+  // drawTo(layerId: string, pointer: Pointer) {
+  //   const layer = getLayer(layerId);
+  //   layer.drawTo(pointer);
+  // },
   drawEnd(layerId: string) {
     const layer = getLayer(layerId);
     layer.drawEnd();
