@@ -54,6 +54,7 @@ export let position = {
     // paintState.layer_area.style.width = canvas_css_w + "px";
     // paintState.layer_area.style.height = canvas_css_h + "px";
   },
+  
 };
 
 window.onresize = position.resizeScreen
@@ -552,21 +553,6 @@ async function changeSize(number = 300) {
   let newWidth = number * 2;
   let newHeight = number;
 
-  const worker = getLayerWorker();
-
-  // 메인 스레드에서 제공할 콜백 함수
-  const callback = Comlink.proxy({
-    updateUI: () => {
-      console.log("워커가 메인에게 보냄:");
-      //document.body.style.backgroundColor = msg; // 예시: CSS 변경
-    },
-  });
-
-  // 콜백을 워커에 전달
-  await worker.initCallback(callback);
-
-  await worker.updateSize(newWidth, newHeight);
-
   let diffX = position.width - newWidth;
   let diffY = position.height - newHeight;
   position.x += diffX / 2;
@@ -577,7 +563,7 @@ async function changeSize(number = 300) {
 
   // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
   // 아예 캔버스를 ㅈㄴ 늘릴까..?
-  // position.resizeScreen();
+  position.resizeScreen();
   console.log("css 변경!");
 }
 
