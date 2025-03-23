@@ -26,13 +26,14 @@ interface Pointer {
   y: number;
 }
 
+let layerId = "SingleLayer";
+
 export const workerApi = {
   /**
    * 새로운 레이어를 만듭니다.
    */
   async makeLayer(
     layerId: string,
-    name: string,
     main_canvas: OffscreenCanvas,
     width: number,
     height: number,
@@ -42,7 +43,6 @@ export const workerApi = {
   ) {
     const layer = new PaintLayer(
       layerId,
-      name,
       main_canvas,
       width,
       height,
@@ -66,7 +66,6 @@ export const workerApi = {
   },
 
   render(
-    layerId,
     width,
     height,
     screenWidth,

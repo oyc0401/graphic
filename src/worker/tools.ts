@@ -730,7 +730,7 @@ export async function renderScreen(
 
     let sourceTextureManager = getSourceTextureManager(canvas, gl);
     sourceTextureManager.uploadCurrent();
-    
+
     let drawManager = getBrushManager(canvas, gl);
     drawManager.setSize();
     let liquifyManager = await getLiquifyManager(canvas, gl);
@@ -745,7 +745,6 @@ export async function renderScreen(
   paintOptions.y = y;
   paintOptions.magnification = magnification;
 
-  
   offScreenManager.renderOffscreenToCanvas();
 }
 
@@ -767,7 +766,7 @@ function makeOffscreenManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TARGET);
   gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
 
-  // 이걸 스케일 업해서 그리려면, 보간이 없어야함. 
+  // 이걸 스케일 업해서 그리려면, 보간이 없어야함.
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -815,9 +814,12 @@ function makeOffscreenManager(canvas, gl) {
         vec2 scaledScreenSize = u_screenSize / u_magnification;
         vec2 ratio =  u_resolution / scaledScreenSize;
 
-      
-        float left = ((scaledScreenSize.x - u_resolution.x) / 2.0 - u_pos.x) / scaledScreenSize.x;
-        float bottom = ((scaledScreenSize.y - u_resolution.y) / 2.0 + u_pos.y) / scaledScreenSize.y;
+        //float left = ((scaledScreenSize.x - u_resolution.x) / 2.0 - u_pos.x) / scaledScreenSize.x;
+        //float bottom = ((scaledScreenSize.y - u_resolution.y) / 2.0 + u_pos.y) / scaledScreenSize.y;
+        float left = u_pos.x / scaledScreenSize.x;
+        float top = u_pos.y / scaledScreenSize.y;
+        float bottom = (scaledScreenSize.y - u_resolution.y) / scaledScreenSize.y  - top;
+        
         if( left < v_texCoord.x && v_texCoord.x < left + ratio.x
           && bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y){
           
@@ -883,6 +885,7 @@ function makeOffscreenManager(canvas, gl) {
 }
 
 function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
+  console.log("changeTex");
   const newTexture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE17);
   gl.bindTexture(gl.TEXTURE_2D, newTexture);
@@ -960,4 +963,6 @@ function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
     newWidth,
     newHeight, // 복사할 크기
   );
+
+  gl.deleteTexture(newTexture);
 }

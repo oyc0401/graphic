@@ -11,7 +11,6 @@ let history = [];
 
 export class PaintLayer {
   id: string;
-  name: string;
   main_canvas: OffscreenCanvas;
   width: number;
   height: number;
@@ -28,7 +27,6 @@ export class PaintLayer {
 
   constructor(
     id: string,
-    name: string,
     main_canvas: OffscreenCanvas,
     width: number,
     height: number,
@@ -37,7 +35,6 @@ export class PaintLayer {
     screenHeight,
   ) {
     this.id = id;
-    this.name = name;
     this.main_canvas = main_canvas;
     let gl = main_canvas.getContext("webgl2", {
       depth: false,

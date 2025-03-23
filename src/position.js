@@ -1,11 +1,9 @@
 import { paintState, applyKeyAction, setCursor } from "./main";
-import { cancel, endDrawing, layer } from "./draw";
+import { cancel, endDrawing } from "./draw";
 import { getLayerWorker } from "./worker/workerPool";
-import * as Comlink from "comlink";
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
-const layerId = "SingleLayer";
 
 export let position = {
   x: 0,
@@ -13,17 +11,34 @@ export let position = {
   width: 500,
   height: 500,
   scale: 1,
+  bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
+  updateBouncingRect() {
+    const container = document.querySelector("#container");
+    this.bouncingRect = container.getBoundingClientRect();
+  },
   resizeScreen() {
-    paintState.updateBouncingRect();
-    const worker = getLayerWorker();
     console.log("resizeScreen");
+    position.updateBouncingRect();
+
+    // 스크롤 범위 제한!
+    let minW = -position.width;
+    let maxW = position.bouncingRect.width / this.scale;
+    let clampPositionX = Math.min(maxW, Math.max(minW, this.x));
+
+    let minH = -position.height;
+    let maxH = position.bouncingRect.height / this.scale;
+    let clampPositionY = Math.min(maxH, Math.max(minH, this.y));
+
+    this.x = clampPositionX;
+    this.y = clampPositionY;
+
+    const worker = getLayerWorker();
 
     worker.render(
-      layerId,
       position.width,
       position.height,
-      paintState.bouncingRect.width * getPixelRatio(),
-      paintState.bouncingRect.height * getPixelRatio(),
+      position.bouncingRect.width * getPixelRatio(),
+      position.bouncingRect.height * getPixelRatio(),
       position.x * getPixelRatio(),
       position.y * getPixelRatio(),
 
@@ -32,18 +47,22 @@ export let position = {
   },
 };
 
-window.onresize = position.resizeScreen;
-
 export function initPosition() {
+  position.updateBouncingRect();
+
+  // 초기 위치 설정
+  position.scale = 1;
+  position.width = 500;
+  position.height = 500;
+  position.x = (position.bouncingRect.width - position.width) / 2;
+  position.y = (position.bouncingRect.height - position.height) / 2;
+
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
 
   function setPinchEvent() {
     paintState.action = "PINCH";
-  }
-  function setPanEvent() {
-    paintState.action = "PAN";
   }
 
   function setLastTool() {
@@ -79,10 +98,10 @@ export function initPosition() {
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
-            position.x += delta / position.scale;
+            position.x -= delta / position.scale;
           } else {
             let delta = event.deltaY;
-            position.y += delta / position.scale;
+            position.y -= delta / position.scale;
           }
 
           //console.log(positionState.x, positionState.y);
@@ -196,8 +215,8 @@ export function initPosition() {
       const pinchCenterPos = averageTouches();
       const dx = lastPinchCenterPos.x - pinchCenterPos.x;
       const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-      position.x += dx / position.scale;
-      position.y += dy / position.scale;
+      position.x -= dx / position.scale;
+      position.y -= dy / position.scale;
       lastPinchCenterPos = pinchCenterPos;
 
       const points = Array.from(pointers.values());
@@ -247,101 +266,6 @@ export function initPosition() {
       },
       true,
     );
-
-    // document.querySelector("#container").addEventListener(
-    //   "pointerdown",
-    //   (event) => {
-    //     event.preventDefault();
-    //     console.log(event);
-    //     console.log("pointerdown - captured");
-    //     // 이때 0-> 2, 1->3 이렇게 1프레임 안에 두개의 손가락 터치 되는거 예외처리 해야함.
-
-    //     if (pointers.length < 2) {
-    //       pointers.push({
-    //         pointerId: event.pointerId,
-    //         pointerType: event.pointerType,
-    //         clientX: event.clientX,
-    //         clientY: event.clientY,
-    //       });
-    //     } else {
-    //       return;
-    //     }
-
-    //     if (pointers.length === 1) {
-    //       first_pointer_time = performance.now();
-    //     }
-
-    //     if (pointers.length === 2) {
-    //       const elapsed = performance.now() - first_pointer_time;
-
-    //       // 일정시간 이내에 그리면 지우기
-    //       if (elapsed <= discard_quick_undo_period) {
-    //         cancel();
-    //       }
-
-    //       resetImageTexture();
-
-    //       console.log("두손가락이면 핀치줌 시작");
-    //       setPinchEvent();
-
-    //       lastPinchCenterPos = average_touches(event.touches);
-
-    //       lastPinchDistance = Math.hypot(
-    //         event.touches[0].clientX - event.touches[1].clientX,
-    //         event.touches[0].clientY - event.touches[1].clientY,
-    //       );
-    //     }
-    //   },
-    //   true, // 캡쳐링 단계에서 실행
-    // );
-
-    // window.addEventListener("pointermove", (event) => {
-    //   if (paintState.action != "PINCH") return;
-
-    //   // 핀치 팬
-    //   const pinchCenterPos = average_touches(event.touches);
-    //   const dx = lastPinchCenterPos.x - pinchCenterPos.x;
-    //   const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-    //   position.x += dx / position.scale; // 이게 new_scale이여야하는지 아징 못정함.
-    //   position.y += dy / position.scale;
-
-    //   lastPinchCenterPos = pinchCenterPos;
-
-    //   // 핀지줌
-    //   const distance = Math.hypot(
-    //     event.touches[0].clientX - event.touches[1].clientX,
-    //     event.touches[0].clientY - event.touches[1].clientY,
-    //   );
-
-    //   const scaleFactor = distance / lastPinchDistance;
-    //   let new_scale = position.scale * scaleFactor;
-
-    //   const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_scale));
-
-    //   setMagification(
-    //     clamped_scale,
-    //     to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
-    //   );
-
-    //   lastPinchDistance = distance;
-
-    //   // 렌더링
-    //   position.resizeScreen();
-    // });
-
-    // window.addEventListener("pointerup", (event) => {
-    //   if (paintState.action != "PINCH") return;
-    //   if (event.touches.length >= 2) return; // 세번째 손가락 뗀거임.
-    //   // 손 뗐는데, 배열에 있는 녀석이면 배열에서 제거하기.
-    //   if (arr.some((obj) => obj.pointerId === event.pointerId)) {
-    //     arr = arr.filter((e) => e.pointerId !== event.pointerId);
-    //   }
-
-    //   // 핀치줌을 하다가 떼면 핀치줌 꺼지게 하기
-    //   if (event.touches === undefined || event.touches.length < 2) {
-    //     setLastTool();
-    //   }
-    // });
   })();
 
   /**
@@ -368,8 +292,8 @@ export function initPosition() {
 
       let dx = lastClientX - e.clientX;
       let dy = lastClientY - e.clientY;
-      position.x += dx / position.scale;
-      position.y += dy / position.scale;
+      position.x -= dx / position.scale;
+      position.y -= dy / position.scale;
 
       lastClientX = e.clientX;
       lastClientY = e.clientY;
@@ -450,18 +374,18 @@ export function initPosition() {
         setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
         setCursor();
       } else {
-        let px = paintState.bouncingRect.width / zoomW;
-        let py = paintState.bouncingRect.height / zoomH;
+        let px = position.bouncingRect.width / zoomW;
+        let py = position.bouncingRect.height / zoomH;
         let minScale = px < py ? px : py;
 
-        let topMargin = 80;
-        let centerX = paintState.bouncingRect.width / 2;
-        let centerY = paintState.bouncingRect.height / 2;
+        let topMargin = position.bouncingRect.y;
+        let centerX = position.bouncingRect.width / 2;
+        let centerY = position.bouncingRect.height / 2;
 
         let dx = cx - centerX;
         let dy = cy - centerY - topMargin / minScale;
-        position.x += dx / position.scale;
-        position.y += dy / position.scale;
+        position.x -= dx / position.scale;
+        position.y -= dy / position.scale;
 
         let new_mag = position.scale * minScale;
 
@@ -487,48 +411,44 @@ export function initPosition() {
   })();
 }
 
-let dpr;
-function getPixelRatio() {
-  if (!dpr) {
-    dpr = window.devicePixelRatio;
-  }
-  return dpr;
-}
-// 이게...
-// 캔버스 밖을 움직이면 pan이 되게 해야하는데, 이 로직들도 진짜 세세하게 다이어그램 그려야겠다.
-// 처음 드로잉 중일 때 메뉴에서 시작했다가 끌고 내려오는 포인터.
-
 function setMagification(new_scale, anchor_point) {
-  let factor = 1 - position.scale / new_scale;
+  // 확대 전 값을 따로 보관
+  const old_scale = position.scale;
+  const old_x = position.x;
+  const old_y = position.y;
 
-  let diff_x = anchor_point.x / getPixelRatio() - position.x;
-  let diff_y = anchor_point.y / getPixelRatio() - position.y;
-  position.x += diff_x * factor;
-  position.y += diff_y * factor;
-
-  console.log("배율:", new_scale);
+  // 배율만 미리 바꿔놓든, 나중에 바꾸든 상관없지만
+  // old_scale를 반드시 먼저 따로 보관하고 써야 함
   position.scale = new_scale;
+
+  // 화면에서 anchor_point가 고정되려면,
+  // (anchor + position)의 스크린 좌표가
+  // old_scale 시절과 new_scale 시절이 같아야 함
+  //
+  // 즉,
+  //   (anchor + oldPos) * old_scale  ==  (anchor + newPos) * new_scale
+  //
+  // 풀어서 새 newPos를 구하면 아래와 같은 공식이 됩니다.
+  position.x =
+    ((anchor_point.x + old_x) * old_scale) / new_scale - anchor_point.x;
+  position.y =
+    ((anchor_point.y + old_y) * old_scale) / new_scale - anchor_point.y;
 }
 
 // 캔버스 상의 좌표로 변환.
 export function to_canvas_coord(x, y) {
   let p = to_screen_coord(x, y);
-  let px = p.x + position.width / 2;
-  let py = p.y + position.height / 2;
+  let px = p.x * getPixelRatio();
+  let py = p.y * getPixelRatio();
+
   return { x: px, y: py };
 }
 
 // 스크롤시의 좌표로 변환.
 export function to_screen_coord(x, y) {
-  let px =
-    (x - paintState.bouncingRect.width / 2 - paintState.bouncingRect.x) /
-      position.scale +
-    position.x;
-  let py =
-    (y - paintState.bouncingRect.height / 2 - paintState.bouncingRect.y) /
-      position.scale +
-    position.y;
-  return { x: px * getPixelRatio(), y: py * getPixelRatio() };
+  let px = (x - position.bouncingRect.x) / position.scale - position.x;
+  let py = (y - position.bouncingRect.y) / position.scale - position.y;
+  return { x: px, y: py };
 }
 
 async function changeSize(number = 300) {
@@ -543,10 +463,15 @@ async function changeSize(number = 300) {
   position.width = newWidth;
   position.height = newHeight;
 
-  // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
-  // 아예 캔버스를 ㅈㄴ 늘릴까..?
   position.resizeScreen();
-  console.log("css 변경!");
 }
 
 window.changeSize = changeSize;
+
+let dpr;
+function getPixelRatio() {
+  if (!dpr) {
+    dpr = window.devicePixelRatio;
+  }
+  return dpr;
+}

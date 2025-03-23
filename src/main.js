@@ -9,11 +9,7 @@ export let paintState = {
     brushAlpha: 0.3,
     container: document.querySelector("#container"),
     layer_area: document.querySelector("#layer-area"),
-    bouncingRect: null,
-    updateBouncingRect() {
-        this.bouncingRect = this.container.getBoundingClientRect();
-    },
-    pointerdown: false,
+    bouncingRectpointerdown: false,
     pointerX: 0,
     pointerY: 0,
 };
@@ -21,9 +17,7 @@ async function main() {
     initUI();
 
     initPosition();
-
-  paintState.updateBouncingRect();
-  
+    
     await initDraw();
 
     initiaize();

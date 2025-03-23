@@ -13,7 +13,7 @@ const workerPool: WorkerPool = {};
 
 function getWorkerObject() {
   if (!workerPool["layer"]) {
-    const worker = new Worker("/src/worker/worker.js", {
+    const worker = new Worker(new URL("./worker.js", import.meta.url), {
       type: "module",
     });
     const api = Comlink.wrap<WorkerApi>(worker);
@@ -26,4 +26,3 @@ function getWorkerObject() {
 export function getLayerWorker() {
   return getWorkerObject().workerApi;
 }
-
