@@ -65,6 +65,28 @@ export const workerApi = {
     layers = {};
   },
 
+  render(
+    layerId,
+    width,
+    height,
+    screenWidth,
+    screenHeight,
+    x,
+    y,
+    magnification,
+  ) {
+    const layer = getLayer(layerId);
+
+    layer.render(
+      width,
+      height,
+      screenWidth,
+      screenHeight,
+      x,
+      y,
+      magnification,
+    );
+  },
   setStrokeColor(layerId, r, g, b) {
     const layer = getLayer(layerId);
     layer.setStrokeColor(r, g, b);

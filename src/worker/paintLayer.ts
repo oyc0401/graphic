@@ -1,6 +1,6 @@
 import { getGlHelper } from "./glHelper";
 import { getLiquifyManager } from "./liquify/liquify";
-import { getBrushManager, paintOptions, resizeScreen } from "./tools";
+import { getBrushManager, paintOptions, renderScreen } from "./tools";
 
 interface Pointer {
   x: number;
@@ -70,11 +70,22 @@ export class PaintLayer {
     glHelper.clearRect(0, 0, this.width, this.height);
   }
 
+  render(width, height, screenWidth, screenHeight, x, y, magnification) {
+    renderScreen(
+      this.main_canvas,
+      this.main_ctx,
+      width,
+      height,
+      screenWidth,
+      screenHeight,
+      x,
+      y,
+      magnification,
+    );
+  }
   setSize(width, height) {
     this.width = width;
     this.height = height;
-
-    //resizeScreen(this.main_canvas, this.main_ctx, width, height);
 
     this.drawManager.setSize();
     this.liquifyManager.setSize();

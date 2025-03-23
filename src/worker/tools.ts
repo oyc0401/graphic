@@ -17,6 +17,9 @@ export let paintOptions = {
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
+  x: 0,
+  y: 0,
+  magnification: 1,
 
   screenWidth: 800,
   screenHeight: 800,
@@ -441,6 +444,7 @@ function makeBrushManager(canvas, gl) {
     // SCISSOR TEST로 일부만 렌더링
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     //gl.finish();
@@ -488,47 +492,24 @@ function makeBrushManager(canvas, gl) {
     );
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.disable(gl.SCISSOR_TEST);
 
-    renderOffscreenToCanvas();
+    offScreenManager.renderOffscreenToCanvas();
   }
 
   function eraser() {
     gl.useProgram(eraserProgram);
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     gl.disable(gl.SCISSOR_TEST);
 
-    renderOffscreenToCanvas();
-  }
-
-  function renderOffscreenToCanvas() {
-    // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offScreenManager.offscreenFBO);
-
-    // 쓰기 버퍼: 기본 프레임버퍼 (화면)
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-
-    // blit 수행
-    let x = (paintOptions.screenWidth - paintOptions.width) / 2;
-    let y = (paintOptions.screenHeight - paintOptions.height) / 2;
-
-    gl.blitFramebuffer(
-      0,
-      0,
-      paintOptions.width,
-      paintOptions.height, // src 영역
-      x,
-      y,
-      x + paintOptions.width,
-      y + paintOptions.height, // dst 영역
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST, // 또는 gl.LINEAR
-    );
+    offScreenManager.renderOffscreenToCanvas();
   }
 
   function cancel() {
@@ -691,6 +672,7 @@ function makeSourceTextureManager(canvas, gl) {
     gl.useProgram(cancelProgram);
     // 쓰기 영역: 내 화면
     gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
@@ -703,93 +685,35 @@ function makeSourceTextureManager(canvas, gl) {
   return sourceTextureManager;
 }
 
-export function resizeScreen(canvas, gl, newWidth, newHeight) {
-  //  let offScreenManager = makeOffscreenManager(canvas,gl);
+export function renderScreen(
+  canvas,
+  gl,
+  width,
+  height,
+  screenWidth,
+  screenHeight,
+  x,
+  y,
+  magnification,
+) {
+  let offScreenManager = getOffscreenManager(canvas, gl);
+  console.log(width, height, screenWidth, screenHeight, x, y, magnification);
+  if (
+    paintOptions.screenWidth != screenWidth ||
+    paintOptions.screenHeight != screenHeight
+  ) {
+    canvas.width = screenWidth;
+    canvas.height = screenHeight;
+  }
+  paintOptions.width = width;
+  paintOptions.height = height;
+  paintOptions.screenWidth = screenWidth;
+  paintOptions.screenHeight = screenHeight;
+  paintOptions.x = x;
+  paintOptions.y = y;
+  paintOptions.magnification = magnification;
 
-  // // 1) 기존 캔버스 크기 저장
-  // const oldWidth = paintOptions.width;
-  // const oldHeight = paintOptions.height;
-
-  // // 2) 기존 화면을 임시로 저장할 텍스처 생성
-  // const oldTexture = gl.createTexture();
-  // gl.activeTexture(gl.TEXTURE17);
-  // gl.bindTexture(gl.TEXTURE_2D, oldTexture);
-  // // WebGL2에서는 texImage2D로 먼저 공간(크기) 할당해주고, 이후 copyTexImage2D 사용
-  // gl.texImage2D(
-  //   gl.TEXTURE_2D,
-  //   0,
-  //   gl.RGBA,
-  //   oldWidth,
-  //   oldHeight,
-  //   0,
-  //   gl.RGBA,
-  //   gl.UNSIGNED_BYTE,
-  //   null,
-  // );
-
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  // gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
-
-  // gl.copyTexSubImage2D(
-  //   gl.TEXTURE_2D, // 타겟 텍스처
-  //   0, // 레벨
-  //   0,
-  //   0, // 텍스처 내에서 복사할 시작 좌표
-  //   0,
-  //   0, // 프레임버퍼에서 복사할 시작 좌표
-  //   oldWidth,
-  //   oldHeight, // 복사할 크기
-  // );
-
-  // // 4) 캔버스 리사이즈
-  // console.log("resizeScreen()");
-  // // canvas.width = paintOptions.screenWidth;
-  // //canvas.height = paintOptions.screenHeight;
-  // paintOptions.width = newWidth;
-  // paintOptions.height = newHeight;
-  // gl.viewport(0, 0, newWidth, newHeight);
-
-  // const framebuffer = gl.createFramebuffer();
-  // gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-
-  // // 텍스처를 프레임버퍼에 첨부
-  // gl.framebufferTexture2D(
-  //   gl.FRAMEBUFFER,
-  //   gl.COLOR_ATTACHMENT0,
-  //   gl.TEXTURE_2D,
-  //   oldTexture,
-  //   0,
-  // );
-
-  // // 이제 화면으로 blit (복사)하기 위해
-  // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
-  // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); // null은 기본 화면 프레임버퍼
-
-  // let diffHeight = newHeight - oldHeight;
-  // gl.blitFramebuffer(
-  //   0,
-  //   0,
-  //   oldWidth,
-  //   oldHeight,
-  //   0,
-  //   diffHeight,
-  //   oldWidth,
-  //   oldHeight + diffHeight,
-  //   gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-  //   gl.NEAREST,
-  // );
-
-  // const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  // sourceTextureManager.uploadCurrent();
-
-  // gl.finish();
-
-  // console.log("webgl 변경!");
-  console.error("이거 실행 ㄴㄴ 미구현임");
+  offScreenManager.renderOffscreenToCanvas();
 }
 
 const offscreenManagerStore = new Map();
@@ -811,8 +735,8 @@ function makeOffscreenManager(canvas, gl) {
   gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
 
   // 이걸 스케일 업해서 그리려면, 리니어 보간이 필요함.
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -838,29 +762,109 @@ function makeOffscreenManager(canvas, gl) {
     0,
   );
 
+  ///
+  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+
+  let renderShaderSource = `#version 300 es
+      precision highp float;
+
+      uniform sampler2D u_sourse;  // 원본 텍스처
+
+      in vec2 v_texCoord;
+      out vec4 outColor;
+      uniform vec2 u_resolution;
+      uniform vec2 u_pos;
+      uniform vec2 u_screenSize;
+      uniform float u_magnification;
+
+      void main() {
+      
+        vec2 scaledScreenSize = u_screenSize / u_magnification;
+        vec2 ratio =  u_resolution / scaledScreenSize;
+
+      
+        float left = ((scaledScreenSize.x - u_resolution.x) / 2.0 - u_pos.x) / scaledScreenSize.x;
+        float bottom = ((scaledScreenSize.y - u_resolution.y) / 2.0 + u_pos.y) / scaledScreenSize.y;
+        if( left < v_texCoord.x && v_texCoord.x < left + ratio.x
+          && bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y){
+          
+          vec2 target = (v_texCoord - vec2(left, bottom)) / ratio;
+          vec4 imageColor = texture(u_sourse, target); // 기존 이미지 색
+          outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+          
+          return;
+        }
+        outColor = vec4(0.8, 0.8, 0.8, 1.0);
+      }
+      `;
+
+  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
+  let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
+  gl.useProgram(renderProgram);
+
+  gl.uniform1i(
+    gl.getUniformLocation(renderProgram, "u_sourse"),
+    TEXTURE_UNIT.TARGET,
+  );
+
+  let posLoc = gl.getAttribLocation(renderProgram, "a_position");
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
   function renderOffscreenToCanvas() {
-    // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenFBO);
+    console.log("renderOffscreenToCanvas");
+    gl.disable(gl.SCISSOR_TEST);
+    gl.useProgram(renderProgram);
 
-    // 쓰기 버퍼: 기본 프레임버퍼 (화면)
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-
-    // blit 수행
-    let x = (paintOptions.screenWidth - paintOptions.width) / 2;
-    let y = (paintOptions.screenHeight - paintOptions.height) / 2;
-
-    gl.blitFramebuffer(
-      0,
-      0,
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height, // src 영역
-      x,
-      y,
-      x + paintOptions.width,
-      y + paintOptions.height, // dst 영역
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST, // 또는 gl.LINEAR
+      paintOptions.height,
     );
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_pos"),
+      paintOptions.x,
+      paintOptions.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_screenSize"),
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(renderProgram, "u_magnification"),
+      paintOptions.magnification,
+    );
+
+    // 쓰기 영역: 내 화면
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    // // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
+    // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenFBO);
+
+    // // 쓰기 버퍼: 기본 프레임버퍼 (화면)
+    // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    // let x = 0;
+    // let y = 0;
+    // // blit 수행
+    // let left = (paintOptions.screenWidth - paintOptions.width) / 2 - x;
+    // let bottom = (paintOptions.screenHeight - paintOptions.height) / 2 + y;
+
+    // gl.blitFramebuffer(
+    //   0,
+    //   0,
+    //   paintOptions.width,
+    //   paintOptions.height, // src 영역
+    //   left,
+    //   bottom,
+    //   left + paintOptions.width,
+    //   bottom + paintOptions.height, // dst 영역
+    //   gl.COLOR_BUFFER_BIT,
+    //   gl.NEAREST, // 또는 gl.LINEAR
+    // );
   }
 
   return {

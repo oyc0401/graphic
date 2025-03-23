@@ -5,6 +5,8 @@ import * as Comlink from "comlink";
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
+const layerId = "SingleLayer";
+
 
 export let position = {
   x: 0,
@@ -14,6 +16,20 @@ export let position = {
   scale: 1,
   resizeScreen() {
     paintState.updateBouncingRect();
+    const worker = getLayerWorker();
+    console.log("resizeScreen");
+
+    worker.render(
+      layerId,
+      position.width,
+      position.height,
+      paintState.bouncingRect.width,
+      paintState.bouncingRect.height,
+      position.x,
+      position.y,
+
+      position.scale,
+    );
     // // 스크롤 범위 제한!
     // let maxW =
     //   (paintState.bouncingRect.width / this.scale + this.width) / 2 - 2;
@@ -39,6 +55,8 @@ export let position = {
     // paintState.layer_area.style.height = canvas_css_h + "px";
   },
 };
+
+window.onresize = position.resizeScreen
 
 export function initPosition() {
   window.addEventListener("resize", function () {
@@ -559,7 +577,7 @@ async function changeSize(number = 300) {
 
   // 근데 이게 css가 더 먼저 변해버리면 곤란한데....
   // 아예 캔버스를 ㅈㄴ 늘릴까..?
- // position.resizeScreen();
+  // position.resizeScreen();
   console.log("css 변경!");
 }
 
