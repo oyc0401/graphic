@@ -1,5 +1,6 @@
-import { paintState, applyKeyAction, setCursor } from "./main";
+import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
+import { applyKeyAction, updateCursor } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 
 const MIN_SCALE = 0.1;
@@ -32,6 +33,7 @@ export let position = {
     this.x = clampPositionX;
     this.y = clampPositionY;
 
+    
     const worker = getLayerWorker();
 
     worker.render(
@@ -94,7 +96,7 @@ export function initPosition() {
             clamped_scale,
             to_screen_coord(event.clientX, event.clientY),
           );
-          setCursor();
+          updateCursor();
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
@@ -303,7 +305,7 @@ export function initPosition() {
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "PAN") return;
       applyKeyAction();
-      setCursor();
+      updateCursor();
     });
   })();
 
@@ -372,7 +374,7 @@ export function initPosition() {
         }
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
         setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
-        setCursor();
+        updateCursor();
       } else {
         let px = position.bouncingRect.width / zoomW;
         let py = position.bouncingRect.height / zoomH;
@@ -398,7 +400,7 @@ export function initPosition() {
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
 
         setMagification(clamped_scale, to_screen_coord(centerX, centerY));
-        setCursor();
+        updateCursor();
       }
 
       position.resizeScreen();
@@ -406,7 +408,7 @@ export function initPosition() {
       activeZoom = false;
 
       applyKeyAction();
-      setCursor();
+      updateCursor();
     });
   })();
 }

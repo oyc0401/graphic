@@ -1,8 +1,33 @@
-import { paintState, applyKeyAction, setCursor } from "./main";
+import { paintState } from "./main";
+import { applyKeyAction, updateCursor } from "./interface";
 import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
+
+export let toolManager = {
+    setBrushTool() {
+        if (paintState.toolId == "liquify") {
+            worker.liquifyReset(layerId);
+        }
+        paintState.toolId = "brush";
+        paintState.brushSize = 5;
+        paintState.brushAlpha = 0.3;
+    },
+    setEraserTool() {
+        if (paintState.toolId == "liquify") {
+            worker.liquifyReset(layerId);
+        }
+        paintState.toolId = "eraser";
+        paintState.brushSize = 10;
+        paintState.brushAlpha = 1;
+    },
+    setLiquifyTool() {
+        paintState.toolId = "liquify";
+        paintState.brushSize = 100;
+        paintState.brushAlpha = 1;
+    },
+};
 
 /**
  * 원본 텍스쳐로 돌려놓기
@@ -10,11 +35,11 @@ import * as Comlink from "comlink";
 export function cancel() {
     const worker = getLayerWorker();
 
-    if (toolId == "brush") {
+    if (paintState.toolId == "brush") {
         worker.cancel(layerId);
-    } else if (toolId == "eraser") {
+    } else if (paintState.toolId == "eraser") {
         worker.cancel(layerId);
-    } else if (toolId == "liquify") {
+    } else if (paintState.toolId == "liquify") {
         worker.liquifyCancel(layerId);
     }
 }
@@ -27,64 +52,16 @@ export function endDrawing() {
     pointerActive = false;
 
     const worker = getLayerWorker();
-    if (toolId == "brush") {
+    if (paintState.toolId == "brush") {
         worker.drawEnd(layerId);
-    } else if (toolId == "eraser") {
+    } else if (paintState.toolId == "eraser") {
         worker.eraserEnd(layerId);
-    } else if (toolId == "liquify") {
+    } else if (paintState.toolId == "liquify") {
         worker.liquifyEnd(layerId);
     }
 }
 
 const layerId = "SingleLayer";
-
-let toolId = "brush";
-
-function updateUI() {
-    document.querySelector("#select-brush").classList.remove("selected");
-    document.querySelector("#select-eraser").classList.remove("selected");
-
-    if (toolId == "brush") {
-        document.querySelector("#select-brush").classList.add("selected");
-    } else if (toolId == "eraser") {
-        document.querySelector("#select-eraser").classList.add("selected");
-    } else if (toolId == "liquify") {
-    }
-}
-
-export function initUI() {
-    updateUI();
-
-    const worker = getLayerWorker();
-
-    document.querySelector("#select-brush").addEventListener("click", () => {
-        if (toolId == "liquify") {
-            worker.liquifyReset(layerId);
-        }
-        toolId = "brush";
-        paintState.brushSize = 5;
-        paintState.brushAlpha = 0.3;
-
-        updateUI();
-    });
-
-    document.querySelector("#select-eraser").addEventListener("click", () => {
-        if (toolId == "liquify") {
-            worker.liquifyReset(layerId);
-        }
-        toolId = "eraser";
-        paintState.brushSize = 10;
-        paintState.brushAlpha = 1;
-        updateUI();
-    });
-
-    document.querySelector("#select-liquify").addEventListener("click", () => {
-        toolId = "liquify";
-        paintState.brushSize = 100;
-        paintState.brushAlpha = 1;
-        updateUI();
-    });
-}
 
 let pointerActive = false;
 
@@ -93,7 +70,7 @@ export async function initDraw() {
     let canvas = document.querySelector("#canvas");
     const offscreen = canvas.transferControlToOffscreen();
 
-     worker.makeLayer(
+    worker.makeLayer(
         layerId,
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
@@ -103,79 +80,80 @@ export async function initDraw() {
         position.bouncingRect.height,
     );
 
-    // 이거 안하면 드래그중에 브러시로 바뀌면 pointerdown을 스킵하고 move부터 시작하게 됌.
+ 
+    (function () {
+        document
+            .querySelector("#container")
+            .addEventListener("pointerdown", (e) => {
+                e.preventDefault();
+                if (paintState.action != "BRUSH") return;
+                to_screen_coord(e.clientX, e.clientY);
+                console.log("brushStart!");
 
-    document
-        .querySelector("#container")
-        .addEventListener("pointerdown", (e) => {
+                pointerActive = true;
+                let point = to_canvas_coord(e.clientX, e.clientY);
+                const worker = getLayerWorker();
+
+                if (paintState.toolId == "brush") {
+                    worker.setStrokeColor(layerId, 10, 10, 0);
+                    worker.setStrokeSize(layerId, paintState.brushSize);
+                    worker.setAlpha(layerId, paintState.brushAlpha);
+
+                    worker.drawStart(layerId, point);
+                    worker.drawTo(layerId, point);
+                } else if (paintState.toolId == "eraser") {
+                    worker.setStrokeSize(layerId, paintState.brushSize);
+                    worker.setAlpha(layerId, paintState.brushAlpha);
+
+                    worker.eraserStart(layerId, point);
+                    worker.eraserTo(layerId, point);
+                } else if (paintState.toolId == "liquify") {
+                    worker.setStrokeSize(layerId, paintState.brushSize);
+                    worker.setAlpha(layerId, paintState.brushAlpha);
+
+                    worker.liquifyStart(layerId, point);
+                }
+            });
+
+        window.addEventListener("pointermove", (e) => {
             e.preventDefault();
+            if (!paintState.pointerdown) return;
             if (paintState.action != "BRUSH") return;
-            to_screen_coord(e.clientX, e.clientY);
-            console.log("brushStart!");
+            if (!pointerActive) return;
 
-            pointerActive = true;
             let point = to_canvas_coord(e.clientX, e.clientY);
+
+            // console.log("current point", point);
             const worker = getLayerWorker();
 
-            if (toolId == "brush") {
-                worker.setStrokeColor(layerId, 10, 10, 0);
-                worker.setStrokeSize(layerId, paintState.brushSize);
-                worker.setAlpha(layerId, paintState.brushAlpha);
-
-                worker.drawStart(layerId, point);
+            if (paintState.toolId == "brush") {
                 worker.drawTo(layerId, point);
-            } else if (toolId == "eraser") {
-                worker.setStrokeSize(layerId, paintState.brushSize);
-                worker.setAlpha(layerId, paintState.brushAlpha);
-
-                worker.eraserStart(layerId, point);
+            } else if (paintState.toolId == "eraser") {
                 worker.eraserTo(layerId, point);
-            } else if (toolId == "liquify") {
-                worker.setStrokeSize(layerId, paintState.brushSize);
-                worker.setAlpha(layerId, paintState.brushAlpha);
-
-                worker.liquifyStart(layerId, point);
+            } else if (paintState.toolId == "liquify") {
+                worker.liquifyTo(layerId, point);
             }
         });
 
-    window.addEventListener("pointermove", (e) => {
-        e.preventDefault();
-        if (!paintState.pointerdown) return;
-        if (paintState.action != "BRUSH") return;
-        if (!pointerActive) return;
+        window.addEventListener("pointerup", (e) => {
+            e.preventDefault();
+            if (paintState.action != "BRUSH") return;
+            if (!pointerActive) return;
 
-        let point = to_canvas_coord(e.clientX, e.clientY);
+            let point = to_canvas_coord(e.clientX, e.clientY);
+            const worker = getLayerWorker();
+            if (paintState.toolId == "brush") {
+                worker.drawTo(layerId, point);
+            } else if (paintState.toolId == "eraser") {
+                worker.eraserTo(layerId, point);
+            } else if (paintState.toolId == "liquify") {
+            }
 
-        // console.log("current point", point);
-        const worker = getLayerWorker();
+            pointerActive = false;
+            endDrawing();
 
-        if (toolId == "brush") {
-            worker.drawTo(layerId, point);
-        } else if (toolId == "eraser") {
-            worker.eraserTo(layerId, point);
-        } else if (toolId == "liquify") {
-            worker.liquifyTo(layerId, point);
-        }
-    });
-
-    window.addEventListener("pointerup", (e) => {
-        e.preventDefault();
-        if (paintState.action != "BRUSH") return;
-        if (!pointerActive) return;
-
-        let point = to_canvas_coord(e.clientX, e.clientY);
-        const worker = getLayerWorker();
-        if (toolId == "brush") {
-            worker.drawTo(layerId, point);
-        } else if (toolId == "eraser") {
-            worker.eraserTo(layerId, point);
-        } else if (toolId == "liquify") {
-        }
-
-        pointerActive = false;
-        endDrawing();
-
-        applyKeyAction();
-        setCursor();
-    });
+            applyKeyAction();
+            updateCursor();
+        });
+    })();
 }
