@@ -7,7 +7,6 @@ const MIN_SCALE = 0.1;
 const MAX_SCALE = 20;
 const layerId = "SingleLayer";
 
-
 export let position = {
   x: 0,
   y: 0,
@@ -23,41 +22,17 @@ export let position = {
       layerId,
       position.width,
       position.height,
-      paintState.bouncingRect.width,
-      paintState.bouncingRect.height,
-      position.x,
-      position.y,
+      paintState.bouncingRect.width * getPixelRatio(),
+      paintState.bouncingRect.height * getPixelRatio(),
+      position.x * getPixelRatio(),
+      position.y * getPixelRatio(),
 
       position.scale,
     );
-    // // 스크롤 범위 제한!
-    // let maxW =
-    //   (paintState.bouncingRect.width / this.scale + this.width) / 2 - 2;
-    // let clampPositionX = Math.min(maxW, Math.max(-maxW, this.x));
-    // let maxH =
-    //   (paintState.bouncingRect.height / this.scale + this.height) / 2 - 2;
-    // let clampPositionY = Math.min(maxH, Math.max(-maxH, this.y));
-
-    // this.x = clampPositionX;
-    // this.y = clampPositionY;
-
-    // //console.log("pos:", positionState.x, positionState.y);
-    // let canvas_css_w = this.width * this.scale;
-    // let canvas_css_h = this.height * this.scale;
-    // let cal_posX = this.x * this.scale;
-    // let cal_posY = this.y * this.scale;
-    // let css_left = (paintState.bouncingRect.width - canvas_css_w) / 2;
-    // let css_top = (paintState.bouncingRect.height - canvas_css_h) / 2;
-
-    // paintState.layer_area.style.left = css_left - cal_posX + "px";
-    // paintState.layer_area.style.top = css_top - cal_posY + "px";
-    // paintState.layer_area.style.width = canvas_css_w + "px";
-    // paintState.layer_area.style.height = canvas_css_h + "px";
   },
-  
 };
 
-window.onresize = position.resizeScreen
+window.onresize = position.resizeScreen;
 
 export function initPosition() {
   window.addEventListener("resize", function () {
@@ -512,6 +487,13 @@ export function initPosition() {
   })();
 }
 
+let dpr;
+function getPixelRatio() {
+  if (!dpr) {
+    dpr = window.devicePixelRatio;
+  }
+  return dpr;
+}
 // 이게...
 // 캔버스 밖을 움직이면 pan이 되게 해야하는데, 이 로직들도 진짜 세세하게 다이어그램 그려야겠다.
 // 처음 드로잉 중일 때 메뉴에서 시작했다가 끌고 내려오는 포인터.
@@ -519,8 +501,8 @@ export function initPosition() {
 function setMagification(new_scale, anchor_point) {
   let factor = 1 - position.scale / new_scale;
 
-  let diff_x = anchor_point.x - position.x;
-  let diff_y = anchor_point.y - position.y;
+  let diff_x = anchor_point.x / getPixelRatio() - position.x;
+  let diff_y = anchor_point.y / getPixelRatio() - position.y;
   position.x += diff_x * factor;
   position.y += diff_y * factor;
 
@@ -546,7 +528,7 @@ export function to_screen_coord(x, y) {
     (y - paintState.bouncingRect.height / 2 - paintState.bouncingRect.y) /
       position.scale +
     position.y;
-  return { x: px, y: py };
+  return { x: px * getPixelRatio(), y: py * getPixelRatio() };
 }
 
 async function changeSize(number = 300) {

@@ -767,8 +767,8 @@ function makeOffscreenManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TARGET);
   gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
 
-  // 이걸 스케일 업해서 그리려면, 리니어 보간이 필요함.
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  // 이걸 스케일 업해서 그리려면, 보간이 없어야함. 
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
