@@ -697,7 +697,7 @@ export function renderScreen(
   magnification,
 ) {
   let offScreenManager = getOffscreenManager(canvas, gl);
-  console.log(width, height, screenWidth, screenHeight, x, y, magnification);
+ // console.log(width, height, screenWidth, screenHeight, x, y, magnification);
   if (
     paintOptions.screenWidth != screenWidth ||
     paintOptions.screenHeight != screenHeight
@@ -812,7 +812,7 @@ function makeOffscreenManager(canvas, gl) {
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
   function renderOffscreenToCanvas() {
-    console.log("renderOffscreenToCanvas");
+    console.log("render");
     gl.disable(gl.SCISSOR_TEST);
     gl.useProgram(renderProgram);
 
@@ -836,35 +836,10 @@ function makeOffscreenManager(canvas, gl) {
       paintOptions.magnification,
     );
 
-    // 쓰기 영역: 내 화면
+    // 쓰기 영역: 캔버스
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    // // 읽기 버퍼: 우리가 렌더링한 offscreen 버퍼
-    // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenFBO);
-
-    // // 쓰기 버퍼: 기본 프레임버퍼 (화면)
-    // gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-
-    // let x = 0;
-    // let y = 0;
-    // // blit 수행
-    // let left = (paintOptions.screenWidth - paintOptions.width) / 2 - x;
-    // let bottom = (paintOptions.screenHeight - paintOptions.height) / 2 + y;
-
-    // gl.blitFramebuffer(
-    //   0,
-    //   0,
-    //   paintOptions.width,
-    //   paintOptions.height, // src 영역
-    //   left,
-    //   bottom,
-    //   left + paintOptions.width,
-    //   bottom + paintOptions.height, // dst 영역
-    //   gl.COLOR_BUFFER_BIT,
-    //   gl.NEAREST, // 또는 gl.LINEAR
-    // );
   }
 
   return {

@@ -3,6 +3,7 @@ import {
     getSourceTextureManager,
     getFullQuadVertexShader,
     paintOptions,
+    getOffscreenManager,
 } from "../tools";
 import {
     getIntegralEaseInOut,
@@ -184,7 +185,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     // 쓰여진 결과를 기본 변위맵에 업로드 하기 위해서
     let readFrameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, readFrameBuffer);
     gl.framebufferTexture2D(
         // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
         gl.FRAMEBUFFER,
@@ -351,9 +352,11 @@ async function makeLiquifyManager(canvas, gl) {
             emptyData,
         );
 
-         clearMap();
+        clearMap();
     }
     setSize();
+
+    let offScreenManager = getOffscreenManager(canvas, gl);
 
     function startStroke(pointer) {
         pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
@@ -441,6 +444,7 @@ async function makeLiquifyManager(canvas, gl) {
         // SCISSOR TEST로 일부만 렌더링
         gl.enable(gl.SCISSOR_TEST);
         gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         //gl.finish();
@@ -482,10 +486,13 @@ async function makeLiquifyManager(canvas, gl) {
     function render() {
         gl.useProgram(renderProgram);
         // 쓰기 영역: 내 화면
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+        gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         gl.disable(gl.SCISSOR_TEST);
+
+         offScreenManager.renderOffscreenToCanvas();
     }
 
     function cancel() {
