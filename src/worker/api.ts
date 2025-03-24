@@ -66,10 +66,9 @@ export const workerApi = {
   liquifyEnd() {
     layer.liquifyEnd();
   },
-    liquifyFinish() {
+  liquifyFinish() {
     layer.liquifyFinish();
   },
-
 };
 
 interface Pointer {

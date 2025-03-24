@@ -1,7 +1,7 @@
 import { getGlHelper } from "./glHelper";
 import { getLiquifyManager } from "./liquify/liquify";
-import { getBrushManager, paintOptions, renderScreen } from "./tools";
-
+import { getBrushManager, renderScreen } from "./tools";
+import { paintOptions } from "./texture";
 interface Pointer {
   x: number;
   y: number;

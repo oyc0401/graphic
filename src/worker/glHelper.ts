@@ -39,32 +39,15 @@ export function getGlHelper(gl) {
 
     const clearTexture = createClearTextureFunc(gl);
     const clearTextureVec2 = createClearTextureFuncvec2(gl);
-    const clearRect = createClearRectFunc(gl);
     /////
     const helper = {
         clearTexture,
         clearTextureVec2,
-        clearRect,
     };
 
     glHelpers.set(gl, helper);
 
     return helper;
-}
-
-/**
- * 특정 영역을 초기화 해주는 함수
- */
-function createClearRectFunc(gl) {
-    return (x, y, width, height) => {
-        gl.enable(gl.SCISSOR_TEST); // 특정 영역만 클리어할 수 있도록 활성화
-        gl.scissor(x, y, width, height); // 클리어할 영역 설정
-
-        gl.clearColor(0, 0, 0, 0.0); // 클리어
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        gl.disable(gl.SCISSOR_TEST); // 원래 상태로 복구
-    };
 }
 
 /**

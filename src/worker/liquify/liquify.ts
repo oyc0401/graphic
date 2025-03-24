@@ -1,10 +1,11 @@
 import {
     TEXTURE_UNIT,
     getSourceTextureManager,
-    getFullQuadVertexShader,
     paintOptions,
     getOffscreenManager,
-} from "../tools";
+} from "../texture";
+import { getFullQuadVertexShader } from "../vertexShader";
+
 import {
     getIntegralEaseInOut,
     getIntegralEaseInOutMirror,
@@ -35,11 +36,6 @@ async function makeLiquifyManager(canvas, gl) {
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
 
-    // const width = canvas.width;
-    // const height = canvas.height;
-    // gl.viewport(0, 0, width, height);
-    // gl.clearColor(0, 0, 0, 0);
-
     const ext = gl.getExtension("EXT_color_buffer_float");
     if (!ext) {
         console.error("EXT_color_buffer_float not supported!");
@@ -57,7 +53,157 @@ async function makeLiquifyManager(canvas, gl) {
     const sourceTextureManager = getSourceTextureManager(canvas, gl);
     const fullQuadVertexShader = getFullQuadVertexShader(gl);
 
-    let liquifyPushFragSrc = await loadShader("/liquify.c");
+    let liquifyPushFragSrc = `#version 300 es
+        precision highp float;
+    
+        uniform sampler2D u_displacement;
+        uniform sampler2D u_ease_integral;
+        uniform sampler2D u_ease_mirror;
+    
+        uniform vec2 u_resolution; // 화면크기, 해상도
+        uniform vec2 u_start;
+        uniform vec2 u_end;
+        uniform float u_radius;
+        uniform float u_strength;
+    
+        in vec2 v_texCoord;
+        out vec2 outDisplacement;
+    
+        // 샘플링을 통한 ease 함수 구현 (정확한 결과를 위해 precomputed 텍스처 사용)
+        float easeInOutCubicIntegral(float x) {
+          // x를 [0,1]로 가정하고, 1D 텍스처에서 선형 보간
+          return texture(u_ease_integral, vec2(x, 0.5)).r;
+        }
+        float easeInOutCubicIntegralMirror(float x) {
+          return texture(u_ease_mirror, vec2(x, 0.5)).r;
+        }
+    
+        // getPower()와 유사한 로직: liquify 그리드 내에서 현재 픽셀의 영향력을 계산합니다.
+        float getPower(vec2 centerCoord, vec2 d, float radius) {
+          // d의 길이
+          float len = length(d);
+          if (len == 0.0) {
+            return 1.0;
+          }
+          // radius의 올림값 및 자주 쓰이는 상수
+          float rCeil = ceil(radius);
+          float doubleRCeil = 2.0 * rCeil;
+    
+          // sqrt를 줄이기위한 제곱 연산
+          float squareR = radius * radius;
+    
+          // 그리드 크기 계산
+          float gridWidth = abs(d.x) + 1.0 + doubleRCeil;
+          float gridHeight = abs(d.y) + 1.0 + doubleRCeil;
+    
+          // 단위 벡터
+          vec2 unit = d / len;
+    
+          // localStart 계산
+          float localStartX = (d.x > 0.0) ? rCeil : (gridWidth - 1.0 - rCeil);
+          float localStartY = (d.y > 0.0) ? rCeil : (gridHeight - 1.0 - rCeil);
+          vec2 localStart = vec2(localStartX, localStartY);
+    
+          vec2 v = centerCoord - localStart;
+          float t = dot(v, unit);
+    
+          // dist = v와 center(t * unit) 사이의 길이
+          vec2 center = t * unit;
+          vec2 d22 = v - center;
+          float dist = length(d22);
+    
+          float percent = 1.0;
+          float power = 0.0;
+    
+          // 1) (t > 0.0 && t < len)
+          if (t > 0.0 && t < len) {
+            float value = min(1.0, dist / radius);
+            float addValue = easeInOutCubicIntegral(value);
+            power = addValue * radius * 2.0;
+          }
+    
+          // 2) vLength < radius
+          //float vLength;
+          float dotV = dot(v, v);
+          if (dotV < squareR) {
+            float value = min(1.0, dist / radius);
+            float addValue = easeInOutCubicIntegral(value);
+            power = addValue * radius * 2.0 * percent;
+          }
+    
+          // 3) eLength < radius
+          vec2 eVec = v - d;
+          // float eLength;
+          float dotE = dot(eVec, eVec);
+          if (dotE < squareR) {
+            float value = min(1.0, dist / radius);
+            float addValue = easeInOutCubicIntegral(value);
+            power = addValue * radius * 2.0 * percent;
+          }
+    
+          // 4) gradation 계산
+          float originalCell = power;
+          if (dotV < squareR) {
+            float gradation = (radius + t) / radius / 2.0;
+            power -= originalCell * (1.0 - easeInOutCubicIntegralMirror(gradation));
+          }
+          if (dotE < squareR) {
+            float gradation = (radius + (len - t)) / radius / 2.0;
+            power -= originalCell * (1.0 - easeInOutCubicIntegralMirror(gradation));
+          }
+    
+          return power;
+        }
+    
+        void main() {
+          // 현재 픽셀의 기존 변위값
+          vec2 value = texture(u_displacement, v_texCoord).xy;
+    
+          // 현재 픽셀 좌표 (ex: (250,360))
+          vec2 pixel = v_texCoord * u_resolution;
+          float ceiledRadius = ceil(u_radius);
+    
+          // 영역 계산
+          vec2 minCoord = min(u_start, u_end) - vec2(ceiledRadius);
+          vec2 maxCoord = max(u_start, u_end) + vec2(ceiledRadius);
+    
+          // 영향 영역 밖은 기존 변위값 그대로
+          if (
+            pixel.x < minCoord.x || pixel.x > maxCoord.x ||
+            pixel.y < minCoord.y || pixel.y > maxCoord.y
+          ) {
+            outDisplacement = value;
+            return;
+          }
+    
+          // liquify 그리드 계산 (CPU 코드와 동일한 방식)
+          vec2 d = u_end - u_start;
+          float len = length(d);
+          if (len == 0.0) {
+            // u_start == u_end라면 이동 없음
+            outDisplacement = value;
+            return;
+          }
+    
+          vec2 unit = d / len;
+          // gridSize와 startXY
+          vec2 gridSize = abs(u_end - u_start) + vec2(1.0) + vec2(2.0 * ceiledRadius);
+          vec2 startXY = min(u_start, u_end) - vec2(ceiledRadius);
+    
+          // 좌표 역순 보정
+          vec2 centerCoord = gridSize - 1.0 - pixel + startXY;
+          float movementPower = getPower(centerCoord, d, u_radius);
+    
+          float diffVal = (movementPower * u_strength) * 0.5;
+    
+          // 기존 변위 텍스처에서 보간
+          vec2 displacedCoord = pixel - diffVal * unit;
+          vec2 targetDisplace = displacedCoord / u_resolution;
+    
+          vec2 dispSample = texture(u_displacement, targetDisplace).xy;
+          outDisplacement = dispSample - diffVal * unit;
+        }
+    `;
     let liquifyPushShader = createShader(
         gl,
         gl.FRAGMENT_SHADER,
@@ -90,17 +236,7 @@ async function makeLiquifyManager(canvas, gl) {
     let displacementTexOut = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
-    // gl.texImage2D(
-    //     gl.TEXTURE_2D,
-    //     0,
-    //     gl.RG32F,
-    //     width,
-    //     height,
-    //     0,
-    //     gl.RG,
-    //     gl.FLOAT,
-    //     null,
-    // );
+
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -222,11 +358,7 @@ async function makeLiquifyManager(canvas, gl) {
     let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorShaderSource);
     let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
     gl.useProgram(renderProgram);
-    // gl.uniform2f(
-    //     gl.getUniformLocation(renderProgram, "u_resolution"),
-    //     width,
-    //     height,
-    // );
+
     gl.uniform1i(
         gl.getUniformLocation(renderProgram, "u_displacement"),
         TEXTURE_UNIT.DISPLACEMENT,
@@ -279,8 +411,6 @@ async function makeLiquifyManager(canvas, gl) {
             width,
             height,
         );
-
-        // const emptyData = new Float32Array(width * height * 2);
 
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
         gl.bindTexture(gl.TEXTURE_2D, displacementTex);
@@ -358,9 +488,8 @@ async function makeLiquifyManager(canvas, gl) {
 
         //console.log(pathDirtyRect);
     }
-  
+
     function changeVector(start, end) {
-        
         let height = paintOptions.height;
 
         gl.useProgram(liquifyPushProgram);
@@ -420,7 +549,6 @@ async function makeLiquifyManager(canvas, gl) {
         gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-
         // 적용된 텍스처를 read에도 옮기기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
@@ -453,9 +581,8 @@ async function makeLiquifyManager(canvas, gl) {
             gl.COLOR_BUFFER_BIT,
             gl.NEAREST,
         );
-
     }
-    
+
     function render() {
         gl.useProgram(renderProgram);
         // 쓰기 영역: 내 화면
@@ -465,7 +592,7 @@ async function makeLiquifyManager(canvas, gl) {
 
         gl.disable(gl.SCISSOR_TEST);
 
-         offScreenManager.renderOffscreenToCanvas();
+        offScreenManager.renderOffscreenToCanvas();
     }
 
     function cancel() {
