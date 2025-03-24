@@ -70,29 +70,11 @@ async function makeLiquifyManager(canvas, gl) {
     );
     gl.useProgram(liquifyPushProgram);
 
-    // gl.uniform2f(
-    //     gl.getUniformLocation(liquifyPushProgram, "u_resolution"),
-    //     width,
-    //     height,
-    // );
-
-    // const emptyData = new Float32Array(width * height * 2);
-
     // 변위맵 텍스처 생성 및 데이터 업로드
     let displacementTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, displacementTex);
-    // gl.texImage2D(
-    //     gl.TEXTURE_2D,
-    //     0,
-    //     gl.RG32F,
-    //     width,
-    //     height,
-    //     0,
-    //     gl.RG,
-    //     gl.FLOAT,
-    //     emptyData,
-    // );
+
     // 행렬에 linear를 사용하는 이유는 기존의 getVector는 보간으로 값을 가져오기 대문에
     // 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -270,17 +252,7 @@ async function makeLiquifyManager(canvas, gl) {
     let sourceDisplacementTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-    // gl.texImage2D(
-    //     gl.TEXTURE_2D,
-    //     0,
-    //     gl.RG32F,
-    //     width,
-    //     height,
-    //     0,
-    //     gl.RG,
-    //     gl.FLOAT,
-    //     emptyData,
-    // );
+
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -386,8 +358,9 @@ async function makeLiquifyManager(canvas, gl) {
 
         //console.log(pathDirtyRect);
     }
-
+  
     function changeVector(start, end) {
+        
         let height = paintOptions.height;
 
         gl.useProgram(liquifyPushProgram);
@@ -447,7 +420,6 @@ async function makeLiquifyManager(canvas, gl) {
         gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        //gl.finish();
 
         // 적용된 텍스처를 read에도 옮기기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
@@ -481,8 +453,11 @@ async function makeLiquifyManager(canvas, gl) {
             gl.COLOR_BUFFER_BIT,
             gl.NEAREST,
         );
+
     }
 
+
+    
     function render() {
         gl.useProgram(renderProgram);
         // 쓰기 영역: 내 화면
@@ -516,19 +491,6 @@ async function makeLiquifyManager(canvas, gl) {
             displacementTex,
             0,
         );
-
-        // gl.blitFramebuffer(
-        //     0,
-        //     0,
-        //     width,
-        //     height, // 소스
-        //     0,
-        //     0,
-        //     width,
-        //     height, // 대상
-        //     gl.COLOR_BUFFER_BIT,
-        //     gl.NEAREST,
-        // );
 
         gl.blitFramebuffer(
             pathDirtyRect.x,
@@ -602,6 +564,7 @@ async function makeLiquifyManager(canvas, gl) {
         strength = s;
     }
     function reset() {
+        // finish라고 봐도 됌. 픽셀유동화를 나갈때 실행하는거임.
         clearMap();
 
         sourceTextureManager.uploadCurrent();

@@ -7,6 +7,7 @@ import * as Comlink from "comlink";
 
 export let toolManager = {
     setBrushTool() {
+        const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
             worker.liquifyReset(layerId);
         }
@@ -15,6 +16,7 @@ export let toolManager = {
         paintState.brushAlpha = 0.3;
     },
     setEraserTool() {
+        const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
             worker.liquifyReset(layerId);
         }
@@ -23,8 +25,9 @@ export let toolManager = {
         paintState.brushAlpha = 1;
     },
     setLiquifyTool() {
+        const worker = getLayerWorker();
         paintState.toolId = "liquify";
-        paintState.brushSize = 100;
+        paintState.brushSize = 1000;
         paintState.brushAlpha = 1;
     },
 };
@@ -80,7 +83,9 @@ export async function initDraw() {
         position.bouncingRect.height,
     );
 
- 
+    let start = { x: 0, y: 0 };
+    let end = { x: 0, y: 0 };
+    
     (function () {
         document
             .querySelector("#container")
@@ -112,6 +117,10 @@ export async function initDraw() {
                     worker.setAlpha(layerId, paintState.brushAlpha);
 
                     worker.liquifyStart(layerId, point);
+                    start = { x: event.clientX, y: event.clientY };
+                    end = { x: event.clientX, y: event.clientY };
+
+                    
                 }
             });
 
@@ -131,7 +140,15 @@ export async function initDraw() {
             } else if (paintState.toolId == "eraser") {
                 worker.eraserTo(layerId, point);
             } else if (paintState.toolId == "liquify") {
-                worker.liquifyTo(layerId, point);
+                end = point;
+
+                let length = Math.hypot(end.x - start.x, end.y - start.y);
+                if (length > paintState.brushSize / 25) {
+                    worker.liquifyTo(layerId, point);
+                    start = end;
+                }
+                
+            
             }
         });
 

@@ -448,7 +448,6 @@ function makeBrushManager(canvas, gl) {
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    //gl.finish();
 
     // 적용된 텍스처를 read에도 옮기기
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);

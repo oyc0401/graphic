@@ -9,8 +9,8 @@ const MAX_SCALE = 20;
 export let position = {
   x: 0,
   y: 0,
-  width: 500,
-  height: 500,
+  width: 0,
+  height: 0,
   scale: 1,
   bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
   updateBouncingRect() {
@@ -54,8 +54,8 @@ export function initPosition() {
 
   // 초기 위치 설정
   position.scale = 1;
-  position.width = 500;
-  position.height = 500;
+  position.width = 2000;
+  position.height = 2000;
   position.x = (position.bouncingRect.width - position.width) / 2;
   position.y = (position.bouncingRect.height - position.height) / 2;
 
