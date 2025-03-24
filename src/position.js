@@ -457,11 +457,6 @@ async function changeSize(number = 300) {
   let newWidth = number * 2;
   let newHeight = number;
 
-  let diffX = position.width - newWidth;
-  let diffY = position.height - newHeight;
-  position.x += diffX / 2;
-  position.y += diffY / 2;
-
   position.width = newWidth;
   position.height = newHeight;
 
