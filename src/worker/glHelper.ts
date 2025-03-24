@@ -130,13 +130,6 @@ function createClearTextureFunc(gl) {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 
-    // // ✅ 리소스 해제 함수 추가 (WebGL 리소스 관리)
-    // clearTexture.dispose = () => {
-    //     gl.deleteFramebuffer(fbo);
-    //     gl.deleteProgram(program);
-    //     gl.deleteBuffer(quadBuffer);
-    // };
-
     return clearTexture;
 }
 

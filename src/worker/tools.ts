@@ -129,14 +129,6 @@ function makeBrushManager(canvas, gl) {
   let strokeProgram = createProgram(gl, fullQuadVertexShader, strokeShader);
   gl.useProgram(strokeProgram);
 
-  // gl.uniform2f(
-  //   gl.getUniformLocation(strokeProgram, "u_resolution"),
-  //   width,
-  //   height,
-  // );
-
-  // const emptyData = new Float32Array(width * height);
-
   // 알파맵 텍스처 생성 및 데이터 업로드
   let pathTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
@@ -146,18 +138,6 @@ function makeBrushManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-  // gl.texImage2D(
-  //   gl.TEXTURE_2D,
-  //   0,
-  //   gl.R32F,
-  //   width,
-  //   height,
-  //   0,
-  //   gl.RED,
-  //   gl.FLOAT,
-  //   emptyData,
-  // );
 
   gl.uniform1i(
     gl.getUniformLocation(strokeProgram, "u_pathMap"),
@@ -349,12 +329,11 @@ function makeBrushManager(canvas, gl) {
       height,
     );
 
-    const emptyData = new Float32Array(width * height);
-
     // 알파맵 텍스처 데이터 업로드
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
     gl.bindTexture(gl.TEXTURE_2D, pathTex);
 
+    // 0으로 초기화
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
@@ -364,7 +343,7 @@ function makeBrushManager(canvas, gl) {
       0,
       gl.RED,
       gl.FLOAT,
-      emptyData,
+      null,
     );
 
     // 출력용 텍스처
@@ -448,7 +427,6 @@ function makeBrushManager(canvas, gl) {
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-
     // 적용된 텍스처를 read에도 옮기기
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
@@ -516,7 +494,7 @@ function makeBrushManager(canvas, gl) {
     sourceTextureManager.restore();
   }
 
-  function reset() {
+  function end() {
     clearMap();
     // 위는 해야하지만,
     // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
@@ -534,10 +512,11 @@ function makeBrushManager(canvas, gl) {
     stroke,
     brush,
     eraser,
-    reset,
+    end,
     cancel,
     setSize,
     clearMap,
+  
   };
 
   return brushManager;

@@ -7,15 +7,12 @@ interface Pointer {
   y: number;
 }
 
-let history = [];
-
 export class PaintLayer {
   id: string;
-  main_canvas: OffscreenCanvas;
+  canvas: OffscreenCanvas;
   width: number;
   height: number;
-  main_ctx: WebGL2RenderingContext;
-  priority: number;
+  gl: WebGL2RenderingContext;
 
   screenWidth;
   screenHeight;
@@ -27,16 +24,15 @@ export class PaintLayer {
 
   constructor(
     id: string,
-    main_canvas: OffscreenCanvas,
+    canvas: OffscreenCanvas,
     width: number,
     height: number,
-    priority: number,
     screenWidth,
     screenHeight,
   ) {
     this.id = id;
-    this.main_canvas = main_canvas;
-    let gl = main_canvas.getContext("webgl2", {
+    this.canvas = canvas;
+    let gl = canvas.getContext("webgl2", {
       depth: false,
       stencil: false,
       antialias: false,
@@ -46,8 +42,7 @@ export class PaintLayer {
     if (!gl) {
       throw Error("Can't make webgl2 context");
     }
-    this.main_ctx = gl;
-    this.priority = priority;
+    this.gl = gl;
 
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
@@ -63,14 +58,14 @@ export class PaintLayer {
   }
 
   clear() {
-    let glHelper = getGlHelper(this.main_ctx);
+    let glHelper = getGlHelper(this.gl);
     glHelper.clearRect(0, 0, this.width, this.height);
   }
 
   render(width, height, screenWidth, screenHeight, x, y, magnification) {
     renderScreen(
-      this.main_canvas,
-      this.main_ctx,
+      this.canvas,
+      this.gl,
       width,
       height,
       screenWidth,
@@ -96,8 +91,8 @@ export class PaintLayer {
     paintOptions.screenHeight = this.screenHeight;
     this.width = width;
     this.height = height;
-    this.main_canvas.width = this.screenWidth;
-    this.main_canvas.height = this.screenHeight;
+    this.canvas.width = this.screenWidth;
+    this.canvas.height = this.screenHeight;
   }
 
   setStrokeColor(r, g, b) {
@@ -116,7 +111,7 @@ export class PaintLayer {
   }
 
   drawInit() {
-    this.drawManager = getBrushManager(this.main_canvas, this.main_ctx);
+    this.drawManager = getBrushManager(this.canvas, this.gl);
   }
   drawStart(pointer: Pointer) {
     this.lastPointer = pointer;
@@ -133,11 +128,11 @@ export class PaintLayer {
   }
 
   drawEnd() {
-    this.drawManager.reset();
+    this.drawManager.end();
   }
 
   eraserInit() {
-    this.drawManager = getBrushManager(this.main_canvas, this.main_ctx);
+    this.drawManager = getBrushManager(this.canvas, this.gl);
   }
   eraserStart(pointer: Pointer) {
     this.lastPointer = pointer;
@@ -160,8 +155,8 @@ export class PaintLayer {
 
   async liquifyInit() {
     this.liquifyManager = await getLiquifyManager(
-      this.main_canvas,
-      this.main_ctx,
+      this.canvas,
+      this.gl,
     );
   }
   async liquifyStart(pointer: Pointer) {
@@ -181,15 +176,15 @@ export class PaintLayer {
     this.liquifyManager.endStroke();
   }
 
-  liquifyReset() {
-    console.log("리퀴파이 리셋!");
-    this.liquifyManager.reset();
+  liquifyFinish() {
+    console.log("리퀴파이 finish!");
+    this.liquifyManager.finish();
   }
 
   // appendHistory() {
   //   // 지금 상태를 히스토리에 넣기!
 
-  //   let imageTexture = makeImageTex(this.main_canvas, this.main_ctx);
+  //   let imageTexture = makeImageTex(this.canvas, this.gl);
   //   history.push(imageTexture);
   // }
 }

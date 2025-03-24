@@ -280,7 +280,7 @@ async function makeLiquifyManager(canvas, gl) {
             height,
         );
 
-        const emptyData = new Float32Array(width * height * 2);
+        // const emptyData = new Float32Array(width * height * 2);
 
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
         gl.bindTexture(gl.TEXTURE_2D, displacementTex);
@@ -293,7 +293,7 @@ async function makeLiquifyManager(canvas, gl) {
             0,
             gl.RG,
             gl.FLOAT,
-            emptyData,
+            null,
         );
 
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
@@ -321,7 +321,7 @@ async function makeLiquifyManager(canvas, gl) {
             0,
             gl.RG,
             gl.FLOAT,
-            emptyData,
+            null,
         );
 
         clearMap();
@@ -455,8 +455,6 @@ async function makeLiquifyManager(canvas, gl) {
         );
 
     }
-
-
     
     function render() {
         gl.useProgram(renderProgram);
@@ -563,7 +561,7 @@ async function makeLiquifyManager(canvas, gl) {
     function setStrength(s) {
         strength = s;
     }
-    function reset() {
+    function finish() {
         // finish라고 봐도 됌. 픽셀유동화를 나갈때 실행하는거임.
         clearMap();
 
@@ -585,7 +583,7 @@ async function makeLiquifyManager(canvas, gl) {
         render: render,
         cancel,
         endStroke,
-        reset,
+        finish,
         setSize,
         setStrength,
         clearMap,

@@ -25,44 +25,11 @@ export let toolManager = {
         paintState.brushAlpha = 1;
     },
     setLiquifyTool() {
-        const worker = getLayerWorker();
         paintState.toolId = "liquify";
         paintState.brushSize = 1000;
         paintState.brushAlpha = 1;
     },
 };
-
-/**
- * 원본 텍스쳐로 돌려놓기
- */
-export function cancel() {
-    const worker = getLayerWorker();
-
-    if (paintState.toolId == "brush") {
-        worker.cancel(layerId);
-    } else if (paintState.toolId == "eraser") {
-        worker.cancel(layerId);
-    } else if (paintState.toolId == "liquify") {
-        worker.liquifyCancel(layerId);
-    }
-}
-
-/**
- * 현재 이미지를 원본 텍스쳐에 덮어쓰기
- */
-export function endDrawing() {
-    console.log("endDrawing!");
-    pointerActive = false;
-
-    const worker = getLayerWorker();
-    if (paintState.toolId == "brush") {
-        worker.drawEnd(layerId);
-    } else if (paintState.toolId == "eraser") {
-        worker.eraserEnd(layerId);
-    } else if (paintState.toolId == "liquify") {
-        worker.liquifyEnd(layerId);
-    }
-}
 
 const layerId = "SingleLayer";
 
@@ -78,14 +45,13 @@ export async function initDraw() {
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
         position.height,
-        0,
         position.bouncingRect.width,
         position.bouncingRect.height,
     );
 
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };
-    
+
     (function () {
         document
             .querySelector("#container")
@@ -119,8 +85,6 @@ export async function initDraw() {
                     worker.liquifyStart(layerId, point);
                     start = { x: event.clientX, y: event.clientY };
                     end = { x: event.clientX, y: event.clientY };
-
-                    
                 }
             });
 
@@ -147,8 +111,6 @@ export async function initDraw() {
                     worker.liquifyTo(layerId, point);
                     start = end;
                 }
-                
-            
             }
         });
 
@@ -173,4 +135,36 @@ export async function initDraw() {
             updateCursor();
         });
     })();
+}
+
+/**
+ * 원본 텍스쳐로 돌려놓기
+ */
+export function cancel() {
+    const worker = getLayerWorker();
+
+    if (paintState.toolId == "brush") {
+        worker.cancel(layerId);
+    } else if (paintState.toolId == "eraser") {
+        worker.cancel(layerId);
+    } else if (paintState.toolId == "liquify") {
+        worker.liquifyCancel(layerId);
+    }
+}
+
+/**
+ * 현재 이미지를 원본 텍스쳐에 덮어쓰기
+ */
+export function endDrawing() {
+    console.log("endDrawing!");
+    pointerActive = false;
+
+    const worker = getLayerWorker();
+    if (paintState.toolId == "brush") {
+        worker.drawEnd(layerId);
+    } else if (paintState.toolId == "eraser") {
+        worker.eraserEnd(layerId);
+    } else if (paintState.toolId == "liquify") {
+        worker.liquifyEnd(layerId);
+    }
 }
