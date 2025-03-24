@@ -4,7 +4,6 @@ let layer: PaintLayer;
 
 export const workerApi = {
   async makeLayer(
-    layerId: string,
     main_canvas: OffscreenCanvas,
     width: number,
     height: number,
@@ -14,7 +13,6 @@ export const workerApi = {
     console.log("make layer", width, height);
 
     layer = new PaintLayer(
-      layerId,
       main_canvas,
       width,
       height,
@@ -25,52 +23,53 @@ export const workerApi = {
   render(width, height, screenWidth, screenHeight, x, y, magnification) {
     layer.render(width, height, screenWidth, screenHeight, x, y, magnification);
   },
-  setStrokeColor(layerId, r, g, b) {
+  setStrokeColor(r, g, b) {
     layer.setStrokeColor(r, g, b);
   },
-  setStrokeSize(layerId, size) {
+  setStrokeSize(size) {
     let radius = (size - 1) / 2 + 1; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
     layer.setStrokeSize(radius);
   },
-  setAlpha(layerId, alpha) {
+  setAlpha(alpha) {
     layer.setAlpha(alpha);
   },
-  drawStart(layerId: string, pointer: Pointer) {
+  drawStart(pointer: Pointer) {
     layer.drawStart(pointer);
   },
-  drawTo(layerId: string, pointer: Pointer) {
+  drawTo(pointer: Pointer) {
     layer.drawTo(pointer);
   },
-  drawEnd(layerId: string) {
+  drawEnd() {
     layer.drawEnd();
   },
-  eraserStart(layerId: string, pointer: Pointer) {
-    layer.eraserStart(pointer);
-  },
-  eraserTo(layerId: string, pointer: Pointer) {
-    layer.eraserTo(pointer);
-  },
-  eraserEnd(layerId: string) {
-    layer.drawEnd();
-  },
-  liquifyStart(layerId: string, pointer: Pointer) {
-    layer.liquifyStart(pointer);
-  },
-  liquifyTo(layerId: string, pointer: Pointer) {
-    layer.liquifyTo(pointer);
-  },
-  liquifyCancel(layerId: string) {;
-    layer.liquifyCancel();
-  },
-  liquifyEnd(layerId: string) {
-    layer.liquifyEnd();
-  },
-  liquifyReset(layerId: string) {
-    layer.liquifyFinish();
-  },
-  cancel(layerId) {
+  cancel() {
     layer.cancel();
   },
+  eraserStart(pointer: Pointer) {
+    layer.eraserStart(pointer);
+  },
+  eraserTo(pointer: Pointer) {
+    layer.eraserTo(pointer);
+  },
+  eraserEnd() {
+    layer.drawEnd();
+  },
+  liquifyStart(pointer: Pointer) {
+    layer.liquifyStart(pointer);
+  },
+  liquifyTo(pointer: Pointer) {
+    layer.liquifyTo(pointer);
+  },
+  liquifyCancel() {
+    layer.liquifyCancel();
+  },
+  liquifyEnd() {
+    layer.liquifyEnd();
+  },
+    liquifyFinish() {
+    layer.liquifyFinish();
+  },
+
 };
 
 interface Pointer {

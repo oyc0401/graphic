@@ -9,7 +9,7 @@ export let toolManager = {
     setBrushTool() {
         const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
-            worker.liquifyReset(layerId);
+            worker.liquifyFinish();
         }
         paintState.toolId = "brush";
         paintState.brushSize = 5;
@@ -18,7 +18,7 @@ export let toolManager = {
     setEraserTool() {
         const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
-            worker.liquifyReset(layerId);
+            worker.liquifyFinish();
         }
         paintState.toolId = "eraser";
         paintState.brushSize = 10;
@@ -31,8 +31,6 @@ export let toolManager = {
     },
 };
 
-const layerId = "SingleLayer";
-
 let pointerActive = false;
 
 export async function initDraw() {
@@ -41,7 +39,7 @@ export async function initDraw() {
     const offscreen = canvas.transferControlToOffscreen();
 
     worker.makeLayer(
-        layerId,
+        
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
         position.height,
@@ -66,23 +64,23 @@ export async function initDraw() {
                 const worker = getLayerWorker();
 
                 if (paintState.toolId == "brush") {
-                    worker.setStrokeColor(layerId, 10, 10, 0);
-                    worker.setStrokeSize(layerId, paintState.brushSize);
-                    worker.setAlpha(layerId, paintState.brushAlpha);
+                    worker.setStrokeColor( 10, 10, 0);
+                    worker.setStrokeSize( paintState.brushSize);
+                    worker.setAlpha( paintState.brushAlpha);
 
-                    worker.drawStart(layerId, point);
-                    worker.drawTo(layerId, point);
+                    worker.drawStart( point);
+                    worker.drawTo( point);
                 } else if (paintState.toolId == "eraser") {
-                    worker.setStrokeSize(layerId, paintState.brushSize);
-                    worker.setAlpha(layerId, paintState.brushAlpha);
+                    worker.setStrokeSize( paintState.brushSize);
+                    worker.setAlpha( paintState.brushAlpha);
 
-                    worker.eraserStart(layerId, point);
-                    worker.eraserTo(layerId, point);
+                    worker.eraserStart( point);
+                    worker.eraserTo( point);
                 } else if (paintState.toolId == "liquify") {
-                    worker.setStrokeSize(layerId, paintState.brushSize);
-                    worker.setAlpha(layerId, paintState.brushAlpha);
+                    worker.setStrokeSize( paintState.brushSize);
+                    worker.setAlpha( paintState.brushAlpha);
 
-                    worker.liquifyStart(layerId, point);
+                    worker.liquifyStart( point);
                     start = { x: event.clientX, y: event.clientY };
                     end = { x: event.clientX, y: event.clientY };
                 }
@@ -100,15 +98,15 @@ export async function initDraw() {
             const worker = getLayerWorker();
 
             if (paintState.toolId == "brush") {
-                worker.drawTo(layerId, point);
+                worker.drawTo( point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo(layerId, point);
+                worker.eraserTo( point);
             } else if (paintState.toolId == "liquify") {
                 end = point;
 
                 let length = Math.hypot(end.x - start.x, end.y - start.y);
                 if (length > paintState.brushSize / 25) {
-                    worker.liquifyTo(layerId, point);
+                    worker.liquifyTo( point);
                     start = end;
                 }
             }
@@ -122,9 +120,9 @@ export async function initDraw() {
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
             if (paintState.toolId == "brush") {
-                worker.drawTo(layerId, point);
+                worker.drawTo( point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo(layerId, point);
+                worker.eraserTo( point);
             } else if (paintState.toolId == "liquify") {
             }
 
@@ -144,11 +142,11 @@ export function cancel() {
     const worker = getLayerWorker();
 
     if (paintState.toolId == "brush") {
-        worker.cancel(layerId);
+        worker.cancel();
     } else if (paintState.toolId == "eraser") {
-        worker.cancel(layerId);
+        worker.cancel();
     } else if (paintState.toolId == "liquify") {
-        worker.liquifyCancel(layerId);
+        worker.liquifyCancel();
     }
 }
 
@@ -161,10 +159,10 @@ export function endDrawing() {
 
     const worker = getLayerWorker();
     if (paintState.toolId == "brush") {
-        worker.drawEnd(layerId);
+        worker.drawEnd();
     } else if (paintState.toolId == "eraser") {
-        worker.eraserEnd(layerId);
+        worker.eraserEnd();
     } else if (paintState.toolId == "liquify") {
-        worker.liquifyEnd(layerId);
+        worker.liquifyEnd();
     }
 }

@@ -54,8 +54,8 @@ export function initPosition() {
 
   // 초기 위치 설정
   position.scale = 1;
-  position.width = 2000;
-  position.height = 2000;
+  position.width = 200;
+  position.height = 200;
   position.x = (position.bouncingRect.width - position.width) / 2;
   position.y = (position.bouncingRect.height - position.height) / 2;
 

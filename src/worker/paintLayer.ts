@@ -8,29 +8,26 @@ interface Pointer {
 }
 
 export class PaintLayer {
-  id: string;
   canvas: OffscreenCanvas;
+  gl: WebGL2RenderingContext;
   width: number;
   height: number;
-  gl: WebGL2RenderingContext;
-
-  screenWidth;
-  screenHeight;
+  screenWidth: number;
+  screenHeight: number;
 
   tool: string;
   lastPointer: Pointer;
 
   drawManager;
+  liquifyManager;
 
   constructor(
-    id: string,
     canvas: OffscreenCanvas,
     width: number,
     height: number,
-    screenWidth,
-    screenHeight,
+    screenWidth: number,
+    screenHeight: number,
   ) {
-    this.id = id;
     this.canvas = canvas;
     let gl = canvas.getContext("webgl2", {
       depth: false,
@@ -43,10 +40,15 @@ export class PaintLayer {
       throw Error("Can't make webgl2 context");
     }
     this.gl = gl;
-
+    this.width = width;
+    this.height = height;
     this.screenWidth = screenWidth;
     this.screenHeight = screenHeight;
-    this.initSize(width, height);
+
+    paintOptions.width = width;
+    paintOptions.height = height;
+    paintOptions.screenWidth = width;
+    paintOptions.screenHeight = screenHeight;
 
     this.init();
   }
@@ -83,30 +85,15 @@ export class PaintLayer {
     this.liquifyManager.setSize();
   }
 
-  initSize(width, height) {
-    paintOptions.width = width;
-    paintOptions.height = height;
-
-    paintOptions.screenWidth = this.screenWidth;
-    paintOptions.screenHeight = this.screenHeight;
-    this.width = width;
-    this.height = height;
-    this.canvas.width = this.screenWidth;
-    this.canvas.height = this.screenHeight;
-  }
-
   setStrokeColor(r, g, b) {
-    // paintOption.color = { r, g, b };
     paintOptions.setColor({ r, g, b });
   }
 
   setStrokeSize(strokeSize) {
-    // paintOption.radius = strokeSize;
     paintOptions.setRadius(strokeSize);
   }
 
   setAlpha(alpha) {
-    // paintOption.alpha = alpha;
     paintOptions.setAlpha(alpha);
   }
 
@@ -151,13 +138,8 @@ export class PaintLayer {
     this.drawManager.reset();
   }
 
-  liquifyManager;
-
   async liquifyInit() {
-    this.liquifyManager = await getLiquifyManager(
-      this.canvas,
-      this.gl,
-    );
+    this.liquifyManager = await getLiquifyManager(this.canvas, this.gl);
   }
   async liquifyStart(pointer: Pointer) {
     this.lastPointer = pointer;
