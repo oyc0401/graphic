@@ -18,7 +18,7 @@ export let position = {
     this.bouncingRect = container.getBoundingClientRect();
   },
   resizeScreen() {
-   // console.log("resizeScreen");
+    // console.log("resizeScreen");
     position.updateBouncingRect();
 
     // 스크롤 범위 제한!
@@ -196,9 +196,10 @@ export function initPosition() {
             } else {
               lastDoubleTouchTime = now;
             }
+          } else {
+            endDrawing();
           }
 
-          endDrawing();
           console.log("두 손가락 감지됨, 핀치 줌 시작");
           setPinchEvent();
 

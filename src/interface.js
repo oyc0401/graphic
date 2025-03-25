@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { cancel, endDrawing, toolManager } from "./draw";
+import { cancel, toolManager } from "./draw";
 import { position } from "./position";
 
 function updateUI() {
@@ -58,7 +58,6 @@ export function initInterface() {
             if (event.code === "Escape") {
                 console.log("취소!");
                 cancel();
-                endDrawing();
             }
         });
 

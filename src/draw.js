@@ -9,7 +9,7 @@ export let toolManager = {
     setBrushTool() {
         const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
-            worker.liquifyFinish();
+            worker.liquifyExit();
         }
         paintState.toolId = "brush";
         paintState.brushSize = 5;
@@ -18,7 +18,7 @@ export let toolManager = {
     setEraserTool() {
         const worker = getLayerWorker();
         if (paintState.toolId == "liquify") {
-            worker.liquifyFinish();
+            worker.liquifyExit();
         }
         paintState.toolId = "eraser";
         paintState.brushSize = 10;
@@ -39,7 +39,6 @@ export async function initDraw() {
     const offscreen = canvas.transferControlToOffscreen();
 
     worker.makeLayer(
-        
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
         position.height,
@@ -64,23 +63,23 @@ export async function initDraw() {
                 const worker = getLayerWorker();
 
                 if (paintState.toolId == "brush") {
-                    worker.setStrokeColor( 10, 10, 0);
-                    worker.setStrokeSize( paintState.brushSize);
-                    worker.setAlpha( paintState.brushAlpha);
+                    worker.setStrokeColor(10, 10, 0);
+                    worker.setStrokeSize(paintState.brushSize);
+                    worker.setAlpha(paintState.brushAlpha);
 
-                    worker.drawStart( point);
-                    worker.drawTo( point);
+                    worker.drawStart(point);
+                    worker.drawTo(point);
                 } else if (paintState.toolId == "eraser") {
-                    worker.setStrokeSize( paintState.brushSize);
-                    worker.setAlpha( paintState.brushAlpha);
+                    worker.setStrokeSize(paintState.brushSize);
+                    worker.setAlpha(paintState.brushAlpha);
 
-                    worker.eraserStart( point);
-                    worker.eraserTo( point);
+                    worker.eraserStart(point);
+                    worker.eraserTo(point);
                 } else if (paintState.toolId == "liquify") {
-                    worker.setStrokeSize( paintState.brushSize);
-                    worker.setAlpha( paintState.brushAlpha);
+                    worker.setStrokeSize(paintState.brushSize);
+                    worker.setAlpha(paintState.brushAlpha);
 
-                    worker.liquifyStart( point);
+                    worker.liquifyStart(point);
                     start = { x: event.clientX, y: event.clientY };
                     end = { x: event.clientX, y: event.clientY };
                 }
@@ -98,15 +97,15 @@ export async function initDraw() {
             const worker = getLayerWorker();
 
             if (paintState.toolId == "brush") {
-                worker.drawTo( point);
+                worker.drawTo(point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo( point);
+                worker.eraserTo(point);
             } else if (paintState.toolId == "liquify") {
                 end = point;
 
                 let length = Math.hypot(end.x - start.x, end.y - start.y);
                 if (length > paintState.brushSize / 25) {
-                    worker.liquifyTo( point);
+                    worker.liquifyTo(point);
                     start = end;
                 }
             }
@@ -120,9 +119,9 @@ export async function initDraw() {
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
             if (paintState.toolId == "brush") {
-                worker.drawTo( point);
+                worker.drawTo(point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo( point);
+                worker.eraserTo(point);
             } else if (paintState.toolId == "liquify") {
             }
 
@@ -139,8 +138,9 @@ export async function initDraw() {
  * 원본 텍스쳐로 돌려놓기
  */
 export function cancel() {
-    const worker = getLayerWorker();
+    pointerActive = false;
 
+    const worker = getLayerWorker();
     if (paintState.toolId == "brush") {
         worker.cancel();
     } else if (paintState.toolId == "eraser") {
@@ -151,7 +151,7 @@ export function cancel() {
 }
 
 /**
- * 현재 이미지를 원본 텍스쳐에 덮어쓰기
+ * 그리기 종료
  */
 export function endDrawing() {
     console.log("endDrawing!");

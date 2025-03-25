@@ -1,6 +1,7 @@
 import { getGlHelper } from "./glHelper";
-import { getLiquifyManager } from "./liquify/liquify";
-import { getBrushManager, renderScreen } from "./tools";
+import { getLiquifyManager, LiquifyTool } from "./tool/liquify";
+import { getBrushManager, BrushTool } from "./tool/brushTool";
+import { renderScreen } from "./tool/tool";
 import { paintOptions } from "./texture";
 interface Pointer {
   x: number;
@@ -18,8 +19,8 @@ export class PaintLayer {
   tool: string;
   lastPointer: Pointer;
 
-  drawManager;
-  liquifyManager;
+  drawManager: BrushTool;
+  liquifyManager: LiquifyTool;
 
   constructor(
     canvas: OffscreenCanvas,
@@ -135,7 +136,7 @@ export class PaintLayer {
   }
 
   eraserEnd() {
-    this.drawManager.reset();
+    this.drawManager.end();
   }
 
   async liquifyInit() {
@@ -143,7 +144,7 @@ export class PaintLayer {
   }
   async liquifyStart(pointer: Pointer) {
     this.lastPointer = pointer;
-    this.liquifyManager.startStroke(pointer);
+    this.liquifyManager.start(pointer);
   }
   liquifyTo(pointer: Pointer) {
     this.liquifyManager.push(this.lastPointer, pointer);
@@ -155,12 +156,12 @@ export class PaintLayer {
   }
 
   liquifyEnd() {
-    this.liquifyManager.endStroke();
+    this.liquifyManager.end();
   }
 
-  liquifyFinish() {
-    console.log("리퀴파이 finish!");
-    this.liquifyManager.finish();
+  liquifyExit() {
+    console.log("리퀴파이 exit!");
+    this.liquifyManager.exit();
   }
 
   // appendHistory() {

@@ -66,8 +66,8 @@ export const workerApi = {
   liquifyEnd() {
     layer.liquifyEnd();
   },
-  liquifyFinish() {
-    layer.liquifyFinish();
+  liquifyExit() {
+    layer.liquifyExit();
   },
 };
 

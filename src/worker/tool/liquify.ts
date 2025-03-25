@@ -17,21 +17,28 @@ import {
     loadShader,
     getGlHelper,
 } from "../glHelper";
+import { Tool } from "./tool";
+
+export interface LiquifyTool extends Tool {
+    push(p1, p2): void;
+    render(): void;
+    setStrength(s): void;
+}
 
 const liquifyManagerStore = new Map();
 
-export function getLiquifyManager(canvas, gl) {
+export async function getLiquifyManager(canvas, gl): Promise<LiquifyTool> {
     if (liquifyManagerStore.has(gl)) {
         return liquifyManagerStore.get(gl);
     }
 
-    const brushManager = makeLiquifyManager(canvas, gl);
+    const brushManager = await makeLiquifyManager(canvas, gl);
     liquifyManagerStore.set(gl, brushManager);
 
     return brushManager;
 }
 
-async function makeLiquifyManager(canvas, gl) {
+async function makeLiquifyManager(canvas, gl): Promise<LiquifyTool> {
     console.log("make liquify");
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
@@ -460,7 +467,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     let offScreenManager = getOffscreenManager(canvas, gl);
 
-    function startStroke(pointer) {
+    function start(pointer) {
         pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
 
         let ceiledRadius = Math.ceil(paintOptions.radius);
@@ -489,7 +496,7 @@ async function makeLiquifyManager(canvas, gl) {
         //console.log(pathDirtyRect);
     }
 
-    function changeVector(start, end) {
+    function push(start, end) {
         let height = paintOptions.height;
 
         gl.useProgram(liquifyPushProgram);
@@ -595,8 +602,10 @@ async function makeLiquifyManager(canvas, gl) {
         offScreenManager.renderOffscreenToCanvas();
     }
 
-    function cancel() {
+    function transfer(aTex, bTex) {
         let height = paintOptions.height;
+
+        // sourceDisplacementTex -> displacementTex
 
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
@@ -605,7 +614,7 @@ async function makeLiquifyManager(canvas, gl) {
             gl.READ_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            sourceDisplacementTex,
+            aTex,
             0,
         );
 
@@ -613,63 +622,9 @@ async function makeLiquifyManager(canvas, gl) {
             gl.DRAW_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            displacementTex,
+            bTex,
             0,
         );
-
-        gl.blitFramebuffer(
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 소스
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 대상
-            gl.COLOR_BUFFER_BIT,
-            gl.NEAREST,
-        );
-
-        render();
-    }
-
-    function endStroke() {
-        let height = paintOptions.height;
-        // 사실 근데 캔슬되서 엔드가 호출되면 엔드는 필요없음...
-
-        //sourceDisplacementTex에 현재 displace맵을 업로드 하는데, 이때 pathDirtyRect범위에 있는 것들만 업로드.
-        // 적용된 텍스처를 read에도 옮기기
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-        gl.framebufferTexture2D(
-            gl.READ_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTex,
-            0,
-        );
-
-        gl.framebufferTexture2D(
-            gl.DRAW_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            sourceDisplacementTex,
-            0,
-        );
-
-        // gl.blitFramebuffer(
-        //     0,
-        //     0,
-        //     width,
-        //     height, // 소스
-        //     0,
-        //     0,
-        //     width,
-        //     height, // 대상
-        //     gl.COLOR_BUFFER_BIT,
-        //     gl.NEAREST,
-        // );
 
         gl.blitFramebuffer(
             pathDirtyRect.x,
@@ -688,13 +643,6 @@ async function makeLiquifyManager(canvas, gl) {
     function setStrength(s) {
         strength = s;
     }
-    function finish() {
-        // finish라고 봐도 됌. 픽셀유동화를 나갈때 실행하는거임.
-        clearMap();
-
-        sourceTextureManager.uploadCurrent();
-    }
-
     function clearMap() {
         let width = paintOptions.width;
         let height = paintOptions.height;
@@ -705,15 +653,25 @@ async function makeLiquifyManager(canvas, gl) {
     }
 
     let Liquify = {
-        startStroke,
-        push: changeVector,
-        render: render,
-        cancel,
-        endStroke,
-        finish,
+        enter() {},
+        start,
+        push,
+        render,
+        end() {
+            // displacementTex -> sourceDisplacementTex
+            transfer(displacementTex, sourceDisplacementTex);
+        },
+        cancel() {
+            // sourceDisplacementTex -> displacementTex
+            transfer(sourceDisplacementTex, displacementTex);
+            render();
+        },
+        exit() {
+            clearMap();
+            sourceTextureManager.uploadCurrent();
+        },
         setSize,
         setStrength,
-        clearMap,
     };
 
     return Liquify;

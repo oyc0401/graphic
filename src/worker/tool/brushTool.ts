@@ -1,19 +1,25 @@
-import { createShader, createProgram, getGlHelper } from "./glHelper";
-import { getLiquifyManager } from "./liquify/liquify";
+import { createShader, createProgram, getGlHelper } from "../glHelper";
 import {
   TEXTURE_UNIT,
   getSourceTextureManager,
   paintOptions,
   getOffscreenManager,
-} from "./texture";
-import { getFullQuadVertexShader } from "./vertexShader";
+} from "../texture";
+import { getFullQuadVertexShader } from "../vertexShader";
+import { Tool } from "./tool";
+
+export interface BrushTool extends Tool {
+  stroke(p1, p2): void;
+  brush(): void;
+  eraser(): void;
+}
 
 /**
  * 싱글톤, 처음 시작할 때만 glsl 컴파일 함.
  */
 const drawManagers = new Map();
 
-export function getBrushManager(canvas, gl) {
+export function getBrushManager(canvas, gl): BrushTool {
   if (drawManagers.has(gl)) {
     return drawManagers.get(gl);
   }
@@ -24,7 +30,7 @@ export function getBrushManager(canvas, gl) {
   return brushManager;
 }
 
-function makeBrushManager(canvas, gl) {
+function makeBrushManager(canvas, gl): BrushTool {
   // let width = paintOptions.width;
   //  let height = paintOptions.height;
 
@@ -336,140 +342,6 @@ function makeBrushManager(canvas, gl) {
 
   let offScreenManager = getOffscreenManager(canvas, gl);
 
-  function stroke(start, end) {
-    let height = paintOptions.height;
-
-    gl.useProgram(strokeProgram);
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-    gl.bindTexture(gl.TEXTURE_2D, pathTex);
-
-    // 유나폼 변수 설정
-    gl.uniform1f(
-      gl.getUniformLocation(strokeProgram, "u_radius"),
-      paintOptions.radius,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(strokeProgram, "u_alpha"),
-      paintOptions.alpha,
-    );
-
-    gl.uniform2f(
-      gl.getUniformLocation(strokeProgram, "u_start"),
-      start.x,
-      height - start.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(strokeProgram, "u_end"),
-      end.x,
-      height - end.y,
-    );
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    // 프레임버퍼에 쓰기 텍스처 넣기
-    // 이전에 blit할때 다른거 지정되어있었음
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      pathTexOut,
-      0,
-    );
-
-    let ceiledRadius = Math.ceil(paintOptions.radius);
-    let minX = Math.min(start.x, end.x);
-    let maxX = Math.max(start.x, end.x);
-    let minY = Math.min(height - start.y, height - end.y);
-    let maxY = Math.max(height - start.y, height - end.y);
-
-    dirtyRect.x = minX - ceiledRadius;
-    dirtyRect.y = minY - ceiledRadius;
-    dirtyRect.ex = maxX + ceiledRadius + 1;
-    dirtyRect.ey = maxY + ceiledRadius + 1;
-    dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
-    dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
-
-    // SCISSOR TEST로 일부만 렌더링
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    // 적용된 텍스처를 read에도 옮기기
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-    gl.framebufferTexture2D(
-      gl.READ_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      pathTexOut,
-      0,
-    );
-
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      pathTex,
-      0,
-    );
-
-    gl.blitFramebuffer(
-      dirtyRect.x,
-      dirtyRect.y,
-      dirtyRect.ex,
-      dirtyRect.ey, // 소스
-      dirtyRect.x,
-      dirtyRect.y,
-      dirtyRect.ex,
-      dirtyRect.ey, // 대상
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
-  }
-
-  function brush() {
-    gl.useProgram(brushProgram);
-
-    gl.uniform3fv(
-      gl.getUniformLocation(brushProgram, "u_color"),
-      paintOptions.color,
-    );
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.disable(gl.SCISSOR_TEST);
-
-    offScreenManager.renderOffscreenToCanvas();
-  }
-
-  function eraser() {
-    gl.useProgram(eraserProgram);
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.disable(gl.SCISSOR_TEST);
-
-    offScreenManager.renderOffscreenToCanvas();
-  }
-
-  function cancel() {
-    sourceTextureManager.restore();
-  }
-
-  function end() {
-    clearMap();
-    // 위는 해야하지만,
-    // 아래꺼는 캔슬되서 엔드가 실행되면 굳이 실행 안해도 됌
-    // 근데, 이게.. 어쩔수 없어서 그냥 두자.
-    // 캔슬이 그리 자주나나? 캔슬은 핀치줌인데, 일어나도 1초간은 어짜피 드로우 안할거같음.
-    sourceTextureManager.uploadCurrent();
-  }
 
   function clearMap() {
     let glHelper = getGlHelper(gl);
@@ -477,159 +349,139 @@ function makeBrushManager(canvas, gl) {
   }
 
   let brushManager = {
-    stroke,
-    brush,
-    eraser,
-    end,
-    cancel,
+    enter() {},
+    start(p) {},
+    stroke(start, end) {
+      let height = paintOptions.height;
+
+      gl.useProgram(strokeProgram);
+
+      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+      gl.bindTexture(gl.TEXTURE_2D, pathTex);
+
+      // 유나폼 변수 설정
+      gl.uniform1f(
+        gl.getUniformLocation(strokeProgram, "u_radius"),
+        paintOptions.radius,
+      );
+      gl.uniform1f(
+        gl.getUniformLocation(strokeProgram, "u_alpha"),
+        paintOptions.alpha,
+      );
+
+      gl.uniform2f(
+        gl.getUniformLocation(strokeProgram, "u_start"),
+        start.x,
+        height - start.y,
+      );
+      gl.uniform2f(
+        gl.getUniformLocation(strokeProgram, "u_end"),
+        end.x,
+        height - end.y,
+      );
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      // 프레임버퍼에 쓰기 텍스처 넣기
+      // 이전에 blit할때 다른거 지정되어있었음
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        pathTexOut,
+        0,
+      );
+
+      let ceiledRadius = Math.ceil(paintOptions.radius);
+      let minX = Math.min(start.x, end.x);
+      let maxX = Math.max(start.x, end.x);
+      let minY = Math.min(height - start.y, height - end.y);
+      let maxY = Math.max(height - start.y, height - end.y);
+
+      dirtyRect.x = minX - ceiledRadius;
+      dirtyRect.y = minY - ceiledRadius;
+      dirtyRect.ex = maxX + ceiledRadius + 1;
+      dirtyRect.ey = maxY + ceiledRadius + 1;
+      dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
+      dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+
+      // SCISSOR TEST로 일부만 렌더링
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+      gl.viewport(0, 0, paintOptions.width, paintOptions.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // 적용된 텍스처를 read에도 옮기기
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
+
+      gl.framebufferTexture2D(
+        gl.READ_FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        pathTexOut,
+        0,
+      );
+
+      gl.framebufferTexture2D(
+        gl.DRAW_FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        pathTex,
+        0,
+      );
+
+      gl.blitFramebuffer(
+        dirtyRect.x,
+        dirtyRect.y,
+        dirtyRect.ex,
+        dirtyRect.ey, // 소스
+        dirtyRect.x,
+        dirtyRect.y,
+        dirtyRect.ex,
+        dirtyRect.ey, // 대상
+        gl.COLOR_BUFFER_BIT,
+        gl.NEAREST,
+      );
+    },
+    brush() {
+      gl.useProgram(brushProgram);
+
+      gl.uniform3fv(
+        gl.getUniformLocation(brushProgram, "u_color"),
+        paintOptions.color,
+      );
+      // 쓰기 영역: 내 화면
+      gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+      gl.viewport(0, 0, paintOptions.width, paintOptions.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.disable(gl.SCISSOR_TEST);
+
+      offScreenManager.renderOffscreenToCanvas();
+    },
+    eraser() {
+      gl.useProgram(eraserProgram);
+      // 쓰기 영역: 내 화면
+      gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+      gl.viewport(0, 0, paintOptions.width, paintOptions.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.disable(gl.SCISSOR_TEST);
+
+      offScreenManager.renderOffscreenToCanvas();
+    },
+    end() {
+      sourceTextureManager.uploadCurrent();
+      clearMap();
+    },
+    cancel() {
+      sourceTextureManager.restore();
+      clearMap();
+      offScreenManager.renderOffscreenToCanvas();
+    },
+    exit() {},
     setSize,
-    clearMap,
   };
 
   return brushManager;
-}
-
-export async function renderScreen(
-  canvas,
-  gl,
-  width,
-  height,
-  screenWidth,
-  screenHeight,
-  x,
-  y,
-  magnification,
-) {
-  let offScreenManager = getOffscreenManager(canvas, gl);
-  // console.log(width, height, screenWidth, screenHeight, x, y, magnification);
-  if (
-    paintOptions.screenWidth != screenWidth ||
-    paintOptions.screenHeight != screenHeight
-  ) {
-    console.log("전체 화면 크기가 변함!");
-    canvas.width = screenWidth;
-    canvas.height = screenHeight;
-  }
-  if (paintOptions.width != width || paintOptions.height != height) {
-    console.log("그림 영역 크기가 변함!");
-
-    // 텍스펴 크기를 낮추기()
-    changeTex(
-      canvas,
-      gl,
-      paintOptions.width,
-      paintOptions.height,
-      width,
-      height,
-    );
-
-    paintOptions.width = width;
-    paintOptions.height = height;
-    paintOptions.screenWidth = screenWidth;
-    paintOptions.screenHeight = screenHeight;
-    paintOptions.x = x;
-    paintOptions.y = y;
-    paintOptions.magnification = magnification;
-
-    let sourceTextureManager = getSourceTextureManager(canvas, gl);
-    sourceTextureManager.uploadCurrent();
-
-    let drawManager = getBrushManager(canvas, gl);
-    drawManager.setSize();
-    let liquifyManager = await getLiquifyManager(canvas, gl);
-    liquifyManager.setSize();
-  }
-
-  paintOptions.width = width;
-  paintOptions.height = height;
-  paintOptions.screenWidth = screenWidth;
-  paintOptions.screenHeight = screenHeight;
-  paintOptions.x = x;
-  paintOptions.y = y;
-  paintOptions.magnification = magnification;
-
-  offScreenManager.renderOffscreenToCanvas();
-}
-
-function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
-  console.log("changeTex");
-  const newTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE17);
-  gl.bindTexture(gl.TEXTURE_2D, newTexture);
-  // WebGL2에서는 texImage2D로 먼저 공간(크기) 할당해주고, 이후 copyTexImage2D 사용
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    newWidth,
-    newHeight,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
-  );
-
-  const framebuffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-
-  // 텍스처를 프레임버퍼에 첨부
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    newTexture,
-    0,
-  );
-
-  let offScreenManager = getOffscreenManager(canvas, gl);
-
-  // 이제 화면으로 blit (복사)하기 위해
-  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offScreenManager.offscreenFBO);
-  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer); // null은 기본 화면 프레임버퍼
-
-  let diffHeight = newHeight - oldHeight;
-  gl.blitFramebuffer(
-    0,
-    0,
-    oldWidth,
-    oldHeight,
-    0,
-    diffHeight,
-    oldWidth,
-    oldHeight + diffHeight,
-    gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-    gl.NEAREST,
-  );
-
-  // 그걸 다시 원래 텍스쳐에 붙여넣기
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TARGET);
-  gl.bindTexture(gl.TEXTURE_2D, offScreenManager.offscreenTex);
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    newWidth,
-    newHeight,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
-  );
-
-  gl.copyTexSubImage2D(
-    gl.TEXTURE_2D, // 타겟 텍스처
-    0, // 레벨
-    0,
-    0, // 텍스처 내에서 복사할 시작 좌표
-    0,
-    0, // 프레임버퍼에서 복사할 시작 좌표
-    newWidth,
-    newHeight, // 복사할 크기
-  );
-
-  gl.deleteTexture(newTexture);
 }
