@@ -18,7 +18,7 @@ export let position = {
     this.bouncingRect = container.getBoundingClientRect();
   },
   resizeScreen() {
-    console.log("resizeScreen");
+   // console.log("resizeScreen");
     position.updateBouncingRect();
 
     // 스크롤 범위 제한!
@@ -33,7 +33,6 @@ export let position = {
     this.x = clampPositionX;
     this.y = clampPositionY;
 
-    
     const worker = getLayerWorker();
 
     worker.render(
@@ -53,12 +52,23 @@ export function initPosition() {
   position.updateBouncingRect();
 
   // 초기 위치 설정
-  position.scale = 1;
-  position.width = 200;
-  position.height = 200;
-  position.x = (position.bouncingRect.width - position.width) / 2;
-  position.y = (position.bouncingRect.height - position.height) / 2;
+  let percent = 2 / 3;
+  let dpr = getPixelRatio();
+  let scaledDpr = dpr * percent;
+  if (position.bouncingRect.width > position.bouncingRect.height) {
+    // 가로가 김
+    position.width = position.bouncingRect.height * scaledDpr * 1.414;
+    position.height = position.bouncingRect.height * scaledDpr;
+  } else {
+    // 세로가 김
+    position.width = position.bouncingRect.width * scaledDpr;
+    position.height = position.bouncingRect.width * scaledDpr * 1.414;
+  }
 
+  // 초기 위치 설정
+  position.scale = 1;
+  position.x = (position.bouncingRect.width - position.width / dpr) / 2;
+  position.y = (position.bouncingRect.height - position.height / dpr) / 2;
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });

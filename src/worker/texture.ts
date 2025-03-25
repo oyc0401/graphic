@@ -139,7 +139,7 @@ function makeOffscreenManager(canvas, gl) {
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
   function renderOffscreenToCanvas() {
-    console.log("render");
+    //console.log("render");
     gl.disable(gl.SCISSOR_TEST);
     gl.useProgram(renderProgram);
 
