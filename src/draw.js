@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { applyKeyAction, updateCursor } from "./interface";
+import { applyKeyAction, updateCursorShape } from "./interface";
 import { position } from "./position";
 import { to_canvas_coord, to_screen_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
@@ -38,8 +38,7 @@ export async function initDraw() {
     const worker = getLayerWorker();
     let canvas = document.querySelector("#canvas");
     const offscreen = canvas.transferControlToOffscreen();
-    
-  
+
     await worker.makeLayer(
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
@@ -47,8 +46,9 @@ export async function initDraw() {
         position.bouncingRect.width,
         position.bouncingRect.height,
     );
+}
 
-
+export function addDrawEvent() {
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };
 
@@ -132,7 +132,7 @@ export async function initDraw() {
             endDrawing();
 
             applyKeyAction();
-            updateCursor();
+            updateCursorShape();
         });
     })();
 }

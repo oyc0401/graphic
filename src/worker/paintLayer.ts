@@ -53,11 +53,11 @@ export class PaintLayer {
     this.init();
   }
   async init() {
-    await this.toolInit();
-    console.log('Making Layer Complete!')
+    await this.installTools();
+    console.log("Making Layer Complete!");
   }
 
-  async toolInit() {
+  async installTools() {
     await installTools(this.canvas, this.gl);
 
     let brushTool = new BrushTool(this.canvas, this.gl);

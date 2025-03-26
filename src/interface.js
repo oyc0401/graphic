@@ -2,7 +2,7 @@ import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { position } from "./position";
 
-function updateUI() {
+function updateMenubarUI() {
     document.querySelector("#select-brush").classList.remove("selected");
     document.querySelector("#select-eraser").classList.remove("selected");
 
@@ -14,25 +14,26 @@ function updateUI() {
     }
 }
 
-export function initInterface() {
-    updateUI();
 
-    updateCursor();
+export function addInteractionEvent() {
+    updateMenubarUI();
+
+    updateCursorShape();
     
 
     document.querySelector("#select-brush").addEventListener("click", () => {
         toolManager.setBrushTool();
-        updateUI();
+        updateMenubarUI();
     });
 
     document.querySelector("#select-eraser").addEventListener("click", () => {
         toolManager.setEraserTool();
-        updateUI();
+        updateMenubarUI();
     });
 
     document.querySelector("#select-liquify").addEventListener("click", () => {
         toolManager.setLiquifyTool();
-        updateUI();
+        updateMenubarUI();
     });
 
     (function () {
@@ -45,14 +46,14 @@ export function initInterface() {
                 // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
 
                 applyKeyAction();
-                updateCursor();
+                updateCursorShape();
             }
             if (event.code === "Space") {
                 event.preventDefault();
                 pressedKeys["Space"] = true;
 
                 applyKeyAction();
-                updateCursor();
+                updateCursorShape();
             }
 
             if (event.code === "Escape") {
@@ -67,14 +68,14 @@ export function initInterface() {
                 pressedKeys["KeyZ"] = false;
 
                 applyKeyAction();
-                updateCursor();
+                updateCursorShape();
             }
             if (event.code === "Space") {
                 event.preventDefault();
                 pressedKeys["Space"] = false;
 
                 applyKeyAction();
-                updateCursor();
+                updateCursorShape();
             }
         });
     })();
@@ -83,7 +84,7 @@ export function initInterface() {
         "pointerdown",
         (_) => {
             paintState.pointerdown = true;
-            updateCursor();
+            updateCursorShape();
             // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
         },
         true,
@@ -93,7 +94,7 @@ export function initInterface() {
         "pointerup",
         (_) => {
             paintState.pointerdown = false;
-            updateCursor();
+            updateCursorShape();
             // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
         },
         true,
@@ -104,9 +105,9 @@ export function initInterface() {
         (event) => {
             if (event.pointerType == "mouse") {
                 // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
-                paintState.pointerX = event.clientX;
-                paintState.pointerY = event.clientY;
-                updateCursor();
+                paintState.cursorX = event.clientX;
+                paintState.cursorY = event.clientY;
+                updateCursorShape();
             }
         },
         true,
@@ -123,7 +124,7 @@ export let pressedKeys = {
     KeyZ: false,
 };
 
-export function updateCursor() {
+export function updateCursorShape() {
     const container = document.querySelector("#container");
     if (!container) return;
     let brushCursor = document.querySelector("#brush-cursor");
@@ -143,8 +144,8 @@ export function updateCursor() {
         if (!("ontouchstart" in window)) {
             brushCursor.style.visibility = "visible";
         }
-        brushCursor.style.left = `${paintState.pointerX - scaledBrushSize / 2}px`;
-        brushCursor.style.top = `${paintState.pointerY - scaledBrushSize / 2}px`;
+        brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2}px`;
+        brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2}px`;
         brushCursor.style.width = `${scaledBrushSize}px`;
         brushCursor.style.height = `${scaledBrushSize}px`;
     } else if (paintState.action === "ZOOM") {

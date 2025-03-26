@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
-import { applyKeyAction, updateCursor } from "./interface";
+import { applyKeyAction, updateCursorShape } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 
 const MIN_SCALE = 0.1;
@@ -48,7 +48,7 @@ export let position = {
   },
 };
 
-export function initPosition() {
+export function setDefaultPosition() {
   position.updateBouncingRect();
 
   // 초기 위치 설정
@@ -69,6 +69,9 @@ export function initPosition() {
   position.scale = 1;
   position.x = (position.bouncingRect.width - position.width / dpr) / 2;
   position.y = (position.bouncingRect.height - position.height / dpr) / 2;
+}
+
+export function addPositionEvent() {
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
@@ -106,7 +109,7 @@ export function initPosition() {
             clamped_scale,
             to_screen_coord(event.clientX, event.clientY),
           );
-          updateCursor();
+          updateCursorShape();
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
@@ -316,7 +319,7 @@ export function initPosition() {
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "PAN") return;
       applyKeyAction();
-      updateCursor();
+      updateCursorShape();
     });
   })();
 
@@ -385,7 +388,7 @@ export function initPosition() {
         }
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
         setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
-        updateCursor();
+        updateCursorShape();
       } else {
         let px = position.bouncingRect.width / zoomW;
         let py = position.bouncingRect.height / zoomH;
@@ -411,7 +414,7 @@ export function initPosition() {
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
 
         setMagification(clamped_scale, to_screen_coord(centerX, centerY));
-        updateCursor();
+        updateCursorShape();
       }
 
       position.resizeScreen();
@@ -419,7 +422,7 @@ export function initPosition() {
       activeZoom = false;
 
       applyKeyAction();
-      updateCursor();
+      updateCursorShape();
     });
   })();
 }
