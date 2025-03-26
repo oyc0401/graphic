@@ -38,14 +38,16 @@ export async function initDraw() {
     const worker = getLayerWorker();
     let canvas = document.querySelector("#canvas");
     const offscreen = canvas.transferControlToOffscreen();
-
-    worker.makeLayer(
+    
+  
+    await worker.makeLayer(
         Comlink.transfer(offscreen, [offscreen]),
         position.width,
         position.height,
         position.bouncingRect.width,
         position.bouncingRect.height,
     );
+
 
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };

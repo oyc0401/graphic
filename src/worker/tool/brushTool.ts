@@ -23,11 +23,15 @@ interface BrushManager {
  */
 const drawManagers = new Map<any, BrushManager>();
 
+export async function installBrushManager(canvas, gl) {
+  let brushManager = makeBrushManager(canvas, gl);
+  drawManagers.set(gl, brushManager);
+}
+
 export function getBrushManager(canvas, gl) {
   let brushManager = drawManagers.get(gl);
   if (!brushManager) {
-    brushManager = makeBrushManager(canvas, gl);
-    drawManagers.set(gl, brushManager);
+    console.error("Not Installed LiquifyManager!");
   }
 
   return brushManager;

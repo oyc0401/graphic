@@ -10,7 +10,7 @@ export const workerApi = {
     screenWidth: number,
     screenHeight: number,
   ) {
-    console.log("make layer", width, height);
+    console.log("Making Layer...", width, height);
 
     layer = new PaintLayer(
       main_canvas,

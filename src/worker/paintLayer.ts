@@ -1,5 +1,5 @@
 import { getGlHelper } from "./glHelper";
-import { BrushTool, EraserTool, LiquifyTool } from "./tool/tool";
+import { BrushTool, EraserTool, installTools, LiquifyTool } from "./tool/tool";
 import { paintOptions } from "./texture";
 import { renderScreen } from "./render";
 interface Pointer {
@@ -16,7 +16,7 @@ export class PaintLayer {
   screenHeight: number;
 
   toolId: string;
-  tool: any;
+  tools: any;
   lastPointer: Pointer;
 
   constructor(
@@ -48,25 +48,27 @@ export class PaintLayer {
     paintOptions.screenWidth = width;
     paintOptions.screenHeight = screenHeight;
 
-    this.toolInit();
+    this.toolId = "brush";
+
+    this.init();
+  }
+  async init() {
+    await this.toolInit();
+    console.log('Making Layer Complete!')
   }
 
   async toolInit() {
-    let brushTool = new BrushTool();
-    let eraserTool = new EraserTool();
-    let liquifyTool = new LiquifyTool();
+    await installTools(this.canvas, this.gl);
 
-    await brushTool.init(this.canvas, this.gl);
-    await eraserTool.init(this.canvas, this.gl);
-    await liquifyTool.init(this.canvas, this.gl);
+    let brushTool = new BrushTool(this.canvas, this.gl);
+    let eraserTool = new EraserTool(this.canvas, this.gl);
+    let liquifyTool = new LiquifyTool(this.canvas, this.gl);
 
-    this.tool = {
+    this.tools = {
       brush: brushTool,
       eraser: eraserTool,
       liquify: liquifyTool,
     };
-
-    this.toolId = "brush";
   }
 
   clear() {
@@ -114,7 +116,7 @@ export class PaintLayer {
     this.getTool().enter();
   }
   getTool() {
-    return this.tool[this.toolId];
+    return this.tools[this.toolId];
   }
   start(pointer: Pointer) {
     this.getTool().start(pointer);

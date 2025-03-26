@@ -31,18 +31,21 @@ interface liquifyManager {
 }
 const liquifyManagerStore = new Map<any, liquifyManager>();
 
-export async function getLiquifyManager(canvas, gl) {
+export async function installLiquifyManager(canvas, gl) {
+    let liquifyManager = await makeLiquifyManager(canvas, gl);
+    liquifyManagerStore.set(gl, liquifyManager);
+}
+
+export function getLiquifyManager(canvas, gl) {
     let liquifyManager = liquifyManagerStore.get(gl);
     if (!liquifyManager) {
-        liquifyManager = await makeLiquifyManager(canvas, gl);
-        liquifyManagerStore.set(gl, liquifyManager);
+        console.error("Not Installed LiquifyManager!");
     }
 
     return liquifyManager;
 }
 
 async function makeLiquifyManager(canvas, gl) {
-    console.log("make liquify");
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
 

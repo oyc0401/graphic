@@ -1,5 +1,5 @@
-import { getLiquifyManager } from "./liquify";
-import { getBrushManager } from "./brushTool";
+import { getLiquifyManager, installLiquifyManager } from "./liquify";
+import { getBrushManager, installBrushManager } from "./brushTool";
 
 interface Pointer {
   x: number;
@@ -15,9 +15,15 @@ interface Tool {
   exit(): void;
 }
 
+export async function installTools(canvas, gl) {
+  await installBrushManager(canvas, gl);
+  await installLiquifyManager(canvas, gl);
+  console.log('Tool Installed')
+}
+
 export class BrushTool implements Tool {
   drawManager;
-  async init(canvas, gl) {
+  constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
   }
   enter() {}
@@ -37,7 +43,7 @@ export class BrushTool implements Tool {
 
 export class EraserTool implements Tool {
   drawManager;
-  async init(canvas, gl) {
+  constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
   }
   enter() {}
@@ -57,8 +63,8 @@ export class EraserTool implements Tool {
 
 export class LiquifyTool implements Tool {
   liquifyManager;
-  async init(canvas, gl) {
-    this.liquifyManager = await getLiquifyManager(canvas, gl);
+  constructor(canvas, gl) {
+    this.liquifyManager = getLiquifyManager(canvas, gl);
   }
   enter() {}
   start(pointer: Pointer) {

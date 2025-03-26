@@ -54,10 +54,14 @@ export async function renderScreen(
     sourceTextureManager.uploadCurrent();
 
     let drawManager = getBrushManager(canvas, gl);
-    let liquifyManager = await getLiquifyManager(canvas, gl);
+    let liquifyManager = getLiquifyManager(canvas, gl);
 
-    drawManager.setSize();
-    liquifyManager.setSize();
+    if (!drawManager || !liquifyManager) {
+      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
+    } else {
+      drawManager.setSize();
+      liquifyManager.setSize();
+    }
   }
 
   paintOptions.width = width;
