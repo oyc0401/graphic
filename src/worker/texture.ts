@@ -1,5 +1,5 @@
 import { createShader, createProgram } from "./glHelper";
-import { getFullQuadVertexShader } from "./vertexShader";
+import { getFullQuadShader } from "./vertexShader";
 
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
@@ -87,7 +87,7 @@ function makeOffscreenManager(canvas, gl) {
   );
 
   ///
-  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+  const fullQuadVertexShader = getFullQuadShader(gl);
 
   let renderShaderSource = `#version 300 es
       precision highp float;
@@ -236,7 +236,7 @@ function makeSourceTextureManager(canvas, gl) {
     );
   }
 
-  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+  const fullQuadVertexShader = getFullQuadShader(gl);
 
   let cancelShaderSource = `#version 300 es
       precision highp float;

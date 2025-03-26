@@ -33,41 +33,21 @@ export const workerApi = {
   setAlpha(alpha) {
     layer.setAlpha(alpha);
   },
-  drawStart(pointer: Pointer) {
-    layer.drawStart(pointer);
+  setTool(toolId) {
+    layer.setTool(toolId);
   },
-  drawTo(pointer: Pointer) {
-    layer.drawTo(pointer);
+
+  start(pointer: Pointer) {
+    layer.start(pointer);
   },
-  drawEnd() {
-    layer.drawEnd();
+  strokeTo(pointer: Pointer) {
+    layer.strokeTo(pointer);
+  },
+  end() {
+    layer.end();
   },
   cancel() {
     layer.cancel();
-  },
-  eraserStart(pointer: Pointer) {
-    layer.eraserStart(pointer);
-  },
-  eraserTo(pointer: Pointer) {
-    layer.eraserTo(pointer);
-  },
-  eraserEnd() {
-    layer.drawEnd();
-  },
-  liquifyStart(pointer: Pointer) {
-    layer.liquifyStart(pointer);
-  },
-  liquifyTo(pointer: Pointer) {
-    layer.liquifyTo(pointer);
-  },
-  liquifyCancel() {
-    layer.liquifyCancel();
-  },
-  liquifyEnd() {
-    layer.liquifyEnd();
-  },
-  liquifyExit() {
-    layer.liquifyExit();
   },
 };
 

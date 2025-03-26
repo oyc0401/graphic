@@ -7,27 +7,28 @@ import * as Comlink from "comlink";
 
 export let toolManager = {
     setBrushTool() {
-        const worker = getLayerWorker();
-        if (paintState.toolId == "liquify") {
-            worker.liquifyExit();
-        }
         paintState.toolId = "brush";
         paintState.brushSize = 5;
         paintState.brushAlpha = 0.3;
+
+        const worker = getLayerWorker();
+        worker.setTool(paintState.toolId);
     },
     setEraserTool() {
-        const worker = getLayerWorker();
-        if (paintState.toolId == "liquify") {
-            worker.liquifyExit();
-        }
         paintState.toolId = "eraser";
         paintState.brushSize = 10;
         paintState.brushAlpha = 1;
+
+        const worker = getLayerWorker();
+        worker.setTool(paintState.toolId);
     },
     setLiquifyTool() {
         paintState.toolId = "liquify";
         paintState.brushSize = 1000;
         paintState.brushAlpha = 1;
+
+        const worker = getLayerWorker();
+        worker.setTool(paintState.toolId);
     },
 };
 
@@ -67,21 +68,21 @@ export async function initDraw() {
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 
-                    worker.drawStart(point);
-                    worker.drawTo(point);
+                    worker.start(point);
+                    worker.strokeTo(point);
                 } else if (paintState.toolId == "eraser") {
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 
-                    worker.eraserStart(point);
-                    worker.eraserTo(point);
+                    worker.start(point);
+                    worker.strokeTo(point);
                 } else if (paintState.toolId == "liquify") {
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 
-                    worker.liquifyStart(point);
-                    start = { x: event.clientX, y: event.clientY };
-                    end = { x: event.clientX, y: event.clientY };
+                    worker.start(point);
+                    start = { x: e.clientX, y: e.clientY };
+                    end = { x: e.clientX, y: e.clientY };
                 }
             });
 
@@ -97,15 +98,15 @@ export async function initDraw() {
             const worker = getLayerWorker();
 
             if (paintState.toolId == "brush") {
-                worker.drawTo(point);
+                worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo(point);
+                worker.strokeTo(point);
             } else if (paintState.toolId == "liquify") {
                 end = point;
 
                 let length = Math.hypot(end.x - start.x, end.y - start.y);
                 if (length > paintState.brushSize / 25) {
-                    worker.liquifyTo(point);
+                    worker.strokeTo(point);
                     start = end;
                 }
             }
@@ -119,9 +120,9 @@ export async function initDraw() {
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
             if (paintState.toolId == "brush") {
-                worker.drawTo(point);
+                worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {
-                worker.eraserTo(point);
+                worker.strokeTo(point);
             } else if (paintState.toolId == "liquify") {
             }
 
@@ -141,13 +142,7 @@ export function cancel() {
     pointerActive = false;
 
     const worker = getLayerWorker();
-    if (paintState.toolId == "brush") {
-        worker.cancel();
-    } else if (paintState.toolId == "eraser") {
-        worker.cancel();
-    } else if (paintState.toolId == "liquify") {
-        worker.liquifyCancel();
-    }
+    worker.cancel();
 }
 
 /**
@@ -158,11 +153,5 @@ export function endDrawing() {
     pointerActive = false;
 
     const worker = getLayerWorker();
-    if (paintState.toolId == "brush") {
-        worker.drawEnd();
-    } else if (paintState.toolId == "eraser") {
-        worker.eraserEnd();
-    } else if (paintState.toolId == "liquify") {
-        worker.liquifyEnd();
-    }
+    worker.end();
 }

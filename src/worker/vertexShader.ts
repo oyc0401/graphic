@@ -5,7 +5,7 @@ const fullQuadVertexShaders = new Map();
 /**
  * in vec2 a_position;
  */
-export function getFullQuadVertexShader(gl) {
+export function getFullQuadShader(gl) {
   if (fullQuadVertexShaders.has(gl)) {
     return fullQuadVertexShaders.get(gl);
   }

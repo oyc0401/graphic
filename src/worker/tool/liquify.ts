@@ -4,7 +4,7 @@ import {
     paintOptions,
     getOffscreenManager,
 } from "../texture";
-import { getFullQuadVertexShader } from "../vertexShader";
+import { getFullQuadShader } from "../vertexShader";
 
 import {
     getIntegralEaseInOut,
@@ -17,28 +17,31 @@ import {
     loadShader,
     getGlHelper,
 } from "../glHelper";
-import { Tool } from "./tool";
 
-export interface LiquifyTool extends Tool {
-    push(p1, p2): void;
-    render(): void;
-    setStrength(s): void;
+interface liquifyManager {
+    enter(): void;
+    start: (pointer: any) => void;
+    push: (start: any, end: any) => void;
+    render: () => void;
+    end(): void;
+    cancel(): void;
+    exit(): void;
+    setSize: () => void;
+    setStrength: (s: any) => void;
 }
+const liquifyManagerStore = new Map<any, liquifyManager>();
 
-const liquifyManagerStore = new Map();
-
-export async function getLiquifyManager(canvas, gl): Promise<LiquifyTool> {
-    if (liquifyManagerStore.has(gl)) {
-        return liquifyManagerStore.get(gl);
+export async function getLiquifyManager(canvas, gl) {
+    let liquifyManager = liquifyManagerStore.get(gl);
+    if (!liquifyManager) {
+        liquifyManager = await makeLiquifyManager(canvas, gl);
+        liquifyManagerStore.set(gl, liquifyManager);
     }
 
-    const brushManager = await makeLiquifyManager(canvas, gl);
-    liquifyManagerStore.set(gl, brushManager);
-
-    return brushManager;
+    return liquifyManager;
 }
 
-async function makeLiquifyManager(canvas, gl): Promise<LiquifyTool> {
+async function makeLiquifyManager(canvas, gl) {
     console.log("make liquify");
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
@@ -58,7 +61,7 @@ async function makeLiquifyManager(canvas, gl): Promise<LiquifyTool> {
 
     // 원본 이미지 텍스처 생성
     const sourceTextureManager = getSourceTextureManager(canvas, gl);
-    const fullQuadVertexShader = getFullQuadVertexShader(gl);
+    const fullQuadVertexShader = getFullQuadShader(gl);
 
     let liquifyPushFragSrc = `#version 300 es
         precision highp float;

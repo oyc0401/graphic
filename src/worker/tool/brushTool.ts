@@ -5,38 +5,35 @@ import {
   paintOptions,
   getOffscreenManager,
 } from "../texture";
-import { getFullQuadVertexShader } from "../vertexShader";
-import { Tool } from "./tool";
+import { getFullQuadShader } from "../vertexShader";
 
-export interface BrushTool extends Tool {
-  stroke(p1, p2): void;
+interface BrushManager {
+  enter(): void;
+  start(p: any): void;
+  stroke(start: any, end: any): void;
   brush(): void;
   eraser(): void;
+  end(): void;
+  cancel(): void;
+  exit(): void;
+  setSize: () => void;
 }
-
 /**
  * 싱글톤, 처음 시작할 때만 glsl 컴파일 함.
  */
-const drawManagers = new Map();
+const drawManagers = new Map<any, BrushManager>();
 
-export function getBrushManager(canvas, gl): BrushTool {
-  if (drawManagers.has(gl)) {
-    return drawManagers.get(gl);
+export function getBrushManager(canvas, gl) {
+  let brushManager = drawManagers.get(gl);
+  if (!brushManager) {
+    brushManager = makeBrushManager(canvas, gl);
+    drawManagers.set(gl, brushManager);
   }
-
-  const brushManager = makeBrushManager(canvas, gl);
-  drawManagers.set(gl, brushManager);
 
   return brushManager;
 }
 
-function makeBrushManager(canvas, gl): BrushTool {
-  // let width = paintOptions.width;
-  //  let height = paintOptions.height;
-
-  // gl.viewport(0, 0, width, height);
-  //  gl.clearColor(0, 0, 0, 0);
-
+function makeBrushManager(canvas, gl) {
   const ext = gl.getExtension("EXT_color_buffer_float");
   if (!ext) {
     console.error("EXT_color_buffer_float not supported!");
@@ -52,7 +49,7 @@ function makeBrushManager(canvas, gl): BrushTool {
 
   // 원본 이미지 텍스처 생성
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const fullQuadVertexShader = getFullQuadVertexShader(gl);
+  const fullQuadVertexShader = getFullQuadShader(gl);
 
   let strokeShaderSource = `#version 300 es
     precision highp float;
@@ -341,7 +338,6 @@ function makeBrushManager(canvas, gl): BrushTool {
   setSize();
 
   let offScreenManager = getOffscreenManager(canvas, gl);
-
 
   function clearMap() {
     let glHelper = getGlHelper(gl);

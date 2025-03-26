@@ -1,8 +1,7 @@
 import { getGlHelper } from "./glHelper";
-import { getLiquifyManager, LiquifyTool } from "./tool/liquify";
-import { getBrushManager, BrushTool } from "./tool/brushTool";
-import { renderScreen } from "./tool/tool";
+import { BrushTool, EraserTool, LiquifyTool } from "./tool/tool";
 import { paintOptions } from "./texture";
+import { renderScreen } from "./render";
 interface Pointer {
   x: number;
   y: number;
@@ -16,11 +15,9 @@ export class PaintLayer {
   screenWidth: number;
   screenHeight: number;
 
-  tool: string;
+  toolId: string;
+  tool: any;
   lastPointer: Pointer;
-
-  drawManager: BrushTool;
-  liquifyManager: LiquifyTool;
 
   constructor(
     canvas: OffscreenCanvas,
@@ -51,13 +48,25 @@ export class PaintLayer {
     paintOptions.screenWidth = width;
     paintOptions.screenHeight = screenHeight;
 
-    this.init();
+    this.toolInit();
   }
 
-  async init() {
-    this.drawInit();
-    this.eraserInit();
-    await this.liquifyInit();
+  async toolInit() {
+    let brushTool = new BrushTool();
+    let eraserTool = new EraserTool();
+    let liquifyTool = new LiquifyTool();
+
+    await brushTool.init(this.canvas, this.gl);
+    await eraserTool.init(this.canvas, this.gl);
+    await liquifyTool.init(this.canvas, this.gl);
+
+    this.tool = {
+      brush: brushTool,
+      eraser: eraserTool,
+      liquify: liquifyTool,
+    };
+
+    this.toolId = "brush";
   }
 
   clear() {
@@ -82,8 +91,8 @@ export class PaintLayer {
     this.width = width;
     this.height = height;
 
-    this.drawManager.setSize();
-    this.liquifyManager.setSize();
+    // this.drawManager.setSize();
+    //this.liquifyManager.setSize();
   }
 
   setStrokeColor(r, g, b) {
@@ -97,77 +106,28 @@ export class PaintLayer {
   setAlpha(alpha) {
     paintOptions.setAlpha(alpha);
   }
-
-  drawInit() {
-    this.drawManager = getBrushManager(this.canvas, this.gl);
+  setTool(toolId) {
+    if (this.toolId != toolId) {
+      this.getTool().exit();
+    }
+    this.toolId = toolId;
+    this.getTool().enter();
   }
-  drawStart(pointer: Pointer) {
+  getTool() {
+    return this.tool[this.toolId];
+  }
+  start(pointer: Pointer) {
+    this.getTool().start(pointer);
     this.lastPointer = pointer;
   }
-
-  drawTo(pointer: Pointer) {
-    this.drawManager.stroke(this.lastPointer, pointer);
-    this.drawManager.brush();
+  strokeTo(pointer: Pointer) {
+    this.getTool().stroke(this.lastPointer, pointer);
     this.lastPointer = pointer;
   }
-
-  drawCancel() {
-    this.drawManager.cancel();
-  }
-
-  drawEnd() {
-    this.drawManager.end();
-  }
-
-  eraserInit() {
-    this.drawManager = getBrushManager(this.canvas, this.gl);
-  }
-  eraserStart(pointer: Pointer) {
-    this.lastPointer = pointer;
-  }
-
-  eraserTo(pointer: Pointer) {
-    this.drawManager.stroke(this.lastPointer, pointer);
-    this.drawManager.eraser();
-    this.lastPointer = pointer;
+  end() {
+    this.getTool().end();
   }
   cancel() {
-    this.drawManager.cancel();
+    this.getTool().cancel();
   }
-
-  eraserEnd() {
-    this.drawManager.end();
-  }
-
-  async liquifyInit() {
-    this.liquifyManager = await getLiquifyManager(this.canvas, this.gl);
-  }
-  async liquifyStart(pointer: Pointer) {
-    this.lastPointer = pointer;
-    this.liquifyManager.start(pointer);
-  }
-  liquifyTo(pointer: Pointer) {
-    this.liquifyManager.push(this.lastPointer, pointer);
-    this.liquifyManager.render();
-    this.lastPointer = pointer;
-  }
-  liquifyCancel() {
-    this.liquifyManager.cancel();
-  }
-
-  liquifyEnd() {
-    this.liquifyManager.end();
-  }
-
-  liquifyExit() {
-    console.log("리퀴파이 exit!");
-    this.liquifyManager.exit();
-  }
-
-  // appendHistory() {
-  //   // 지금 상태를 히스토리에 넣기!
-
-  //   let imageTexture = makeImageTex(this.canvas, this.gl);
-  //   history.push(imageTexture);
-  // }
 }
