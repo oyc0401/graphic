@@ -42,7 +42,7 @@ function makeRenderingManager(canvas, gl) {
 
 void main() {
   // 실제 픽셀 좌표
-  float px = v_texCoord.x * u_screenSize.x /  u_dpr ;
+  float px = v_texCoord.x * u_screenSize.x / u_dpr ;
   float py = v_texCoord.y * u_screenSize.y / u_dpr ;
 
   float cellSize = 16.0 ;   // 셀 크기
@@ -53,9 +53,9 @@ void main() {
 
   // 경계선 근처면 밝은 선 색
   if (modX < borderSize || modY < borderSize) {
-    outColor = vec4(0.895, 0.895, 0.895, 1.0);  // 밝은 경계선
+    outColor = vec4(0.89, 0.89, 0.89, 1.0);  // 테두리
   } else {
-    outColor = vec4(0.915, 0.915, 0.915, 1.0);  // 셀 내부 (어두운 회색)
+    outColor = vec4(0.91, 0.91, 0.91, 1.0);  // 셀 내부 
   }
 }
   `;
@@ -67,7 +67,6 @@ void main() {
   enable_a_position(gl, displayProgram);
 
   function renderDisplay() {
-    gl.disable(gl.SCISSOR_TEST);
     gl.useProgram(displayProgram);
 
     gl.uniform2f(
@@ -112,13 +111,6 @@ void main() {
   uniform float u_magnification;
   uniform float u_dpr;
 
-  float floorToPowerOfTwo(float x) {
-
-   return pow(2.0, floor(log2(x)));
- 
-  }
-
-
   void main() {
     vec2 scaledScreenSize = u_screenSize / u_magnification;
     vec2 ratio = u_resolution / scaledScreenSize;
@@ -126,13 +118,13 @@ void main() {
     float left = u_pos.x / scaledScreenSize.x;
     float top = u_pos.y / scaledScreenSize.y;
     float bottom = (scaledScreenSize.y - u_resolution.y) / scaledScreenSize.y - top;
-
+    
     if (left < v_texCoord.x && v_texCoord.x < left + ratio.x &&
         bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y) {
-        vec3 rgb = vec3(1.0, 1.0, 1.0);
-        float alpha = 0.3;
-        outColor = vec4(rgb * alpha, alpha);
-
+        vec3 rgb = vec3(0.0, 0.0, 0.0);
+        float alpha = 0.04;
+       // outColor = vec4(rgb * alpha, alpha);
+       outColor = vec4(1.0 ,1.0 ,1.0 ,1.0);
       return;
     }
 
@@ -151,7 +143,6 @@ void main() {
   enable_a_position(gl, backgroundProgram);
 
   function renderBackground() {
-    gl.disable(gl.SCISSOR_TEST);
     gl.useProgram(backgroundProgram);
 
     gl.uniform2f(
@@ -178,14 +169,9 @@ void main() {
       paintOptions.dpr,
     );
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.disable(gl.BLEND);
   }
 
   let renderShaderSource = `#version 300 es
@@ -233,12 +219,7 @@ void main() {
 
   enable_a_position(gl, renderProgram);
 
-  function render() {
-    renderDisplay();
-    renderBackground();
-
-    //console.log("render");
-    gl.disable(gl.SCISSOR_TEST);
+  function renderTexture() {
     gl.useProgram(renderProgram);
 
     gl.uniform2f(
@@ -262,13 +243,22 @@ void main() {
     );
 
     // 쓰기 영역: 캔버스
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function render() {
+    gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.BLEND);
+    
+    renderDisplay();
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    renderBackground();
+    renderTexture();
 
     gl.disable(gl.BLEND);
   }

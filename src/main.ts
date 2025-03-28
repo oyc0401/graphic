@@ -30,6 +30,7 @@ function getDefaultPaintState() {
 }
 
 async function main() {
+    console.log('Start App!');
     paintState = getDefaultPaintState();
 
     setDefaultPosition();
@@ -45,4 +46,6 @@ async function main() {
     position.resizeScreen();
 
     window.position = position;
+
+    console.log('Complete App!');
 }

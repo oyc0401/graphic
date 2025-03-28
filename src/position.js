@@ -66,10 +66,7 @@ export function setDefaultPosition() {
     position.height = position.bouncingRect.width * scaledDpr * 1.414;
   }
   position.dpr = dpr;
-
-  console.log(dpr)
-
-  MAX_SCALE = 120*dpr;
+  MAX_SCALE = 120 * dpr;
 
   // position.width = 5000;
   // position.height = 5000;

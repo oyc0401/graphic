@@ -95,7 +95,8 @@ button {
 }
 
 .brush {
-  cursor: none;
+  cursor: crosshair;
+  /* cursor: none; */
 }
 
 .zoom {
