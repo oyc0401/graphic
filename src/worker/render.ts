@@ -27,6 +27,78 @@ export function getRenderingManager(canvas, gl) {
 function makeRenderingManager(canvas, gl) {
   const fullQuadVertexShader = getFullQuadShader(gl);
 
+  let displaySource = `#version 300 es
+  precision highp float;
+
+  in vec2 v_texCoord;
+  out vec4 outColor;
+
+  uniform vec2 u_resolution;
+  uniform vec2 u_pos;
+  uniform vec2 u_screenSize;
+  uniform float u_magnification;
+  uniform float u_dpr;
+
+
+void main() {
+  // 실제 픽셀 좌표
+  float px = v_texCoord.x * u_screenSize.x /  u_dpr ;
+  float py = v_texCoord.y * u_screenSize.y / u_dpr ;
+
+  float cellSize = 16.0 ;   // 셀 크기
+  float borderSize = 1.0;  // 테두리 두께
+
+  float modX = mod(px, cellSize);
+  float modY = mod(py, cellSize);
+
+  // 경계선 근처면 밝은 선 색
+  if (modX < borderSize || modY < borderSize) {
+    outColor = vec4(0.895, 0.895, 0.895, 1.0);  // 밝은 경계선
+  } else {
+    outColor = vec4(0.915, 0.915, 0.915, 1.0);  // 셀 내부 (어두운 회색)
+  }
+}
+  `;
+
+  let displayShader = createShader(gl, gl.FRAGMENT_SHADER, displaySource);
+  let displayProgram = createProgram(gl, fullQuadVertexShader, displayShader);
+  gl.useProgram(displayProgram);
+
+  enable_a_position(gl, displayProgram);
+
+  function renderDisplay() {
+    gl.disable(gl.SCISSOR_TEST);
+    gl.useProgram(displayProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(displayProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(displayProgram, "u_pos"),
+      paintOptions.x,
+      paintOptions.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(displayProgram, "u_screenSize"),
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(displayProgram, "u_magnification"),
+      paintOptions.magnification,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(displayProgram, "u_dpr"),
+      paintOptions.dpr,
+    );
+
+    // 쓰기 영역: 캔버스
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
 
   let backgroundSource = `#version 300 es
   precision highp float;
@@ -57,31 +129,16 @@ function makeRenderingManager(canvas, gl) {
 
     if (left < v_texCoord.x && v_texCoord.x < left + ratio.x &&
         bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y) {
-
-      vec2 target = (v_texCoord - vec2(left, bottom)) / ratio;
-
-      float divM = floorToPowerOfTwo(u_magnification / u_dpr);
-      
-      // 픽셀 좌표로 변환
-      float x = floor(target.x * u_resolution.x / 8.0 * divM);
-      float y = floor(target.y * u_resolution.y / 8.0 * divM);
-
-      
-
-      // 짝수-짝수 또는 홀수-홀수면 밝은색, 아니면 어두운색
-      if (mod(x + y, 2.0) == 0.0) {
-        outColor = vec4(1.0, 1.0, 1.0, 1.0); // 밝은칸
-      } else {
-        outColor = vec4(0.9, 0.9, 0.9, 1.0); // 어두운칸
-      }
+        vec3 rgb = vec3(1.0, 1.0, 1.0);
+        float alpha = 0.3;
+        outColor = vec4(rgb * alpha, alpha);
 
       return;
     }
 
-    outColor = vec4(0.8, 0.8, 0.8, 1.0); // 외곽 배경
+    outColor = vec4(0.0, 0.0, 0.0, 0.0); // 외곽 배경
   }
   `;
-
 
   let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundSource);
   let backgroundProgram = createProgram(
@@ -91,7 +148,7 @@ function makeRenderingManager(canvas, gl) {
   );
   gl.useProgram(backgroundProgram);
 
-  enable_a_position(gl,backgroundProgram);
+  enable_a_position(gl, backgroundProgram);
 
   function renderBackground() {
     gl.disable(gl.SCISSOR_TEST);
@@ -120,12 +177,15 @@ function makeRenderingManager(canvas, gl) {
       gl.getUniformLocation(backgroundProgram, "u_dpr"),
       paintOptions.dpr,
     );
-    
 
-    // 쓰기 영역: 캔버스
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.disable(gl.BLEND);
   }
 
   let renderShaderSource = `#version 300 es
@@ -171,11 +231,12 @@ function makeRenderingManager(canvas, gl) {
     TEXTURE_UNIT.TARGET,
   );
 
-  enable_a_position(gl,renderProgram);
+  enable_a_position(gl, renderProgram);
 
   function render() {
+    renderDisplay();
     renderBackground();
-    
+
     //console.log("render");
     gl.disable(gl.SCISSOR_TEST);
     gl.useProgram(renderProgram);
