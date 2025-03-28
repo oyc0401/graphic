@@ -9,6 +9,7 @@ export const workerApi = {
     height: number,
     screenWidth: number,
     screenHeight: number,
+    dpr:number,
   ) {
     console.log("Making Layer...", width, height);
 
@@ -18,6 +19,7 @@ export const workerApi = {
       height,
       screenWidth,
       screenHeight,
+      dpr
     );
   },
   render(width, height, screenWidth, screenHeight, x, y, magnification) {

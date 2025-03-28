@@ -14,7 +14,8 @@ export class PaintLayer {
   height: number;
   screenWidth: number;
   screenHeight: number;
-
+  dpr:number;
+  
   toolId: string;
   tools: any;
   lastPointer: Pointer;
@@ -25,9 +26,11 @@ export class PaintLayer {
     height: number,
     screenWidth: number,
     screenHeight: number,
+    dpr:number,
   ) {
     this.canvas = canvas;
     let gl = canvas.getContext("webgl2", {
+      alpha:false,
       depth: false,
       stencil: false,
       antialias: false,
@@ -47,7 +50,8 @@ export class PaintLayer {
     paintOptions.height = height;
     paintOptions.screenWidth = width;
     paintOptions.screenHeight = screenHeight;
-
+    paintOptions.dpr = dpr;
+    
     this.toolId = "brush";
 
     this.init();

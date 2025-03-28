@@ -31,3 +31,9 @@ function makeFullQuadVertexShader(gl) {
 
   return vertexShader;
 }
+
+export function enable_a_position(gl, program) {
+  let posLoc = gl.getAttribLocation(program, "a_position");
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+}

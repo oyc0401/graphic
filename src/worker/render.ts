@@ -8,6 +8,215 @@ import { getLiquifyManager } from "./tool/liquify";
 
 import { getBrushManager } from "./tool/brushTool";
 
+import { createShader, createProgram } from "./glHelper";
+import { enable_a_position, getFullQuadShader } from "./vertexShader";
+
+const renderingManagerStore = new Map();
+
+export function getRenderingManager(canvas, gl) {
+  if (renderingManagerStore.has(gl)) {
+    return renderingManagerStore.get(gl);
+  }
+
+  const manager = makeRenderingManager(canvas, gl);
+  renderingManagerStore.set(gl, manager);
+
+  return manager;
+}
+
+function makeRenderingManager(canvas, gl) {
+  const fullQuadVertexShader = getFullQuadShader(gl);
+
+
+  let backgroundSource = `#version 300 es
+  precision highp float;
+
+  in vec2 v_texCoord;
+  out vec4 outColor;
+
+  uniform vec2 u_resolution;
+  uniform vec2 u_pos;
+  uniform vec2 u_screenSize;
+  uniform float u_magnification;
+  uniform float u_dpr;
+
+  float floorToPowerOfTwo(float x) {
+
+   return pow(2.0, floor(log2(x)));
+ 
+  }
+
+
+  void main() {
+    vec2 scaledScreenSize = u_screenSize / u_magnification;
+    vec2 ratio = u_resolution / scaledScreenSize;
+
+    float left = u_pos.x / scaledScreenSize.x;
+    float top = u_pos.y / scaledScreenSize.y;
+    float bottom = (scaledScreenSize.y - u_resolution.y) / scaledScreenSize.y - top;
+
+    if (left < v_texCoord.x && v_texCoord.x < left + ratio.x &&
+        bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y) {
+
+      vec2 target = (v_texCoord - vec2(left, bottom)) / ratio;
+
+      float divM = floorToPowerOfTwo(u_magnification / u_dpr);
+      
+      // 픽셀 좌표로 변환
+      float x = floor(target.x * u_resolution.x / 8.0 * divM);
+      float y = floor(target.y * u_resolution.y / 8.0 * divM);
+
+      
+
+      // 짝수-짝수 또는 홀수-홀수면 밝은색, 아니면 어두운색
+      if (mod(x + y, 2.0) == 0.0) {
+        outColor = vec4(1.0, 1.0, 1.0, 1.0); // 밝은칸
+      } else {
+        outColor = vec4(0.9, 0.9, 0.9, 1.0); // 어두운칸
+      }
+
+      return;
+    }
+
+    outColor = vec4(0.8, 0.8, 0.8, 1.0); // 외곽 배경
+  }
+  `;
+
+
+  let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundSource);
+  let backgroundProgram = createProgram(
+    gl,
+    fullQuadVertexShader,
+    backgroundShader,
+  );
+  gl.useProgram(backgroundProgram);
+
+  enable_a_position(gl,backgroundProgram);
+
+  function renderBackground() {
+    gl.disable(gl.SCISSOR_TEST);
+    gl.useProgram(backgroundProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(backgroundProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(backgroundProgram, "u_pos"),
+      paintOptions.x,
+      paintOptions.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(backgroundProgram, "u_screenSize"),
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(backgroundProgram, "u_magnification"),
+      paintOptions.magnification,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(backgroundProgram, "u_dpr"),
+      paintOptions.dpr,
+    );
+    
+
+    // 쓰기 영역: 캔버스
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  let renderShaderSource = `#version 300 es
+      precision highp float;
+
+      uniform sampler2D u_sourse;  // 원본 텍스처
+
+      in vec2 v_texCoord;
+      out vec4 outColor;
+      uniform vec2 u_resolution;
+      uniform vec2 u_pos;
+      uniform vec2 u_screenSize;
+      uniform float u_magnification;
+
+      void main() {
+
+        vec2 scaledScreenSize = u_screenSize / u_magnification;
+        vec2 ratio =  u_resolution / scaledScreenSize;
+
+        float left = u_pos.x / scaledScreenSize.x;
+        float top = u_pos.y / scaledScreenSize.y;
+        float bottom = (scaledScreenSize.y - u_resolution.y) / scaledScreenSize.y  - top;
+
+        if( left < v_texCoord.x && v_texCoord.x < left + ratio.x
+          && bottom < v_texCoord.y && v_texCoord.y < bottom + ratio.y){
+
+          vec2 target = (v_texCoord - vec2(left, bottom)) / ratio;
+          vec4 imageColor = texture(u_sourse, target); // 기존 이미지 색
+          outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+
+          return;
+        }
+        outColor = vec4(0.0, 0.0, 0.0, 0.0);
+      }
+      `;
+
+  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
+  let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
+  gl.useProgram(renderProgram);
+
+  gl.uniform1i(
+    gl.getUniformLocation(renderProgram, "u_sourse"),
+    TEXTURE_UNIT.TARGET,
+  );
+
+  enable_a_position(gl,renderProgram);
+
+  function render() {
+    renderBackground();
+    
+    //console.log("render");
+    gl.disable(gl.SCISSOR_TEST);
+    gl.useProgram(renderProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_pos"),
+      paintOptions.x,
+      paintOptions.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_screenSize"),
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(renderProgram, "u_magnification"),
+      paintOptions.magnification,
+    );
+
+    // 쓰기 영역: 캔버스
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.disable(gl.BLEND);
+  }
+
+  return {
+    render,
+  };
+}
+
 export async function renderScreen(
   canvas,
   gl,
@@ -19,7 +228,7 @@ export async function renderScreen(
   y,
   magnification,
 ) {
-  let offScreenManager = getOffscreenManager(canvas, gl);
+  let renderingManager = getRenderingManager(canvas, gl);
   // console.log(width, height, screenWidth, screenHeight, x, y, magnification);
   if (
     paintOptions.screenWidth != screenWidth ||
@@ -72,7 +281,7 @@ export async function renderScreen(
   paintOptions.y = y;
   paintOptions.magnification = magnification;
 
-  offScreenManager.renderOffscreenToCanvas();
+  renderingManager.render();
 }
 
 function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {

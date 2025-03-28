@@ -1,3 +1,5 @@
+import { enable_a_position } from "./vertexShader";
+
 // 헬퍼 함수
 export function createShader(gl, type, source) {
     let shader = gl.createShader(type);
@@ -89,9 +91,7 @@ function createClearTextureFunc(gl) {
         gl.STATIC_DRAW,
     );
 
-    const positionLocation = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    enable_a_position(gl, program);
 
     const clearTexture = (texture, width, height, clearValue = 0.0) => {
         gl.useProgram(program);
@@ -152,9 +152,7 @@ function createClearTextureFuncvec2(gl) {
         gl.STATIC_DRAW,
     );
 
-    const positionLocation = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    enable_a_position(gl, program);
 
     const clearTexture = (texture, width, height, clearValue = [0.0, 0.0]) => {
         gl.useProgram(program);

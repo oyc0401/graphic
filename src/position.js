@@ -4,7 +4,7 @@ import { applyKeyAction, updateCursorShape } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 
 const MIN_SCALE = 0.1;
-const MAX_SCALE = 20;
+let MAX_SCALE = 0;
 
 export let position = {
   x: 0,
@@ -12,6 +12,7 @@ export let position = {
   width: 0,
   height: 0,
   scale: 1,
+  dpr:1,
   bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
   updateBouncingRect() {
     const container = document.querySelector("#container");
@@ -64,11 +65,24 @@ export function setDefaultPosition() {
     position.width = position.bouncingRect.width * scaledDpr;
     position.height = position.bouncingRect.width * scaledDpr * 1.414;
   }
+  position.dpr = dpr;
+
+  console.log(dpr)
+
+  MAX_SCALE = 120*dpr;
+
+  // position.width = 5000;
+  // position.height = 5000;
 
   // 초기 위치 설정
   position.scale = 1;
   position.x = (position.bouncingRect.width - position.width / dpr) / 2;
   position.y = (position.bouncingRect.height - position.height / dpr) / 2;
+
+  position.width = Math.floor(position.width);
+  position.height = Math.floor(position.height);
+  position.x = Math.floor(position.x);
+  position.y = Math.floor(position.y);
 }
 
 export function addPositionEvent() {

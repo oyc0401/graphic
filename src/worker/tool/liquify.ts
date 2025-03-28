@@ -4,7 +4,7 @@ import {
     paintOptions,
     getOffscreenManager,
 } from "../texture";
-import { getFullQuadShader } from "../vertexShader";
+import { enable_a_position, getFullQuadShader } from "../vertexShader";
 
 import {
     getIntegralEaseInOut,
@@ -17,6 +17,7 @@ import {
     loadShader,
     getGlHelper,
 } from "../glHelper";
+import { getRenderingManager } from "../render";
 
 interface liquifyManager {
     enter(): void;
@@ -333,9 +334,8 @@ async function makeLiquifyManager(canvas, gl) {
         new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
         gl.STATIC_DRAW,
     );
-    let posLoc = gl.getAttribLocation(liquifyPushProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    enable_a_position(gl, liquifyPushProgram);
 
     let colorShaderSource = `#version 300 es
       precision highp float;
@@ -382,9 +382,7 @@ async function makeLiquifyManager(canvas, gl) {
         TEXTURE_UNIT.SOURCE,
     ); // 텍스처 유닛 1에 할당
 
-    let posLoc2 = gl.getAttribLocation(renderProgram, "a_position");
-    gl.enableVertexAttribArray(posLoc2);
-    gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
+      enable_a_position(gl, renderProgram);
 
     ////////////////
 
@@ -472,7 +470,7 @@ async function makeLiquifyManager(canvas, gl) {
     setSize();
 
     let offScreenManager = getOffscreenManager(canvas, gl);
-
+    let renderingManager = getRenderingManager(canvas, gl);
     function start(pointer) {
         pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
 
@@ -605,7 +603,7 @@ async function makeLiquifyManager(canvas, gl) {
 
         gl.disable(gl.SCISSOR_TEST);
 
-        offScreenManager.renderOffscreenToCanvas();
+        renderingManager.render();
     }
 
     function transfer(aTex, bTex) {

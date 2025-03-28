@@ -1,11 +1,12 @@
 import { createShader, createProgram, getGlHelper } from "../glHelper";
+import { getRenderingManager } from "../render";
 import {
   TEXTURE_UNIT,
   getSourceTextureManager,
   paintOptions,
   getOffscreenManager,
 } from "../texture";
-import { getFullQuadShader } from "../vertexShader";
+import { enable_a_position, getFullQuadShader } from "../vertexShader";
 
 interface BrushManager {
   enter(): void;
@@ -171,9 +172,8 @@ function makeBrushManager(canvas, gl) {
     new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
     gl.STATIC_DRAW,
   );
-  let posLoc = gl.getAttribLocation(strokeProgram, "a_position");
-  gl.enableVertexAttribArray(posLoc);
-  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  enable_a_position(gl, strokeProgram);
   //////////////////////////
 
   //////////////////////////
@@ -210,11 +210,7 @@ function makeBrushManager(canvas, gl) {
   let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
   let brushProgram = createProgram(gl, fullQuadVertexShader, brushShader);
   gl.useProgram(brushProgram);
-  // gl.uniform2f(
-  //   gl.getUniformLocation(brushProgram, "u_resolution"),
-  //   width,
-  //   height,
-  // );
+ 
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -225,9 +221,7 @@ function makeBrushManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
-  let posLoc2 = gl.getAttribLocation(brushProgram, "a_position");
-  gl.enableVertexAttribArray(posLoc2);
-  gl.vertexAttribPointer(posLoc2, 2, gl.FLOAT, false, 0, 0);
+  enable_a_position(gl, brushProgram);
 
   ///////////////////////////////////////
   let eraserShaderSource = `#version 300 es
@@ -252,11 +246,7 @@ function makeBrushManager(canvas, gl) {
   let eraserShader = createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource);
   let eraserProgram = createProgram(gl, fullQuadVertexShader, eraserShader);
   gl.useProgram(eraserProgram);
-  // gl.uniform2f(
-  //   gl.getUniformLocation(eraserProgram, "u_resolution"),
-  //   width,
-  //   height,
-  // );
+ 
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -267,10 +257,8 @@ function makeBrushManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
-  let posLoc3 = gl.getAttribLocation(eraserProgram, "a_position");
-  gl.enableVertexAttribArray(posLoc3);
-  gl.vertexAttribPointer(posLoc3, 2, gl.FLOAT, false, 0, 0);
-
+  enable_a_position(gl, eraserProgram);
+  
   //////////////////////
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
@@ -343,6 +331,7 @@ function makeBrushManager(canvas, gl) {
 
   let offScreenManager = getOffscreenManager(canvas, gl);
 
+  let renderingManager = getRenderingManager(canvas, gl);
   function clearMap() {
     let glHelper = getGlHelper(gl);
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
@@ -457,7 +446,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      offScreenManager.renderOffscreenToCanvas();
+      renderingManager.render();
     },
     eraser() {
       gl.useProgram(eraserProgram);
@@ -468,7 +457,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      offScreenManager.renderOffscreenToCanvas();
+       renderingManager.render()
     },
     end() {
       sourceTextureManager.uploadCurrent();
@@ -477,7 +466,7 @@ function makeBrushManager(canvas, gl) {
     cancel() {
       sourceTextureManager.restore();
       clearMap();
-      offScreenManager.renderOffscreenToCanvas();
+       renderingManager.render()
     },
     exit() {},
     setSize,

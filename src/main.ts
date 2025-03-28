@@ -43,4 +43,6 @@ async function main() {
     addDrawEvent();
 
     position.resizeScreen();
+
+    window.position = position;
 }

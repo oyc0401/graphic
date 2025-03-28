@@ -45,6 +45,7 @@ export async function initDraw() {
         position.height,
         position.bouncingRect.width,
         position.bouncingRect.height,
+        position.dpr,
     );
 }
 
@@ -71,13 +72,11 @@ export function addDrawEvent() {
                     worker.setAlpha(paintState.brushAlpha);
 
                     worker.start(point);
-                    worker.strokeTo(point);
                 } else if (paintState.toolId == "eraser") {
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 
                     worker.start(point);
-                    worker.strokeTo(point);
                 } else if (paintState.toolId == "liquify") {
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
