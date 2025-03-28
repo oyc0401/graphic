@@ -180,10 +180,10 @@ export function addPositionEvent() {
       "pointerdown",
       (event) => {
         event.preventDefault();
-        console.log("pointerdown - captured", event.pointerId);
+        //console.log("pointerdown - captured", event.pointerId);
 
         if (!pointers.has(event.pointerId)) {
-          console.log("포인터 추가", event.pointerId);
+         // console.log("포인터 추가", event.pointerId);
           pointers.set(event.pointerId, {
             index: pointerIndex,
             clientX: event.clientX,
@@ -270,7 +270,7 @@ export function addPositionEvent() {
       (event) => {
         if (pointers.has(event.pointerId)) {
           pointers.delete(event.pointerId);
-          console.log("포인터 제거!", event.pointerId);
+         // console.log("포인터 제거!", event.pointerId);
         }
 
         // 핀치 줌

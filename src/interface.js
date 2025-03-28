@@ -14,12 +14,10 @@ function updateMenubarUI() {
     }
 }
 
-
 export function addInteractionEvent() {
     updateMenubarUI();
 
     updateCursorShape();
-    
 
     document.querySelector("#select-brush").addEventListener("click", () => {
         toolManager.setBrushTool();
@@ -57,7 +55,7 @@ export function addInteractionEvent() {
             }
 
             if (event.code === "Escape") {
-                console.log("취소!");
+                //console.log("취소!");
                 cancel();
             }
         });
@@ -144,8 +142,8 @@ export function updateCursorShape() {
         if (!("ontouchstart" in window)) {
             brushCursor.style.visibility = "visible";
         }
-        brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2}px`;
-        brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2}px`;
+        brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2 - 1}px`;
+        brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2 - 1}px`;
         brushCursor.style.width = `${scaledBrushSize}px`;
         brushCursor.style.height = `${scaledBrushSize}px`;
     } else if (paintState.action === "ZOOM") {
@@ -168,5 +166,3 @@ export function applyKeyAction() {
         paintState.action = "ZOOM";
     }
 }
-
-

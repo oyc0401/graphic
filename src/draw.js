@@ -60,7 +60,7 @@ export function addDrawEvent() {
                 e.preventDefault();
                 if (paintState.action != "BRUSH") return;
                 to_screen_coord(e.clientX, e.clientY);
-                console.log("brushStart!");
+              //  console.log("brushStart!");
 
                 pointerActive = true;
                 let point = to_canvas_coord(e.clientX, e.clientY);
@@ -140,6 +140,7 @@ export function addDrawEvent() {
  * 원본 텍스쳐로 돌려놓기
  */
 export function cancel() {
+       console.log("cancel!");
     pointerActive = false;
 
     const worker = getLayerWorker();
@@ -150,7 +151,7 @@ export function cancel() {
  * 그리기 종료
  */
 export function endDrawing() {
-    console.log("endDrawing!");
+    console.log("end!");
     pointerActive = false;
 
     const worker = getLayerWorker();
