@@ -2,8 +2,8 @@ import {
   TEXTURE_UNIT,
   getSourceTextureManager,
   paintOptions,
-  getOffscreenManager,
 } from "./texture";
+import {getLayerManager} from './layer'
 import { getLiquifyManager } from "./tool/liquify";
 
 import { getBrushManager } from "./tool/brushTool";
@@ -214,7 +214,7 @@ void main() {
 
   gl.uniform1i(
     gl.getUniformLocation(renderProgram, "u_sourse"),
-    TEXTURE_UNIT.TARGET,
+    TEXTURE_UNIT.LAYER,
   );
 
   enable_a_position(gl, renderProgram);
@@ -365,10 +365,10 @@ function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
     0,
   );
 
-  let offScreenManager = getOffscreenManager(canvas, gl);
+  let layerManager = getLayerManager(canvas, gl);
 
   // 이제 화면으로 blit (복사)하기 위해
-  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offScreenManager.offscreenFBO);
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.offscreenFBO);
   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer); // null은 기본 화면 프레임버퍼
 
   let diffHeight = newHeight - oldHeight;
@@ -389,8 +389,8 @@ function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TARGET);
-  gl.bindTexture(gl.TEXTURE_2D, offScreenManager.offscreenTex);
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+  gl.bindTexture(gl.TEXTURE_2D, layerManager.offscreenTex);
 
   gl.texImage2D(
     gl.TEXTURE_2D,

@@ -4,8 +4,8 @@ import {
   TEXTURE_UNIT,
   getSourceTextureManager,
   paintOptions,
-  getOffscreenManager,
 } from "../texture";
+import {getLayerManager} from '../layer'
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
 
 interface BrushManager {
@@ -329,7 +329,7 @@ function makeBrushManager(canvas, gl) {
 
   setSize();
 
-  let offScreenManager = getOffscreenManager(canvas, gl);
+  let layerManager = getLayerManager(canvas, gl);
 
   let renderingManager = getRenderingManager(canvas, gl);
   function clearMap() {
@@ -440,7 +440,7 @@ function makeBrushManager(canvas, gl) {
         paintOptions.color,
       );
       // 쓰기 영역: 내 화면
-      gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.offscreenFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -451,7 +451,7 @@ function makeBrushManager(canvas, gl) {
     eraser() {
       gl.useProgram(eraserProgram);
       // 쓰기 영역: 내 화면
-      gl.bindFramebuffer(gl.FRAMEBUFFER, offScreenManager.offscreenFBO);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.offscreenFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
