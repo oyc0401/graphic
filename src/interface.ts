@@ -2,14 +2,21 @@ import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { position } from "./position";
 
+const selectBrushBtn: HTMLElement = document.querySelector("#select-brush")!;
+const selectEraserBtn: HTMLElement = document.querySelector("#select-eraser")!;
+const selectLiquifyBtn: HTMLElement =
+    document.querySelector("#select-liquify")!;
+const container: HTMLElement = document.querySelector("#container")!;
+const brushCursor: HTMLElement = document.querySelector("#brush-cursor")!;
+
 function updateMenubarUI() {
-    document.querySelector("#select-brush").classList.remove("selected");
-    document.querySelector("#select-eraser").classList.remove("selected");
+    selectBrushBtn.classList.remove("selected");
+    selectEraserBtn.classList.remove("selected");
 
     if (paintState.toolId == "brush") {
-        document.querySelector("#select-brush").classList.add("selected");
+        selectBrushBtn.classList.add("selected");
     } else if (paintState.toolId == "eraser") {
-        document.querySelector("#select-eraser").classList.add("selected");
+        selectEraserBtn.classList.add("selected");
     } else if (paintState.toolId == "liquify") {
     }
 }
@@ -19,17 +26,17 @@ export function addInteractionEvent() {
 
     updateCursorShape();
 
-    document.querySelector("#select-brush").addEventListener("click", () => {
+    selectBrushBtn.addEventListener("click", () => {
         toolManager.setBrushTool();
         updateMenubarUI();
     });
 
-    document.querySelector("#select-eraser").addEventListener("click", () => {
+    selectEraserBtn.addEventListener("click", () => {
         toolManager.setEraserTool();
         updateMenubarUI();
     });
 
-    document.querySelector("#select-liquify").addEventListener("click", () => {
+    selectLiquifyBtn.addEventListener("click", () => {
         toolManager.setLiquifyTool();
         updateMenubarUI();
     });
@@ -78,7 +85,7 @@ export function addInteractionEvent() {
         });
     })();
 
-    document.querySelector("#container").addEventListener(
+    container.addEventListener(
         "pointerdown",
         (_) => {
             paintState.pointerdown = true;
@@ -123,9 +130,7 @@ export let pressedKeys = {
 };
 
 export function updateCursorShape() {
-    const container = document.querySelector("#container");
     if (!container) return;
-    let brushCursor = document.querySelector("#brush-cursor");
 
     // 모든 상태 초기화
     container.classList.remove("grab", "grabbing", "brush", "zoom");

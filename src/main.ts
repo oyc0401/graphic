@@ -12,6 +12,7 @@ interface PaintState {
     cursorX: number;
     cursorY: number;
     toolId: string;
+    pointerdown: boolean;
 }
 
 export let paintState: PaintState;
@@ -20,17 +21,18 @@ function getDefaultPaintState() {
     return {
         action: "BRUSH",
         brushSize: 5,
-        brushAlpha: 0.3,
+        brushAlpha: 1.0,
         container: document.querySelector("#container")!,
         layer_area: document.querySelector("#layer-area")!,
         cursorX: 0,
         cursorY: 0,
         toolId: "brush",
+        pointerdown: false,
     };
 }
 
 async function main() {
-    console.log('Start App!');
+    console.log("Start App!");
     paintState = getDefaultPaintState();
 
     setDefaultPosition();
@@ -47,5 +49,5 @@ async function main() {
 
     window.position = position;
 
-    console.log('Complete App!');
+    console.log("Complete App!");
 }

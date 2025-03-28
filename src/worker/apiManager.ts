@@ -7,15 +7,15 @@ interface Pointer {
   y: number;
 }
 
-export class PaintLayer {
+export class PaintAPI {
   canvas: OffscreenCanvas;
   gl: WebGL2RenderingContext;
   width: number;
   height: number;
   screenWidth: number;
   screenHeight: number;
-  dpr:number;
-  
+  dpr: number;
+
   toolId: string;
   tools: any;
   lastPointer: Pointer;
@@ -26,11 +26,11 @@ export class PaintLayer {
     height: number,
     screenWidth: number,
     screenHeight: number,
-    dpr:number,
+    dpr: number,
   ) {
     this.canvas = canvas;
     let gl = canvas.getContext("webgl2", {
-      alpha:false,
+      alpha: false,
       depth: false,
       stencil: false,
       antialias: false,
@@ -51,7 +51,7 @@ export class PaintLayer {
     paintOptions.screenWidth = width;
     paintOptions.screenHeight = screenHeight;
     paintOptions.dpr = dpr;
-    
+
     this.toolId = "brush";
 
     this.init();

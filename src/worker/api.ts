@@ -1,6 +1,6 @@
-import { PaintLayer } from "./paintLayer";
+import { PaintAPI } from "./apiManager";
 
-let layer: PaintLayer;
+let paint: PaintAPI;
 
 export const workerApi = {
   async makeLayer(
@@ -9,47 +9,47 @@ export const workerApi = {
     height: number,
     screenWidth: number,
     screenHeight: number,
-    dpr:number,
+    dpr: number,
   ) {
     console.log("Making Layer...", width, height);
 
-    layer = new PaintLayer(
+    paint = new PaintAPI(
       main_canvas,
       width,
       height,
       screenWidth,
       screenHeight,
-      dpr
+      dpr,
     );
   },
   render(width, height, screenWidth, screenHeight, x, y, magnification) {
-    layer.render(width, height, screenWidth, screenHeight, x, y, magnification);
+    paint.render(width, height, screenWidth, screenHeight, x, y, magnification);
   },
   setStrokeColor(r, g, b) {
-    layer.setStrokeColor(r, g, b);
+    paint.setStrokeColor(r, g, b);
   },
   setStrokeSize(size) {
     let radius = (size - 1) / 2 + 1; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
-    layer.setStrokeSize(radius);
+    paint.setStrokeSize(radius);
   },
   setAlpha(alpha) {
-    layer.setAlpha(alpha);
+    paint.setAlpha(alpha);
   },
   setTool(toolId) {
-    layer.setTool(toolId);
+    paint.setTool(toolId);
   },
 
   start(pointer: Pointer) {
-    layer.start(pointer);
+    paint.start(pointer);
   },
   strokeTo(pointer: Pointer) {
-    layer.strokeTo(pointer);
+    paint.strokeTo(pointer);
   },
   end() {
-    layer.end();
+    paint.end();
   },
   cancel() {
-    layer.cancel();
+    paint.cancel();
   },
 };
 

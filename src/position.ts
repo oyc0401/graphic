@@ -6,16 +6,17 @@ import { getLayerWorker } from "./worker/workerPool";
 const MIN_SCALE = 0.1;
 let MAX_SCALE = 0;
 
+const container: HTMLElement = document.querySelector("#container")!;
+
 export let position = {
   x: 0,
   y: 0,
   width: 0,
   height: 0,
   scale: 1,
-  dpr:1,
+  dpr: 1,
   bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
   updateBouncingRect() {
-    const container = document.querySelector("#container");
     this.bouncingRect = container.getBoundingClientRect();
   },
   resizeScreen() {
@@ -83,6 +84,8 @@ export function setDefaultPosition() {
 }
 
 export function addPositionEvent() {
+  const container: HTMLElement = document.querySelector("#container")!;
+
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
@@ -176,14 +179,14 @@ export function addPositionEvent() {
 
     let pointers = new Map(); // pointerId -> {x, y} 저장
 
-    document.querySelector("#container").addEventListener(
+    container.addEventListener(
       "pointerdown",
       (event) => {
         event.preventDefault();
         //console.log("pointerdown - captured", event.pointerId);
 
         if (!pointers.has(event.pointerId)) {
-         // console.log("포인터 추가", event.pointerId);
+          // console.log("포인터 추가", event.pointerId);
           pointers.set(event.pointerId, {
             index: pointerIndex,
             clientX: event.clientX,
@@ -270,7 +273,7 @@ export function addPositionEvent() {
       (event) => {
         if (pointers.has(event.pointerId)) {
           pointers.delete(event.pointerId);
-         // console.log("포인터 제거!", event.pointerId);
+          // console.log("포인터 제거!", event.pointerId);
         }
 
         // 핀치 줌
@@ -302,16 +305,14 @@ export function addPositionEvent() {
     let lastClientX;
     let lastClientY;
 
-    document
-      .querySelector("#container")
-      .addEventListener("pointerdown", (e) => {
-        if (paintState.action != "PAN") return;
+    container.addEventListener("pointerdown", (e) => {
+      if (paintState.action != "PAN") return;
 
-        lastClientX = e.clientX;
-        lastClientY = e.clientY;
+      lastClientX = e.clientX;
+      lastClientY = e.clientY;
 
-        console.log("팬 시작!");
-      });
+      console.log("팬 시작!");
+    });
 
     window.addEventListener("pointermove", (e) => {
       if (paintState.action != "PAN") return;
@@ -341,24 +342,24 @@ export function addPositionEvent() {
     let sx, sy;
     let ex, ey;
     let activeZoom = false;
-    document
-      .querySelector("#container")
-      .addEventListener("pointerdown", (e) => {
-        if (paintState.action != "ZOOM") return;
-        if (activeZoom) return;
-        sx = e.clientX;
-        sy = e.clientY;
-        ex = e.clientX;
-        ey = e.clientY;
-        activeZoom = true;
-        let zoomArea = document.querySelector("#zoom-area");
-        zoomArea.style.visibility = "visible";
-        console.log("확대");
-        zoomArea.style.left = `${sx}px`;
-        zoomArea.style.top = `${sy}px`;
-        zoomArea.style.width = `0px`;
-        zoomArea.style.height = `0px`;
-      });
+    let zoomArea: HTMLElement = document.querySelector("#zoom-area")!;
+
+    container.addEventListener("pointerdown", (e) => {
+      if (paintState.action != "ZOOM") return;
+      if (activeZoom) return;
+      sx = e.clientX;
+      sy = e.clientY;
+      ex = e.clientX;
+      ey = e.clientY;
+      activeZoom = true;
+
+      zoomArea.style.visibility = "visible";
+      console.log("확대");
+      zoomArea.style.left = `${sx}px`;
+      zoomArea.style.top = `${sy}px`;
+      zoomArea.style.width = `0px`;
+      zoomArea.style.height = `0px`;
+    });
 
     window.addEventListener("pointermove", (e) => {
       if (paintState.action != "ZOOM") return;
@@ -366,7 +367,6 @@ export function addPositionEvent() {
       if (!activeZoom) return;
       ex = e.clientX;
       ey = e.clientY;
-      let zoomArea = document.querySelector("#zoom-area");
       let startX = sx < ex ? sx : ex;
       let startY = sy < ey ? sy : ey;
       let zoomW = Math.abs(sx - ex);
@@ -381,7 +381,6 @@ export function addPositionEvent() {
       if (paintState.action != "ZOOM") return;
       if (!activeZoom) return;
 
-      let zoomArea = document.querySelector("#zoom-area");
       zoomArea.style.visibility = "hidden";
       let cx = (sx + ex) / 2;
       let cy = (sy + ey) / 2;

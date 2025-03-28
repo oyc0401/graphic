@@ -36,7 +36,7 @@ let pointerActive = false;
 
 export async function initDraw() {
     const worker = getLayerWorker();
-    let canvas = document.querySelector("#canvas");
+    const canvas: HTMLCanvasElement = document.querySelector("#canvas")!;
     const offscreen = canvas.transferControlToOffscreen();
 
     await worker.makeLayer(
@@ -53,39 +53,38 @@ export function addDrawEvent() {
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };
 
+    const container: HTMLElement = document.querySelector("#container")!;
     (function () {
-        document
-            .querySelector("#container")
-            .addEventListener("pointerdown", (e) => {
-                e.preventDefault();
-                if (paintState.action != "BRUSH") return;
-                to_screen_coord(e.clientX, e.clientY);
-              //  console.log("brushStart!");
+        container.addEventListener("pointerdown", function (e: PointerEvent) {
+            e.preventDefault();
+            if (paintState.action != "BRUSH") return;
+            to_screen_coord(e.clientX, e.clientY);
+            //  console.log("brushStart!");
 
-                pointerActive = true;
-                let point = to_canvas_coord(e.clientX, e.clientY);
-                const worker = getLayerWorker();
+            pointerActive = true;
+            let point = to_canvas_coord(e.clientX, e.clientY);
+            const worker = getLayerWorker();
 
-                if (paintState.toolId == "brush") {
-                    worker.setStrokeColor(10, 10, 0);
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+            if (paintState.toolId == "brush") {
+                worker.setStrokeColor(10, 10, 0);
+                worker.setStrokeSize(paintState.brushSize);
+                worker.setAlpha(paintState.brushAlpha);
 
-                    worker.start(point);
-                } else if (paintState.toolId == "eraser") {
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+                worker.start(point);
+            } else if (paintState.toolId == "eraser") {
+                worker.setStrokeSize(paintState.brushSize);
+                worker.setAlpha(paintState.brushAlpha);
 
-                    worker.start(point);
-                } else if (paintState.toolId == "liquify") {
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+                worker.start(point);
+            } else if (paintState.toolId == "liquify") {
+                worker.setStrokeSize(paintState.brushSize);
+                worker.setAlpha(paintState.brushAlpha);
 
-                    worker.start(point);
-                    start = { x: e.clientX, y: e.clientY };
-                    end = { x: e.clientX, y: e.clientY };
-                }
-            });
+                worker.start(point);
+                start = { x: e.clientX, y: e.clientY };
+                end = { x: e.clientX, y: e.clientY };
+            }
+        });
 
         window.addEventListener("pointermove", (e) => {
             e.preventDefault();
@@ -140,7 +139,7 @@ export function addDrawEvent() {
  * 원본 텍스쳐로 돌려놓기
  */
 export function cancel() {
-       console.log("cancel!");
+    console.log("cancel!");
     pointerActive = false;
 
     const worker = getLayerWorker();
