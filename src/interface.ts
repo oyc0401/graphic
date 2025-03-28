@@ -2,21 +2,39 @@ import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { position } from "./position";
 
-const selectBrushBtn: HTMLElement = document.querySelector("#select-brush")!;
-const selectEraserBtn: HTMLElement = document.querySelector("#select-eraser")!;
-const selectLiquifyBtn: HTMLElement =
-    document.querySelector("#select-liquify")!;
-const container: HTMLElement = document.querySelector("#container")!;
-const brushCursor: HTMLElement = document.querySelector("#brush-cursor")!;
+interface Elements {
+    canvas: HTMLCanvasElement;
+    container: HTMLElement;
+    brushCursor: HTMLElement;
+    selectBrushBtn: HTMLElement;
+    selectEraserBtn: HTMLElement;
+    selectLiquifyBtn: HTMLElement;
+    zoomArea: HTMLElement;
+}
+export let elementStore: Elements = {} as Elements;
+
+export function getElements() {
+    elementStore = {
+        canvas: document.querySelector("#canvas")!,
+        container: document.querySelector("#container")!,
+        brushCursor: document.querySelector("#brush-cursor")!,
+
+        selectBrushBtn: document.querySelector("#select-brush")!,
+        selectEraserBtn: document.querySelector("#select-eraser")!,
+        selectLiquifyBtn: document.querySelector("#select-liquify")!,
+
+        zoomArea: document.querySelector("#zoom-area")!,
+    };
+}
 
 function updateMenubarUI() {
-    selectBrushBtn.classList.remove("selected");
-    selectEraserBtn.classList.remove("selected");
+    elementStore.selectBrushBtn.classList.remove("selected");
+    elementStore.selectEraserBtn.classList.remove("selected");
 
     if (paintState.toolId == "brush") {
-        selectBrushBtn.classList.add("selected");
+        elementStore.selectBrushBtn.classList.add("selected");
     } else if (paintState.toolId == "eraser") {
-        selectEraserBtn.classList.add("selected");
+        elementStore.selectEraserBtn.classList.add("selected");
     } else if (paintState.toolId == "liquify") {
     }
 }
@@ -26,17 +44,17 @@ export function addInteractionEvent() {
 
     updateCursorShape();
 
-    selectBrushBtn.addEventListener("click", () => {
+    elementStore.selectBrushBtn.addEventListener("click", () => {
         toolManager.setBrushTool();
         updateMenubarUI();
     });
 
-    selectEraserBtn.addEventListener("click", () => {
+    elementStore.selectEraserBtn.addEventListener("click", () => {
         toolManager.setEraserTool();
         updateMenubarUI();
     });
 
-    selectLiquifyBtn.addEventListener("click", () => {
+    elementStore.selectLiquifyBtn.addEventListener("click", () => {
         toolManager.setLiquifyTool();
         updateMenubarUI();
     });
@@ -85,7 +103,7 @@ export function addInteractionEvent() {
         });
     })();
 
-    container.addEventListener(
+    elementStore.container.addEventListener(
         "pointerdown",
         (_) => {
             paintState.pointerdown = true;
@@ -130,29 +148,34 @@ export let pressedKeys = {
 };
 
 export function updateCursorShape() {
-    if (!container) return;
+    if (!elementStore.container) return;
 
     // 모든 상태 초기화
-    container.classList.remove("grab", "grabbing", "brush", "zoom");
-    brushCursor.style.visibility = "hidden";
+    elementStore.container.classList.remove(
+        "grab",
+        "grabbing",
+        "brush",
+        "zoom",
+    );
+    elementStore.brushCursor.style.visibility = "hidden";
     if (paintState.action === "PAN") {
         if (paintState.pointerdown) {
-            container.classList.add("grabbing");
+            elementStore.container.classList.add("grabbing");
         } else {
-            container.classList.add("grab");
+            elementStore.container.classList.add("grab");
         }
     } else if (paintState.action === "BRUSH") {
         let scaledBrushSize = paintState.brushSize * position.scale;
-        container.classList.add("brush");
+        elementStore.container.classList.add("brush");
         if (!("ontouchstart" in window)) {
-            brushCursor.style.visibility = "visible";
+            elementStore.brushCursor.style.visibility = "visible";
         }
-        brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2 - 1}px`;
-        brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2 - 1}px`;
-        brushCursor.style.width = `${scaledBrushSize}px`;
-        brushCursor.style.height = `${scaledBrushSize}px`;
+        elementStore.brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2 - 1}px`;
+        elementStore.brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2 - 1}px`;
+        elementStore.brushCursor.style.width = `${scaledBrushSize}px`;
+        elementStore.brushCursor.style.height = `${scaledBrushSize}px`;
     } else if (paintState.action === "ZOOM") {
-        container.classList.add("zoom");
+        elementStore.container.classList.add("zoom");
     }
 }
 

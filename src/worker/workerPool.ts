@@ -1,5 +1,6 @@
 import * as Comlink from "comlink";
 import { workerApi } from "../worker/api";
+import WorkerModule from "./worker?worker";
 
 type WorkerApi = typeof workerApi;
 
@@ -13,9 +14,10 @@ const workerPool: WorkerPool = {};
 
 function getWorkerObject() {
   if (!workerPool["layer"]) {
-    const worker = new Worker(new URL("./worker.js", import.meta.url), {
-      type: "module",
-    });
+    const worker = new WorkerModule();
+    //const worker = new Worker(new URL("./worker.js", import.meta.url), {
+    //   type: "module",
+    //});
     const api = Comlink.wrap<WorkerApi>(worker);
 
     workerPool["layer"] = { worker, workerApi: api };
