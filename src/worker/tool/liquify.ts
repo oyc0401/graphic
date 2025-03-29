@@ -217,6 +217,7 @@ async function makeLiquifyManager(canvas, gl) {
                 float newAlpha = newColor.a;
                 outColor = vec4(newColor.rgb * newAlpha , newAlpha);
                //outColor = texture(u_sourse, target);
+                // outColor = vec4(0.0,1.0,0.0,value.y/8.0);
           }
       }
       `;

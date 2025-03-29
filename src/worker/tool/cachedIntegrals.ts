@@ -23,6 +23,7 @@ function decodeBase64ToFloat32Array(base64) {
  **/
 // F(x) = easeinoutCirc(x) 일 때
 export async function getIntegralEaseInOut() {
+    // return new Float32Array([0.5,0.4,0.3,0.2,0.1,0]);
     cacheIntegralEaseInOut = decodeBase64ToFloat32Array(integralBase64);
     if (cacheIntegralEaseInOut) {
         return cacheIntegralEaseInOut;
