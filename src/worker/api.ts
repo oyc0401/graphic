@@ -29,7 +29,7 @@ export const workerApi = {
     paint.setStrokeColor(r, g, b);
   },
   setStrokeSize(size) {
-    let radius = (size - 1) / 2 + 1; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
+    let radius = size; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
     paint.setStrokeSize(radius);
   },
   setAlpha(alpha) {

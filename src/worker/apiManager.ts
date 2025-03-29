@@ -106,7 +106,7 @@ export class PaintAPI {
   }
 
   setStrokeSize(strokeSize) {
-    paintOptions.setRadius(strokeSize);
+    paintOptions.setRadius(strokeSize/2);
   }
 
   setAlpha(alpha) {

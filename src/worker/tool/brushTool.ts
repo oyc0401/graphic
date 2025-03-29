@@ -5,7 +5,7 @@ import {
   getSourceTextureManager,
   paintOptions,
 } from "../texture";
-import {getLayerManager} from '../layer'
+import { getLayerManager } from "../layer";
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
 
 interface BrushManager {
@@ -80,24 +80,26 @@ function makeBrushManager(canvas, gl) {
       float dist = length(pixelCoord - closestPoint);
 
       float newAlpha = u_alpha;
-      if (dist < u_radius) {
-        // 테두리 보간
-        if (u_radius - dist < 1.0) {
-          newAlpha = (u_radius - dist) * u_alpha;
+      float realRadius = u_radius;
+  
+      vec2 dir = normalize(pixelCoord - closestPoint);
+      float orthoFactor = abs(dir.x) + abs(dir.y); // 1.0 ~ 1.414
 
-          // 이렇게 하면 도트 그리기
-           //newAlpha = (u_radius - dist) < 0.5 ? 0.0 : u_alpha;
-        }
-      } else {
-        newAlpha = 0.0;
+      float feather = orthoFactor / 2.0;
+     float realDistance = realRadius - dist + feather;
+      
+      if(realDistance > 0.0){
+          newAlpha = realDistance * u_alpha;
+      }else{
+          newAlpha = 0.0;
+      }      
+
+      if(newAlpha> u_alpha){
+       newAlpha = u_alpha;
       }
 
-      // 더 투명도가 높은 것 선택.
-      if (basicAlpha < newAlpha) {
-        outAlpha = newAlpha;
-      } else {
-        outAlpha = basicAlpha;
-      }
+      // 기존 알파와 비교해 더 큰 값 선택
+      outAlpha = max(basicAlpha, newAlpha);
     }
     `;
   let strokeShader = createShader(gl, gl.FRAGMENT_SHADER, strokeShaderSource);
@@ -210,7 +212,7 @@ function makeBrushManager(canvas, gl) {
   let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
   let brushProgram = createProgram(gl, fullQuadVertexShader, brushShader);
   gl.useProgram(brushProgram);
- 
+
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -246,7 +248,7 @@ function makeBrushManager(canvas, gl) {
   let eraserShader = createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource);
   let eraserProgram = createProgram(gl, fullQuadVertexShader, eraserShader);
   gl.useProgram(eraserProgram);
- 
+
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
@@ -258,7 +260,7 @@ function makeBrushManager(canvas, gl) {
   ); // 텍스처 유닛 1에 할당
 
   enable_a_position(gl, eraserProgram);
-  
+
   //////////////////////
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
@@ -457,7 +459,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-       renderingManager.render()
+      renderingManager.render();
     },
     end() {
       sourceTextureManager.uploadCurrent();
@@ -466,7 +468,7 @@ function makeBrushManager(canvas, gl) {
     cancel() {
       sourceTextureManager.restore();
       clearMap();
-       renderingManager.render()
+      renderingManager.render();
     },
     exit() {},
     setSize,

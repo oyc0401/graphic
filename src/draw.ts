@@ -9,14 +9,14 @@ export let toolManager = {
     setBrushTool() {
         paintState.toolId = "brush";
         paintState.brushSize = 5;
-        paintState.brushAlpha = 0.3;
+        paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
         worker.setTool(paintState.toolId);
     },
     setEraserTool() {
         paintState.toolId = "eraser";
-        paintState.brushSize = 10;
+        paintState.brushSize = 1;
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
@@ -24,7 +24,7 @@ export let toolManager = {
     },
     setLiquifyTool() {
         paintState.toolId = "liquify";
-        paintState.brushSize = 1000;
+        paintState.brushSize = 10;
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
@@ -58,7 +58,7 @@ export function addDrawEvent() {
             function (e: PointerEvent) {
                 e.preventDefault();
                 if (paintState.action != "BRUSH") return;
-                to_screen_coord(e.clientX, e.clientY);
+
                 //  console.log("brushStart!");
 
                 pointerActive = true;
@@ -89,6 +89,7 @@ export function addDrawEvent() {
 
         window.addEventListener("pointermove", (e) => {
             e.preventDefault();
+            // console.log(to_canvas_coord(e.clientX, e.clientY))
             if (!paintState.pointerdown) return;
             if (paintState.action != "BRUSH") return;
             if (!pointerActive) return;
@@ -134,6 +135,16 @@ export function addDrawEvent() {
             updateCursorShape();
         });
     })();
+
+    window.drawLine = () => {
+        const worker = getLayerWorker();
+        worker.setStrokeColor(10, 10, 0);
+        worker.setStrokeSize(paintState.brushSize);
+        worker.setAlpha(paintState.brushAlpha);
+
+        worker.start({ x: 50, y: 50 });
+        worker.strokeTo({ x: 630.2 , y:300  });
+    };
 }
 
 /**
