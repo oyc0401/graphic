@@ -51,6 +51,22 @@ export const workerApi = {
   cancel() {
     paint.cancel();
   },
+
+  selectionMake(){
+    
+  },
+  selectionMove(){
+    
+  },
+  selectionApply(){
+    
+  },
+  undo(){
+    // 히스토리는 각각의 레이어로 구성됌
+  },
+  redo(){
+    
+  }
 };
 
 interface Pointer {

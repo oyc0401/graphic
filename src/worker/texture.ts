@@ -10,6 +10,7 @@ export const TEXTURE_UNIT = {
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
   EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
   EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
+  SELECTION: 9,
 };
 
 export let paintOptions = {
