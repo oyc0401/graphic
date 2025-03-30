@@ -1,4 +1,9 @@
-import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
+import {
+  TEXTURE_UNIT,
+  getSelectionManager,
+  getSourceTextureManager,
+  paintOptions,
+} from "./texture";
 import { getLayerManager } from "./layer";
 import { getLiquifyManager } from "./tool/liquify";
 
@@ -321,6 +326,8 @@ function makeRenderingManager(canvas, gl) {
     gl.getUniformLocation(selectionProgram, "u_selection"),
     TEXTURE_UNIT.SELECTION,
   );
+  // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
+
   enable_a_position(gl, selectionProgram);
 
   function renderSelection() {
@@ -410,7 +417,7 @@ export async function renderScreen(
     console.log("그림 영역 크기가 변함!");
 
     // 텍스펴 크기를 낮추기()
-    changeTex(
+    resizeTexture(
       canvas,
       gl,
       paintOptions.width,
@@ -452,12 +459,13 @@ export async function renderScreen(
   renderingManager.render();
 }
 
-function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
-  console.log("changeTex");
+// TODO: 지금 매번 텍스쳐를 만드는 구조라. 나중에 매니저로 이전 해야함.
+function resizeTexture(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
+  console.log("resizeTexture");
   const newTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE17);
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
   gl.bindTexture(gl.TEXTURE_2D, newTexture);
-  // WebGL2에서는 texImage2D로 먼저 공간(크기) 할당해주고, 이후 copyTexImage2D 사용
+
   gl.texImage2D(
     gl.TEXTURE_2D,
     0,
@@ -533,65 +541,4 @@ function changeTex(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
   );
 
   gl.deleteTexture(newTexture);
-}
-
-const selectionManagerStore = new Map();
-
-function getSelectionManager(canvas, gl) {
-  if (selectionManagerStore.has(gl)) {
-    return selectionManagerStore.get(gl);
-  }
-
-  const manager = createSelectionManager(canvas, gl);
-  selectionManagerStore.set(gl, manager);
-
-  return manager;
-}
-
-function createSelectionManager(canvas, gl) {
-  // 텍스처 생성
-  const texture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION); // 9번 텍스처 유닛 활성화
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-
-  // 텍스처 데이터 초기화 (하늘색으로 채움: rgba(135, 206, 235, 255))
-  let x = 50;
-  let y = 50;
-  const width = 300;
-  const height = 200;
-  const pixelCount = width * height;
-  const skyBlue = new Uint8Array(pixelCount * 4); // RGBA 4채널
-
-  for (let i = 0; i < pixelCount; i++) {
-    skyBlue[i * 4 + 0] = 135; // R
-    skyBlue[i * 4 + 1] = 206; // G
-    skyBlue[i * 4 + 2] = 235; // B
-    skyBlue[i * 4 + 3] = 255; // A
-  }
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0, // mip level
-    gl.RGBA, // internal format
-    width,
-    height,
-    0, // border
-    gl.RGBA, // format
-    gl.UNSIGNED_BYTE, // type
-    skyBlue,
-  );
-
-  // 필터링 및 래핑 설정 (기본값)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  return {
-    texture,
-    x,
-    y,
-    width,
-    height,
-  };
 }
