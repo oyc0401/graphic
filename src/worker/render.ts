@@ -382,7 +382,9 @@ function makeRenderingManager(canvas, gl) {
 
     renderBackground();
     renderTexture();
-    renderSelection();
+    if (paintOptions.showSelection) {
+      renderSelection();
+    }
 
     gl.disable(gl.BLEND);
   }

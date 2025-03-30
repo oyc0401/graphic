@@ -82,7 +82,6 @@ export function setDefaultPosition() {
 }
 
 export function addPositionEvent() {
- 
   window.addEventListener("resize", function () {
     position.resizeScreen();
   });
@@ -95,6 +94,12 @@ export function addPositionEvent() {
     paintState.action = "BRUSH";
   }
 
+  document.querySelector("#selection-button")?.addEventListener("click", () => {
+    let worker = getLayerWorker();
+    worker.makeSelection();
+    position.resizeScreen();
+  });
+  
   /**
    * 휠 스크롤 영역
    */
@@ -228,42 +233,56 @@ export function addPositionEvent() {
       true,
     );
 
-    window.addEventListener("pointermove", (event) => {
-      if (!pointers.has(event.pointerId)) return;
-      Object.assign(pointers.get(event.pointerId), {
-        clientX: event.clientX,
-        clientY: event.clientY,
-      });
+    let moveDistance = 0;
 
-      // 핀치 줌
-      if (paintState.action !== "PINCH") return;
-      if (pointers.size < 2) return; // 두 손가락이 없으면 무시
+    window.addEventListener(
+      "pointermove",
+      (event) => {
+        if (!pointers.has(event.pointerId)) return;
+        if (pointers.size == 1) {
+          let lastPointer = pointers.get(event.pointerId);
+          let distance = Math.hypot(
+            lastPointer.x - event.clientX,
+            lastPointer.y - event.clientY,
+          );
+          moveDistance += distance;
+        }
+        Object.assign(pointers.get(event.pointerId), {
+          clientX: event.clientX,
+          clientY: event.clientY,
+        });
 
-      const pinchCenterPos = averageTouches();
-      const dx = lastPinchCenterPos.x - pinchCenterPos.x;
-      const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-      position.x -= dx / position.scale;
-      position.y -= dy / position.scale;
-      lastPinchCenterPos = pinchCenterPos;
+        // 핀치 줌
+        if (paintState.action !== "PINCH") return;
+        if (pointers.size < 2) return; // 두 손가락이 없으면 무시
 
-      const points = Array.from(pointers.values());
-      const distance = Math.hypot(
-        points[0].clientX - points[1].clientX,
-        points[0].clientY - points[1].clientY,
-      );
+        const pinchCenterPos = averageTouches();
+        const dx = lastPinchCenterPos.x - pinchCenterPos.x;
+        const dy = lastPinchCenterPos.y - pinchCenterPos.y;
+        position.x -= dx / position.scale;
+        position.y -= dy / position.scale;
+        lastPinchCenterPos = pinchCenterPos;
 
-      const scaleFactor = distance / lastPinchDistance;
-      let newScale = position.scale * scaleFactor;
-      const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
+        const points = Array.from(pointers.values());
+        const distance = Math.hypot(
+          points[0].clientX - points[1].clientX,
+          points[0].clientY - points[1].clientY,
+        );
 
-      setMagification(
-        clampedScale,
-        to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
-      );
-      lastPinchDistance = distance;
+        const scaleFactor = distance / lastPinchDistance;
+        let newScale = position.scale * scaleFactor;
+        const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
 
-      position.resizeScreen();
-    });
+        setMagification(
+          clampedScale,
+          to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
+        );
+        lastPinchDistance = distance;
+
+        position.resizeScreen();
+      },
+      true,
+    );
 
     window.addEventListener(
       "pointerup",
@@ -339,7 +358,7 @@ export function addPositionEvent() {
     let sx, sy;
     let ex, ey;
     let activeZoom = false;
-    
+
     elementStore.container.addEventListener("pointerdown", (e) => {
       if (paintState.action != "ZOOM") return;
       if (activeZoom) return;

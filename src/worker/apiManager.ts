@@ -106,7 +106,7 @@ export class PaintAPI {
   }
 
   setStrokeSize(strokeSize) {
-    paintOptions.setRadius(strokeSize/2);
+    paintOptions.setRadius(strokeSize / 2);
   }
 
   setAlpha(alpha) {
@@ -135,5 +135,15 @@ export class PaintAPI {
   }
   cancel() {
     this.getTool().cancel();
+  }
+
+  makeSelection() {
+    paintOptions.showSelection = true;
+  }
+  moveSelection() {
+    // paint.moveSelection();
+  }
+  applySelection() {
+     paintOptions.showSelection = false;
   }
 }

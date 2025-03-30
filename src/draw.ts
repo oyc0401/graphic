@@ -65,6 +65,7 @@ export function addDrawEvent() {
                 let point = to_canvas_coord(e.clientX, e.clientY);
                 const worker = getLayerWorker();
 
+                 
                 if (paintState.toolId == "brush") {
                     worker.setStrokeColor(10, 10, 0);
                     worker.setStrokeSize(paintState.brushSize);
@@ -99,6 +100,8 @@ export function addDrawEvent() {
             // console.log("current point", point);
             const worker = getLayerWorker();
 
+
+            worker.applySelection();
             if (paintState.toolId == "brush") {
                 worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {

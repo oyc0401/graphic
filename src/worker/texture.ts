@@ -27,6 +27,8 @@ export let paintOptions = {
   screenWidth: 800,
   screenHeight: 800,
 
+  showSelection: false,
+
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;
   },
