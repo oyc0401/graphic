@@ -110,33 +110,32 @@ function makeRenderingManager(canvas, gl) {
     void main() {
       // 1. magnification을 반영한 "스케일된 스크린" 크기 계산
       vec2 scaledScreenSize = u_screenSize / u_magnification;
+      vec2 size = u_resolution;
       
       // 2. 풀스크린 정규 좌표(v_texCoord)를 스케일된 픽셀 좌표로 변환
       vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
       
       // 3. 2D UI 기준 (왼쪽 상단 기준)인 캔버스 영역을 스케일된 좌표계로 변환  
-      float canvasLeft = u_pos.x;
-      float canvasBottom = scaledScreenSize.y - u_resolution.y - u_pos.y;
-      vec2 canvasSize = u_resolution;  // 캔버스 크기는 그대로 유지
+      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - size.y - u_pos.y);
+      vec2 min = canvasPos;
+      vec2 max = canvasPos + size;
       
       // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 체크
-      if (scaledFragCoord.x < canvasLeft ||
-          scaledFragCoord.x > canvasLeft + canvasSize.x ||
-          scaledFragCoord.y < canvasBottom ||
-          scaledFragCoord.y > canvasBottom + canvasSize.y) {
+      if (scaledFragCoord.x < min.x ||
+          scaledFragCoord.x > max.x ||
+          scaledFragCoord.y < min.y ||
+          scaledFragCoord.y > max.y) {
         discard;
       }
       
       // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력  
-      vec3 rgb = vec3(0.0, 0.0, 0.0);
-      float alpha = 0.04;
+      // vec3 rgb = vec3(0.0, 0.0, 0.0);
+      // float alpha = 0.04;
       // outColor = vec4(rgb * alpha, alpha);
        
       outColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
   `;
-
-
 
   let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundSource);
   let backgroundProgram = createProgram(
@@ -196,25 +195,26 @@ function makeRenderingManager(canvas, gl) {
     void main() {
       // 1. magnification 반영된 "스케일된 스크린" 크기 계산
       vec2 scaledScreenSize = u_screenSize / u_magnification;
+      vec2 size = u_resolution;
       
       // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
       vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
-    
+     
       // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      float canvasLeft = u_pos.x;
-      float canvasBottom = scaledScreenSize.y - u_resolution.y - u_pos.y;
-      vec2 canvasSize = u_resolution;  // 캔버스의 크기는 그대로 u_resolution
+      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - size.y - u_pos.y);
+      vec2 min = canvasPos;
+      vec2 max = canvasPos + size;
     
       // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 검사
-      if (scaledFragCoord.x < canvasLeft ||
-          scaledFragCoord.x > canvasLeft + canvasSize.x ||
-          scaledFragCoord.y < canvasBottom ||
-          scaledFragCoord.y > canvasBottom + canvasSize.y) {
+      if (scaledFragCoord.x < min.x ||
+          scaledFragCoord.x > max.x ||
+          scaledFragCoord.y < min.y ||
+          scaledFragCoord.y > max.y) {
         discard;
       }
     
       // 5.) 캔버스 영역 내의 상대 좌표 (0~1) 계산
-      vec2 local = (scaledFragCoord - vec2(canvasLeft, canvasBottom)) / canvasSize;
+      vec2 local = (scaledFragCoord - min) / size;
     
       // 6. 원본 텍스처에서 local 좌표로 색상을 샘플링
       vec4 imageColor = texture(u_sourse, local);
@@ -279,32 +279,28 @@ function makeRenderingManager(canvas, gl) {
     out vec4 outColor;
     
     void main() {
-      // 화면에서 이 fragment가 차지하는 실제 위치 (스크린 좌표계)
-      vec2 screenCoord = v_texCoord * u_screenSize;
-    
-      // 확대 적용된 캔버스 크기
-      vec2 scaledCanvasSize = u_resolution * u_magnification;
-    
-      // 캔버스 렌더링 시작 좌상단 좌표
-      vec2 canvasOrigin = vec2(u_pos.x * u_magnification, u_screenSize.y - (u_pos.y + u_selectionSize.y) * u_magnification);
-
-      // 보정된 y 좌표
-      vec2 selectionPos = vec2(u_selectionPos.x, -u_selectionPos.y);
+      // 1. magnification 반영된 "스케일된 스크린" 크기 계산
+      vec2 scaledScreenSize = u_screenSize / u_magnification;
+  
+      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
+      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
+      vec2 size = u_selectionSize;
       
-      // 선택영역의 좌상단과 우하단 (화면 기준)
-      vec2 selectionScreenMin = canvasOrigin + (selectionPos * u_magnification);
-      vec2 selectionScreenMax = selectionScreenMin + (u_selectionSize * u_magnification);
+      // 3. 선택요소(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
+      vec2 selectionPos = vec2(u_pos.x + u_selectionPos.x, scaledScreenSize.y - u_pos.y - size.y  - u_selectionPos.y);
+      vec2 min = selectionPos;
+      vec2 max = selectionPos + size;
     
       // 현재 픽셀이 selection 안에 있지 않으면 버림
       if (
-        screenCoord.x < selectionScreenMin.x || screenCoord.x > selectionScreenMax.x ||
-        screenCoord.y < selectionScreenMin.y || screenCoord.y > selectionScreenMax.y
+        scaledFragCoord.x < min.x || scaledFragCoord.x > max.x ||
+        scaledFragCoord.y < min.y || scaledFragCoord.y > max.y
       ) {
         discard;
       }
     
       // 선택영역 내에 있으면 텍스처 좌표 계산
-      vec2 local = (screenCoord - selectionScreenMin) / (selectionScreenMax - selectionScreenMin);
+      vec2 local = (scaledFragCoord - min) / size;
       outColor = texture(u_selection, local);
     }
   `;
