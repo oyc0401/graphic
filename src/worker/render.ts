@@ -1,12 +1,8 @@
-import {
-  TEXTURE_UNIT,
-  getSelectionManager,
-  getSourceTextureManager,
-  paintOptions,
-} from "./texture";
+import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
 import { getLiquifyManager } from "./tool/liquify";
 
+import { getSelectionManager } from "./selection";
 import { getBrushManager } from "./tool/brushTool";
 
 import { createShader, createProgram } from "./glHelper";
