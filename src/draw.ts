@@ -12,7 +12,11 @@ export let toolManager = {
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
+        worker.applySelection();
+        position.resizeScreen();
         worker.setTool(paintState.toolId);
+
+        console.log("brush");
     },
     setEraserTool() {
         paintState.toolId = "eraser";
@@ -20,6 +24,8 @@ export let toolManager = {
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
+        worker.applySelection();
+        position.resizeScreen();
         worker.setTool(paintState.toolId);
     },
     setLiquifyTool() {
@@ -28,9 +34,18 @@ export let toolManager = {
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
+        worker.applySelection();
+        position.resizeScreen();
         worker.setTool(paintState.toolId);
     },
 };
+
+document.querySelector("#selection-button")?.addEventListener("click", () => {
+    let worker = getLayerWorker();
+    worker.makeSelection();
+    position.resizeScreen();
+    paintState.toolId = "selection";
+}); 
 
 let pointerActive = false;
 
@@ -65,7 +80,6 @@ export function addDrawEvent() {
                 let point = to_canvas_coord(e.clientX, e.clientY);
                 const worker = getLayerWorker();
 
-                 
                 if (paintState.toolId == "brush") {
                     worker.setStrokeColor(10, 10, 0);
                     worker.setStrokeSize(paintState.brushSize);
@@ -100,8 +114,6 @@ export function addDrawEvent() {
             // console.log("current point", point);
             const worker = getLayerWorker();
 
-
-            worker.applySelection();
             if (paintState.toolId == "brush") {
                 worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {
@@ -146,7 +158,7 @@ export function addDrawEvent() {
         worker.setAlpha(paintState.brushAlpha);
 
         worker.start({ x: 50, y: 50 });
-        worker.strokeTo({ x: 630.2 , y:300  });
+        worker.strokeTo({ x: 630.2, y: 300 });
     };
 }
 

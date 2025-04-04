@@ -46,6 +46,7 @@ async function main() {
     position.resizeScreen();
 
     globalThis.position = position;
-
+    globalThis.paintState = paintState;
+    
     console.log("Complete App!");
 }

@@ -94,12 +94,6 @@ export function addPositionEvent() {
     paintState.action = "BRUSH";
   }
 
-  document.querySelector("#selection-button")?.addEventListener("click", () => {
-    let worker = getLayerWorker();
-    worker.makeSelection();
-    position.resizeScreen();
-  });
-  
   /**
    * 휠 스크롤 영역
    */
