@@ -1,4 +1,4 @@
-import { getGlHelper } from "./glHelper";
+import { getGlHelper } from "./utils/glHelper";
 import { BrushTool, EraserTool, installTools, LiquifyTool } from "./tool/tool";
 import { paintOptions } from "./texture";
 import { renderScreen } from "./render";

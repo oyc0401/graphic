@@ -24,28 +24,33 @@ function decodeBase64ToFloat32Array(base64) {
 // F(x) = easeinoutCirc(x) 일 때
 export async function getIntegralEaseInOut() {
     // return new Float32Array([0.5,0.4,0.3,0.2,0.1,0]);
-    cacheIntegralEaseInOut = decodeBase64ToFloat32Array(integralBase64);
     if (cacheIntegralEaseInOut) {
         return cacheIntegralEaseInOut;
     }
-    const response1 = await fetch("/data.bin");
-    const arrayBuffer1 = await response1.arrayBuffer();
-    cacheIntegralEaseInOut = new Float32Array(arrayBuffer1);
+    cacheIntegralEaseInOut = decodeBase64ToFloat32Array(integralBase64);
+
     return cacheIntegralEaseInOut;
+
+    // const response1 = await fetch("/data.bin");
+    // const arrayBuffer1 = await response1.arrayBuffer();
+    // cacheIntegralEaseInOut = new Float32Array(arrayBuffer1);
+    // return cacheIntegralEaseInOut;
 }
 
 /**
  * F(x)를 뒤집어놓은 함수의 적분 0~x까지 가져옴
  */
 export async function getIntegralEaseInOutMirror() {
-    cacheIntegralEaseInOutMirror = decodeBase64ToFloat32Array(
-        IntegralEaseInOutMirrorBase64,
-    );
     if (cacheIntegralEaseInOutMirror) {
         return cacheIntegralEaseInOutMirror;
     }
-    const response2 = await fetch("/integralEase.bin");
-    const arrayBuffer2 = await response2.arrayBuffer();
-    cacheIntegralEaseInOutMirror = new Float32Array(arrayBuffer2);
+    cacheIntegralEaseInOutMirror = decodeBase64ToFloat32Array(
+        IntegralEaseInOutMirrorBase64,
+    );
     return cacheIntegralEaseInOutMirror;
+
+    // const response2 = await fetch("/integralEase.bin");
+    // const arrayBuffer2 = await response2.arrayBuffer();
+    // cacheIntegralEaseInOutMirror = new Float32Array(arrayBuffer2);
+    // return cacheIntegralEaseInOutMirror;
 }

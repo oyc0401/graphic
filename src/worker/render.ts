@@ -5,9 +5,9 @@ import { getLiquifyManager } from "./tool/liquify";
 import { getSelectionManager } from "./selection";
 import { getBrushManager } from "./tool/brushTool";
 
-import { createShader, createProgram } from "./glHelper";
+import { createShader, createProgram } from "./utils/glHelper";
 import { enable_a_position, getFullQuadShader } from "./vertexShader";
-import { getManager } from "./cachedManager";
+import { getManager } from "./utils/cachedManager";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>

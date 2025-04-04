@@ -1,5 +1,5 @@
-import { getManager } from "./cachedManager";
-import { createShader } from "./glHelper";
+import { getManager } from "./utils/cachedManager";
+import { createShader } from "./utils/glHelper";
 
 /**
  * in vec2 a_position;

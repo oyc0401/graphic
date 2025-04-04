@@ -1,5 +1,5 @@
 import { TEXTURE_UNIT } from "./texture";
-import { getManager } from "./cachedManager";
+import { getManager } from "./utils/cachedManager";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>

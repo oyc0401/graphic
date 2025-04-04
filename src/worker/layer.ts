@@ -1,4 +1,4 @@
-import { getManager } from "./cachedManager";
+import { getManager } from "./utils/cachedManager";
 import {
   TEXTURE_UNIT,
   paintOptions,

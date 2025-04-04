@@ -1,7 +1,7 @@
-import { createShader, createProgram } from "./glHelper";
+import { createShader, createProgram } from "./utils/glHelper";
 import { enable_a_position, getFullQuadShader } from "./vertexShader";
 import { getLayerManager } from "./layer";
-import { getManager } from "./cachedManager";
+import { getManager } from "./utils/cachedManager";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
