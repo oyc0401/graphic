@@ -1,5 +1,5 @@
 import * as Comlink from "comlink";
-import { workerApi } from "../worker/api";
+import { workerApi } from "./paintController";
 import WorkerModule from "./worker?worker";
 
 type WorkerApi = typeof workerApi;

@@ -1,4 +1,4 @@
-import { createShader, createProgram, getGlHelper } from "../glHelper";
+import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import {
   TEXTURE_UNIT,

@@ -1,13 +1,13 @@
-import { getGlHelper } from "./utils/glHelper";
-import { BrushTool, EraserTool, installTools, LiquifyTool } from "./tool/tool";
-import { paintOptions } from "./texture";
-import { renderScreen } from "./render";
+import { getGlHelper } from "../gl/utils/glHelper";
+import { BrushTool, EraserTool, installTools, LiquifyTool } from "../gl/tool/tool";
+import { paintOptions } from "../gl/texture";
+import { renderScreen } from "../gl/render";
 interface Pointer {
   x: number;
   y: number;
 }
 
-export class PaintAPI {
+export class PaintService {
   canvas: OffscreenCanvas;
   gl: WebGL2RenderingContext;
   width: number;

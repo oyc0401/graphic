@@ -1,6 +1,6 @@
-import { PaintAPI } from "./apiManager";
+import { PaintService } from "./paintService";
 
-let paint: PaintAPI;
+let paint: PaintService;
 
 export const workerApi = {
   async makeLayer(
@@ -13,7 +13,7 @@ export const workerApi = {
   ) {
     console.log("Making Layer...", width, height);
 
-    paint = new PaintAPI(
+    paint = new PaintService(
       main_canvas,
       width,
       height,

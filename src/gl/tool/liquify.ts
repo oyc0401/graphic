@@ -16,7 +16,7 @@ import {
     createProgram,
     loadShader,
     getGlHelper,
-} from "../glHelper";
+} from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
 
