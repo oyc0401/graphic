@@ -1,7 +1,13 @@
 import { getGlHelper } from "../gl/utils/glHelper";
-import { BrushTool, EraserTool, installTools, LiquifyTool } from "../gl/tool/tool";
+import {
+  BrushTool,
+  EraserTool,
+  installTools,
+  LiquifyTool,
+} from "../gl/tool/tool";
 import { paintOptions } from "../gl/texture";
 import { renderScreen } from "../gl/render";
+import { getSelectionManager } from "../gl/selection";
 interface Pointer {
   x: number;
   y: number;
@@ -144,6 +150,10 @@ export class PaintService {
     // paint.moveSelection();
   }
   applySelection() {
-     paintOptions.showSelection = false;
+    if (paintOptions.showSelection) {
+      let selectionManager = getSelectionManager(this.canvas, this.gl);
+      selectionManager.applySelection();
+    }
+    paintOptions.showSelection = false;
   }
 }

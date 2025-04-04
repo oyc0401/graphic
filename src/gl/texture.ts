@@ -71,7 +71,7 @@ function makeSourceTextureManager(canvas, gl) {
 
   // 이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.offscreenFBO);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
@@ -134,7 +134,7 @@ function makeSourceTextureManager(canvas, gl) {
 
     gl.useProgram(cancelProgram);
     // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.offscreenFBO);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

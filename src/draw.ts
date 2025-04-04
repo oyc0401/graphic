@@ -20,7 +20,7 @@ export let toolManager = {
     },
     setEraserTool() {
         paintState.toolId = "eraser";
-        paintState.brushSize = 1;
+        paintState.brushSize = 10;
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();

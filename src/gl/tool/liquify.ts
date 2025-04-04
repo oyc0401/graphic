@@ -451,7 +451,7 @@ async function makeLiquifyManager(canvas, gl) {
     function render() {
         gl.useProgram(renderProgram);
         // 쓰기 영역: 내 화면
-        gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.offscreenFBO);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
         gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 

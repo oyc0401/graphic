@@ -486,7 +486,7 @@ function resizeTexture(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
   let layerManager = getLayerManager(canvas, gl);
 
   // 이제 화면으로 blit (복사)하기 위해
-  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.offscreenFBO);
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer); // null은 기본 화면 프레임버퍼
 
   let diffHeight = newHeight - oldHeight;
@@ -508,7 +508,7 @@ function resizeTexture(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-  gl.bindTexture(gl.TEXTURE_2D, layerManager.offscreenTex);
+  gl.bindTexture(gl.TEXTURE_2D, layerManager.layerTex);
 
   gl.texImage2D(
     gl.TEXTURE_2D,

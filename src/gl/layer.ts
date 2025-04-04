@@ -12,9 +12,9 @@ export function getLayerManager(canvas, gl) {
 }
 
 function makeLayerManager(canvas, gl) {
-  let offscreenTex = gl.createTexture();
+  let layerTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-  gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
+  gl.bindTexture(gl.TEXTURE_2D, layerTex);
 
   // 이걸 스케일 업해서 그리려면, 보간이 없어야함.
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -34,18 +34,18 @@ function makeLayerManager(canvas, gl) {
     null,
   );
 
-  let offscreenFBO = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
+  let layerFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, layerFBO);
   gl.framebufferTexture2D(
     gl.FRAMEBUFFER,
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
-    offscreenTex,
+    layerTex,
     0,
   );
 
   return {
-    offscreenTex,
-    offscreenFBO,
+    layerTex,
+    layerFBO,
   };
 }
