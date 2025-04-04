@@ -1,6 +1,7 @@
 import { createShader, createProgram } from "./glHelper";
 import { enable_a_position, getFullQuadShader } from "./vertexShader";
 import { getLayerManager } from "./layer";
+import { getManager } from "./cachedManager";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -47,17 +48,12 @@ export let paintOptions = {
 /**
  * 소스 텍스쳐는 텍스처 슬롯 1번을 차지하고 있습니다.
  */
-const sourceTextureManagers = new Map();
 
 export function getSourceTextureManager(canvas, gl) {
-  if (sourceTextureManagers.has(gl)) {
-    return sourceTextureManagers.get(gl);
-  }
-
-  const sourceTextureManager = makeSourceTextureManager(canvas, gl);
-  sourceTextureManagers.set(gl, sourceTextureManager);
-
-  return sourceTextureManager;
+  const manager = getManager(gl, "sourceTexture", () =>
+    makeSourceTextureManager(canvas, gl),
+  );
+  return manager;
 }
 
 function makeSourceTextureManager(canvas, gl) {

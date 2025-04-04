@@ -1,19 +1,14 @@
+import { getManager } from "./cachedManager";
 import { createShader } from "./glHelper";
-
-const fullQuadVertexShaders = new Map();
 
 /**
  * in vec2 a_position;
  */
 export function getFullQuadShader(gl) {
-  if (fullQuadVertexShaders.has(gl)) {
-    return fullQuadVertexShaders.get(gl);
-  }
-
-  const vertexShader = makeFullQuadVertexShader(gl);
-  fullQuadVertexShaders.set(gl, vertexShader);
-
-  return vertexShader;
+  const manager = getManager(gl, "fullQuadVertexShader", () =>
+    makeFullQuadVertexShader(gl),
+  );
+  return manager;
 }
 
 function makeFullQuadVertexShader(gl) {

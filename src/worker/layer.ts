@@ -1,18 +1,13 @@
+import { getManager } from "./cachedManager";
 import {
   TEXTURE_UNIT,
   paintOptions,
 } from "./texture";
 
-const layerManagerStore = new Map();
-
 export function getLayerManager(canvas, gl) {
-  if (layerManagerStore.has(gl)) {
-    return layerManagerStore.get(gl);
-  }
-
-  const manager = makeLayerManager(canvas, gl);
-  layerManagerStore.set(gl, manager);
-
+  const manager = getManager(gl, "layer", () =>
+    makeLayerManager(canvas, gl),
+  );
   return manager;
 }
 

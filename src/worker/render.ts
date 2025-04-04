@@ -7,17 +7,12 @@ import { getBrushManager } from "./tool/brushTool";
 
 import { createShader, createProgram } from "./glHelper";
 import { enable_a_position, getFullQuadShader } from "./vertexShader";
-
-const renderingManagerStore = new Map();
+import { getManager } from "./cachedManager";
 
 export function getRenderingManager(canvas, gl) {
-  if (renderingManagerStore.has(gl)) {
-    return renderingManagerStore.get(gl);
-  }
-
-  const manager = makeRenderingManager(canvas, gl);
-  renderingManagerStore.set(gl, manager);
-
+  const manager = getManager(gl, "rendering", () =>
+    makeRenderingManager(canvas, gl),
+  );
   return manager;
 }
 
