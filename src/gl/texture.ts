@@ -69,7 +69,7 @@ function makeSourceTextureManager(canvas, gl) {
   let layerManager = getLayerManager(canvas, gl);
   uploadCurrent();
 
-  // 이미지는 캔버스에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
+  // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
 
@@ -113,7 +113,7 @@ function makeSourceTextureManager(canvas, gl) {
       void main() {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
 
-        outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+        outColor = vec4(imageColor.rgb, imageColor.a);
       }
       `;
 

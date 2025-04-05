@@ -81,7 +81,7 @@ export function addDrawEvent() {
                 const worker = getLayerWorker();
 
                 if (paintState.toolId == "brush") {
-                    worker.setStrokeColor(10, 10, 0);
+                    worker.setStrokeColor(0, 255, 255);
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 

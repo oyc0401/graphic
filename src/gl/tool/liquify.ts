@@ -211,12 +211,12 @@ async function makeLiquifyManager(canvas, gl) {
           if (target.x < 0.0 || target.x > 1.0 ||
               target.y < 0.0 || target.y > 1.0) {
               // 경계 외부는 투명색 반환
-              outColor = vec4(0.0, 0.0, 0.0, 0.0);
+              outColor = vec4(1.0, 1.0, 1.0, 0.0);
           } else {
-                vec4 newColor = texture(u_sourse, target);
-                float newAlpha = newColor.a;
-                outColor = vec4(newColor.rgb * newAlpha , newAlpha);
-               //outColor = texture(u_sourse, target);
+                // vec4 newColor = texture(u_sourse, target);
+                // float newAlpha = newColor.a;
+                // outColor = vec4(newColor.rgb, newAlpha);
+               outColor = texture(u_sourse, target);
                 // outColor = vec4(0.0,1.0,0.0,value.y/8.0);
           }
       }
@@ -260,7 +260,7 @@ async function makeLiquifyManager(canvas, gl) {
         const height = paintOptions.height;
 
         gl.viewport(0, 0, width, height);
-        gl.clearColor(0, 0, 0, 0);
+        gl.clearColor(1, 1, 1, 0);
 
         gl.useProgram(liquifyPushProgram);
 

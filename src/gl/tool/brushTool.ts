@@ -132,18 +132,6 @@ function makeBrushManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-  // gl.texImage2D(
-  //   gl.TEXTURE_2D,
-  //   0,
-  //   gl.R32F,
-  //   width,
-  //   height,
-  //   0,
-  //   gl.RED,
-  //   gl.FLOAT,
-  //   null,
-  // );
-
   // 프레임버퍼 생성 및 바인딩
   let framebuffer = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -196,16 +184,20 @@ function makeBrushManager(canvas, gl) {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
         vec4 brushColor = vec4(u_color, value); // 새로운 색
 
-        // Premultiplied Alpha 적용
-        vec3 premultBrush = brushColor.rgb * brushColor.a; // RGB에 알파를 미리 곱함
-        vec3 premultImage = imageColor.rgb * imageColor.a;
+        // 1) 최종 알파 = brushAlpha + imageAlpha(1 - brushAlpha)
+        float outA = brushColor.a + imageColor.a * (1.0 - brushColor.a);
+    
+        // 2) 최종 RGB (Non-Premultiplied)
+        vec3 outRGB = brushColor.rgb;
+        if (outA > 0.0) {
+            outRGB = (
+                brushColor.rgb * brushColor.a + imageColor.rgb * imageColor.a * (1.0 - brushColor.a)
+            ) / outA;
+        }
+    
+        // 3) 최종 색상
+        outColor = vec4(outRGB, outA);
 
-        // 블렌딩 (Premultiplied 방식)
-        vec3 blendedRGB = premultImage * (1.0 - brushColor.a) + premultBrush;
-        float blendedAlpha = imageColor.a + brushColor.a * (1.0 - imageColor.a); 
-
-        // 최종 색상
-        outColor = vec4(blendedRGB, blendedAlpha);
       }
       `;
 
@@ -241,7 +233,7 @@ function makeBrushManager(canvas, gl) {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
 
         float newAlpha = imageColor.a - imageColor.a * value;
-        outColor = vec4(imageColor.rgb * newAlpha , newAlpha);
+        outColor = vec4(imageColor.rgb, newAlpha);
       }
       `;
 
@@ -272,7 +264,7 @@ function makeBrushManager(canvas, gl) {
 
     //console.log(paintOptions);
     gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
+    gl.clearColor(1, 1, 1, 0);
 
     gl.useProgram(strokeProgram);
     gl.uniform2f(
