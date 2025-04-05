@@ -400,7 +400,6 @@ export async function renderScreen(
   magnification,
 ) {
   let renderingManager = getRenderingManager(canvas, gl);
-  console.log(width, height, screenWidth, screenHeight, x, y, magnification);
   if (
     paintOptions.screenWidth != screenWidth ||
     paintOptions.screenHeight != screenHeight

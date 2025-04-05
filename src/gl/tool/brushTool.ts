@@ -331,8 +331,13 @@ function makeBrushManager(canvas, gl) {
   }
 
   let brushManager = {
-    enter() {},
-    start(p) {},
+    enter() {
+      console.log('enter!')
+      
+    },
+    start(p) {
+      console.log('start!');
+    },
     stroke(start, end) {
       let height = paintOptions.height;
 

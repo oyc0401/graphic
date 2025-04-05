@@ -7,11 +7,11 @@ export const TEXTURE_UNIT = {
   LAYER: 1, // 그림을 그릴 대상
   SOURCE: 2, // 원본 이미지 (Source Image)
   PATHMAP: 3, // 브러시, 지우개 알파맵
-  SOURCE_DISPLACEMENT: 4,
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
-  EASE_INTEGRAL: 6, // Ease In-Out Cubic Integral
-  EASE_MIRROR: 7, // Ease In-Out Cubic Mirror
-  SELECTION: 9,
+  SOURCE_DISPLACEMENT: 6, // 변위맵 이전 상태 저장 용
+  EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
+  EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
+  SELECTION: 10,
 };
 
 export let paintOptions = {
