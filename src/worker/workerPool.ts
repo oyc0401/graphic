@@ -25,7 +25,7 @@ function getWorkerObject() {
       if (type === "copy") {
         navigator.clipboard.writeText(payload);
         console.log("클립보드에 복사됨:", payload);
-      }
+      }Comlink
     };
     const api = Comlink.wrap<WorkerApi>(worker);
 

@@ -146,6 +146,8 @@ function createSelectionManager(canvas, gl) {
   enable_a_position(gl, selectionProgram);
 
   function applySelection() {
+    paintOptions.showSelection = false;
+    
     gl.useProgram(selectionProgram);
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_resolution"),

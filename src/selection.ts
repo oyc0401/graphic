@@ -3,6 +3,7 @@ import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
 import { position } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
+import * as Comlink from "comlink";
 
 export let selection = {
   x: 0,
@@ -99,6 +100,10 @@ export function addSelectionEvent() {
 }
 
 document.querySelector("#paste")?.addEventListener("click", () => {
+  paste();
+});
+
+async function paste() {
   applySelection();
 
   let worker = getLayerWorker();
@@ -108,19 +113,6 @@ document.querySelector("#paste")?.addEventListener("click", () => {
   selection.width = 300;
   selection.height = 200;
 
-  // worker.canvasSelection(
-  //   selection.x,
-  //   selection.y,
-  //   selection.width,
-  //   selection.height,
-  // );
-
-  worker.moveSelection(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-  );
   beforeSelectionPos = {
     x: selection.x,
     y: selection.y,
@@ -128,14 +120,48 @@ document.querySelector("#paste")?.addEventListener("click", () => {
     height: selection.height,
   };
 
-  worker.makeSelection();
-  position.resizeScreen();
-  paintState.toolId = "selection";
+  let bitmap = await getClipboardImageBitmap();
+  if (!bitmap) {
+    console.warn("클립보드에 복사 된 이미지가 없습니다.");
+    return;
+  }
+  console.log(bitmap);
 
+  worker.makeSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+    Comlink.transfer(bitmap, [bitmap]),
+  );
+
+  paintState.toolId = "selection";
   selection.visiable = true;
-  console.log("선택");
+  console.log("붙여넣기!");
   setSelectionPosition();
-});
+}
+
+async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
+  try {
+    const items = await navigator.clipboard.read(); // 권한 필요
+
+    for (const item of items) {
+      for (const type of item.types) {
+        if (type.startsWith("image/")) {
+          const blob = await item.getType(type);
+          const bitmap = await createImageBitmap(blob);
+          return bitmap;
+        }
+      }
+    }
+
+    console.warn("No image found in clipboard.");
+    return null;
+  } catch (err) {
+    console.error("Clipboard access failed:", err);
+    return null;
+  }
+}
 
 export function canvasSelect(x, y, width, height) {
   let worker = getLayerWorker();
@@ -159,9 +185,8 @@ export function canvasSelect(x, y, width, height) {
     height: selection.height,
   };
 
- // position.resizeScreen();
+  // position.resizeScreen();
   paintState.toolId = "selection";
-
 
   console.log("자르기!");
   selection.visiable = true;
@@ -171,7 +196,7 @@ export function canvasSelect(x, y, width, height) {
 export function applySelection() {
   let worker = getLayerWorker();
   worker.applySelection();
-  
+
   selection.visiable = false;
   setSelectionPosition();
 }

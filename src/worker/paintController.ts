@@ -53,8 +53,8 @@ export const workerApi = {
   canvasSelection(x,y,w,h){
      paint.canvasSelection(x,y,w,h);
   },
-  makeSelection() {
-    paint.makeSelection();
+  makeSelection(x, y, width, height, imageBitmap) {
+    paint.makeSelection(x, y, width, height, imageBitmap);
   },
   moveSelection(x, y, width, height) {
     paint.moveSelection(x, y, width, height);

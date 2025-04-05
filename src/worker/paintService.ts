@@ -147,7 +147,7 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
   }
-  makeSelection() {
+  makeSelection(x, y, width, height, imageBitmap) {
     paintOptions.showSelection = true;
   }
   moveSelection(x, y, width, height) {
@@ -157,7 +157,6 @@ export class PaintService {
   applySelection() {
     if (paintOptions.showSelection) {
       let selectionManager = getSelectionManager(this.canvas, this.gl);
-      paintOptions.showSelection = false;
       selectionManager.applySelection();
     }
   }
