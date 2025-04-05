@@ -2,6 +2,7 @@ import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
 import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
+import { setSelectionPosition } from "./selection";
 
 const MIN_SCALE = 0.1;
 let MAX_SCALE = 0;
@@ -33,6 +34,7 @@ export let position = {
     this.x = clampPositionX;
     this.y = clampPositionY;
 
+    setSelectionPosition();
     const worker = getLayerWorker();
 
     worker.render(

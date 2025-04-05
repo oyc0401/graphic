@@ -1,6 +1,7 @@
 import { addDrawEvent, initDraw } from "./draw";
 import { addPositionEvent, position, setDefaultPosition } from "./position";
 import { addInteractionEvent, getElements } from "./interface";
+import { addSelectionEvent } from "./selection";
 window.onload = main;
 
 interface PaintState {
@@ -42,6 +43,7 @@ async function main() {
     addPositionEvent();
 
     addDrawEvent();
+    addSelectionEvent();
 
     position.resizeScreen();
 

@@ -69,6 +69,20 @@ canvas {
   z-index: 3000;
 }
 
+#selection-area {
+  /* background: rgba(255, 255, 0, 0.5); */
+  position: absolute;
+  z-index: 2900;
+}
+
+.handle {
+  width: 44px;
+  height: 44px;
+  z-index: 2901;
+   position: absolute;
+  background: rgba(255, 0, 0, 0.5);
+}
+
 #brush-cursor {
   background: transparent;
   border: 1px solid black;

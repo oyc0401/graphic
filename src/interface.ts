@@ -10,6 +10,7 @@ interface Elements {
     selectEraserBtn: HTMLElement;
     selectLiquifyBtn: HTMLElement;
     zoomArea: HTMLElement;
+    selectionArea: HTMLElement;
 }
 export let elementStore: Elements = {} as Elements;
 
@@ -24,6 +25,7 @@ export function getElements() {
         selectLiquifyBtn: document.querySelector("#select-liquify")!,
 
         zoomArea: document.querySelector("#zoom-area")!,
+        selectionArea: document.querySelector("#selection-area")!,
     };
 }
 

@@ -1,18 +1,20 @@
 import { paintState } from "./main";
 import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
 import { position } from "./position";
-import { to_canvas_coord, to_screen_coord } from "./position";
+import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
+import { selection } from "./selection";
 
 export let toolManager = {
     setBrushTool() {
         paintState.toolId = "brush";
         paintState.brushSize = 5;
-        paintState.brushAlpha = 1;
+        paintState.brushAlpha = 0.4;
 
         const worker = getLayerWorker();
         worker.applySelection();
+        selection.visiable = false;
         position.resizeScreen();
         worker.setTool(paintState.toolId);
 
@@ -25,6 +27,7 @@ export let toolManager = {
 
         const worker = getLayerWorker();
         worker.applySelection();
+        selection.visiable = false;
         position.resizeScreen();
         worker.setTool(paintState.toolId);
     },
@@ -35,26 +38,10 @@ export let toolManager = {
 
         const worker = getLayerWorker();
         worker.applySelection();
+        selection.visiable = false;
         worker.setTool(paintState.toolId);
     },
 };
-
-let selection = {
-    x: 0,
-    y: 0,
-    width: 300,
-    height: 200,
-};
-document.querySelector("#selection-button")?.addEventListener("click", () => {
-    let worker = getLayerWorker();
-    selection.x = selection.y = 0;
-    selection.width = 300;
-    selection.height = 200;
-    worker.moveSelection(0, 0, 300, 200);
-    worker.makeSelection();
-    position.resizeScreen();
-    paintState.toolId = "selection";
-});
 
 let pointerActive = false;
 
@@ -76,13 +63,12 @@ export function addDrawEvent() {
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };
 
-    let selectionDragPointer = { x: 0, y: 0 };
-
     (function () {
         elementStore.container.addEventListener(
             "pointerdown",
             function (e: PointerEvent) {
                 e.preventDefault();
+                if (!paintState.pointerdown) return;
                 if (paintState.action != "BRUSH") return;
 
                 //  console.log("brushStart!");
@@ -109,14 +95,6 @@ export function addDrawEvent() {
                     worker.start(point);
                     start = { x: e.clientX, y: e.clientY };
                     end = { x: e.clientX, y: e.clientY };
-                } else if (paintState.toolId == "selection") {
-                    console.log("선택창 시작!");
-
-                    selectionDragPointer = {
-                        x: point.x - selection.x,
-                        y: point.y - selection.y,
-                    };
-                    console.log("상대 포인터는:", selectionDragPointer);
                 }
             },
         );
@@ -145,19 +123,6 @@ export function addDrawEvent() {
                     worker.strokeTo(point);
                     start = end;
                 }
-            } else if (paintState.toolId == "selection") {
-                console.log(selectionDragPointer);
-                let newSelectionX = point.x - selectionDragPointer.x;
-                let newSelectionY = point.y - selectionDragPointer.y;
-
-                selection.x = newSelectionX;
-                selection.y = newSelectionY;
-                worker.moveSelection(
-                    selection.x,
-                    selection.y,
-                    selection.width,
-                    selection.height,
-                );
             }
         });
 
@@ -183,7 +148,7 @@ export function addDrawEvent() {
         });
     })();
 
-    window.drawLine = () => {
+    globalThis.drawLine = () => {
         const worker = getLayerWorker();
         worker.setStrokeColor(10, 10, 0);
         worker.setStrokeSize(paintState.brushSize);
