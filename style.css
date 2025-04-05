@@ -80,7 +80,7 @@ canvas {
   height: 44px;
   z-index: 2901;
    position: absolute;
-  background: rgba(255, 0, 0, 0.5);
+  background: rgba(255, 0, 0, 0.3);
 }
 
 #brush-cursor {

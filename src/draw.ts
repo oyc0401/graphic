@@ -4,7 +4,7 @@ import { position } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
-import { selection } from "./selection";
+import { applySelection, selection, selectionCancel } from "./selection";
 
 export let toolManager = {
     setBrushTool() {
@@ -13,8 +13,7 @@ export let toolManager = {
         paintState.brushAlpha = 0.4;
 
         const worker = getLayerWorker();
-        worker.applySelection();
-        selection.visiable = false;
+        applySelection();
         position.resizeScreen();
         worker.setTool(paintState.toolId);
 
@@ -26,8 +25,7 @@ export let toolManager = {
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
-        worker.applySelection();
-        selection.visiable = false;
+        applySelection();
         position.resizeScreen();
         worker.setTool(paintState.toolId);
     },
@@ -37,8 +35,7 @@ export let toolManager = {
         paintState.brushAlpha = 1;
 
         const worker = getLayerWorker();
-        worker.applySelection();
-        selection.visiable = false;
+        applySelection();
         worker.setTool(paintState.toolId);
     },
 };
@@ -167,6 +164,11 @@ export function cancel() {
     pointerActive = false;
 
     const worker = getLayerWorker();
+
+    if (paintState.toolId == 'selection') {
+        selectionCancel();
+        return;
+    }
     worker.cancel();
 }
 

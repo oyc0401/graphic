@@ -13,6 +13,13 @@ export let selection = {
   active: false,
 };
 
+let beforeSelectionPos = {
+  x: 0,
+  y: 0,
+  width: 50,
+  height: 50,
+};
+
 export function addSelectionEvent() {
   let selectionDragPointer = { x: 0, y: 0 };
   (function () {
@@ -34,7 +41,6 @@ export function addSelectionEvent() {
             x: point.x - selection.x,
             y: point.y - selection.y,
           };
-          console.log("상대 포인터는:", selectionDragPointer);
         }
       },
     );
@@ -75,6 +81,12 @@ export function addSelectionEvent() {
       let point = to_canvas_coord(e.clientX, e.clientY);
       const worker = getLayerWorker();
       if (paintState.toolId == "selection") {
+        beforeSelectionPos = {
+          x: selection.x,
+          y: selection.y,
+          width: selection.width,
+          height: selection.height,
+        };
       }
 
       selection.active = false;
@@ -87,7 +99,10 @@ export function addSelectionEvent() {
 }
 
 document.querySelector("#selection-button")?.addEventListener("click", () => {
+  applySelection();
+
   let worker = getLayerWorker();
+
   selection.x = 0;
   selection.y = 0;
   selection.width = 300;
@@ -98,6 +113,13 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
     selection.width,
     selection.height,
   );
+  beforeSelectionPos = {
+    x: selection.x,
+    y: selection.y,
+    width: selection.width,
+    height: selection.height,
+  };
+  
   worker.makeSelection();
   position.resizeScreen();
   paintState.toolId = "selection";
@@ -106,6 +128,12 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   console.log("선택");
   setSelectionPosition();
 });
+
+export function applySelection() {
+  let worker = getLayerWorker();
+  worker.applySelection();
+  selection.visiable = false;
+}
 
 export function setSelectionPosition() {
   elementStore.selectionArea.style.visibility = selection.visiable
@@ -129,8 +157,9 @@ let handleB = document.getElementById("handle-b")!;
 let handleLB = document.getElementById("handle-lb")!;
 let handleL = document.getElementById("handle-l")!;
 
+let activeHandle: HTMLElement | null = null;
+
 function addHandleEvent() {
-  let activeHandle: HTMLElement | null = null;
   let worker = getLayerWorker();
 
   // 드래그 시작 시점의 마우스 위치
@@ -162,7 +191,7 @@ function addHandleEvent() {
   // 전역 MOUSEMOVE 이벤트 핸들러
   function onMouseMove(e: MouseEvent) {
     if (!activeHandle) return; // 드래그 중이 아니면 무시
-    
+
     // 마우스가 얼마나 이동했는지
     const dx = (e.clientX - startX) / position.scale;
     const dy = (e.clientY - startY) / position.scale;
@@ -214,11 +243,20 @@ function addHandleEvent() {
     );
 
     setSelectionPosition();
+
+   
   }
 
   // 전역 MOUSEUP 이벤트 핸들러
   function onMouseUp() {
     activeHandle = null;
+
+    beforeSelectionPos = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    };
   }
 
   // 각 핸들에 mousedown 이벤트 등록
@@ -284,6 +322,25 @@ function setHandlePosition() {
   setPos(handleL, areaLeft, areaTop + areaHeight / 2);
 }
 
-function selectionCancel() {
+export function selectionCancel() {
   selection.active = false;
+
+  console.log(beforeSelectionPos);
+  selection.x = beforeSelectionPos.x;
+  selection.y = beforeSelectionPos.y;
+  selection.width = beforeSelectionPos.width;
+  selection.height = beforeSelectionPos.height;
+
+  const worker = getLayerWorker();
+  
+  worker.moveSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+  );
+  
+  setSelectionPosition();
+
+   activeHandle = null;
 }

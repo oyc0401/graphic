@@ -365,7 +365,7 @@ function makeRenderingManager(canvas, gl) {
   }
 
   function render() {
-    console.log("렌더링!");
+    console.log("render");
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
