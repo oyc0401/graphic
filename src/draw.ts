@@ -56,6 +56,11 @@ export async function initDraw() {
     );
 }
 
+// document.getElementById("cut")!.addEventListener("click", () => {
+//     // let worker = getLayerWorker();
+//     // worker.copy();
+// });
+
 export function addDrawEvent() {
     let start = { x: 0, y: 0 };
     let end = { x: 0, y: 0 };

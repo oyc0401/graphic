@@ -107,12 +107,12 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   selection.y = 0;
   selection.width = 300;
   selection.height = 200;
-  worker.canvasSelection(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-  );
+  // worker.canvasSelection(
+  //   selection.x,
+  //   selection.y,
+  //   selection.width,
+  //   selection.height,
+  // );
 
   worker.moveSelection(
     selection.x,
@@ -216,20 +216,20 @@ function addHandleEvent() {
       selection.width = Math.max(0, startWidth + dx);
     } else if (activeHandle === handleL) {
       // 왼쪽 중앙: x와 width가 반대 방향으로 조정
-      selection.x = startLeft + dx;
+      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
       selection.width = Math.max(0, startWidth - dx);
     } else if (activeHandle === handleT) {
       // 위 중앙: y와 height
-      selection.y = startTop + dy;
+      selection.y = Math.min(startTop + startHeight, startTop + dy);
       selection.height = Math.max(0, startHeight - dy);
     } else if (activeHandle === handleB) {
       // 아래 중앙: 높이만 늘어남
       selection.height = Math.max(0, startHeight + dy);
     } else if (activeHandle === handleLT) {
       // 왼쪽 위 모서리: x, width, y, height 모두 영향
-      selection.x = startLeft + dx;
+      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
       selection.width = Math.max(0, startWidth - dx);
-      selection.y = startTop + dy;
+      selection.y = Math.min(startTop + startHeight, startTop + dy);
       selection.height = Math.max(0, startHeight - dy);
 
       // SHIFT + 비율 고정
@@ -249,7 +249,7 @@ function addHandleEvent() {
     } else if (activeHandle === handleRT) {
       // 오른쪽 위 모서리: width, y, height
       selection.width = Math.max(0, startWidth + dx);
-      selection.y = startTop + dy;
+      selection.y = Math.min(startTop + startHeight, startTop + dy);
       selection.height = Math.max(0, startHeight - dy);
 
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
@@ -283,7 +283,7 @@ function addHandleEvent() {
       }
     } else if (activeHandle === handleLB) {
       // 왼쪽 아래 모서리: x, width, height
-      selection.x = startLeft + dx;
+      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
       selection.width = Math.max(0, startWidth - dx);
       selection.height = Math.max(0, startHeight + dy);
 
