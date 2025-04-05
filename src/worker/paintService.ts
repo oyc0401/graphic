@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 import { getGlHelper } from "../gl/utils/glHelper";
 import {
   BrushTool,
@@ -143,15 +145,32 @@ export class PaintService {
   cancel() {
     this.getTool().cancel();
   }
-  canvasSelection(x, y, width, height) {
+  // cut
+  cut(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.cut(x, y, width, height);
   }
-  makeSelection(x, y, width, height, imageBitmap) {
+  paste(x, y, width, height, imageBitmap) {
     paintOptions.showSelection = true;
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.setImage(imageBitmap)
-    
+    selectionManager.paste(imageBitmap);
+  }
+  copy() {
+    // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    let { pixels, width, height } = selectionManager.getPixelData();
+
+    self.postMessage(
+      {
+        type: "copy",
+        payload: {
+          pixels,
+          width,
+          height,
+        },
+      },
+      [pixels.buffer],
+    );
   }
   moveSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
@@ -159,7 +178,6 @@ export class PaintService {
   }
   applySelection() {
     if (paintOptions.showSelection) {
-   
       let selectionManager = getSelectionManager(this.canvas, this.gl);
       selectionManager.applySelection();
     }

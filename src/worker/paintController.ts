@@ -50,11 +50,11 @@ export const workerApi = {
   cancel() {
     paint.cancel();
   },
-  canvasSelection(x,y,w,h){
-     paint.canvasSelection(x,y,w,h);
+  cut(x, y, w, h) {
+    paint.cut(x, y, w, h);
   },
-  makeSelection(x, y, width, height, imageBitmap) {
-    paint.makeSelection(x, y, width, height, imageBitmap);
+  paste(x, y, width, height, imageBitmap) {
+    paint.paste(x, y, width, height, imageBitmap);
   },
   moveSelection(x, y, width, height) {
     paint.moveSelection(x, y, width, height);
@@ -63,8 +63,7 @@ export const workerApi = {
     paint.applySelection();
   },
   copy() {
-    // worker.js
-    self.postMessage({ type: "copy", payload: "복사해줘" });
+    paint.copy();
   },
 };
 

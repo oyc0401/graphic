@@ -50,10 +50,7 @@ async function main() {
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-    document.getElementById("copy")!.addEventListener("click", () => {
-        let worker = getLayerWorker();
-        worker.copy();
-    });
+   
 
     console.log("Complete App!");
 }

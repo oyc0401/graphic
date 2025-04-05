@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "comlink": "^4.4.2",
+    "fast-png": "^6.3.0",
     "interactjs": "^1.10.27",
     "vite": "^6.2.0"
   }

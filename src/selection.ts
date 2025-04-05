@@ -98,22 +98,34 @@ export function addSelectionEvent() {
   addHandleEvent();
 }
 
+/**
+ * 붙여넣기: 클립보드에서 ImageBitmap 얻어서, 워커로 전달
+ */
 export async function paste() {
   applySelection();
 
   let worker = getLayerWorker();
-
   let bitmap = await getClipboardImageBitmap();
   if (!bitmap) {
     console.warn("클립보드에 복사 된 이미지가 없습니다.");
     return;
   }
 
+  // 실제 붙여넣기 로직
+  handleImageBitmap(bitmap);
+  console.log("붙여넣기!");
+}
+
+/**
+ * 실제로 ImageBitmap을 받아서 selection에 그리기
+ */
+function handleImageBitmap(bitmap: ImageBitmap) {
+  let worker = getLayerWorker();
+
   let newWidth = bitmap.width;
   let newHeight = bitmap.height;
 
-  console.log(bitmap);
-
+  // 선택 영역 설정
   selection.x = 0;
   selection.y = 0;
   selection.width = newWidth;
@@ -126,20 +138,25 @@ export async function paste() {
     height: selection.height,
   };
 
-  worker.makeSelection(
+  // 워커에 붙여넣기 지시
+  worker.paste(
     selection.x,
     selection.y,
     selection.width,
     selection.height,
-    Comlink.transfer(bitmap, [bitmap]),
+    Comlink.transfer(bitmap, [bitmap])
   );
 
   paintState.toolId = "selection";
   selection.visiable = true;
-  console.log("붙여넣기!");
   setSelectionPosition();
 }
 
+/**
+ * 브라우저 클립보드에서 ImageBitmap 얻기
+ * (브라우저 권한/환경에 따라 Windows 탐색기에서 복사된 파일은
+ * 인식이 안 될 수도 있음)
+ */
 async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
   try {
     const items = await navigator.clipboard.read(); // 권한 필요
@@ -149,7 +166,7 @@ async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
         if (type.startsWith("image/")) {
           const blob = await item.getType(type);
           const bitmap = await createImageBitmap(blob, {
-            imageOrientation: "flipY", // ← 여기서 뒤집는다!
+            imageOrientation: "flipY",
           });
           return bitmap;
         }
@@ -164,6 +181,72 @@ async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
   }
 }
 
+/**
+ * 드래그 앤 드롭 기능을 초기화하는 함수
+ * @param dropAreaSelector 드래그 앤 드롭 받을 영역의 셀렉터 (예: '#dropArea')
+ */
+ function setupDragAndDrop(dropAreaSelector: string) {
+  const dropArea = document.querySelector(dropAreaSelector);
+  if (!dropArea) {
+    console.error("드롭 영역을 찾을 수 없습니다:", dropAreaSelector);
+    return;
+  }
+
+  // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
+  dropArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+  });
+
+  // 실제 드롭이 발생했을 때
+  dropArea.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt || !dt.files.length) return;
+
+    // 여러 파일을 드롭할 수도 있으므로 루프
+    for (const file of dt.files) {
+      // 이미지 파일인지 확인
+      if (file.type.startsWith("image/")) {
+        try {
+          // 파일을 ImageBitmap으로 변환
+          const bitmap = await createImageBitmap(file, {
+            imageOrientation: "flipY",
+          });
+          console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
+
+          // 붙여넣기 로직 호출
+          applySelection();
+          handleImageBitmap(bitmap);
+        } catch (err) {
+          console.error("드롭된 이미지를 처리 중 에러:", err);
+        }
+      } else {
+        console.warn("이미지 형식이 아닌 파일은 무시합니다:", file.type);
+      }
+    }
+  });
+}
+
+setupDragAndDrop('#container');
+
+
+
+export async function copy(){
+  let worker = getLayerWorker();
+  worker.copy();
+}
+
+
+
+
+
+
+
+
+
+
+
+
 export function canvasSelect(x, y, width, height) {
   let worker = getLayerWorker();
 
@@ -172,7 +255,7 @@ export function canvasSelect(x, y, width, height) {
   selection.width = width;
   selection.height = height;
 
-  worker.canvasSelection(
+  worker.cut(
     selection.x,
     selection.y,
     selection.width,

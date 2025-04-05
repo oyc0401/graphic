@@ -14,9 +14,9 @@ export function getSelectionManager(canvas, gl) {
 
 function createSelectionManager(canvas, gl) {
   // 텍스처 생성
-  const texture = gl.createTexture();
+  const selectionTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION); // 9번 텍스처 유닛 활성화
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
   // 텍스처 데이터 초기화 (하늘색으로 채움: rgba(135, 206, 235, 255))
   let x = 50;
@@ -204,7 +204,7 @@ function createSelectionManager(canvas, gl) {
     height = sheight;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -245,13 +245,13 @@ function createSelectionManager(canvas, gl) {
 
     // 레이어를 수정했으니 업로드
     sourceTextureManager.uploadCurrent();
-    
+
     renderingManager.render();
   }
 
-  function setImage(bitmap: ImageBitmap) {
+  function paste(bitmap: ImageBitmap) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -270,12 +270,45 @@ function createSelectionManager(canvas, gl) {
     renderingManager.render();
   }
 
+  const readPixelFBO = gl.createFramebuffer();
+
+  function getPixelData() {
+    // 1. 픽셀 읽기용 버퍼 준비
+    const flippedPixel = new Uint8Array(width * height * 4); // RGBA
+
+    // 2. 텍스처를 framebuffer에 붙인다
+    gl.bindFramebuffer(gl.FRAMEBUFFER, readPixelFBO);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      selectionTex,
+      0,
+    );
+
+    // 3. readPixels로 픽셀 읽기
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
+
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    for (let row = 0; row < height; row++) {
+      const srcStart = row * width * 4;
+      const dstStart = (height - row - 1) * width * 4;
+      pixels.set(
+        flippedPixel.subarray(srcStart, srcStart + width * 4),
+        dstStart,
+      );
+    }
+
+    return { pixels, width, height };
+  }
+
   return {
-    texture,
+    texture: selectionTex,
     getPosition,
     setSize,
     applySelection,
     cut,
-    setImage,
+    paste,
+    getPixelData,
   };
 }
