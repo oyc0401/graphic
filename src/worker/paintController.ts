@@ -29,8 +29,7 @@ export const workerApi = {
     paint.setStrokeColor(r, g, b);
   },
   setStrokeSize(size) {
-    let radius = size; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
-    paint.setStrokeSize(radius);
+    paint.setStrokeSize(size);
   },
   setAlpha(alpha) {
     paint.setAlpha(alpha);
@@ -51,7 +50,9 @@ export const workerApi = {
   cancel() {
     paint.cancel();
   },
-
+  canvasSelection(x,y,w,h){
+     paint.canvasSelection(x,y,w,h);
+  },
   makeSelection() {
     paint.makeSelection();
   },
@@ -60,6 +61,10 @@ export const workerApi = {
   },
   applySelection() {
     paint.applySelection();
+  },
+  copy() {
+    // worker.js
+    self.postMessage({ type: "copy", payload: "복사해줘" });
   },
 };
 

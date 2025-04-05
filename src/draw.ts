@@ -4,7 +4,7 @@ import { position } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
-import { applySelection, selection, selectionCancel } from "./selection";
+import { applySelection, selectionCancel } from "./selection";
 
 export let toolManager = {
     setBrushTool() {

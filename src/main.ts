@@ -2,6 +2,7 @@ import { addDrawEvent, initDraw } from "./draw";
 import { addPositionEvent, position, setDefaultPosition } from "./position";
 import { addInteractionEvent, getElements } from "./interface";
 import { addSelectionEvent } from "./selection";
+import { getLayerWorker } from "./worker/workerPool";
 window.onload = main;
 
 interface PaintState {
@@ -49,6 +50,10 @@ async function main() {
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-    
+    document.getElementById("copy")!.addEventListener("click", () => {
+        let worker = getLayerWorker();
+        worker.copy();
+    });
+
     console.log("Complete App!");
 }

@@ -107,6 +107,13 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   selection.y = 0;
   selection.width = 300;
   selection.height = 200;
+  worker.canvasSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+  );
+
   worker.moveSelection(
     selection.x,
     selection.y,
@@ -202,7 +209,7 @@ function addHandleEvent() {
     const dy = (e.clientY - startY) / position.scale;
 
     // TODO: 나중에 정리하자~~
-    
+
     // 어떤 핸들을 드래그 중인지에 따라 selection 갱신
     if (activeHandle === handleR) {
       // 오른쪽 중앙: 폭만 늘어남
@@ -293,7 +300,6 @@ function addHandleEvent() {
         selection.y = startTop;
       }
     }
-
 
     // 쉬프트 시 비율 고정
     if (activeHandle === handleT || activeHandle === handleB) {

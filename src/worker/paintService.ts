@@ -112,7 +112,8 @@ export class PaintService {
   }
 
   setStrokeSize(strokeSize) {
-    paintOptions.setRadius(strokeSize / 2);
+    let radius = strokeSize / 2; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
+    paintOptions.setRadius(radius);
   }
 
   setAlpha(alpha) {
@@ -142,7 +143,10 @@ export class PaintService {
   cancel() {
     this.getTool().cancel();
   }
-
+  canvasSelection(x, y, width, height) {
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    selectionManager.select(x, y, width, height);
+  }
   makeSelection() {
     paintOptions.showSelection = true;
   }

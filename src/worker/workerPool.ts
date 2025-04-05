@@ -18,6 +18,15 @@ function getWorkerObject() {
     //const worker = new Worker(new URL("./worker.js", import.meta.url), {
     //   type: "module",
     //});
+
+    // 워커가 postMessage 한 거 수신
+    worker.onmessage = (e) => {
+      const { type, payload } = e.data;
+      if (type === "copy") {
+        navigator.clipboard.writeText(payload);
+        console.log("클립보드에 복사됨:", payload);
+      }
+    };
     const api = Comlink.wrap<WorkerApi>(worker);
 
     workerPool["layer"] = { worker, workerApi: api };

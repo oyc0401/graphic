@@ -170,7 +170,7 @@ function createSelectionManager(canvas, gl) {
     sourceTextureManager.uploadCurrent();
     renderingManager.render();
   }
-  
+
   let renderingManager = getRenderingManager(canvas, gl);
   function setSize(newX, newY, newWidth, newHeight) {
     x = newX;
@@ -190,10 +190,77 @@ function createSelectionManager(canvas, gl) {
     };
   }
 
+  function select(sx, sy, swidth, sheight) {
+    paintOptions.showSelection = true;
+    
+    // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
+    x = sx;
+    y = sy;
+    width = swidth;
+    height = sheight;
+
+
+
+    // 1) selection 텍스처 바인딩
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // 2) 새로 선택된 영역 크기에 맞춰 텍스처 메모리를 재할당
+    //    (이때 실제 텍스처 데이터를 null로 줘서 "빈" 텍스처를 만듦)
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,           // level
+      gl.RGBA,     // internalFormat
+      width,       // 텍스처 폭
+      height,      // 텍스처 높이
+      0,           // border
+      gl.RGBA,     // format
+      gl.UNSIGNED_BYTE,  // type
+      null
+    );
+
+    // 3) 복사해올 소스 FBO(= layerFBO) 바인딩
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+
+    // 4) WebGL에서 Y축은 아래->위 방향이므로, 선택 영역 복사 시 Y좌표 변환
+    //    (layerFBO 상에서 우리가 원하는 영역의 (x, y)는? 보통 (x, height - y - sheight))
+    const readY = paintOptions.height - (y + height);
+
+    // 5) 실제 복사: copyTexSubImage2D
+    //    (dstX=0, dstY=0) 텍스처 내부에서의 복사 시작 위치
+    //    (srcX=x, srcY=readY) FBO 상의 복사 시작 위치
+    //    (width, height) 복사 크기
+    gl.copyTexSubImage2D(
+      gl.TEXTURE_2D,
+      0,   // level
+      0,   // dstX
+      0,   // dstY
+      x,   // srcX
+      readY, // srcY
+      width,
+      height
+    );
+
+
+    // 2) 선택된 영역을 완전히 투명으로 지우기
+    //    - scissorTest로 범위를 지정한 뒤 clearColor(0,0,0,0)로 clear
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(x, readY, width, height);
+
+    gl.clearColor(1, 1, 1, 0); // RGBA 모두 0
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.disable(gl.SCISSOR_TEST);
+
+    // 필요 시 바로 렌더링 갱신
+    renderingManager.render();
+  }
+
   return {
     texture,
     getPosition,
     setSize,
     applySelection,
+    select,
   };
 }
