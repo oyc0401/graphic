@@ -55,10 +55,10 @@ export const workerApi = {
   makeSelection() {
     paint.makeSelection();
   },
-  selectionMove() {
-    paint.moveSelection();
+  moveSelection(x, y, width, height) {
+    paint.moveSelection(x, y, width, height);
   },
-    applySelection() {
+  applySelection() {
     paint.applySelection();
   },
 };

@@ -325,7 +325,7 @@ function makeRenderingManager(canvas, gl) {
 
   function renderSelection() {
     let selectionManager = getSelectionManager(canvas, gl);
-
+    let selectionPos = selectionManager.getPosition();
     gl.useProgram(selectionProgram);
 
     gl.uniform2f(
@@ -350,13 +350,13 @@ function makeRenderingManager(canvas, gl) {
 
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionPos"),
-      selectionManager.x,
-      selectionManager.y,
+      selectionPos.x,
+      selectionPos.y,
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionSize"),
-      selectionManager.width,
-      selectionManager.height,
+      selectionPos.width,
+      selectionPos.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

@@ -146,8 +146,9 @@ export class PaintService {
   makeSelection() {
     paintOptions.showSelection = true;
   }
-  moveSelection() {
-    // paint.moveSelection();
+  moveSelection(x, y, width, height) {
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    selectionManager.setSize(x, y, width, height);
   }
   applySelection() {
     if (paintOptions.showSelection) {

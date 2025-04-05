@@ -164,6 +164,15 @@ export function updateCursorShape() {
         } else {
             elementStore.container.classList.add("grab");
         }
+    } else if (
+        paintState.action === "BRUSH" &&
+        paintState.toolId == "selection"
+    ) {
+        if (paintState.pointerdown) {
+            elementStore.container.classList.add("grabbing");
+        } else {
+            elementStore.container.classList.add("grab");
+        }
     } else if (paintState.action === "BRUSH") {
         let scaledBrushSize = paintState.brushSize * position.scale;
         elementStore.container.classList.add("brush");

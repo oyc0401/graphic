@@ -1,4 +1,5 @@
 import { getLayerManager } from "./layer";
+import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "./utils/cachedManager";
 import { createProgram, createShader } from "./utils/glHelper";
@@ -62,7 +63,6 @@ function createSelectionManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
 
   let layerManager = getLayerManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
@@ -163,21 +163,37 @@ function createSelectionManager(canvas, gl) {
       height,
     );
 
-    
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-
     sourceTextureManager.uploadCurrent();
+    renderingManager.render();
+  }
+  
+  let renderingManager = getRenderingManager(canvas, gl);
+  function setSize(newX, newY, newWidth, newHeight) {
+    x = newX;
+    y = newY;
+    width = newWidth;
+    height = newHeight;
+
+    renderingManager.render();
+  }
+
+  function getPosition() {
+    return {
+      x,
+      y,
+      width,
+      height,
+    };
   }
 
   return {
     texture,
-    x,
-    y,
-    width,
-    height,
+    getPosition,
+    setSize,
     applySelection,
   };
 }
