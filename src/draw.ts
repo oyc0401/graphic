@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
-import { position, to_pixel_coord } from "./position";
+import { position, to_pixel_canvas_coord } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
@@ -201,8 +201,8 @@ export function addDrawEvent() {
 
             elementStore.zoomArea.style.visibility = "hidden";
 
-            let pointer = to_pixel_coord(to_canvas_coord(sx, sy));
-            let pointer2 = to_pixel_coord(to_canvas_coord(ex, ey));
+            let pointer = to_pixel_canvas_coord(sx, sy);
+            let pointer2 = to_pixel_canvas_coord(ex, ey);
             let startX = pointer.x < pointer2.x ? pointer.x : pointer2.x;
             let startY = pointer.y < pointer2.y ? pointer.y : pointer2.y;
             let zoomW = Math.abs(pointer.x - pointer2.x);

@@ -203,12 +203,9 @@ function createSelectionManager(canvas, gl) {
     width = swidth;
     height = sheight;
 
-    // 1) selection 텍스처 바인딩
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    // 2) 새로 선택된 영역 크기에 맞춰 텍스처 메모리를 재할당
-    //    (이때 실제 텍스처 데이터를 null로 줘서 "빈" 텍스처를 만듦)
     gl.texImage2D(
       gl.TEXTURE_2D,
       0, // level
@@ -221,11 +218,8 @@ function createSelectionManager(canvas, gl) {
       null,
     );
 
-    // 3) 복사해올 소스 FBO(= layerFBO) 바인딩
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
 
-    // 4) WebGL에서 Y축은 아래->위 방향이므로, 선택 영역 복사 시 Y좌표 변환
-    //    (layerFBO 상에서 우리가 원하는 영역의 (x, y)는? 보통 (x, height - y - sheight))
     const readY = paintOptions.height - (y + height);
 
     // 5) 실제 복사: copyTexSubImage2D
@@ -241,7 +235,6 @@ function createSelectionManager(canvas, gl) {
     );
 
     // 2) 선택된 영역을 완전히 투명으로 지우기
-    //    - scissorTest로 범위를 지정한 뒤 clearColor(0,0,0,0)로 clear
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(x, readY, width, height);
 
@@ -250,9 +243,9 @@ function createSelectionManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
+    // 레이어를 수정했으니 업로드
     sourceTextureManager.uploadCurrent();
     
-    // 필요 시 바로 렌더링 갱신
     renderingManager.render();
   }
 

@@ -481,7 +481,12 @@ export function to_canvas_coord(x, y) {
   return { x: px, y: py };
 }
 
-export function to_pixel_coord({ x, y }) {
+export function to_pixel_canvas_coord(x, y) {
+  let point = to_canvas_coord(x, y);
+  return to_pixel_coord(point);
+}
+
+function to_pixel_coord({ x, y }) {
   return {
     x: Math.floor(x),
     y: Math.floor(y),

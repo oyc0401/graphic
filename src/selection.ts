@@ -1,7 +1,6 @@
 import { paintState } from "./main";
 import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
-import { position } from "./position";
-import { to_canvas_coord } from "./position";
+import { position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
@@ -31,7 +30,7 @@ export function addSelectionEvent() {
         if (!paintState.pointerdown) return;
         if (paintState.action != "BRUSH") return;
 
-        let point = to_canvas_coord(e.clientX, e.clientY);
+        let point = to_pixel_canvas_coord(e.clientX, e.clientY);
         const worker = getLayerWorker();
 
         if (paintState.toolId == "selection") {
@@ -53,7 +52,7 @@ export function addSelectionEvent() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
-      let point = to_canvas_coord(e.clientX, e.clientY);
+      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
       const worker = getLayerWorker();
 
@@ -79,7 +78,7 @@ export function addSelectionEvent() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
-      let point = to_canvas_coord(e.clientX, e.clientY);
+      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
       const worker = getLayerWorker();
       if (paintState.toolId == "selection") {
         beforeSelectionPos = {
@@ -198,7 +197,6 @@ export function canvasSelect(x, y, width, height) {
 export function applySelection() {
   let worker = getLayerWorker();
 
-
   selection.visiable = false;
   worker.applySelection();
   setSelectionPosition();
@@ -249,9 +247,10 @@ function addHandleEvent() {
 
     activeHandle = handle;
 
+    let point = to_pixel_canvas_coord(e.clientX, e.clientY);
     // 마우스 시작 좌표 기록
-    startX = e.clientX;
-    startY = e.clientY;
+    startX = point.x;
+    startY = point.y;
 
     // selection의 초기 상태 기록
     startLeft = selection.x;
@@ -266,9 +265,11 @@ function addHandleEvent() {
     if (paintState.action != "BRUSH") return;
     if (!activeHandle) return;
 
+    let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+
     // 마우스가 얼마나 이동했는지
-    const dx = (e.clientX - startX) / position.scale;
-    const dy = (e.clientY - startY) / position.scale;
+    const dx = point.x - startX;
+    const dy = point.y - startY;
 
     // TODO: 나중에 정리하자~~
 
