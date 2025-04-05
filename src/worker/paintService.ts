@@ -145,10 +145,13 @@ export class PaintService {
   }
   canvasSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.select(x, y, width, height);
+    selectionManager.cut(x, y, width, height);
   }
   makeSelection(x, y, width, height, imageBitmap) {
     paintOptions.showSelection = true;
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    selectionManager.setImage(imageBitmap)
+    
   }
   moveSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
@@ -156,6 +159,7 @@ export class PaintService {
   }
   applySelection() {
     if (paintOptions.showSelection) {
+   
       let selectionManager = getSelectionManager(this.canvas, this.gl);
       selectionManager.applySelection();
     }

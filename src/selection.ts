@@ -99,19 +99,26 @@ export function addSelectionEvent() {
   addHandleEvent();
 }
 
-document.querySelector("#paste")?.addEventListener("click", () => {
-  paste();
-});
-
-async function paste() {
+export async function paste() {
   applySelection();
 
   let worker = getLayerWorker();
 
+  let bitmap = await getClipboardImageBitmap();
+  if (!bitmap) {
+    console.warn("클립보드에 복사 된 이미지가 없습니다.");
+    return;
+  }
+
+  let newWidth = bitmap.width;
+  let newHeight = bitmap.height;
+
+  console.log(bitmap);
+
   selection.x = 0;
   selection.y = 0;
-  selection.width = 300;
-  selection.height = 200;
+  selection.width = newWidth;
+  selection.height = newHeight;
 
   beforeSelectionPos = {
     x: selection.x,
@@ -119,13 +126,6 @@ async function paste() {
     width: selection.width,
     height: selection.height,
   };
-
-  let bitmap = await getClipboardImageBitmap();
-  if (!bitmap) {
-    console.warn("클립보드에 복사 된 이미지가 없습니다.");
-    return;
-  }
-  console.log(bitmap);
 
   worker.makeSelection(
     selection.x,
@@ -149,7 +149,9 @@ async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
       for (const type of item.types) {
         if (type.startsWith("image/")) {
           const blob = await item.getType(type);
-          const bitmap = await createImageBitmap(blob);
+          const bitmap = await createImageBitmap(blob, {
+            imageOrientation: "flipY", // ← 여기서 뒤집는다!
+          });
           return bitmap;
         }
       }
@@ -195,9 +197,10 @@ export function canvasSelect(x, y, width, height) {
 
 export function applySelection() {
   let worker = getLayerWorker();
-  worker.applySelection();
+
 
   selection.visiable = false;
+  worker.applySelection();
   setSelectionPosition();
 }
 

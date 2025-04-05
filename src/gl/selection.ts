@@ -147,7 +147,7 @@ function createSelectionManager(canvas, gl) {
 
   function applySelection() {
     paintOptions.showSelection = false;
-    
+
     gl.useProgram(selectionProgram);
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_resolution"),
@@ -169,11 +169,13 @@ function createSelectionManager(canvas, gl) {
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    sourceTextureManager.uploadCurrent();
     renderingManager.render();
+
+    sourceTextureManager.uploadCurrent();
   }
 
   let renderingManager = getRenderingManager(canvas, gl);
+
   function setSize(newX, newY, newWidth, newHeight) {
     x = newX;
     y = newY;
@@ -192,16 +194,14 @@ function createSelectionManager(canvas, gl) {
     };
   }
 
-  function select(sx, sy, swidth, sheight) {
+  function cut(sx, sy, swidth, sheight) {
     paintOptions.showSelection = true;
-    
+
     // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
     x = sx;
     y = sy;
     width = swidth;
     height = sheight;
-
-
 
     // 1) selection 텍스처 바인딩
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
@@ -211,14 +211,14 @@ function createSelectionManager(canvas, gl) {
     //    (이때 실제 텍스처 데이터를 null로 줘서 "빈" 텍스처를 만듦)
     gl.texImage2D(
       gl.TEXTURE_2D,
-      0,           // level
-      gl.RGBA,     // internalFormat
-      width,       // 텍스처 폭
-      height,      // 텍스처 높이
-      0,           // border
-      gl.RGBA,     // format
-      gl.UNSIGNED_BYTE,  // type
-      null
+      0, // level
+      gl.RGBA, // internalFormat
+      width, // 텍스처 폭
+      height, // 텍스처 높이
+      0, // border
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      null,
     );
 
     // 3) 복사해올 소스 FBO(= layerFBO) 바인딩
@@ -229,20 +229,16 @@ function createSelectionManager(canvas, gl) {
     const readY = paintOptions.height - (y + height);
 
     // 5) 실제 복사: copyTexSubImage2D
-    //    (dstX=0, dstY=0) 텍스처 내부에서의 복사 시작 위치
-    //    (srcX=x, srcY=readY) FBO 상의 복사 시작 위치
-    //    (width, height) 복사 크기
     gl.copyTexSubImage2D(
       gl.TEXTURE_2D,
-      0,   // level
-      0,   // dstX
-      0,   // dstY
-      x,   // srcX
+      0, // level
+      0, // dstX
+      0, // dstY
+      x, // srcX
       readY, // srcY
       width,
-      height
+      height,
     );
-
 
     // 2) 선택된 영역을 완전히 투명으로 지우기
     //    - scissorTest로 범위를 지정한 뒤 clearColor(0,0,0,0)로 clear
@@ -254,7 +250,30 @@ function createSelectionManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
+    sourceTextureManager.uploadCurrent();
+    
     // 필요 시 바로 렌더링 갱신
+    renderingManager.render();
+  }
+
+  function setImage(bitmap: ImageBitmap) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // mip level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      bitmap, // ✅ 직접 전달 가능
+    );
+
+    x = 0;
+    y = 0;
+    width = bitmap.width;
+    height = bitmap.height;
+
     renderingManager.render();
   }
 
@@ -263,6 +282,7 @@ function createSelectionManager(canvas, gl) {
     getPosition,
     setSize,
     applySelection,
-    select,
+    cut,
+    setImage,
   };
 }

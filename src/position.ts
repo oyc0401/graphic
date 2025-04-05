@@ -481,6 +481,13 @@ export function to_canvas_coord(x, y) {
   return { x: px, y: py };
 }
 
+export function to_pixel_coord({ x, y }) {
+  return {
+    x: Math.floor(x),
+    y: Math.floor(y),
+  };
+}
+
 // 스크롤시의 좌표로 변환.
 export function to_screen_coord(x, y) {
   let px = (x - position.bouncingRect.x) / position.scale - position.x;
