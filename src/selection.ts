@@ -98,7 +98,7 @@ export function addSelectionEvent() {
   addHandleEvent();
 }
 
-document.querySelector("#selection-button")?.addEventListener("click", () => {
+document.querySelector("#paste")?.addEventListener("click", () => {
   applySelection();
 
   let worker = getLayerWorker();
@@ -108,19 +108,19 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   selection.width = 300;
   selection.height = 200;
 
-  worker.canvasSelection(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-  );
-
-  // worker.moveSelection(
+  // worker.canvasSelection(
   //   selection.x,
   //   selection.y,
   //   selection.width,
   //   selection.height,
   // );
+
+  worker.moveSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+  );
   beforeSelectionPos = {
     x: selection.x,
     y: selection.y,
@@ -128,7 +128,7 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
     height: selection.height,
   };
 
-  // worker.makeSelection();
+  worker.makeSelection();
   position.resizeScreen();
   paintState.toolId = "selection";
 
@@ -145,8 +145,6 @@ export function canvasSelect(x, y, width, height) {
   selection.width = width;
   selection.height = height;
 
-  console.log(x, y, width, height)
-
   worker.canvasSelection(
     selection.x,
     selection.y,
@@ -154,12 +152,6 @@ export function canvasSelect(x, y, width, height) {
     selection.height,
   );
 
-  // worker.moveSelection(
-  //   selection.x,
-  //   selection.y,
-  //   selection.width,
-  //   selection.height,
-  // );
   beforeSelectionPos = {
     x: selection.x,
     y: selection.y,
@@ -167,20 +159,21 @@ export function canvasSelect(x, y, width, height) {
     height: selection.height,
   };
 
-  // worker.makeSelection();
-  position.resizeScreen();
+ // position.resizeScreen();
   paintState.toolId = "selection";
 
-  selection.visiable = true;
+
   console.log("자르기!");
+  selection.visiable = true;
   setSelectionPosition();
 }
-
 
 export function applySelection() {
   let worker = getLayerWorker();
   worker.applySelection();
+  
   selection.visiable = false;
+  setSelectionPosition();
 }
 
 export function setSelectionPosition() {

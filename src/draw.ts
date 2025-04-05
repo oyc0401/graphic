@@ -14,7 +14,6 @@ export let toolManager = {
 
         const worker = getLayerWorker();
         applySelection();
-        position.resizeScreen();
         worker.setTool(paintState.toolId);
 
         console.log("brush");
@@ -26,7 +25,6 @@ export let toolManager = {
 
         const worker = getLayerWorker();
         applySelection();
-        position.resizeScreen();
         worker.setTool(paintState.toolId);
     },
     setLiquifyTool() {

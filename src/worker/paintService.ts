@@ -157,8 +157,8 @@ export class PaintService {
   applySelection() {
     if (paintOptions.showSelection) {
       let selectionManager = getSelectionManager(this.canvas, this.gl);
+      paintOptions.showSelection = false;
       selectionManager.applySelection();
     }
-    paintOptions.showSelection = false;
   }
 }
