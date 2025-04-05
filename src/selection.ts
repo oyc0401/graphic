@@ -119,7 +119,7 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
     width: selection.width,
     height: selection.height,
   };
-  
+
   worker.makeSelection();
   position.resizeScreen();
   paintState.toolId = "selection";
@@ -175,6 +175,9 @@ function addHandleEvent() {
   // 핸들 MOUSEDOWN 이벤트 핸들러
   function onMouseDown(e: MouseEvent, handle: HTMLElement) {
     e.preventDefault();
+    if (!paintState.pointerdown) return;
+    if (paintState.action != "BRUSH") return;
+
     activeHandle = handle;
 
     // 마우스 시작 좌표 기록
@@ -190,12 +193,16 @@ function addHandleEvent() {
 
   // 전역 MOUSEMOVE 이벤트 핸들러
   function onMouseMove(e: MouseEvent) {
-    if (!activeHandle) return; // 드래그 중이 아니면 무시
+    if (!paintState.pointerdown) return;
+    if (paintState.action != "BRUSH") return;
+    if (!activeHandle) return;
 
     // 마우스가 얼마나 이동했는지
     const dx = (e.clientX - startX) / position.scale;
     const dy = (e.clientY - startY) / position.scale;
 
+    // TODO: 나중에 정리하자~~
+    
     // 어떤 핸들을 드래그 중인지에 따라 selection 갱신
     if (activeHandle === handleR) {
       // 오른쪽 중앙: 폭만 늘어남
@@ -217,23 +224,95 @@ function addHandleEvent() {
       selection.width = Math.max(0, startWidth - dx);
       selection.y = startTop + dy;
       selection.height = Math.max(0, startHeight - dy);
+
+      // SHIFT + 비율 고정
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        // 현재 비율과 비교 후 보정
+        const currentRatio = selection.width / selection.height;
+        if (currentRatio < ratio) {
+          selection.width = selection.height * ratio;
+        } else {
+          selection.height = selection.width / ratio;
+        }
+        // '오른쪽 아래' 모서리를 고정하려면:
+        selection.x = startLeft + startWidth - selection.width;
+        selection.y = startTop + startHeight - selection.height;
+      }
     } else if (activeHandle === handleRT) {
       // 오른쪽 위 모서리: width, y, height
       selection.width = Math.max(0, startWidth + dx);
       selection.y = startTop + dy;
       selection.height = Math.max(0, startHeight - dy);
+
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        const currentRatio = selection.width / selection.height;
+        if (currentRatio < ratio) {
+          selection.width = selection.height * ratio;
+        } else {
+          selection.height = selection.width / ratio;
+        }
+        // '왼쪽 아래' 모서리를 고정
+        selection.x = startLeft;
+        selection.y = startTop + startHeight - selection.height;
+      }
     } else if (activeHandle === handleRB) {
       // 오른쪽 아래 모서리: width, height
       selection.width = Math.max(0, startWidth + dx);
       selection.height = Math.max(0, startHeight + dy);
+
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        const currentRatio = selection.width / selection.height;
+        if (currentRatio < ratio) {
+          selection.width = selection.height * ratio;
+        } else {
+          selection.height = selection.width / ratio;
+        }
+        // '왼쪽 위' 모서리 고정
+        selection.x = startLeft;
+        selection.y = startTop;
+      }
     } else if (activeHandle === handleLB) {
       // 왼쪽 아래 모서리: x, width, height
       selection.x = startLeft + dx;
       selection.width = Math.max(0, startWidth - dx);
       selection.height = Math.max(0, startHeight + dy);
+
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        const currentRatio = selection.width / selection.height;
+        if (currentRatio < ratio) {
+          selection.width = selection.height * ratio;
+        } else {
+          selection.height = selection.width / ratio;
+        }
+        // '오른쪽 위' 모서리를 고정
+        selection.x = startLeft + startWidth - selection.width;
+        selection.y = startTop;
+      }
     }
 
-    // 변경된 selection 값에 따라 핸들 위치 재조정
+
+    // 쉬프트 시 비율 고정
+    if (activeHandle === handleT || activeHandle === handleB) {
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        selection.width = selection.height * ratio;
+      } else {
+        selection.width = startWidth;
+      }
+    }
+
+    if (activeHandle === handleL || activeHandle === handleR) {
+      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
+        const ratio = startWidth / startHeight;
+        selection.height = selection.width / ratio;
+      } else {
+        selection.height = startHeight;
+      }
+    }
 
     worker.moveSelection(
       selection.x,
@@ -243,12 +322,13 @@ function addHandleEvent() {
     );
 
     setSelectionPosition();
-
-   
   }
 
   // 전역 MOUSEUP 이벤트 핸들러
   function onMouseUp() {
+    if (paintState.action != "BRUSH") return;
+    if (!activeHandle) return;
+
     activeHandle = null;
 
     beforeSelectionPos = {
@@ -332,15 +412,15 @@ export function selectionCancel() {
   selection.height = beforeSelectionPos.height;
 
   const worker = getLayerWorker();
-  
+
   worker.moveSelection(
     selection.x,
     selection.y,
     selection.width,
     selection.height,
   );
-  
+
   setSelectionPosition();
 
-   activeHandle = null;
+  activeHandle = null;
 }
