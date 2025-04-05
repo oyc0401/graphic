@@ -61,6 +61,11 @@ export function addInteractionEvent() {
         updateMenubarUI();
     });
 
+    document.getElementById("cut-button")!.addEventListener("click", () => {
+        toolManager.setCutTool();
+        updateMenubarUI();
+    });
+
     (function () {
         document.addEventListener("keydown", (event) => {
             if (event.repeat) return; // OS 기본 딜레이 방지

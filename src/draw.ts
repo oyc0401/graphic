@@ -4,7 +4,7 @@ import { position } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
-import { applySelection, selectionCancel } from "./selection";
+import { applySelection, canvasSelect, selectionCancel } from "./selection";
 
 export let toolManager = {
     setBrushTool() {
@@ -37,6 +37,10 @@ export let toolManager = {
         const worker = getLayerWorker();
         applySelection();
         worker.setTool(paintState.toolId);
+    },
+    setCutTool() {
+        applySelection();
+        paintState.toolId = "cut";
     },
 };
 
@@ -150,6 +154,67 @@ export function addDrawEvent() {
         });
     })();
 
+    (function () {
+        let sx, sy;
+        let ex, ey;
+        let activeCut = false;
+
+        elementStore.container.addEventListener("pointerdown", (e) => {
+            if (paintState.action != "BRUSH") return;
+            if (paintState.toolId != "cut") return;
+
+            sx = e.clientX;
+            sy = e.clientY;
+            ex = e.clientX;
+            ey = e.clientY;
+            activeCut = true;
+
+            elementStore.zoomArea.style.visibility = "visible";
+            console.log("자르기");
+            elementStore.zoomArea.style.left = `${sx}px`;
+            elementStore.zoomArea.style.top = `${sy}px`;
+            elementStore.zoomArea.style.width = `0px`;
+            elementStore.zoomArea.style.height = `0px`;
+        });
+
+        window.addEventListener("pointermove", (e) => {
+            if (paintState.action != "BRUSH") return;
+            if (paintState.toolId != "cut") return;
+            if (!paintState.pointerdown) return;
+            if (!activeCut) return;
+            ex = e.clientX;
+            ey = e.clientY;
+            let startX = sx < ex ? sx : ex;
+            let startY = sy < ey ? sy : ey;
+            let zoomW = Math.abs(sx - ex);
+            let zoomH = Math.abs(sy - ey);
+            elementStore.zoomArea.style.left = `${startX}px`;
+            elementStore.zoomArea.style.top = `${startY}px`;
+            elementStore.zoomArea.style.width = `${zoomW}px`;
+            elementStore.zoomArea.style.height = `${zoomH}px`;
+        });
+
+        window.addEventListener("pointerup", (e) => {
+            if (paintState.action != "BRUSH") return;
+            if (paintState.toolId != "cut") return;
+            if (!activeCut) return;
+            activeCut = false;
+
+            elementStore.zoomArea.style.visibility = "hidden";
+
+            let pointer = to_canvas_coord(sx, sy);
+            let pointer2 = to_canvas_coord(ex, ey);
+            let startX = pointer.x < pointer2.x ? pointer.x : pointer2.x;
+            let startY = pointer.y < pointer2.y ? pointer.y : pointer2.y;
+            let zoomW = Math.abs(pointer.x - pointer2.x);
+            let zoomH = Math.abs(pointer.y - pointer2.y);
+            canvasSelect(startX, startY, zoomW, zoomH);
+
+            applyKeyAction();
+            updateCursorShape();
+        });
+    })();
+
     globalThis.drawLine = () => {
         const worker = getLayerWorker();
         worker.setStrokeColor(10, 10, 0);
@@ -170,7 +235,7 @@ export function cancel() {
 
     const worker = getLayerWorker();
 
-    if (paintState.toolId == 'selection') {
+    if (paintState.toolId == "selection") {
         selectionCancel();
         return;
     }

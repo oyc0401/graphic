@@ -107,19 +107,20 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   selection.y = 0;
   selection.width = 300;
   selection.height = 200;
-  // worker.canvasSelection(
-  //   selection.x,
-  //   selection.y,
-  //   selection.width,
-  //   selection.height,
-  // );
 
-  worker.moveSelection(
+  worker.canvasSelection(
     selection.x,
     selection.y,
     selection.width,
     selection.height,
   );
+
+  // worker.moveSelection(
+  //   selection.x,
+  //   selection.y,
+  //   selection.width,
+  //   selection.height,
+  // );
   beforeSelectionPos = {
     x: selection.x,
     y: selection.y,
@@ -127,7 +128,7 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
     height: selection.height,
   };
 
-  worker.makeSelection();
+  // worker.makeSelection();
   position.resizeScreen();
   paintState.toolId = "selection";
 
@@ -135,6 +136,46 @@ document.querySelector("#selection-button")?.addEventListener("click", () => {
   console.log("선택");
   setSelectionPosition();
 });
+
+export function canvasSelect(x, y, width, height) {
+  let worker = getLayerWorker();
+
+  selection.x = x;
+  selection.y = y;
+  selection.width = width;
+  selection.height = height;
+
+  console.log(x, y, width, height)
+
+  worker.canvasSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+  );
+
+  // worker.moveSelection(
+  //   selection.x,
+  //   selection.y,
+  //   selection.width,
+  //   selection.height,
+  // );
+  beforeSelectionPos = {
+    x: selection.x,
+    y: selection.y,
+    width: selection.width,
+    height: selection.height,
+  };
+
+  // worker.makeSelection();
+  position.resizeScreen();
+  paintState.toolId = "selection";
+
+  selection.visiable = true;
+  console.log("자르기!");
+  setSelectionPosition();
+}
+
 
 export function applySelection() {
   let worker = getLayerWorker();
