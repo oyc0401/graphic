@@ -1,6 +1,8 @@
 import { getLayerManager } from "./layer";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "./utils/cachedManager";
+import { createProgram, createShader } from "./utils/glHelper";
+import { enable_a_position, getFullQuadShader } from "./vertexShader";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>
@@ -30,10 +32,10 @@ function createSelectionManager(canvas, gl) {
 
     if (isTopHalf) {
       // 자홍색: RGB(255, 0, 255)
-      skyBlue[i * 4 + 0] = 255; // R
-      skyBlue[i * 4 + 1] = 0; // G
-      skyBlue[i * 4 + 2] = 255; // B
-      skyBlue[i * 4 + 3] = 255; // A
+      skyBlue[i * 4 + 0] = 250; // R
+      skyBlue[i * 4 + 1] = 250; // G
+      skyBlue[i * 4 + 2] = 10; // B
+      skyBlue[i * 4 + 3] = 120; // A
     } else {
       // 하늘색: RGB(135, 206, 235)
       skyBlue[i * 4 + 0] = 135; // R
@@ -61,50 +63,115 @@ function createSelectionManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  // 1) selection 텍스처를 붙일 FBO 생성
-  const selectionFBO = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, selectionFBO);
-
-  // selection 텍스처를 color attachment로 연결
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    texture,
-    0,
-  );
 
   let layerManager = getLayerManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
 
-  // 3) 부분 복사(blit) 함수
+  let selectionShaderSource = `#version 300 es
+    precision highp float;
+
+    uniform sampler2D u_selection;
+    uniform sampler2D u_sourse;
+
+    uniform vec2 u_resolution;      // 실제 캔버스 크기 (px)
+
+    uniform vec2 u_selectionPos;    // 선택 영역 위치 (캔버스 내부 기준)
+    uniform vec2 u_selectionSize;   // 선택 영역 크기
+
+    in vec2 v_texCoord;             // 풀스크린 정규화 좌표 (0~1)
+    out vec4 outColor;
+
+    void main() {
+      vec2 scaledScreenSize = u_resolution;
+
+      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
+      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
+      vec2 size = u_selectionSize;
+
+      // 3. 선택요소(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
+      vec2 selectionPos = vec2(u_selectionPos.x, scaledScreenSize.y - size.y  - u_selectionPos.y);
+      vec2 minPos = selectionPos;
+      vec2 maxPos = selectionPos + size;
+
+      // 현재 픽셀이 selection 안에 있지 않으면 버림
+      if (
+        scaledFragCoord.x < minPos.x || scaledFragCoord.x > maxPos.x ||
+        scaledFragCoord.y < minPos.y || scaledFragCoord.y > maxPos.y
+      ) {
+        discard;
+      }
+
+      // 선택영역 내에 있으면 텍스처 좌표 계산
+      vec2 local = (scaledFragCoord - minPos) / size;
+
+      vec4 selectionColor = texture(u_selection, local);
+      vec4 imageColor = texture(u_sourse, v_texCoord);
+
+      float srcA = selectionColor.a;
+      float dstA = imageColor.a;
+
+      float outA = srcA + dstA * (1.0 - srcA);
+      vec3 outRGB = imageColor.rgb;
+      if (outA > 0.0) {
+          outRGB = (
+              selectionColor.rgb * srcA + imageColor.rgb * dstA * (1.0 - srcA)
+          ) / outA;
+      }
+      
+      outColor = vec4(outRGB, outA);
+    }
+  `;
+  const fullQuadVertexShader = getFullQuadShader(gl);
+  let selectionShader = createShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    selectionShaderSource,
+  );
+  let selectionProgram = createProgram(
+    gl,
+    fullQuadVertexShader,
+    selectionShader,
+  );
+  gl.useProgram(selectionProgram);
+
+  gl.uniform1i(
+    gl.getUniformLocation(selectionProgram, "u_selection"),
+    TEXTURE_UNIT.SELECTION,
+  );
+  gl.uniform1i(
+    gl.getUniformLocation(selectionProgram, "u_sourse"),
+    TEXTURE_UNIT.SOURCE,
+  );
+
+  enable_a_position(gl, selectionProgram);
+
   function applySelection() {
-    // (a) selectionFBO → READ_FRAMEBUFFER
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
-
-    // (b) layerFBO → DRAW_FRAMEBUFFER
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, layerManager.layerFBO);
-
-    // (c) 실제 blitFramebuffer 호출
-    //   src: (0, 0) ~ (width, height)
-    //   dst: (x, y) ~ (x+width, y+height)
-    //   mask: COLOR_BUFFER_BIT
-    //   filter: NEAREST
-    gl.blitFramebuffer(
-      0,
-      0,
-      width,
-      height, // 복사할 영역 (selectionFBO 내부)
-      x,
-      paintOptions.height - y - height,
-      x + width,
-      paintOptions.height - y, // 복사 대상 (layerFBO 내부)
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
+    gl.useProgram(selectionProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(selectionProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
     );
+    gl.uniform2f(
+      gl.getUniformLocation(selectionProgram, "u_selectionPos"),
+      x,
+      y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(selectionProgram, "u_selectionSize"),
+      width,
+      height,
+    );
+
+    
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
 
     sourceTextureManager.uploadCurrent();
   }
+
   return {
     texture,
     x,

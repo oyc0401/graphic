@@ -297,7 +297,9 @@ function makeRenderingManager(canvas, gl) {
     
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - min) / size;
-      outColor = texture(u_selection, local);
+      
+      vec4 imageColor = texture(u_selection, local);
+      outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
     }
   `;
 
@@ -363,14 +365,14 @@ function makeRenderingManager(canvas, gl) {
   }
 
   function render() {
-    console.log('렌더링!')
+    console.log("렌더링!");
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     renderDisplay();
 
-    gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
 
     renderBackground();
     renderTexture();
@@ -398,7 +400,7 @@ export async function renderScreen(
   magnification,
 ) {
   let renderingManager = getRenderingManager(canvas, gl);
-   console.log(width, height, screenWidth, screenHeight, x, y, magnification);
+  console.log(width, height, screenWidth, screenHeight, x, y, magnification);
   if (
     paintOptions.screenWidth != screenWidth ||
     paintOptions.screenHeight != screenHeight

@@ -184,20 +184,19 @@ function makeBrushManager(canvas, gl) {
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
         vec4 brushColor = vec4(u_color, value); // 새로운 색
 
-        // 1) 최종 알파 = brushAlpha + imageAlpha(1 - brushAlpha)
-        float outA = brushColor.a + imageColor.a * (1.0 - brushColor.a);
-    
-        // 2) 최종 RGB (Non-Premultiplied)
-        vec3 outRGB = brushColor.rgb;
+        float srcA = brushColor.a;
+        float dstA = imageColor.a;
+
+        float outA = srcA + dstA * (1.0 - srcA);
+        vec3 outRGB = imageColor.rgb;
         if (outA > 0.0) {
             outRGB = (
-                brushColor.rgb * brushColor.a + imageColor.rgb * imageColor.a * (1.0 - brushColor.a)
+                brushColor.rgb * srcA + imageColor.rgb * dstA * (1.0 - srcA)
             ) / outA;
         }
     
-        // 3) 최종 색상
+        // 최종 색상
         outColor = vec4(outRGB, outA);
-
       }
       `;
 
