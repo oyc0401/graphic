@@ -181,7 +181,6 @@ export function addDrawEvent() {
             if (!paintState.pointerdown) return;
             if (!activeCut) return;
             ex = e.clientX;
-            console.log(ex, ey);
             ey = e.clientY;
             let startX = sx < ex ? sx : ex;
             let startY = sy < ey ? sy : ey;

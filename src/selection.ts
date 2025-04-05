@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
-import { position, to_pixel_canvas_coord } from "./position";
+import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
@@ -207,10 +207,10 @@ export function setSelectionPosition() {
     ? "visible"
     : "hidden";
 
-  elementStore.selectionArea.style.left = `${(selection.x + position.x) * position.scale}px`;
-  elementStore.selectionArea.style.top = `${(selection.y + position.y) * position.scale}px`;
-  elementStore.selectionArea.style.width = `${selection.width * position.scale}px`;
-  elementStore.selectionArea.style.height = `${selection.height * position.scale}px`;
+  elementStore.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
+  elementStore.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
+  elementStore.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
+  elementStore.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
 
   setHandlePosition();
 }
@@ -447,10 +447,11 @@ function visiableOrHideHandle() {
 
 function setHandlePosition() {
   // selectionArea의 절대 위치 및 크기 계산
-  const areaLeft = (selection.x + position.x) * position.scale;
-  const areaTop = (selection.y + position.y) * position.scale;
-  const areaWidth = selection.width * position.scale;
-  const areaHeight = selection.height * position.scale;
+  const areaLeft =
+    (selection.x / getPixelRatio() + position.x) * position.scale;
+  const areaTop = (selection.y / getPixelRatio() + position.y) * position.scale;
+  const areaWidth = (selection.width * position.scale) / getPixelRatio();
+  const areaHeight = (selection.height * position.scale) / getPixelRatio();
   const offset = 22; // 핸들 크기 44px 기준 중심 정렬 보정값
 
   visiableOrHideHandle();

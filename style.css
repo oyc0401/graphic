@@ -70,9 +70,11 @@ canvas {
 }
 
 #selection-area {
-  /* background: rgba(255, 255, 0, 0.5); */
+  border: 2px dashed  rgba(0, 0, 0, 0.1); /* 진한 테두리 */
   position: absolute;
   z-index: 2900;
+  transform: translate(-1px, -1px); /* 테두리 두께의 절반만큼 반대로 이동 */
+   box-sizing: border-box;          /* 보더를 포함한 크기 계산 */
 }
 
 .handle {
@@ -80,7 +82,8 @@ canvas {
   height: 44px;
   z-index: 2901;
    position: absolute;
-  background: rgba(255, 0, 0, 0.3);
+  background: rgb(133, 133, 133, 0.3);
+  border-radius: 1000px;
 }
 
 #brush-cursor {

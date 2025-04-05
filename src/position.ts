@@ -513,7 +513,7 @@ async function changeSize(number = 300) {
 globalThis.changeSize = changeSize;
 
 let dpr;
-function getPixelRatio() {
+export function getPixelRatio() {
   if (!dpr) {
     dpr = window.devicePixelRatio;
   }
