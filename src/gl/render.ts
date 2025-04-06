@@ -317,7 +317,7 @@ function makeRenderingManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.SOURCE_SELECTION,
+    TEXTURE_UNIT.SELECTION,
   );
   // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
 
