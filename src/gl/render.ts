@@ -125,8 +125,8 @@ function makeRenderingManager(canvas, gl) {
       }
       
       // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력  
-      // vec3 rgb = vec3(0.0, 0.0, 0.0);
-      // float alpha = 0.04;
+      vec3 rgb = vec3(0.0, 0.0, 0.0);
+      float alpha = 0.04;
       // outColor = vec4(rgb * alpha, alpha);
        
       outColor = vec4(1.0, 1.0, 1.0, 1.0);
