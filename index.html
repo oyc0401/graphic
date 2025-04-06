@@ -9,26 +9,42 @@
     />
 
     <title>Paint Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+      * {
+        font-family: 'Roboto', sans-serif;
+      }
+    </style>
     <link href="/ui.css" rel="stylesheet" />
     <link href="/style.css" rel="stylesheet" />
+    
   </head>
   <body class="body">
     <div id="header"></div>
     <div id="menu-bar">
+      <button id="select-selection" class="select-button">
+        <div id="selection-icon" class="button-icon"></div>
+        <p>선택</p>
+      </button>
       <div class="div-bar"></div>
       <div>
         <button id="select-liquify" class="select-mini">픽셀 유동화</button>
+        <button id="select-liquify" class="select-mini">픽셀 유동화</button>
       </div>
       <div class="div-bar"></div>
-      <button id="select-brush" class="select-button">브러시</button>
-      <button id="select-eraser" class="select-button">지우개</button>
-      <button id="select-button">선택하기</button>
+      <button id="select-brush" class="select-button">
+        <div id="brush-icon" class="button-icon"></div>
+        <p>브러시</p>
+      </button>
+      <button id="select-eraser" class="select-button">
+        <div id="eraser-icon" class="button-icon"></div>
+        <p>지우개</p>
+      </button>
+
       <!-- <button id="copy">복사</button> -->
 
-      
-      
-      <div class="div-bar"></div>
-      <div class="div-bar"></div>
+      <!-- <div class="div-bar"></div>
+      <div class="div-bar"></div> -->
     </div>
     <div id="header-space"></div>
     <div id="container">
@@ -56,7 +72,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>
-     // eruda.init();
+      // eruda.init();
     </script>
     <!-- <style>
           .log-box {

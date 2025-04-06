@@ -1,11 +1,15 @@
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { position } from "./position";
+import BrushSvg from "../public/brush.svg?raw";
+import EraserSvg from "../public/eraser.svg?raw";
+import SelectionSvg from "../public/select_rectangle.svg?raw";
 
 interface Elements {
     canvas: HTMLCanvasElement;
     container: HTMLElement;
     brushCursor: HTMLElement;
+    selectSelectionBtn: HTMLElement;
     selectBrushBtn: HTMLElement;
     selectEraserBtn: HTMLElement;
     selectLiquifyBtn: HTMLElement;
@@ -20,6 +24,7 @@ export function getElements() {
         container: document.querySelector("#container")!,
         brushCursor: document.querySelector("#brush-cursor")!,
 
+        selectSelectionBtn: document.getElementById("select-selection")!,
         selectBrushBtn: document.querySelector("#select-brush")!,
         selectEraserBtn: document.querySelector("#select-eraser")!,
         selectLiquifyBtn: document.querySelector("#select-liquify")!,
@@ -27,17 +32,24 @@ export function getElements() {
         zoomArea: document.querySelector("#zoom-area")!,
         selectionArea: document.querySelector("#selection-area")!,
     };
+
+    document.getElementById("selection-icon").innerHTML = SelectionSvg;
+    document.getElementById("brush-icon").innerHTML = BrushSvg;
+    document.getElementById("eraser-icon").innerHTML = EraserSvg;
 }
 
 function updateMenubarUI() {
     elementStore.selectBrushBtn.classList.remove("selected");
     elementStore.selectEraserBtn.classList.remove("selected");
+    elementStore.selectSelectionBtn.classList.remove("selected");
 
     if (paintState.toolId == "brush") {
         elementStore.selectBrushBtn.classList.add("selected");
     } else if (paintState.toolId == "eraser") {
         elementStore.selectEraserBtn.classList.add("selected");
     } else if (paintState.toolId == "liquify") {
+    } else if (paintState.toolId == "select") {
+        elementStore.selectSelectionBtn.classList.add("selected");
     }
 }
 
@@ -61,7 +73,7 @@ export function addInteractionEvent() {
         updateMenubarUI();
     });
 
-    document.getElementById("select-button")!.addEventListener("click", () => {
+    elementStore.selectSelectionBtn.addEventListener("click", () => {
         toolManager.setSelectTool();
         updateMenubarUI();
     });
