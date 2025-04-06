@@ -145,10 +145,9 @@ export class PaintService {
   cancel() {
     this.getTool().cancel();
   }
-  // cut
-  cut(x, y, width, height) {
+  select(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.cut(x, y, width, height);
+    selectionManager.select(x, y, width, height);
   }
   paste(x, y, width, height, imageBitmap) {
     paintOptions.showSelection = true;

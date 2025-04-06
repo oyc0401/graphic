@@ -194,7 +194,7 @@ function createSelectionManager(canvas, gl) {
     };
   }
 
-  function cut(sx, sy, swidth, sheight) {
+  function select(sx, sy, swidth, sheight) {
     paintOptions.showSelection = true;
 
     // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
@@ -307,7 +307,7 @@ function createSelectionManager(canvas, gl) {
     getPosition,
     setSize,
     applySelection,
-    cut,
+    select,
     paste,
     getPixelData,
   };

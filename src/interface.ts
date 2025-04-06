@@ -1,7 +1,6 @@
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { position } from "./position";
-import { copy, paste } from "./selection";
 
 interface Elements {
     canvas: HTMLCanvasElement;
@@ -90,16 +89,6 @@ export function addInteractionEvent() {
             if (event.code === "Escape") {
                 //console.log("취소!");
                 cancel();
-            }
-            // Ctrl+V (Windows/Linux) 또는 Cmd+V (macOS)
-            if ((event.ctrlKey || event.metaKey) && event.code === "KeyV") {
-                event.preventDefault(); // 브라우저 기본 동작 방지
-                paste();
-            }
-            // Ctrl+V (Windows/Linux) 또는 Cmd+C (macOS)
-            if ((event.ctrlKey || event.metaKey) && event.code === "KeyC") {
-                event.preventDefault(); // 브라우저 기본 동작 방지
-                copy();
             }
         });
 

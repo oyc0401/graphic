@@ -50,8 +50,8 @@ export const workerApi = {
   cancel() {
     paint.cancel();
   },
-  cut(x, y, w, h) {
-    paint.cut(x, y, w, h);
+  select(x, y, w, h) {
+    paint.select(x, y, w, h);
   },
   paste(x, y, width, height, imageBitmap) {
     paint.paste(x, y, width, height, imageBitmap);

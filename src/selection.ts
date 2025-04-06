@@ -21,9 +21,6 @@ let beforeSelectionPos = {
 };
 
 export function addSelectionEvent() {
-
-  setupDragAndDrop('#container');
-  
   let selectionDragPointer = { x: 0, y: 0 };
   (function () {
     elementStore.selectionArea.addEventListener(
@@ -32,19 +29,16 @@ export function addSelectionEvent() {
         e.preventDefault();
         if (!paintState.pointerdown) return;
         if (paintState.action != "BRUSH") return;
-
+        if (paintState.toolId != "selection") return;
         let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-        const worker = getLayerWorker();
 
-        if (paintState.toolId == "selection") {
-          console.log("선택창 시작!");
-          selection.active = true;
+        console.log("선택창 시작!");
+        selection.active = true;
 
-          selectionDragPointer = {
-            x: point.x - selection.x,
-            y: point.y - selection.y,
-          };
-        }
+        selectionDragPointer = {
+          x: point.x - selection.x,
+          y: point.y - selection.y,
+        };
       },
     );
 
@@ -59,21 +53,19 @@ export function addSelectionEvent() {
 
       const worker = getLayerWorker();
 
-      if (paintState.toolId == "selection") {
-        let newSelectionX = point.x - selectionDragPointer.x;
-        let newSelectionY = point.y - selectionDragPointer.y;
+      let newSelectionX = point.x - selectionDragPointer.x;
+      let newSelectionY = point.y - selectionDragPointer.y;
 
-        selection.x = newSelectionX;
-        selection.y = newSelectionY;
-        worker.moveSelection(
-          selection.x,
-          selection.y,
-          selection.width,
-          selection.height,
-        );
+      selection.x = newSelectionX;
+      selection.y = newSelectionY;
+      worker.moveSelection(
+        selection.x,
+        selection.y,
+        selection.width,
+        selection.height,
+      );
 
-        setSelectionPosition();
-      }
+      setSelectionStyle();
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -81,16 +73,12 @@ export function addSelectionEvent() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
-      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-      const worker = getLayerWorker();
-      if (paintState.toolId == "selection") {
-        beforeSelectionPos = {
-          x: selection.x,
-          y: selection.y,
-          width: selection.width,
-          height: selection.height,
-        };
-      }
+      beforeSelectionPos = {
+        x: selection.x,
+        y: selection.y,
+        width: selection.width,
+        height: selection.height,
+      };
 
       selection.active = false;
       applyKeyAction();
@@ -101,56 +89,10 @@ export function addSelectionEvent() {
   addHandleEvent();
 }
 
-/**
- * 붙여넣기: 클립보드에서 ImageBitmap 얻어서, 워커로 전달
- */
-export async function paste() {
+// 비트맵으로 선택창 만들기
+export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   applySelection();
 
-  let worker = getLayerWorker();
-  let bitmap = await getClipboardImageBitmap();
-  if (!bitmap) {
-    console.warn("클립보드에 복사 된 이미지가 없습니다.");
-    return;
-  }
-
-  // 실제 붙여넣기 로직
-  handleImageBitmap(bitmap);
-  console.log("붙여넣기!");
-}
-
-
-/**
- * 브라우저 클립보드에서 ImageBitmap 얻기
- */
-async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
-  try {
-    const items = await navigator.clipboard.read(); // 권한 필요
-
-    for (const item of items) {
-      for (const type of item.types) {
-        if (type.startsWith("image/")) {
-          const blob = await item.getType(type);
-          const bitmap = await createImageBitmap(blob, {
-            imageOrientation: "flipY",
-            premultiplyAlpha:'none'
-          });
-          return bitmap;
-        }
-      }
-    }
-
-    console.warn("No image found in clipboard.");
-    return null;
-  } catch (err) {
-    console.error("Clipboard access failed:", err);
-    return null;
-  }
-}
-/**
- * 실제로 ImageBitmap을 받아서 selection에 그리기
- */
-function handleImageBitmap(bitmap: ImageBitmap) {
   let worker = getLayerWorker();
 
   let newWidth = bitmap.width;
@@ -175,86 +117,15 @@ function handleImageBitmap(bitmap: ImageBitmap) {
     selection.y,
     selection.width,
     selection.height,
-    Comlink.transfer(bitmap, [bitmap])
+    Comlink.transfer(bitmap, [bitmap]),
   );
 
   paintState.toolId = "selection";
   selection.visiable = true;
-  setSelectionPosition();
+  setSelectionStyle();
 }
 
-
-
-
-
-
-/**
- * 드래그 앤 드롭 기능을 초기화하는 함수
- * @param dropAreaSelector 드래그 앤 드롭 받을 영역의 셀렉터 (예: '#dropArea')
- */
- function setupDragAndDrop(dropAreaSelector: string) {
-  const dropArea = document.querySelector(dropAreaSelector);
-  if (!dropArea) {
-    console.error("드롭 영역을 찾을 수 없습니다:", dropAreaSelector);
-    return;
-  }
-
-  // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
-  dropArea.addEventListener("dragover", (e) => {
-    e.preventDefault();
-  });
-
-  // 실제 드롭이 발생했을 때
-  dropArea.addEventListener("drop", async (e) => {
-    e.preventDefault();
-    const dt = e.dataTransfer;
-    if (!dt || !dt.files.length) return;
-
-    // 여러 파일을 드롭할 수도 있으므로 루프
-    for (const file of dt.files) {
-      // 이미지 파일인지 확인
-      if (file.type.startsWith("image/")) {
-        try {
-          // 파일을 ImageBitmap으로 변환
-          const bitmap = await createImageBitmap(file, {
-            imageOrientation: "flipY",
-            premultiplyAlpha:'none'
-          });
-          console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
-
-          // 붙여넣기 로직 호출
-          applySelection();
-          handleImageBitmap(bitmap);
-        } catch (err) {
-          console.error("드롭된 이미지를 처리 중 에러:", err);
-        }
-      } else {
-        console.warn("이미지 형식이 아닌 파일은 무시합니다:", file.type);
-      }
-    }
-  });
-}
-
-
-
-
-
-export async function copy(){
-  let worker = getLayerWorker();
-  worker.copy();
-}
-
-
-
-
-
-
-
-
-
-
-
-
+// 해당 구역 선택
 export function canvasSelect(x, y, width, height) {
   let worker = getLayerWorker();
 
@@ -263,12 +134,7 @@ export function canvasSelect(x, y, width, height) {
   selection.width = width;
   selection.height = height;
 
-  worker.cut(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-  );
+  worker.select(selection.x, selection.y, selection.width, selection.height);
 
   beforeSelectionPos = {
     x: selection.x,
@@ -282,28 +148,16 @@ export function canvasSelect(x, y, width, height) {
 
   console.log("자르기!");
   selection.visiable = true;
-  setSelectionPosition();
+  setSelectionStyle();
 }
 
+// 선택창 적용
 export function applySelection() {
   let worker = getLayerWorker();
 
   selection.visiable = false;
   worker.applySelection();
-  setSelectionPosition();
-}
-
-export function setSelectionPosition() {
-  elementStore.selectionArea.style.visibility = selection.visiable
-    ? "visible"
-    : "hidden";
-
-  elementStore.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
-  elementStore.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
-  elementStore.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
-  elementStore.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
-
-  setHandlePosition();
+  setSelectionStyle();
 }
 
 let handleLT = document.getElementById("handle-lt")!;
@@ -316,6 +170,19 @@ let handleLB = document.getElementById("handle-lb")!;
 let handleL = document.getElementById("handle-l")!;
 
 let activeHandle: HTMLElement | null = null;
+
+export function setSelectionStyle() {
+  elementStore.selectionArea.style.visibility = selection.visiable
+    ? "visible"
+    : "hidden";
+
+  elementStore.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
+  elementStore.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
+  elementStore.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
+  elementStore.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
+
+  setHandlePosition();
+}
 
 function addHandleEvent() {
   let worker = getLayerWorker();
@@ -481,7 +348,7 @@ function addHandleEvent() {
       selection.height,
     );
 
-    setSelectionPosition();
+    setSelectionStyle();
   }
 
   // 전역 MOUSEUP 이벤트 핸들러
@@ -581,7 +448,7 @@ export function selectionCancel() {
     selection.height,
   );
 
-  setSelectionPosition();
+  setSelectionStyle();
 
   activeHandle = null;
 }

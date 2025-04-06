@@ -3,6 +3,7 @@ import { addPositionEvent, position, setDefaultPosition } from "./position";
 import { addInteractionEvent, getElements } from "./interface";
 import { addSelectionEvent } from "./selection";
 import { getLayerWorker } from "./worker/workerPool";
+import { addClipboardListener } from "./file";
 window.onload = main;
 
 interface PaintState {
@@ -45,6 +46,8 @@ async function main() {
 
     addDrawEvent();
     addSelectionEvent();
+
+    addClipboardListener();
 
     position.resizeScreen();
 
