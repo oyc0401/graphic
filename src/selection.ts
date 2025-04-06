@@ -99,8 +99,8 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   let newHeight = bitmap.height;
 
   // 선택 영역 설정
-  selection.x = Math.max(0, -position.x);
-  selection.y = Math.max(0, -position.y);
+  selection.x = Math.ceil(Math.max(0, -position.x));
+  selection.y = Math.ceil(Math.max(0, -position.y));
   selection.width = newWidth;
   selection.height = newHeight;
 
@@ -146,7 +146,7 @@ export function canvasSelect(x, y, width, height) {
   // position.resizeScreen();
   paintState.toolId = "selection";
 
-  console.log("선택:",x, y, width, height);
+  console.log("선택:", x, y, width, height);
   selection.visiable = true;
   setSelectionStyle();
 }
@@ -178,7 +178,12 @@ let handleL = document.getElementById("handle-l")!;
 
 let activeHandle: HTMLElement | null = null;
 
+let lastVisiable = false;
 export function setSelectionStyle() {
+  // 숨겨져있는데, 이전에도 숨겨져있었으면 스킵
+  if (!selection.visiable && lastVisiable == selection.visiable) return;
+  lastVisiable = selection.visiable;
+
   elementStore.selectionArea.style.visibility = selection.visiable
     ? "visible"
     : "hidden";

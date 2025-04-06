@@ -88,6 +88,7 @@ canvas {
   z-index: 2900;
   box-sizing: border-box;
   /* 보더를 포함한 크기 계산 */
+  cursor: move;
 }
 
 .handle {
@@ -111,6 +112,38 @@ canvas {
   touch-action: none;
 }
 
+#handle-lt {
+  cursor: nwse-resize;
+}
+
+#handle-t {
+  cursor: ns-resize;
+}
+
+#handle-rt {
+  cursor: nesw-resize;
+}
+
+#handle-r {
+  cursor: ew-resize;
+}
+
+#handle-rb {
+  cursor: nwse-resize;
+}
+
+#handle-b {
+  cursor: ns-resize;
+}
+
+#handle-lb {
+  cursor: nesw-resize;
+}
+
+#handle-l {
+  cursor: ew-resize;
+}
+
 #brush-cursor {
   background: transparent;
   border: 1px solid black;
@@ -123,24 +156,46 @@ canvas {
 }
 
 
-button {
-  height: 44px;
-  width: 64px;
-}
-
-.grab {
+#container.grab {
   cursor: grab;
 }
 
-.grabbing {
+#container.grabbing {
   cursor: grabbing;
 }
 
-.brush {
+#container.brush {
   cursor: crosshair;
-  /* cursor: none; */
 }
 
-.zoom {
+#container.zoom {
   cursor: zoom-in;
+}
+
+#container.select {
+  cursor: crosshair;
+}
+
+#container.largeBrush {
+  cursor: pointer;
+}
+
+
+
+/* grab 상태일 때 */
+#container.grab #selection-area,
+#container.grab .handle {
+  cursor: grab !important;
+}
+
+/* grabbing 상태일 때 */
+#container.grabbing #selection-area,
+#container.grabbing .handle {
+  cursor: grabbing !important;
+}
+
+/* zoom 상태일 때 */
+#container.zoom #selection-area,
+#container.zoom .handle {
+  cursor: zoom-in !important;
 }

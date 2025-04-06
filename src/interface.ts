@@ -38,8 +38,6 @@ export function getElements() {
     document.getElementById("brush-icon").innerHTML = BrushSvg;
     document.getElementById("eraser-icon").innerHTML = EraserSvg;
     document.getElementById("liquify-icon").innerHTML = LiquifySvg;
-
-    
 }
 
 function updateMenubarUI() {
@@ -86,8 +84,13 @@ export function addInteractionEvent() {
 
     (function () {
         document.addEventListener("keydown", (event) => {
-            if (event.code === "Space" || event.code === "Tab" || event.code == 'Enter') event.preventDefault();
-            
+            if (
+                event.code === "Space" ||
+                event.code === "Tab" ||
+                event.code == "Enter"
+            )
+                event.preventDefault();
+
             if (event.repeat) return; // OS 기본 딜레이 방지
 
             if (event.code == "KeyZ") {
@@ -174,46 +177,101 @@ export let pressedKeys = {
     KeyZ: false,
 };
 
-export function updateCursorShape() {
-    if (!elementStore.container) return;
+const MANAGED_CLASSES = [
+  "grab",
+  "grabbing",
+  "brush",
+  "zoom",
+  "select",
+  "largeBrush",
+];
 
-    // 모든 상태 초기화
-    elementStore.container.classList.remove(
-        "grab",
-        "grabbing",
-        "brush",
-        "zoom",
-    );
-    elementStore.brushCursor.style.visibility = "hidden";
-    if (paintState.action === "PAN") {
-        if (paintState.pointerdown) {
-            elementStore.container.classList.add("grabbing");
-        } else {
-            elementStore.container.classList.add("grab");
-        }
-    } else if (
-        paintState.action === "BRUSH" &&
-        paintState.toolId == "selection"
-    ) {
-        if (paintState.pointerdown) {
-            elementStore.container.classList.add("grabbing");
-        } else {
-            elementStore.container.classList.add("grab");
-        }
-    } else if (paintState.action === "BRUSH") {
-        let scaledBrushSize = paintState.brushSize * position.scale;
-        elementStore.container.classList.add("brush");
-        if (!("ontouchstart" in window)) {
-            elementStore.brushCursor.style.visibility = "visible";
-        }
-        elementStore.brushCursor.style.left = `${paintState.cursorX - scaledBrushSize / 2 - 1}px`;
-        elementStore.brushCursor.style.top = `${paintState.cursorY - scaledBrushSize / 2 - 1}px`;
-        elementStore.brushCursor.style.width = `${scaledBrushSize}px`;
-        elementStore.brushCursor.style.height = `${scaledBrushSize}px`;
-    } else if (paintState.action === "ZOOM") {
-        elementStore.container.classList.add("zoom");
+export function updateCursorShape() {
+  const { container, brushCursor } = elementStore;
+  const containerClassList = container.classList;
+
+  // 1) 어떤 클래스(또는 없음)를 적용할지 결정
+  let nextClass = "";
+
+  if (paintState.action === "PAN") {
+    nextClass = paintState.pointerdown ? "grabbing" : "grab";
+  } else if (paintState.action === "BRUSH") {
+    // BRUSH + selection이면 아무것도 안 함 (클래스 없음)
+    if (paintState.toolId === "select") {
+      // BRUSH + select 툴 -> select 클래스
+      nextClass = "select";
+    } else if (paintState.toolId !== "selection") {
+      // BRUSH + 그 외 툴 -> brush/largeBrush
+      const scaledBrushSize = paintState.brushSize * position.scale;
+      // 데스크탑 + 브러시 크기 큰 경우 largeBrush, 아니면 brush
+      if (!("ontouchstart" in window) && scaledBrushSize > 50) {
+        nextClass = "largeBrush";
+      } else {
+        nextClass = "brush";
+      }
     }
+  } else if (paintState.action === "ZOOM") {
+    nextClass = "zoom";
+  }
+
+  // 2) container에 이미 있는 '관리 대상 클래스'들을 지우고,
+  //    새로 필요한 클래스를 달라졌을 때만 추가
+  for (const c of MANAGED_CLASSES) {
+    if (c !== nextClass && containerClassList.contains(c)) {
+      containerClassList.remove(c);
+    }
+  }
+  if (nextClass && !containerClassList.contains(nextClass)) {
+    containerClassList.add(nextClass);
+  }
+
+  // 3) brushCursor 표시 여부/스타일 계산
+  let shouldShowBrush = false;
+  let newLeft = "";
+  let newTop = "";
+  let newWidth = "";
+  let newHeight = "";
+
+  if (paintState.action === "BRUSH" && paintState.toolId !== "selection") {
+    // select 툴일 때도 커서 안 보여주므로(toolId === 'select' -> select 클래스만)
+    // 실제 그리는 툴만 커서 표시
+    // 브러시 크기 계산
+    const scaledBrushSize = paintState.brushSize * position.scale;
+
+    // 커서가 충분히 크고 데스크탑 환경이면 원형 커서 표시
+    // (대신 largeBrush 클래스가 적용되어 있을 것이므로)
+    // 나머지는 그냥 brush 아이콘만
+    shouldShowBrush = !("ontouchstart" in window) && scaledBrushSize > 50;
+
+    // 커서 위치/사이즈 계산
+    newLeft = `${paintState.cursorX - scaledBrushSize / 2 - 1}px`;
+    newTop = `${paintState.cursorY - scaledBrushSize / 2 - 1}px`;
+    newWidth = `${scaledBrushSize}px`;
+    newHeight = `${scaledBrushSize}px`;
+  }
+
+  // 4) brushCursor DOM 업데이트 (기존 상태와 다를 때만)
+  const newVisibility = shouldShowBrush ? "visible" : "hidden";
+  if (brushCursor.style.visibility !== newVisibility) {
+    brushCursor.style.visibility = newVisibility;
+  }
+
+  if (shouldShowBrush) {
+    if (brushCursor.style.left !== newLeft) {
+      brushCursor.style.left = newLeft;
+    }
+    if (brushCursor.style.top !== newTop) {
+      brushCursor.style.top = newTop;
+    }
+    if (brushCursor.style.width !== newWidth) {
+      brushCursor.style.width = newWidth;
+    }
+    if (brushCursor.style.height !== newHeight) {
+      brushCursor.style.height = newHeight;
+    }
+  }
 }
+
 
 // 누르고 있는 키에 따라서 도구를 바꿈
 export function applyKeyAction() {
