@@ -21,6 +21,9 @@ let beforeSelectionPos = {
 };
 
 export function addSelectionEvent() {
+
+  setupDragAndDrop('#container');
+  
   let selectionDragPointer = { x: 0, y: 0 };
   (function () {
     elementStore.selectionArea.addEventListener(
@@ -116,6 +119,34 @@ export async function paste() {
   console.log("붙여넣기!");
 }
 
+
+/**
+ * 브라우저 클립보드에서 ImageBitmap 얻기
+ */
+async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
+  try {
+    const items = await navigator.clipboard.read(); // 권한 필요
+
+    for (const item of items) {
+      for (const type of item.types) {
+        if (type.startsWith("image/")) {
+          const blob = await item.getType(type);
+          const bitmap = await createImageBitmap(blob, {
+            imageOrientation: "flipY",
+            premultiplyAlpha:'none'
+          });
+          return bitmap;
+        }
+      }
+    }
+
+    console.warn("No image found in clipboard.");
+    return null;
+  } catch (err) {
+    console.error("Clipboard access failed:", err);
+    return null;
+  }
+}
 /**
  * 실제로 ImageBitmap을 받아서 selection에 그리기
  */
@@ -152,34 +183,10 @@ function handleImageBitmap(bitmap: ImageBitmap) {
   setSelectionPosition();
 }
 
-/**
- * 브라우저 클립보드에서 ImageBitmap 얻기
- * (브라우저 권한/환경에 따라 Windows 탐색기에서 복사된 파일은
- * 인식이 안 될 수도 있음)
- */
-async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
-  try {
-    const items = await navigator.clipboard.read(); // 권한 필요
 
-    for (const item of items) {
-      for (const type of item.types) {
-        if (type.startsWith("image/")) {
-          const blob = await item.getType(type);
-          const bitmap = await createImageBitmap(blob, {
-            imageOrientation: "flipY",
-          });
-          return bitmap;
-        }
-      }
-    }
 
-    console.warn("No image found in clipboard.");
-    return null;
-  } catch (err) {
-    console.error("Clipboard access failed:", err);
-    return null;
-  }
-}
+
+
 
 /**
  * 드래그 앤 드롭 기능을 초기화하는 함수
@@ -211,6 +218,7 @@ async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
           // 파일을 ImageBitmap으로 변환
           const bitmap = await createImageBitmap(file, {
             imageOrientation: "flipY",
+            premultiplyAlpha:'none'
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
 
@@ -227,7 +235,7 @@ async function getClipboardImageBitmap(): Promise<ImageBitmap | null> {
   });
 }
 
-setupDragAndDrop('#container');
+
 
 
 
