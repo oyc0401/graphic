@@ -169,7 +169,7 @@ function createSelectionManager(canvas, gl) {
       width,
       height, // 목표 영역 (크기 조정됨)
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST, // 색상 버퍼 복사
+      gl.LINEAR, // 축소 확대 자연스럽게 리니어!
     );
   }
 
