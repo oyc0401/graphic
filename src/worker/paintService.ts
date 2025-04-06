@@ -122,11 +122,13 @@ export class PaintService {
     paintOptions.setAlpha(alpha);
   }
   setTool(toolId) {
+    if(toolId == 'select') return;
     if (this.toolId != toolId) {
       this.getTool().exit();
     }
     this.toolId = toolId;
     this.getTool().enter();
+    
   }
   getTool() {
     return this.tools[this.toolId];

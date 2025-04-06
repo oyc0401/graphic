@@ -146,7 +146,7 @@ export function canvasSelect(x, y, width, height) {
   // position.resizeScreen();
   paintState.toolId = "selection";
 
-  console.log("자르기!");
+  console.log("선택:",x, y, width, height);
   selection.visiable = true;
   setSelectionStyle();
 }

@@ -13,59 +13,33 @@ export function getSelectionManager(canvas, gl) {
 }
 
 function createSelectionManager(canvas, gl) {
+  const layerManager = getLayerManager(canvas, gl);
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const renderingManager = getRenderingManager(canvas, gl);
+
+  let x = 0;
+  let y = 0;
+  let width = 10;
+  let height = 10;
+
   // 텍스처 생성
-  const selectionTex = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION); // 9번 텍스처 유닛 활성화
-  gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+  const sourceSelectionTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+  gl.bindTexture(gl.TEXTURE_2D, sourceSelectionTex);
 
-  // 텍스처 데이터 초기화 (하늘색으로 채움: rgba(135, 206, 235, 255))
-  let x = 50;
-  let y = 50;
-  let width = 300;
-  let height = 200;
-
-  // 초기 데이터(하늘색)로 채운다 (RGBA: (135,206,235,255))
-  const pixelCount = width * height;
-  const skyBlue = new Uint8Array(pixelCount * 4); // RGBA 4채널
-
-  for (let i = 0; i < pixelCount; i++) {
-    const isTopHalf = i < pixelCount / 2;
-
-    if (isTopHalf) {
-      // 자홍색: RGB(255, 0, 255)
-      skyBlue[i * 4 + 0] = 250; // R
-      skyBlue[i * 4 + 1] = 250; // G
-      skyBlue[i * 4 + 2] = 10; // B
-      skyBlue[i * 4 + 3] = 120; // A
-    } else {
-      // 하늘색: RGB(135, 206, 235)
-      skyBlue[i * 4 + 0] = 135; // R
-      skyBlue[i * 4 + 1] = 206; // G
-      skyBlue[i * 4 + 2] = 235; // B
-      skyBlue[i * 4 + 3] = 255; // A
-    }
-  }
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0, // mip level
-    gl.RGBA, // internal format
-    width,
-    height,
-    0, // border
-    gl.RGBA, // format
-    gl.UNSIGNED_BYTE, // type
-    skyBlue,
-  );
-
-  // 필터링 및 래핑 설정 (기본값)
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  let layerManager = getLayerManager(canvas, gl);
-  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const renderedSelectionTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
+  gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
+  // 필터링 및 래핑 설정 (기본값)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
   let selectionShaderSource = `#version 300 es
     precision highp float;
@@ -136,7 +110,7 @@ function createSelectionManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.SELECTION,
+    TEXTURE_UNIT.SOURCE_SELECTION,
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_sourse"),
@@ -144,6 +118,8 @@ function createSelectionManager(canvas, gl) {
   );
 
   enable_a_position(gl, selectionProgram);
+
+  const readPixelFBO = gl.createFramebuffer();
 
   function applySelection() {
     paintOptions.showSelection = false;
@@ -174,11 +150,17 @@ function createSelectionManager(canvas, gl) {
     sourceTextureManager.uploadCurrent();
   }
 
-  let renderingManager = getRenderingManager(canvas, gl);
-
-  function setSize(newX, newY, newWidth, newHeight) {
+  function setSelectionSize(newX, newY, newWidth, newHeight) {
     x = newX;
     y = newY;
+
+    if (width != newWidth || height != newHeight) {
+      // 텍스쳐 크기 재조정.
+      // 텍스쳐는 선택 원본 텍스쳐, 선택 렌더링용 텍스쳐 두개를 분리해야하고.
+      // 화면에 보여줄 때는 렌더셀렉트을 보여주고, 리드픽셀 할때도 렌더셀렉트를 읽어야한다.
+      // 원본 선택 텍스는 오직 크기 변경시 렌더셀렉트를 구현하기 위해 존재한다.
+      // 선택 이미지가 바뀌었을 때도 소스셀렉트를 먼저 그것으로 바꾸고, 렌더셀렉트를 렌더링 해야한다.
+    }
     width = newWidth;
     height = newHeight;
 
@@ -203,8 +185,8 @@ function createSelectionManager(canvas, gl) {
     width = swidth;
     height = sheight;
 
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, sourceSelectionTex);
 
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -252,8 +234,8 @@ function createSelectionManager(canvas, gl) {
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
     paintOptions.showSelection = true;
 
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, sourceSelectionTex);
 
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -272,8 +254,6 @@ function createSelectionManager(canvas, gl) {
     renderingManager.render();
   }
 
-  const readPixelFBO = gl.createFramebuffer();
-
   function getPixelData() {
     // 1. 픽셀 읽기용 버퍼 준비
     const flippedPixel = new Uint8Array(width * height * 4); // RGBA
@@ -284,7 +264,7 @@ function createSelectionManager(canvas, gl) {
       gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
-      selectionTex,
+      sourceSelectionTex,
       0,
     );
 
@@ -310,9 +290,9 @@ function createSelectionManager(canvas, gl) {
   }
 
   return {
-    texture: selectionTex,
+    texture: sourceSelectionTex,
     getPosition,
-    setSize,
+    setSize: setSelectionSize,
     applySelection,
     select,
     paste,

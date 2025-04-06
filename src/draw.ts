@@ -39,6 +39,8 @@ export let toolManager = {
     setSelectTool() {
         applySelection();
         paintState.toolId = "select";
+        const worker = getLayerWorker();
+        worker.setTool(paintState.toolId);
     },
 };
 
@@ -163,7 +165,7 @@ export function addDrawEvent() {
             activeSelect = true;
 
             elementStore.zoomArea.style.visibility = "visible";
-            console.log("자르기");
+            console.log("선택 시작");
             elementStore.zoomArea.style.left = `${sx}px`;
             elementStore.zoomArea.style.top = `${sy}px`;
             elementStore.zoomArea.style.width = `0px`;
