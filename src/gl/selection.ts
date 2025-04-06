@@ -24,12 +24,21 @@ function createSelectionManager(canvas, gl) {
 
   let originalWidth;
   let originalHeight;
+
   // 텍스처 생성
   const selectionTex = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
   gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
-  // LINEAR 하면 검정 때 생김
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  const renderedSelectionTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
+  gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
+
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -99,7 +108,7 @@ function createSelectionManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.SELECTION,
+    TEXTURE_UNIT.RENDERED_SELECTION,
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_sourse"),
@@ -108,8 +117,142 @@ function createSelectionManager(canvas, gl) {
 
   enable_a_position(gl, selectionProgram);
 
-  const resizedTex = gl.createTexture();
-  const readPixelFBO = gl.createFramebuffer();
+  const selectionFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
+  gl.framebufferTexture2D(
+    gl.READ_FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    selectionTex,
+    0,
+  );
+
+  const renderedSelectionFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, renderedSelectionFBO);
+  gl.framebufferTexture2D(
+    gl.DRAW_FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    renderedSelectionTex,
+    0,
+  );
+
+  // 늘린 텍스쳐에 늘려서 복사하기
+  function uploadRenderedTex() {
+    // 새로 늘린 텍스처 준비 (픽셀 읽을 대상)
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+
+    // 원본 텍스처가 붙을 FBO
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
+    // 크기 늘린 텍스처가 붙을 FBO
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, renderedSelectionFBO);
+
+    // GPU를 이용해 텍스처 크기 조정 (원본 → 늘어난 크기)
+    gl.blitFramebuffer(
+      0,
+      0,
+      originalWidth,
+      originalHeight, // 원본 영역
+      0,
+      0,
+      width,
+      height, // 목표 영역 (크기 조정됨)
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST, // 색상 버퍼 복사
+    );
+  }
+
+  function select(sx, sy, swidth, sheight) {
+    paintOptions.showSelection = true;
+
+    // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
+    x = sx;
+    y = sy;
+    width = swidth;
+    height = sheight;
+    originalWidth = swidth;
+    originalHeight = sheight;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+
+    const readY = paintOptions.height - (y + originalHeight);
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internalFormat
+      originalWidth, // 텍스처 폭
+      originalHeight, // 텍스처 높이
+      0, // border
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      null,
+    );
+    // 5) 실제 복사: copyTexSubImage2D
+    gl.copyTexSubImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      0, // dstX
+      0, // dstY
+      x, // srcX
+      readY, // srcY
+      originalWidth,
+      originalHeight,
+    );
+
+    // 2) 선택된 영역을 완전히 투명으로 지우기
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(x, readY, originalWidth, originalHeight);
+
+    gl.clearColor(0, 0, 0, 0); // RGBA 모두 0
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.disable(gl.SCISSOR_TEST);
+
+    uploadRenderedTex();
+
+    // 레이어를 수정했으니 업로드
+    sourceTextureManager.uploadCurrent();
+
+    renderingManager.render();
+  }
+
+  function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
+    paintOptions.showSelection = true;
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // mip level
+      gl.RGBA, // internal format
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      bitmap, // ✅ 직접 전달 가능
+    );
+
+    x = newx;
+    y = newy;
+    width = newwidth;
+    height = newheight;
+    originalWidth = newwidth;
+    originalHeight = newheight;
+
+    uploadRenderedTex();
+
+    renderingManager.render();
+  }
 
   function applySelection() {
     paintOptions.showSelection = false;
@@ -140,6 +283,54 @@ function createSelectionManager(canvas, gl) {
     sourceTextureManager.uploadCurrent();
   }
 
+  function getPixelData() {
+    // 픽셀 읽기 준비 (뒤집힌 픽셀)
+    const flippedPixel = new Uint8Array(width * height * 4);
+
+    // 픽셀 읽기
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderedSelectionFBO);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
+
+    // 최종 픽셀 (논프멀, 위에서 아래로 플립됨)
+    const pixels = new Uint8ClampedArray(width * height * 4);
+
+    for (let row = 0; row < height; row++) {
+      const srcStart = row * width * 4;
+      const dstStart = (height - row - 1) * width * 4;
+
+      for (let i = 0; i < width; i++) {
+        const srcIndex = srcStart + i * 4;
+        const dstIndex = dstStart + i * 4;
+
+        const r = flippedPixel[srcIndex + 0];
+        const g = flippedPixel[srcIndex + 1];
+        const b = flippedPixel[srcIndex + 2];
+        const a = flippedPixel[srcIndex + 3];
+
+        if (a > 0) {
+          const factor = 255 / a;
+          pixels[dstIndex + 0] = Math.min(r * factor, 255);
+          pixels[dstIndex + 1] = Math.min(g * factor, 255);
+          pixels[dstIndex + 2] = Math.min(b * factor, 255);
+        } else {
+          // 알파 0이면 RGB도 0
+          pixels[dstIndex + 0] = 0;
+          pixels[dstIndex + 1] = 0;
+          pixels[dstIndex + 2] = 0;
+        }
+
+        pixels[dstIndex + 3] = a;
+      }
+    }
+
+    return { pixels, width, height };
+  }
+
+  function afterCut() {
+    paintOptions.showSelection = false;
+    renderingManager.render();
+  }
+
   function setSize(newX, newY, newWidth, newHeight) {
     x = newX;
     y = newY;
@@ -150,10 +341,11 @@ function createSelectionManager(canvas, gl) {
       // 화면에 보여줄 때는 렌더셀렉트을 보여주고, 리드픽셀 할때도 렌더셀렉트를 읽어야한다.
       // 원본 선택 텍스는 오직 크기 변경시 렌더셀렉트를 구현하기 위해 존재한다.
       // 선택 이미지가 바뀌었을 때도 소스셀렉트를 먼저 그것으로 바꾸고, 렌더셀렉트를 렌더링 해야한다.
-      // 아니면 걍 복사를 할 때만 텍스쳐에 그려서 줄까???
+
+      width = newWidth;
+      height = newHeight;
+      uploadRenderedTex();
     }
-    width = newWidth;
-    height = newHeight;
 
     renderingManager.render();
   }
@@ -165,197 +357,6 @@ function createSelectionManager(canvas, gl) {
       width,
       height,
     };
-  }
-
-  function select(sx, sy, swidth, sheight) {
-    paintOptions.showSelection = true;
-
-    // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
-    x = sx;
-    y = sy;
-    width = swidth;
-    height = sheight;
-    originalWidth = swidth;
-    originalHeight = sheight;
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      gl.RGBA, // internalFormat
-      originalWidth, // 텍스처 폭
-      originalHeight, // 텍스처 높이
-      0, // border
-      gl.RGBA, // format
-      gl.UNSIGNED_BYTE, // type
-      null,
-    );
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
-
-    const readY = paintOptions.height - (y + originalHeight);
-
-    // 5) 실제 복사: copyTexSubImage2D
-    gl.copyTexSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      0, // dstX
-      0, // dstY
-      x, // srcX
-      readY, // srcY
-      originalWidth,
-      originalHeight,
-    );
-
-    // 2) 선택된 영역을 완전히 투명으로 지우기
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(x, readY, originalWidth, originalHeight);
-
-    gl.clearColor(0,0,0, 0); // RGBA 모두 0
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.disable(gl.SCISSOR_TEST);
-
-    // 레이어를 수정했으니 업로드
-    sourceTextureManager.uploadCurrent();
-
-    renderingManager.render();
-  }
-
-  function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
-    paintOptions.showSelection = true;
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
-    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
-
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0, // mip level
-      gl.RGBA, // internal format
-      gl.RGBA, // format
-      gl.UNSIGNED_BYTE, // type
-      bitmap, // ✅ 직접 전달 가능
-    );
-
-    x = newx;
-    y = newy;
-    width = newwidth;
-    height = newheight;
-    originalWidth = newwidth;
-    originalHeight = newheight;
-
-    renderingManager.render();
-  }
-
-  function getPixelData2() {
-    // 1. 픽셀 읽기용 버퍼 준비
-    const flippedPixel = new Uint8Array(width * height * 4); // RGBA
-
-    // 2. 텍스처를 framebuffer에 붙인다
-    gl.bindFramebuffer(gl.FRAMEBUFFER, readPixelFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      selectionTex,
-      0,
-    );
-
-    // 3. readPixels로 픽셀 읽기
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
-
-    const pixels = new Uint8ClampedArray(width * height * 4);
-    for (let row = 0; row < height; row++) {
-      const srcStart = row * width * 4;
-      const dstStart = (height - row - 1) * width * 4;
-      pixels.set(
-        flippedPixel.subarray(srcStart, srcStart + width * 4),
-        dstStart,
-      );
-    }
-
-    return { pixels, width, height };
-  }
-  
-  function getPixelData() {
-    // 원본 텍스처가 붙을 FBO (sourceSelectionTex)
-    const srcFBO = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFBO);
-    gl.framebufferTexture2D(
-      gl.READ_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      selectionTex, // 원본 텍스처
-      0,
-    );
-
-    // 새로 늘린 텍스처 준비 (픽셀 읽을 대상)
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, resizedTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-    // 크기 늘린 텍스처가 붙을 FBO 준비
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, readPixelFBO);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      resizedTex,
-      0,
-    );
-
-    // GPU를 이용해 텍스처 크기 조정 (원본 → 늘어난 크기)
-    gl.blitFramebuffer(
-      0,
-      0,
-      originalWidth,
-      originalHeight, // 원본 영역
-      0,
-      0,
-      width,
-      height, // 목표 영역 (크기 조정됨)
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST, // 색상 버퍼 복사, 리니어 필터링
-    );
-
-    // 픽셀 읽기 준비 (뒤집힌 픽셀)
-    const flippedPixel = new Uint8Array(width * height * 4);
-
-    // 픽셀 읽기
-    gl.bindFramebuffer(gl.FRAMEBUFFER, readPixelFBO);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
-
-    // y축 뒤집기
-    const pixels = new Uint8ClampedArray(width * height * 4);
-    for (let row = 0; row < height; row++) {
-      const srcStart = row * width * 4;
-      const dstStart = (height - row - 1) * width * 4;
-      pixels.set(
-        flippedPixel.subarray(srcStart, srcStart + width * 4),
-        dstStart,
-      );
-    }
-
-    return { pixels, width, height };
-  }
-
-  function afterCut() {
-    paintOptions.showSelection = false;
-    renderingManager.render();
   }
 
   return {

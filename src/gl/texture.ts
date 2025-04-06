@@ -11,7 +11,8 @@ export const TEXTURE_UNIT = {
   SOURCE_DISPLACEMENT: 6, // 변위맵 이전 상태 저장 용
   EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
   EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
-  SELECTION: 9,
+  SOURCE_SELECTION: 9,
+  RENDERED_SELECTION: 10
 };
 
 export let paintOptions = {

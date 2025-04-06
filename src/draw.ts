@@ -154,10 +154,14 @@ export function addDrawEvent() {
         let ex, ey;
         let activeSelect = false;
 
+        let startPoint;
+
         elementStore.container.addEventListener("pointerdown", (e) => {
             if (paintState.action != "BRUSH") return;
             if (paintState.toolId != "select") return;
-
+            //let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+           // startPoint = point;
+            
             sx = e.clientX;
             sy = e.clientY;
             ex = e.clientX;
