@@ -4,6 +4,7 @@ import { position } from "./position";
 import BrushSvg from "../public/brush.svg?raw";
 import EraserSvg from "../public/eraser.svg?raw";
 import SelectionSvg from "../public/select_rectangle.svg?raw";
+import LiquifySvg from "../public/liquify.svg?raw";
 
 interface Elements {
     canvas: HTMLCanvasElement;
@@ -36,11 +37,15 @@ export function getElements() {
     document.getElementById("selection-icon").innerHTML = SelectionSvg;
     document.getElementById("brush-icon").innerHTML = BrushSvg;
     document.getElementById("eraser-icon").innerHTML = EraserSvg;
+    document.getElementById("liquify-icon").innerHTML = LiquifySvg;
+
+    
 }
 
 function updateMenubarUI() {
     elementStore.selectBrushBtn.classList.remove("selected");
     elementStore.selectEraserBtn.classList.remove("selected");
+    elementStore.selectLiquifyBtn.classList.remove("selected");
     elementStore.selectSelectionBtn.classList.remove("selected");
 
     if (paintState.toolId == "brush") {
@@ -48,6 +53,7 @@ function updateMenubarUI() {
     } else if (paintState.toolId == "eraser") {
         elementStore.selectEraserBtn.classList.add("selected");
     } else if (paintState.toolId == "liquify") {
+        elementStore.selectLiquifyBtn.classList.add("selected");
     } else if (paintState.toolId == "select") {
         elementStore.selectSelectionBtn.classList.add("selected");
     }
@@ -80,6 +86,8 @@ export function addInteractionEvent() {
 
     (function () {
         document.addEventListener("keydown", (event) => {
+            if (event.code === "Space" || event.code === "Tab" || event.code == 'Enter') event.preventDefault();
+            
             if (event.repeat) return; // OS 기본 딜레이 방지
 
             if (event.code == "KeyZ") {

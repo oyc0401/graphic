@@ -45,8 +45,27 @@
   justify-content: space-between;
   align-items: center;
 }
-.select-button > p{
+
+.select-button>p {
   font-size: 12px;
+}
+
+.mini-buttons {
+  display: flex;
+  flex-direction: column;
+
+}
+
+.select-mini {
+  width: 40px;
+  height: 40px;
+   border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .button-icon {
