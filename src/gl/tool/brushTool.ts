@@ -180,23 +180,20 @@ function makeBrushManager(canvas, gl) {
       out vec4 outColor;
 
       void main() {
-        float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
-        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+       float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
         vec4 brushColor = vec4(u_color, value); // 새로운 색
+        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
 
-        float srcA = brushColor.a;
-        float dstA = imageColor.a;
+       // Premultiplied Alpha 적용
+        vec3 premultBrush = brushColor.rgb * brushColor.a; // RGB에 알파를 미리 곱함
+        vec3 premultImage = imageColor.rgb;
 
-        float outA = srcA + dstA * (1.0 - srcA);
-        vec3 outRGB = imageColor.rgb;
-        if (outA > 0.0) {
-            outRGB = (
-                brushColor.rgb * srcA + imageColor.rgb * dstA * (1.0 - srcA)
-            ) / outA;
-        }
-    
+        // 블렌딩 (Premultiplied 방식)
+        vec3 blendedRGB = premultImage * (1.0 - brushColor.a) + premultBrush;
+        float blendedAlpha = imageColor.a + brushColor.a * (1.0 - imageColor.a); 
+
         // 최종 색상
-        outColor = vec4(outRGB, outA);
+        outColor = vec4(blendedRGB, blendedAlpha);
       }
       `;
 
@@ -231,8 +228,8 @@ function makeBrushManager(canvas, gl) {
         float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
         vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
 
-        float newAlpha = imageColor.a - imageColor.a * value;
-        outColor = vec4(imageColor.rgb, newAlpha);
+        float factor = 1.0 - value;
+        outColor = vec4(imageColor.rgb * factor, imageColor.a * factor);
       }
       `;
 
@@ -263,7 +260,7 @@ function makeBrushManager(canvas, gl) {
 
     //console.log(paintOptions);
     gl.viewport(0, 0, width, height);
-    gl.clearColor(1, 1, 1, 0);
+    gl.clearColor(0, 0, 0, 0);
 
     gl.useProgram(strokeProgram);
     gl.uniform2f(
@@ -332,11 +329,10 @@ function makeBrushManager(canvas, gl) {
 
   let brushManager = {
     enter() {
-      console.log('enter!')
-      
+      console.log("enter!");
     },
     start(p) {
-      console.log('start!');
+      console.log("start!");
     },
     stroke(start, end) {
       let height = paintOptions.height;

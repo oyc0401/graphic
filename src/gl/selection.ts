@@ -72,19 +72,14 @@ function createSelectionManager(canvas, gl) {
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - minPos) / size;
 
-      vec4 selectionColor = texture(u_selection, local);
-      vec4 imageColor = texture(u_sourse, v_texCoord);
-
+      vec4 selectionColor = texture(u_selection, local);    // 프리
+      vec4 imageColor = texture(u_sourse, v_texCoord);      // 프리
+      
       float srcA = selectionColor.a;
       float dstA = imageColor.a;
-
+      
       float outA = srcA + dstA * (1.0 - srcA);
-      vec3 outRGB = imageColor.rgb;
-      if (outA > 0.0) {
-          outRGB = (
-              selectionColor.rgb * srcA + imageColor.rgb * dstA * (1.0 - srcA)
-          ) / outA;
-      }
+      vec3 outRGB = selectionColor.rgb + imageColor.rgb * (1.0 - srcA);
       
       outColor = vec4(outRGB, outA);
     }
@@ -218,7 +213,7 @@ function createSelectionManager(canvas, gl) {
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(x, readY, originalWidth, originalHeight);
 
-    gl.clearColor(1, 1, 1, 0); // RGBA 모두 0
+    gl.clearColor(0,0,0, 0); // RGBA 모두 0
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.disable(gl.SCISSOR_TEST);

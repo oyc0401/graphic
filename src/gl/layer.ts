@@ -1,13 +1,8 @@
 import { getManager } from "./utils/cachedManager";
-import {
-  TEXTURE_UNIT,
-  paintOptions,
-} from "./texture";
+import { TEXTURE_UNIT, paintOptions } from "./texture";
 
 export function getLayerManager(canvas, gl) {
-  const manager = getManager(gl, "layer", () =>
-    makeLayerManager(canvas, gl),
-  );
+  const manager = getManager(gl, "layer", () => makeLayerManager(canvas, gl));
   return manager;
 }
 
@@ -46,7 +41,7 @@ function makeLayerManager(canvas, gl) {
 
   // 빨강으로 초기화
   gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-  gl.clearColor(1.0, 1.0, 1.0, 0.0);
+  gl.clearColor(0, 0, 0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   return {

@@ -24,7 +24,7 @@ export function addClipboardListener() {
           // 파일을 ImageBitmap으로 변환
           const bitmap = await createImageBitmap(file, {
             imageOrientation: "flipY",
-            premultiplyAlpha: "none",
+            premultiplyAlpha: "premultiply",
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
 
@@ -51,7 +51,7 @@ export function addClipboardListener() {
 
         const bitmap = await createImageBitmap(blob, {
           imageOrientation: "flipY",
-          premultiplyAlpha: "none",
+          premultiplyAlpha: "premultiply",
         });
 
         if (bitmap) {

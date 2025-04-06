@@ -125,9 +125,9 @@ function makeRenderingManager(canvas, gl) {
       }
       
       // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력  
-      vec3 rgb = vec3(0.0, 0.0, 0.0);
-      float alpha = 0.04;
-      outColor = vec4(rgb * alpha, alpha);
+      // vec3 rgb = vec3(0.0, 0.0, 0.0);
+      // float alpha = 0.04;
+      // outColor = vec4(rgb * alpha, alpha);
        
       outColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
@@ -214,7 +214,7 @@ function makeRenderingManager(canvas, gl) {
     
       // 6. 원본 텍스처에서 local 좌표로 색상을 샘플링
       vec4 imageColor = texture(u_sourse, local);
-      outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+      outColor = vec4(imageColor.rgb, imageColor.a);
     }
   `;
 
@@ -299,7 +299,7 @@ function makeRenderingManager(canvas, gl) {
       vec2 local = (scaledFragCoord - min) / size;
       
       vec4 imageColor = texture(u_selection, local);
-      outColor = vec4(imageColor.rgb * imageColor.a, imageColor.a);
+      outColor = vec4(imageColor.rgb, imageColor.a);
     }
   `;
 
