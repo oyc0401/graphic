@@ -61,8 +61,8 @@ export function addInteractionEvent() {
         updateMenubarUI();
     });
 
-    document.getElementById("cut-button")!.addEventListener("click", () => {
-        toolManager.setCutTool();
+    document.getElementById("select-button")!.addEventListener("click", () => {
+        toolManager.setSelectTool();
         updateMenubarUI();
     });
 

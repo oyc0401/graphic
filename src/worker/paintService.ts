@@ -149,10 +149,19 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
   }
-  paste(x, y, width, height, imageBitmap) {
-    paintOptions.showSelection = true;
+  moveSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.paste(imageBitmap);
+    selectionManager.setSize(x, y, width, height);
+  }
+  applySelection() {
+    if (paintOptions.showSelection) {
+      let selectionManager = getSelectionManager(this.canvas, this.gl);
+      selectionManager.applySelection();
+    }
+  }
+  paste(x, y, width, height, imageBitmap) {
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    selectionManager.paste(x, y, width, height, imageBitmap);
   }
   copy() {
     // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
@@ -171,14 +180,23 @@ export class PaintService {
       [pixels.buffer],
     );
   }
-  moveSelection(x, y, width, height) {
+  cut() {
+    // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.setSize(x, y, width, height);
-  }
-  applySelection() {
-    if (paintOptions.showSelection) {
-      let selectionManager = getSelectionManager(this.canvas, this.gl);
-      selectionManager.applySelection();
-    }
+    let { pixels, width, height } = selectionManager.getPixelData();
+
+    selectionManager.afterCut();
+
+    self.postMessage(
+      {
+        type: "copy",
+        payload: {
+          pixels,
+          width,
+          height,
+        },
+      },
+      [pixels.buffer],
+    );
   }
 }

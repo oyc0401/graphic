@@ -36,9 +36,9 @@ export let toolManager = {
         applySelection();
         worker.setTool(paintState.toolId);
     },
-    setCutTool() {
+    setSelectTool() {
         applySelection();
-        paintState.toolId = "cut";
+        paintState.toolId = "select";
     },
 };
 
@@ -150,17 +150,17 @@ export function addDrawEvent() {
     (function () {
         let sx, sy;
         let ex, ey;
-        let activeCut = false;
+        let activeSelect = false;
 
         elementStore.container.addEventListener("pointerdown", (e) => {
             if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "cut") return;
+            if (paintState.toolId != "select") return;
 
             sx = e.clientX;
             sy = e.clientY;
             ex = e.clientX;
             ey = e.clientY;
-            activeCut = true;
+            activeSelect = true;
 
             elementStore.zoomArea.style.visibility = "visible";
             console.log("자르기");
@@ -172,9 +172,9 @@ export function addDrawEvent() {
 
         window.addEventListener("pointermove", (e) => {
             if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "cut") return;
+            if (paintState.toolId != "select") return;
             if (!paintState.pointerdown) return;
-            if (!activeCut) return;
+            if (!activeSelect) return;
             ex = e.clientX;
             ey = e.clientY;
             let startX = sx < ex ? sx : ex;
@@ -189,9 +189,9 @@ export function addDrawEvent() {
 
         window.addEventListener("pointerup", (e) => {
             if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "cut") return;
-            if (!activeCut) return;
-            activeCut = false;
+            if (paintState.toolId != "select") return;
+            if (!activeSelect) return;
+            activeSelect = false;
 
             elementStore.zoomArea.style.visibility = "hidden";
 

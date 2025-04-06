@@ -53,17 +53,20 @@ export const workerApi = {
   select(x, y, w, h) {
     paint.select(x, y, w, h);
   },
-  paste(x, y, width, height, imageBitmap) {
-    paint.paste(x, y, width, height, imageBitmap);
-  },
   moveSelection(x, y, width, height) {
     paint.moveSelection(x, y, width, height);
   },
   applySelection() {
     paint.applySelection();
   },
+  paste(x, y, width, height, imageBitmap) {
+    paint.paste(x, y, width, height, imageBitmap);
+  },
   copy() {
     paint.copy();
+  },
+  cut() {
+    paint.cut();
   },
 };
 

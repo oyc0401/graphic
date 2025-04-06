@@ -32,7 +32,7 @@ export function addSelectionEvent() {
         if (paintState.toolId != "selection") return;
         let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
-        console.log("선택창 시작!");
+        console.log("선택창 이동 시작!");
         selection.active = true;
 
         selectionDragPointer = {
@@ -99,8 +99,8 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   let newHeight = bitmap.height;
 
   // 선택 영역 설정
-  selection.x = 0;
-  selection.y = 0;
+  selection.x = Math.max(0, -position.x);
+  selection.y = Math.max(0, -position.y);
   selection.width = newWidth;
   selection.height = newHeight;
 
@@ -157,6 +157,13 @@ export function applySelection() {
 
   selection.visiable = false;
   worker.applySelection();
+  setSelectionStyle();
+}
+
+// 자르기 한 이후에
+export function cutSelection() {
+  paintState.toolId = "select";
+  selection.visiable = false;
   setSelectionStyle();
 }
 

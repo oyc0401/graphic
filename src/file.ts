@@ -2,7 +2,7 @@ import { elementStore } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 import { encode } from "fast-png";
 
-import { makeSelectionFromBitmap } from "./selection";
+import { cutSelection, makeSelectionFromBitmap } from "./selection";
 
 export function addClipboardListener() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -76,7 +76,9 @@ export function addClipboardListener() {
     event.preventDefault();
 
     let worker = getLayerWorker();
-    worker.copy();
+    worker.cut();
+
+    cutSelection();
   });
 }
 

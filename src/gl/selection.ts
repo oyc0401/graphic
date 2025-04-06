@@ -249,7 +249,9 @@ function createSelectionManager(canvas, gl) {
     renderingManager.render();
   }
 
-  function paste(bitmap: ImageBitmap) {
+  function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
+    paintOptions.showSelection = true;
+
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
@@ -262,10 +264,10 @@ function createSelectionManager(canvas, gl) {
       bitmap, // ✅ 직접 전달 가능
     );
 
-    x = 0;
-    y = 0;
-    width = bitmap.width;
-    height = bitmap.height;
+    x = newx;
+    y = newy;
+    width = newwidth;
+    height = newheight;
 
     renderingManager.render();
   }
@@ -302,6 +304,11 @@ function createSelectionManager(canvas, gl) {
     return { pixels, width, height };
   }
 
+  function afterCut() {
+    paintOptions.showSelection = false;
+    renderingManager.render();
+  }
+
   return {
     texture: selectionTex,
     getPosition,
@@ -310,5 +317,6 @@ function createSelectionManager(canvas, gl) {
     select,
     paste,
     getPixelData,
+    afterCut,
   };
 }
