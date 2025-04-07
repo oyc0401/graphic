@@ -75,13 +75,7 @@ uniform vec2 u_resolution;
 in vec2 v_texCoord;
 out float outAlpha;
 
-// 4샘플(2×2) 오프셋 (반 픽셀의 절반 정도로 -0.25 ~ +0.25)
-// const vec2 sampleOffsets[4] = vec2[](
-//     vec2(-0.25, -0.25),
-//     vec2( 0.25, -0.25),
-//     vec2(-0.25,  0.25),
-//     vec2( 0.25,  0.25)
-// );
+// 16샘플(2×2) 오프셋
 const vec2 sampleOffsets[16] = vec2[](
     vec2(-0.375, -0.375), vec2(-0.125, -0.375), vec2(0.125, -0.375), vec2(0.375, -0.375),
     vec2(-0.375, -0.125), vec2(-0.125, -0.125), vec2(0.125, -0.125), vec2(0.375, -0.125),
@@ -89,9 +83,7 @@ const vec2 sampleOffsets[16] = vec2[](
     vec2(-0.375,  0.375), vec2(-0.125,  0.375), vec2(0.125,  0.375), vec2(0.375,  0.375)
 );
 
-// -------------------------------------
 // 픽셀(또는 샘플)과 선분 사이의 최단거리 구하기
-// -------------------------------------
 float distanceToSegment(vec2 p, vec2 a, vec2 b) {
     vec2 ab = b - a;
     float abLen2 = dot(ab, ab); // 선분 길이^2
@@ -123,41 +115,19 @@ void main() {
 
     float finalAlpha;
 
-    // -------------------------------------
     // (A) 완전 내부: 알파 100%
-    // -------------------------------------
     if(distCenter < inner) {
         finalAlpha = u_alpha;
     }
-    // -------------------------------------
     // (B) 완전 외부: 알파 0%
-    // -------------------------------------
     else if(distCenter > outer) {
         finalAlpha = 0.0;
     }
-    // -------------------------------------
-    // (C) 경계 영역만 4샘플 수동 SSAA
-    // -------------------------------------
+    // (C) 경계 영역 16샘플 수동 SSAA
     else {
         float coverage = 0.0;
 
-        // // 4번 샘플링
-        // for(int i = 0; i < 4; i++) {
-        //     vec2 offset = sampleOffsets[i];
-        //     // 서브샘플 위치
-        //     vec2 sampleCoord = pixelCoord + offset;
-        //     // 서브샘플 ~ 선분 거리
-        //     float distSample = distanceToSegment(sampleCoord, u_start, u_end);
-        //     // 브러시 범위 내라면 coverage 누적
-        //     if(distSample < u_radius) {
-        //         coverage += 1.0;
-        //     }
-        // }
-
-        // // 4샘플 평균 → [0..1] 커버리지
-        // coverage /= 4.0;
-
-
+        // 16번 샘플링
         for(int i = 0; i < 16; i++) {
             vec2 offset = sampleOffsets[i];
             vec2 sampleCoord = pixelCoord + offset;
@@ -166,6 +136,7 @@ void main() {
                 coverage += 1.0;
             }
         }
+        // 16샘플 평균 → [0..1] 커버리지
         coverage /= 16.0;
         
         // 최종 알파
