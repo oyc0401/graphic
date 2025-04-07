@@ -1,5 +1,5 @@
 {
-  "name": "my-project",
+  "name": "painive",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -8,9 +8,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "comlink": "^4.4.2",
-    "fast-png": "^6.3.0",
-    "interactjs": "^1.10.27",
-    "vite": "^6.2.0"
+    "@jsquash/png": "^3.0.1",
+    "comlink": "^4.4.2"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "vite-plugin-top-level-await": "^1.5.0",
+    "vite-plugin-wasm": "^3.4.1"
   }
 }

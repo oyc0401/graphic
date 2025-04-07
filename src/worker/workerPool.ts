@@ -22,7 +22,7 @@ function getWorkerObject() {
       const { type, payload } = e.data;
       if (type === "copy") {
         let { pixels, width, height } = payload;
-        let pixelData: Uint8Array = pixels;
+        let pixelData: Uint8ClampedArray = pixels;
         copyPixelsToClipboard(pixelData, width, height);
       }
     };

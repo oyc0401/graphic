@@ -1,6 +1,7 @@
 import { elementStore } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
-import { encode } from "fast-png";
+//import { encode } from "fast-png";
+import { encode } from "@jsquash/png";
 
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
 
@@ -85,16 +86,14 @@ export function addClipboardListener() {
 }
 
 export async function copyPixelsToClipboard(
-  pixels: Uint8Array,
+  pixels: Uint8ClampedArray,
   width: number,
   height: number,
 ) {
+  const imageData = new ImageData(pixels, width, height);
+
   // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
-  const pngData = encode({
-    width,
-    height,
-    data: pixels, // RGBA 순서
-  });
+  const pngData = await encode(imageData);
 
   // 2. Blob 생성
   const blob = new Blob([pngData], { type: "image/png" });
