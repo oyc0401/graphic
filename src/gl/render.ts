@@ -293,8 +293,11 @@ function makeRenderingManager(canvas, gl) {
     
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - min) / size;
-      
-      vec4 imageColor = texture(u_selection, local);
+
+      // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 4096텍스쳐 기준으로 잡으면 몇일까 0.0x일것임.
+      // local => 0.5, size.x=> 100, 
+      vec2 newLocal = local * size / 8192.0;
+      vec4 imageColor = texture(u_selection, newLocal);
       outColor = vec4(imageColor.rgb, imageColor.a);
     }
   `;

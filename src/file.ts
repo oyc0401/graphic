@@ -2,7 +2,7 @@ import { elementStore } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 import { encode } from "fast-png";
 
-import { cutSelection, makeSelectionFromBitmap } from "./selection";
+import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
 
 export function addClipboardListener() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -66,17 +66,19 @@ export function addClipboardListener() {
   // 복사
   window.addEventListener("copy", (event: ClipboardEvent) => {
     event.preventDefault();
-
-    let worker = getLayerWorker();
-    worker.copy();
+    if (selection.visiable) {
+      let worker = getLayerWorker();
+      worker.copy();
+    }
   });
 
   // 잘라내기 = 복사와 동일, 나중에 cut 전용 로직 넣어도 됨
   window.addEventListener("cut", (event: ClipboardEvent) => {
     event.preventDefault();
-
-    let worker = getLayerWorker();
-    worker.cut();
+    if (selection.visiable) {
+      let worker = getLayerWorker();
+      worker.cut();
+    }
 
     cutSelection();
   });
@@ -98,4 +100,6 @@ export async function copyPixelsToClipboard(
   const blob = new Blob([pngData], { type: "image/png" });
   const item = new ClipboardItem({ "image/png": blob });
   await navigator.clipboard.write([item]);
+
+  console.log("클립보드 복사 완료!!");
 }

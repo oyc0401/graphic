@@ -39,7 +39,20 @@ function createSelectionManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
   gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  // 선택창 크기 변경은 자주 일어나므로, 텍스쳐 크기를 매번 변경하기 힘들다. 그래서 미리 늘려놓는다.
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    8192,
+    8192,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
+
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -80,8 +93,9 @@ function createSelectionManager(canvas, gl) {
 
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - minPos) / size;
+      vec2 newLocal = local * size / 8192.0;
 
-      vec4 selectionColor = texture(u_selection, local);    // 프리
+      vec4 selectionColor = texture(u_selection, newLocal);    // 프리
       vec4 imageColor = texture(u_sourse, v_texCoord);      // 프리
       
       float srcA = selectionColor.a;
@@ -139,20 +153,6 @@ function createSelectionManager(canvas, gl) {
 
   // 늘린 텍스쳐에 늘려서 복사하기
   function uploadRenderedTex() {
-    // 새로 늘린 텍스처 준비 (픽셀 읽을 대상)
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-
     // 원본 텍스처가 붙을 FBO
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
     // 크기 늘린 텍스처가 붙을 FBO
@@ -287,6 +287,7 @@ function createSelectionManager(canvas, gl) {
     // 픽셀 읽기 준비 (뒤집힌 픽셀)
     const flippedPixel = new Uint8Array(width * height * 4);
 
+    console.log('getPixelData',width, height)
     // 픽셀 읽기
     gl.bindFramebuffer(gl.FRAMEBUFFER, renderedSelectionFBO);
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
@@ -336,6 +337,7 @@ function createSelectionManager(canvas, gl) {
     y = newY;
 
     if (width != newWidth || height != newHeight) {
+     // console.log('setsize!', newWidth, newHeight)
       // 텍스쳐 크기 재조정.
       // 텍스쳐는 선택 원본 텍스쳐, 선택 렌더링용 텍스쳐 두개를 분리해야하고.
       // 화면에 보여줄 때는 렌더셀렉트을 보여주고, 리드픽셀 할때도 렌더셀렉트를 읽어야한다.
@@ -346,6 +348,7 @@ function createSelectionManager(canvas, gl) {
       height = newHeight;
       uploadRenderedTex();
     }
+    
 
     renderingManager.render();
   }
