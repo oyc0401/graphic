@@ -187,6 +187,7 @@ function createSelectionManager(canvas, gl) {
 
   function select(sx, sy, swidth, sheight) {
     paintOptions.showSelection = true;
+    paintOptions.selectionAntialias = false;
 
     // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
     x = sx;
@@ -245,7 +246,8 @@ function createSelectionManager(canvas, gl) {
 
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
     paintOptions.showSelection = true;
-
+    paintOptions.selectionAntialias = true;
+    
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.texImage2D(
       gl.TEXTURE_2D,

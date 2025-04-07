@@ -42,10 +42,48 @@ export function addClipboardListener() {
 
   // 붙여넣기
   window.addEventListener("paste", async (event: ClipboardEvent) => {
+    //  const clipboardItems = await navigator.clipboard.read();
+    // console.log("clipboardItems", clipboardItems);
+    // for (const item of clipboardItems) {
+    //   console.log("클립보드 아이템:", item);
+    //   // 텍스트 데이터 처리
+    //   if (item.types.includes('text/plain')) {
+    //     const text = await item.getType('text/plain');
+    //     console.log('텍스트 데이터:', text);
+    //   }
+    // }
+
     const items = event.clipboardData?.items;
     if (!items) return;
 
     for (const item of items) {
+      console.log(item);
+
+      // // 클립보드의 데이터 타입이 text/html일 때
+      // if (item.type === "text/html") {
+      //   item.getAsString((htmlContent) => {
+      //     // base64로 인코딩된 데이터를 찾을 수 있는 경우
+      //     const base64Pattern = /<!--\(figmeta\)(.*?)\(\/figmeta\)-->/;
+      //     const match = htmlContent.match(base64Pattern);
+      //     if (match && match[1]) {
+      //       // base64로 인코딩된 부분을 추출하고 디코딩
+      //       const decoded = window.atob(match[1]);
+      //       console.log(decoded); // 디코딩된 데이터를 확인
+      //     } else {
+      //       console.log("No base64 encoded data found");
+      //     }
+      //   });
+      // }
+      if (item.kind === "string") {
+        item.getAsString((str) => {
+          console.log(str);
+        });
+      }
+      if (item.kind === "file") {
+        let file = item.getAsFile();
+        console.log(file);
+      }
+
       if (item.type.startsWith("image/")) {
         const blob = item.getAsFile();
         if (!blob) continue;
