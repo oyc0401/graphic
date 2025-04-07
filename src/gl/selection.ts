@@ -60,6 +60,7 @@ function createSelectionManager(canvas, gl) {
   let selectionShaderSource = `#version 300 es
     precision highp float;
 
+    uniform sampler2D u_selection_source;
     uniform sampler2D u_selection;
     uniform sampler2D u_sourse;
 
@@ -93,9 +94,16 @@ function createSelectionManager(canvas, gl) {
 
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - minPos) / size;
-      vec2 newLocal = local * size / 8192.0;
-
-      vec4 selectionColor = texture(u_selection, newLocal);    // 프리
+      vec4 selectionColor;
+      
+      if(u_selectionSize.x > 2048.0 || u_selectionSize.y > 2048.0){
+        // 화면이 엄청 크면 걍 근사로
+        selectionColor = texture(u_selection_source, local);    // 프리
+      } else {
+        vec2 newLocal = local * size / 8192.0;
+        selectionColor = texture(u_selection, newLocal);    // 프리
+      }
+      
       vec4 imageColor = texture(u_sourse, v_texCoord);      // 프리
       
       float srcA = selectionColor.a;
@@ -120,6 +128,10 @@ function createSelectionManager(canvas, gl) {
   );
   gl.useProgram(selectionProgram);
 
+  gl.uniform1i(
+    gl.getUniformLocation(selectionProgram, "u_selection_source"),
+    TEXTURE_UNIT.SOURCE_SELECTION,
+  );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
     TEXTURE_UNIT.RENDERED_SELECTION,
@@ -153,6 +165,8 @@ function createSelectionManager(canvas, gl) {
 
   // 늘린 텍스쳐에 늘려서 복사하기
   function uploadRenderedTex() {
+    // 이게 선택창이 엄청 커지면 그거대로 렉걸리는데, 커지면 blit안하도록 할까??
+
     // 원본 텍스처가 붙을 FBO
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
     // 크기 늘린 텍스처가 붙을 FBO
@@ -287,7 +301,11 @@ function createSelectionManager(canvas, gl) {
     // 픽셀 읽기 준비 (뒤집힌 픽셀)
     const flippedPixel = new Uint8Array(width * height * 4);
 
-    console.log('getPixelData',width, height)
+    console.log("getPixelData", width, height);
+    if (width > 2048.0 || height > 2048.0) {
+      uploadRenderedTex();
+    }
+
     // 픽셀 읽기
     gl.bindFramebuffer(gl.FRAMEBUFFER, renderedSelectionFBO);
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
@@ -337,7 +355,8 @@ function createSelectionManager(canvas, gl) {
     y = newY;
 
     if (width != newWidth || height != newHeight) {
-     // console.log('setsize!', newWidth, newHeight)
+      console.log("selection size:", newWidth, newHeight);
+      // 근데여 화
       // 텍스쳐 크기 재조정.
       // 텍스쳐는 선택 원본 텍스쳐, 선택 렌더링용 텍스쳐 두개를 분리해야하고.
       // 화면에 보여줄 때는 렌더셀렉트을 보여주고, 리드픽셀 할때도 렌더셀렉트를 읽어야한다.
@@ -346,9 +365,11 @@ function createSelectionManager(canvas, gl) {
 
       width = newWidth;
       height = newHeight;
-      uploadRenderedTex();
+
+      if (newWidth <= 2048.0 && newHeight <= 2048.0) {
+        uploadRenderedTex();
+      }
     }
-    
 
     renderingManager.render();
   }

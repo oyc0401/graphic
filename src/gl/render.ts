@@ -256,7 +256,8 @@ function makeRenderingManager(canvas, gl) {
 
   let selectionShaderSource = `#version 300 es
     precision highp float;
-    
+
+    uniform sampler2D u_selection_source;
     uniform sampler2D u_selection;
     
     uniform vec2 u_pos;             // 전체 화면 기준: 캔버스 왼쪽 상단
@@ -294,8 +295,14 @@ function makeRenderingManager(canvas, gl) {
       // 선택영역 내에 있으면 텍스처 좌표 계산
       vec2 local = (scaledFragCoord - min) / size;
 
-      // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 4096텍스쳐 기준으로 잡으면 몇일까 0.0x일것임.
-      // local => 0.5, size.x=> 100, 
+      if(u_selectionSize.x > 2048.0 || u_selectionSize.y > 2048.0){
+        // 화면이 엄청 크면 걍 근사로
+        vec4 imageColor = texture(u_selection_source, local);
+        outColor = vec4(imageColor.rgb, imageColor.a);
+        return;
+      } 
+
+      // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 8192텍스쳐 기준으로 잡으면
       vec2 newLocal = local * size / 8192.0;
       vec4 imageColor = texture(u_selection, newLocal);
       outColor = vec4(imageColor.rgb, imageColor.a);
@@ -314,9 +321,14 @@ function makeRenderingManager(canvas, gl) {
   );
   gl.useProgram(selectionProgram);
 
+  
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
     TEXTURE_UNIT.RENDERED_SELECTION,
+  );
+  gl.uniform1i(
+    gl.getUniformLocation(selectionProgram, "u_selection_source"),
+    TEXTURE_UNIT.SOURCE_SELECTION,
   );
   // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
 
