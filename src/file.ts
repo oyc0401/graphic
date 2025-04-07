@@ -4,6 +4,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { encode } from "@jsquash/png";
 
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
+import { position } from "./position";
 
 export function addClipboardListener() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -28,6 +29,12 @@ export function addClipboardListener() {
             premultiplyAlpha: "premultiply",
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
+
+          // 캔버스 크기 재설정하기.
+          position.width = bitmap.width;
+          position.height = bitmap.height;
+
+          position.resizeScreen();
 
           // 붙여넣기 로직 호출
           makeSelectionFromBitmap(bitmap);
