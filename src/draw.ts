@@ -9,8 +9,8 @@ import { applySelection, canvasSelect, selectionCancel } from "./selection";
 export let toolManager = {
     setBrushTool() {
         paintState.toolId = "brush";
-        paintState.brushSize = 5;
-        paintState.brushAlpha = 1;
+       // paintState.brushSize = 5;
+       // paintState.brushAlpha = 100;
         paintState.color = { r: 30, g: 30, b: 30 };
 
         const worker = getLayerWorker();
@@ -21,8 +21,8 @@ export let toolManager = {
     },
     setEraserTool() {
         paintState.toolId = "eraser";
-        paintState.brushSize = 10;
-        paintState.brushAlpha = 1;
+       // paintState.brushSize = 10;
+        //paintState.brushAlpha = 100;
 
         const worker = getLayerWorker();
         applySelection();
@@ -30,8 +30,8 @@ export let toolManager = {
     },
     setLiquifyTool() {
         paintState.toolId = "liquify";
-        paintState.brushSize = 10;
-        paintState.brushAlpha = 1;
+       // paintState.brushSize = 10;
+       // paintState.brushAlpha = 100;
 
         const worker = getLayerWorker();
         applySelection();

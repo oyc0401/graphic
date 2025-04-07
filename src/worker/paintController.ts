@@ -32,7 +32,7 @@ export const workerApi = {
     paint.setStrokeSize(size);
   },
   setAlpha(alpha) {
-    paint.setAlpha(alpha);
+    paint.setAlpha(alpha/100);
   },
   setTool(toolId) {
     paint.setTool(toolId);

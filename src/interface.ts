@@ -16,6 +16,10 @@ interface Elements {
     selectLiquifyBtn: HTMLElement;
     zoomArea: HTMLElement;
     selectionArea: HTMLElement;
+    sizeValue: HTMLElement;
+    opacityValue: HTMLElement;
+    sizeSlider: HTMLInputElement;
+    opacitySlider: HTMLInputElement;
 }
 export let elementStore: Elements = {} as Elements;
 
@@ -32,6 +36,11 @@ export function getElements() {
 
         zoomArea: document.querySelector("#zoom-area")!,
         selectionArea: document.querySelector("#selection-area")!,
+
+        sizeValue: document.getElementById("size-value")!,
+        opacityValue: document.getElementById("opacity-value")!,
+        sizeSlider: document.getElementById("size-slider")!,
+        opacitySlider: document.getElementById("opacity-slider")!,
     };
 
     document.getElementById("selection-icon").innerHTML = SelectionSvg;
@@ -57,8 +66,17 @@ function updateMenubarUI() {
     }
 }
 
+function updateSliderUI() {
+    elementStore.sizeValue.innerText = `${paintState.brushSize}px`;
+    elementStore.sizeSlider.value = `${paintState.brushSize}`;
+
+    elementStore.opacityValue.innerText = `${paintState.brushAlpha}%`;
+    elementStore.opacitySlider.value = `${paintState.brushAlpha}`;
+}
+
 export function addInteractionEvent() {
     updateMenubarUI();
+    updateSliderUI();
 
     updateCursorShape();
 
@@ -82,6 +100,24 @@ export function addInteractionEvent() {
         updateMenubarUI();
     });
 
+    // 슬라이더 이벤트
+    (function () {
+        elementStore.sizeSlider.addEventListener("input", (event) => {
+            const size = Math.round(Number(elementStore.sizeSlider.value));
+            console.log("브러시 크기:", size);
+            paintState.brushSize = size;
+            updateSliderUI();
+        });
+
+        elementStore.opacitySlider.addEventListener("input", (event) => {
+            const alpha = Math.round(Number(elementStore.opacitySlider.value));
+            console.log("투명도:", alpha);
+            paintState.brushAlpha = alpha;
+            updateSliderUI();
+        });
+    })();
+
+    // 키보드 이벤트
     (function () {
         document.addEventListener("keydown", (event) => {
             if (
@@ -133,38 +169,41 @@ export function addInteractionEvent() {
         });
     })();
 
-    elementStore.container.addEventListener(
-        "pointerdown",
-        (_) => {
-            paintState.pointerdown = true;
-            updateCursorShape();
-            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
-        },
-        true,
-    );
-
-    window.addEventListener(
-        "pointerup",
-        (_) => {
-            paintState.pointerdown = false;
-            updateCursorShape();
-            // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
-        },
-        true,
-    );
-
-    window.addEventListener(
-        "pointermove",
-        (event) => {
-            if (event.pointerType == "mouse") {
-                // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
-                paintState.cursorX = event.clientX;
-                paintState.cursorY = event.clientY;
+    // 커서 위치 이벤트
+    (function () {
+        elementStore.container.addEventListener(
+            "pointerdown",
+            (_) => {
+                paintState.pointerdown = true;
                 updateCursorShape();
-            }
-        },
-        true,
-    );
+                // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
+            },
+            true,
+        );
+
+        window.addEventListener(
+            "pointerup",
+            (_) => {
+                paintState.pointerdown = false;
+                updateCursorShape();
+                // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
+            },
+            true,
+        );
+
+        window.addEventListener(
+            "pointermove",
+            (event) => {
+                if (event.pointerType == "mouse") {
+                    // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
+                    paintState.cursorX = event.clientX;
+                    paintState.cursorY = event.clientY;
+                    updateCursorShape();
+                }
+            },
+            true,
+        );
+    })();
 
     window.addEventListener("contextmenu", (event) => event.preventDefault());
 }
@@ -275,7 +314,6 @@ export function updateCursorShape2() {
     }
 }
 
-
 export function updateCursorShape() {
     // 모든 상태 초기화
     elementStore.container.classList.remove(
@@ -334,8 +372,6 @@ export function updateCursorShape() {
         return;
     }
 }
-
-
 
 // 누르고 있는 키에 따라서 도구를 바꿈
 export function applyKeyAction() {

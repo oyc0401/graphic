@@ -9,15 +9,17 @@
     />
 
     <title>Paint Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
     <style>
       * {
-        font-family: 'Roboto', sans-serif;
+        font-family: "Roboto", sans-serif;
       }
     </style>
     <link href="/ui.css" rel="stylesheet" />
     <link href="/style.css" rel="stylesheet" />
-    
   </head>
   <body class="body">
     <div id="header"></div>
@@ -42,11 +44,27 @@
         <div id="eraser-icon" class="button-icon"></div>
         <p>지우개</p>
       </button>
-
+      <div class="div-bar"></div>
+      <div class="brush-control-group">
+        <div class="brush-control">
+          <p class="label">크기</p>
+          <p id='size-value' class="value">5px</p>
+          <div class="slider-area">
+            <input type="range" id="size-slider" value='5' min="0" max="500" class="slider" />
+          </div>
+        </div>
+        <div class="brush-control">
+          <p class="label">투명도</p>
+          <p id='opacity-value' class="value">100%</p>
+          <div class="slider-area">
+            <input type="range" id="opacity-slider" value='100' min="0" max="100" class="slider" />
+          </div>
+        </div>
+      </div>
+      <div class="div-bar"></div>
       <!-- <button id="copy">복사</button> -->
 
-      <!-- <div class="div-bar"></div>
-      <div class="div-bar"></div> -->
+      <!-- <div class="div-bar"></div>  -->
     </div>
     <div id="header-space"></div>
     <div id="container">

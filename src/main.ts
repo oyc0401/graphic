@@ -23,7 +23,7 @@ function getDefaultPaintState() {
     return {
         action: "BRUSH",
         brushSize: 5,
-        brushAlpha: 1.0,
+        brushAlpha: 100,
         color: { r: 30, g: 30, b: 30 },
         cursorX: 0,
         cursorY: 0,
