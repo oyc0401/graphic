@@ -31,6 +31,7 @@ export let paintOptions = {
   screenHeight: 800,
 
   showSelection: false,
+  selectionAntialias:true,
 
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;

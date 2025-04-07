@@ -321,7 +321,6 @@ function makeRenderingManager(canvas, gl) {
   );
   gl.useProgram(selectionProgram);
 
-  
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
     TEXTURE_UNIT.RENDERED_SELECTION,
@@ -377,6 +376,15 @@ function makeRenderingManager(canvas, gl) {
 
   function render() {
     console.log("render");
+
+    getSelectionManager(canvas, gl);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    if (paintOptions.selectionAntialias) {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    } else {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    }
+
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
@@ -394,7 +402,7 @@ function makeRenderingManager(canvas, gl) {
     gl.disable(gl.BLEND);
 
     gl.flush();
-    
+
     // 오프스크린을 null 프레임버퍼로 blit, 더블버퍼링을 구현하기 위해.
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);

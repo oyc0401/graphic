@@ -30,8 +30,8 @@ function createSelectionManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
   gl.bindTexture(gl.TEXTURE_2D, selectionTex);
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); // 무엇이 나을까
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -165,8 +165,6 @@ function createSelectionManager(canvas, gl) {
 
   // 늘린 텍스쳐에 늘려서 복사하기
   function uploadRenderedTex() {
-    // 이게 선택창이 엄청 커지면 그거대로 렉걸리는데, 커지면 blit안하도록 할까??
-
     // 원본 텍스처가 붙을 FBO
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
     // 크기 늘린 텍스처가 붙을 FBO
@@ -183,7 +181,7 @@ function createSelectionManager(canvas, gl) {
       width,
       height, // 목표 영역 (크기 조정됨)
       gl.COLOR_BUFFER_BIT,
-      gl.LINEAR, // 축소 확대 자연스럽게 리니어!
+      paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST,
     );
   }
 
@@ -235,7 +233,9 @@ function createSelectionManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
-    uploadRenderedTex();
+    if (width <= 2048.0 && height <= 2048.0) {
+      uploadRenderedTex();
+    }
 
     // 레이어를 수정했으니 업로드
     sourceTextureManager.uploadCurrent();
@@ -263,7 +263,9 @@ function createSelectionManager(canvas, gl) {
     originalWidth = newwidth;
     originalHeight = newheight;
 
-    uploadRenderedTex();
+    if (width <= 2048.0 && height <= 2048.0) {
+      uploadRenderedTex();
+    }
 
     renderingManager.render();
   }
@@ -303,7 +305,7 @@ function createSelectionManager(canvas, gl) {
 
     console.log("getPixelData", width, height);
     if (width > 2048.0 || height > 2048.0) {
-      uploadRenderedTex();
+      uploadRenderedTex(); // 이게 readpixel하려면 어쨌든 텍스쳐에 써야함...
     }
 
     // 픽셀 읽기
@@ -406,12 +408,11 @@ function decodePremultAndFlip(
   return pixels;
 }
 
-
 const decodePremultAndFlip2 = (() => {
   return function (
     flippedPixel: Uint8Array,
     width: number,
-    height: number
+    height: number,
   ): Uint8ClampedArray {
     const pixels = new Uint8ClampedArray(width * height * 4);
 
@@ -426,9 +427,12 @@ const decodePremultAndFlip2 = (() => {
         const a = flippedPixel[srcIndex + 3];
         const factor = a > 0 ? 255 / a : 0;
 
-        pixels[dstIndex + 0] = a > 0 ? Math.min(flippedPixel[srcIndex + 0] * factor, 255) : 0;
-        pixels[dstIndex + 1] = a > 0 ? Math.min(flippedPixel[srcIndex + 1] * factor, 255) : 0;
-        pixels[dstIndex + 2] = a > 0 ? Math.min(flippedPixel[srcIndex + 2] * factor, 255) : 0;
+        pixels[dstIndex + 0] =
+          a > 0 ? Math.min(flippedPixel[srcIndex + 0] * factor, 255) : 0;
+        pixels[dstIndex + 1] =
+          a > 0 ? Math.min(flippedPixel[srcIndex + 1] * factor, 255) : 0;
+        pixels[dstIndex + 2] =
+          a > 0 ? Math.min(flippedPixel[srcIndex + 2] * factor, 255) : 0;
         pixels[dstIndex + 3] = a;
       }
     }
