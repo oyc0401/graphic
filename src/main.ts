@@ -10,6 +10,7 @@ interface PaintState {
     action: string;
     brushSize: number;
     brushAlpha: number;
+    color: { r: number; g: number; b: number };
     cursorX: number;
     cursorY: number;
     toolId: string;
@@ -23,6 +24,7 @@ function getDefaultPaintState() {
         action: "BRUSH",
         brushSize: 5,
         brushAlpha: 1.0,
+        color: { r: 30, g: 30, b: 30 },
         cursorX: 0,
         cursorY: 0,
         toolId: "brush",
@@ -53,7 +55,6 @@ async function main() {
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-   
 
     console.log("Complete App!");
 }

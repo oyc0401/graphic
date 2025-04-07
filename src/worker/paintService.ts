@@ -8,7 +8,7 @@ import {
   LiquifyTool,
 } from "../gl/tool/tool";
 import { paintOptions } from "../gl/texture";
-import { renderScreen } from "../gl/render";
+import { resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 interface Pointer {
   x: number;
@@ -89,7 +89,7 @@ export class PaintService {
   }
 
   render(width, height, screenWidth, screenHeight, x, y, magnification) {
-    renderScreen(
+    resizeScreen(
       this.canvas,
       this.gl,
       width,

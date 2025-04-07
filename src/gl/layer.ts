@@ -11,7 +11,7 @@ function makeLayerManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
   gl.bindTexture(gl.TEXTURE_2D, layerTex);
 
-  // 이걸 스케일 업해서 그리려면, 보간이 없어야함.
+  // 축소 되었을 떄는 리니어 보간
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -39,13 +39,7 @@ function makeLayerManager(canvas, gl) {
     0,
   );
 
-  // 빨강으로 초기화
-  gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-  gl.clearColor(0, 0, 0, 0.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
   return {
-    layerTex,
     layerFBO,
   };
 }

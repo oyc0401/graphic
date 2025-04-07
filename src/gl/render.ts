@@ -101,8 +101,7 @@ function makeRenderingManager(canvas, gl) {
     uniform vec2 u_pos;          // 캔버스의 왼쪽 상단 위치 (2D UI 좌표, px)
     uniform vec2 u_screenSize;   // 전체 스크린 크기 (px)
     uniform float u_magnification; // 확대 배율 (값이 클수록 크게 보임)
-    uniform float u_dpr;         // device pixel ratio (필요시 사용)
-    
+
     void main() {
       // 1. magnification을 반영한 "스케일된 스크린" 크기 계산
       vec2 scaledScreenSize = u_screenSize / u_magnification;
@@ -164,10 +163,6 @@ function makeRenderingManager(canvas, gl) {
     gl.uniform1f(
       gl.getUniformLocation(backgroundProgram, "u_magnification"),
       paintOptions.magnification,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(backgroundProgram, "u_dpr"),
-      paintOptions.dpr,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -388,7 +383,10 @@ function makeRenderingManager(canvas, gl) {
   };
 }
 
-export async function renderScreen(
+/**
+ * 크기가 바뀌면 바꾸고 안바뀌면 렌더링만 함
+ */
+export async function resizeScreen(
   canvas,
   gl,
   width,
@@ -399,48 +397,32 @@ export async function renderScreen(
   y,
   magnification,
 ) {
-  let renderingManager = getRenderingManager(canvas, gl);
+  const renderingManager = getRenderingManager(canvas, gl);
+  const resizeTexManager = getResizeLayerTexManager(canvas, gl);
+
+  let resized = false;
+
   if (
     paintOptions.screenWidth != screenWidth ||
     paintOptions.screenHeight != screenHeight
   ) {
     console.log("전체 화면 크기가 변함!");
+    // canvas Element의 크기를 변경
     canvas.width = screenWidth;
     canvas.height = screenHeight;
   }
-  if (paintOptions.width != width || paintOptions.height != height) {
-    console.log("그림 영역 크기가 변함!");
 
-    // 텍스펴 크기를 낮추기()
-    resizeTexture(
-      canvas,
-      gl,
+  if (paintOptions.width != width || paintOptions.height != height) {
+    console.log("그림 크기가 변함!");
+
+    // 텍스쳐 크기를 낮추기
+    resizeTexManager.resize(
       paintOptions.width,
       paintOptions.height,
       width,
       height,
     );
-
-    paintOptions.width = width;
-    paintOptions.height = height;
-    paintOptions.screenWidth = screenWidth;
-    paintOptions.screenHeight = screenHeight;
-    paintOptions.x = x;
-    paintOptions.y = y;
-    paintOptions.magnification = magnification;
-
-    let sourceTextureManager = getSourceTextureManager(canvas, gl);
-    sourceTextureManager.uploadCurrent();
-
-    let drawManager = getBrushManager(canvas, gl);
-    let liquifyManager = getLiquifyManager(canvas, gl);
-
-    if (!drawManager || !liquifyManager) {
-      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
-    } else {
-      drawManager.setSize();
-      liquifyManager.setSize();
-    }
+    resized = true;
   }
 
   paintOptions.width = width;
@@ -451,89 +433,117 @@ export async function renderScreen(
   paintOptions.y = y;
   paintOptions.magnification = magnification;
 
+  if (resized) {
+    const sourceTextureManager = getSourceTextureManager(canvas, gl);
+    sourceTextureManager.uploadCurrent();
+
+    const drawManager = getBrushManager(canvas, gl);
+    const liquifyManager = getLiquifyManager(canvas, gl);
+
+    if (!drawManager || !liquifyManager) {
+      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
+    } else {
+      drawManager.setSize();
+      liquifyManager.setSize();
+    }
+  }
+
   renderingManager.render();
 }
 
-// TODO: 지금 매번 텍스쳐를 만드는 구조라. 나중에 매니저로 이전 해야함.
-function resizeTexture(canvas, gl, oldWidth, oldHeight, newWidth, newHeight) {
-  console.log("resizeTexture");
-  const newTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-  gl.bindTexture(gl.TEXTURE_2D, newTexture);
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    newWidth,
-    newHeight,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
+function getResizeLayerTexManager(canvas, gl) {
+  const manager = getManager(gl, "resizeTex", () =>
+    createResizeManager(canvas, gl),
   );
+  return manager;
+}
 
-  const framebuffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+function createResizeManager(canvas, gl) {
+  const layerManager = getLayerManager(canvas, gl);
 
-  // 텍스처를 프레임버퍼에 첨부
+  // 1. 임시 텍스처 생성
+  const tempFBO = gl.createFramebuffer();
+
+  const tempTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+  gl.bindTexture(gl.TEXTURE_2D, tempTex);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
   gl.framebufferTexture2D(
     gl.FRAMEBUFFER,
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
-    newTexture,
+    tempTex,
     0,
   );
 
-  let layerManager = getLayerManager(canvas, gl);
+  function resize(
+    oldWidth: number,
+    oldHeight: number,
+    newWidth: number,
+    newHeight: number,
+  ) {
+    console.log("[TextureResizeManager] resize", {
+      oldWidth,
+      oldHeight,
+      newWidth,
+      newHeight,
+    });
 
-  // 이제 화면으로 blit (복사)하기 위해
-  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
-  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer); // null은 기본 화면 프레임버퍼
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, tempTex);
+    // temp 크기 설정
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      newWidth,
+      newHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
 
-  let diffHeight = newHeight - oldHeight;
-  gl.blitFramebuffer(
-    0,
-    0,
-    oldWidth,
-    oldHeight,
-    0,
-    diffHeight,
-    oldWidth,
-    oldHeight + diffHeight,
-    gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-    gl.NEAREST,
-  );
+    // 3. 기존 layerFBO → 임시 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
 
-  // 그걸 다시 원래 텍스쳐에 붙여넣기
+    const diffHeight = newHeight - oldHeight;
+    gl.blitFramebuffer(
+      0,
+      0,
+      oldWidth,
+      oldHeight,
+      0,
+      diffHeight,
+      oldWidth,
+      oldHeight + diffHeight,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    // 4. 임시 텍스처 → 레이어 텍스처로 복사
+    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      newWidth,
+      newHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+    // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 바인딩된 텍스처에 복사
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, newWidth, newHeight);
+  }
 
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-  gl.bindTexture(gl.TEXTURE_2D, layerManager.layerTex);
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    newWidth,
-    newHeight,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
-  );
-
-  gl.copyTexSubImage2D(
-    gl.TEXTURE_2D, // 타겟 텍스처
-    0, // 레벨
-    0,
-    0, // 텍스처 내에서 복사할 시작 좌표
-    0,
-    0, // 프레임버퍼에서 복사할 시작 좌표
-    newWidth,
-    newHeight, // 복사할 크기
-  );
-
-  gl.deleteTexture(newTexture);
+  return {
+    resize,
+  };
 }

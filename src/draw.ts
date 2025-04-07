@@ -10,7 +10,8 @@ export let toolManager = {
     setBrushTool() {
         paintState.toolId = "brush";
         paintState.brushSize = 5;
-        paintState.brushAlpha = 0.4;
+        paintState.brushAlpha = 1;
+        paintState.color = { r: 30, g: 30, b: 30 };
 
         const worker = getLayerWorker();
         applySelection();
@@ -79,7 +80,11 @@ export function addDrawEvent() {
                 const worker = getLayerWorker();
 
                 if (paintState.toolId == "brush") {
-                    worker.setStrokeColor(0, 255, 255);
+                    worker.setStrokeColor(
+                        paintState.color.r,
+                        paintState.color.g,
+                        paintState.color.b,
+                    );
                     worker.setStrokeSize(paintState.brushSize);
                     worker.setAlpha(paintState.brushAlpha);
 
@@ -160,8 +165,8 @@ export function addDrawEvent() {
             if (paintState.action != "BRUSH") return;
             if (paintState.toolId != "select") return;
             //let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-           // startPoint = point;
-            
+            // startPoint = point;
+
             sx = e.clientX;
             sy = e.clientY;
             ex = e.clientX;
