@@ -12,7 +12,8 @@ export const TEXTURE_UNIT = {
   EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
   EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
   SOURCE_SELECTION: 9,
-  RENDERED_SELECTION: 10
+  RENDERED_SELECTION: 10,
+  OFFSCREEN:11,
 };
 
 export let paintOptions = {

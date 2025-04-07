@@ -18,6 +18,7 @@ export function getRenderingManager(canvas, gl) {
 
 function makeRenderingManager(canvas, gl) {
   const fullQuadVertexShader = getFullQuadShader(gl);
+  const offscreenManager = getOffscreenManager(canvas, gl);
 
   let displaySource = `#version 300 es
       precision highp float;
@@ -86,7 +87,7 @@ function makeRenderingManager(canvas, gl) {
     );
 
     // 쓰기 영역: 캔버스
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -165,7 +166,7 @@ function makeRenderingManager(canvas, gl) {
       paintOptions.magnification,
     );
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -248,7 +249,7 @@ function makeRenderingManager(canvas, gl) {
     );
 
     // 쓰기 영역: 캔버스
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -354,7 +355,7 @@ function makeRenderingManager(canvas, gl) {
       selectionPos.height,
     );
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -376,10 +377,86 @@ function makeRenderingManager(canvas, gl) {
     }
 
     gl.disable(gl.BLEND);
+
+    gl.flush();
+    
+    // 오프스크린을 null 프레임버퍼로 blit, 더블버퍼링을 구현하기 위해.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenManager.offscreenFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    gl.blitFramebuffer(
+      0,
+      0,
+      paintOptions.screenWidth,
+      paintOptions.screenHeight, // src rect
+      0,
+      0,
+      paintOptions.screenWidth,
+      paintOptions.screenHeight, // dst rect
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
   }
 
   return {
     render,
+  };
+}
+
+function getOffscreenManager(canvas, gl) {
+  const manager = getManager(gl, "offscreen", () =>
+    createOffscreenManager(canvas, gl),
+  );
+  return manager;
+}
+function createOffscreenManager(canvas, gl) {
+  const offscreenTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.OFFSCREEN);
+  gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  const offscreenFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    offscreenTex,
+    0,
+  );
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    paintOptions.screenWidth,
+    paintOptions.screenHeight,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
+
+  function resize(newWidth, newHeight) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.OFFSCREEN);
+    // temp 크기 설정
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      newWidth,
+      newHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+  }
+
+  return {
+    resize,
+    offscreenFBO,
   };
 }
 
@@ -399,7 +476,7 @@ export async function resizeScreen(
 ) {
   const renderingManager = getRenderingManager(canvas, gl);
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
-
+  const offscreenManager = getOffscreenManager(canvas, gl);
   let resized = false;
 
   if (
@@ -410,6 +487,8 @@ export async function resizeScreen(
     // canvas Element의 크기를 변경
     canvas.width = screenWidth;
     canvas.height = screenHeight;
+
+    offscreenManager.resize(screenWidth, screenHeight);
   }
 
   if (paintOptions.width != width || paintOptions.height != height) {
@@ -467,8 +546,8 @@ function createResizeManager(canvas, gl) {
   const tempTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
   gl.bindTexture(gl.TEXTURE_2D, tempTex);
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
- gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
   gl.framebufferTexture2D(
