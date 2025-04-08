@@ -7,8 +7,10 @@ import { getPixelRatio, position } from "./position";
 export function bindView() {
     bindToolButtonUI();
     bindSliderUI();
+    bindColorUI();
     bindCursorUI();
     bindSelectionUI();
+    
 }
 
 function bindToolButtonUI() {
@@ -77,7 +79,7 @@ function bindCursorUI() {
 
         const brushSize = paintState.getBrushSize();
         const dpr = getPixelRatio();
-        
+
         const scaled = (brushSize * position.scale) / dpr;
         const isBigSize = scaled > 50;
 
@@ -164,4 +166,16 @@ function bindSelectionUI() {
             setPos(els.handleL, sLeft, sTop + sHeight / 2);
         }
     });
+}
+
+function bindColorUI() {
+    autorun(() => {
+        const color = paintState.getColor();
+        els.colorIcon.style.background = rgbToHex(color);
+    });
+}
+
+function rgbToHex({ r, g, b }) {
+    const toHex = (v) => v.toString(16).padStart(2, "0").toUpperCase();
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }

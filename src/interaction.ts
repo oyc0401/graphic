@@ -18,7 +18,7 @@ const pressedKeys = {
     },
 };
 
-export function addInteractionEvent() {
+function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {
         toolManager.setBrushTool();
     });
@@ -34,6 +34,62 @@ export function addInteractionEvent() {
     els.selectSelectionBtn.addEventListener("click", () => {
         toolManager.setSelectTool();
     });
+
+    const hexColors = [
+        "#000000",
+        "#FFFFFF",
+        "#FF6F61",
+        "#98FF98",
+        "#FFA75F",
+        "#ACE7FF",
+        "#FFED65",
+        "#E5B5FF",
+    ];
+
+    els.colorElements.forEach((selectDiv, index) => {
+        const hexColor = hexColors[index];
+        const circle = selectDiv.querySelector(
+            ".circle-shape",
+        ) as HTMLDivElement;
+
+        if (!circle) return;
+
+        // 배경색 적용
+        circle.style.backgroundColor = hexColor;
+
+        // 흰색일 경우 테두리 추가
+        if (hexColor.toUpperCase() === "#FFFFFF") {
+            circle.style.border = "1px solid #E3E3E3";
+        }
+
+        // 클릭 시 색상 설정
+        selectDiv.addEventListener("click", () => {
+            let { r, g, b } = hexToRgb(hexColor);
+            paintState.setColor(r, g, b);
+        });
+    });
+}
+
+function hexToRgb(hex) {
+    hex = hex.replace("#", "");
+
+    // 3자리 짧은 hex (#fff) → 확장
+    if (hex.length === 3) {
+        hex = hex
+            .split("")
+            .map((c) => c + c)
+            .join("");
+    }
+
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+
+    return { r, g, b };
+}
+
+export function addInteractionEvent() {
+    addClickEventListener();
 
     // 슬라이더 이벤트
     (function () {

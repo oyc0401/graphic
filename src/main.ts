@@ -67,6 +67,9 @@ class PaintState {
     getBrushAlpha() {
         return this.brushAlpha[this.targetId];
     }
+    getColor() {
+        return this.color;
+    }
 }
 
 export const paintState = new PaintState();
@@ -78,9 +81,6 @@ async function main() {
 
     // 초기 캔버스 위치 계산
     setDefaultPosition();
-
-    // 캔버스 업로드
-    await tranferCanvas();
 
     // 뷰 바인딩
     bindView();
@@ -96,6 +96,8 @@ async function main() {
 
     addSelectionEvent();
 
+    // 캔버스 업로드
+    await tranferCanvas();
     // 캔버스 렌더링
     resizeScreen();
 

@@ -21,6 +21,7 @@
 
 #menu-bar {
   display: flex;
+   flex-wrap: wrap; /* ← 이거 추가! */
   flex-direction: row;
   justify-content: start;
   align-items: center;
@@ -64,7 +65,6 @@
 .mini-buttons {
   display: flex;
   flex-direction: column;
-
 }
 
 .select-mini {
@@ -175,4 +175,37 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+
+#color-box {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.select-color {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+}
+
+.circle-shape {
+  width: 24px;
+  height: 24px;
+  border-radius: 100px;
+  background: #FAFAFA;
+  border: 1px solid #E3E3E3;
+}
+
+#color-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 100px;
+  background: #FAFAFA;
 }
