@@ -3,6 +3,10 @@ import EraserSvg from "../public/eraser.svg?raw";
 import SelectionSvg from "../public/select_rectangle.svg?raw";
 import LiquifySvg from "../public/liquify.svg?raw";
 
+import MenuSvg from "../public/menu.svg?raw";
+import UndoSvg from "../public/undo.svg?raw";
+import RedoSvg from "../public/redo_disabled.svg?raw";
+
 function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
   if (element) {
@@ -44,4 +48,8 @@ export function getElements() {
   $id("brush-icon").innerHTML = BrushSvg;
   $id("eraser-icon").innerHTML = EraserSvg;
   $id("liquify-icon").innerHTML = LiquifySvg;
+
+  $id("menu-icon").innerHTML = MenuSvg;
+  $id("undo-icon").innerHTML = UndoSvg;
+  $id("redo-icon").innerHTML = RedoSvg;
 }

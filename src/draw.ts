@@ -9,8 +9,7 @@ import { applySelection, canvasSelect, selectionCancel } from "./selection";
 export const toolManager = {
     setBrushTool() {
         paintState.setToolId("brush");
-        paintState.setColor(30, 30, 30);
-
+        
         const worker = getLayerWorker();
         applySelection();
         worker.setTool(paintState.toolId);

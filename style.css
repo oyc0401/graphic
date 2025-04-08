@@ -4,7 +4,6 @@ body {
   height: 100%;
   overscroll-behavior: none;
   touch-action: none;
-  overflow-x: hidden;
 }
 
 p,
@@ -13,6 +12,7 @@ h1,
 h2,
 h3,
 input {
+  border: none;
   margin: 0;
   padding: 0;
 }
@@ -35,6 +35,11 @@ button:focus {
 
 
 /* 이젠 웹 기본 스타일 */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 p {
   color: #191919;
 }
