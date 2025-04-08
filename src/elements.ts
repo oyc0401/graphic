@@ -1,13 +1,12 @@
-import BrushSvg from "../public/brush.svg?raw";
-import EraserSvg from "../public/eraser.svg?raw";
-import SelectionSvg from "../public/select_rectangle.svg?raw";
-import LiquifySvg from "../public/liquify.svg?raw";
+import BrushSvg from "./assets/brush.svg?raw";
+import EraserSvg from "./assets/eraser.svg?raw";
+import SelectionSvg from "./assets/select_rectangle.svg?raw";
+import LiquifySvg from "./assets/liquify.svg?raw";
 
-import MenuSvg from "../public/menu.svg?raw";
-import UndoSvg from "../public/undo.svg?raw";
-import RedoSvg from "../public/redo_disabled.svg?raw";
+import MenuSvg from "./assets/menu.svg?raw";
+import UndoSvg from "./assets/undo.svg?raw";
+import RedoSvg from "./assets/redo_disabled.svg?raw";
 
-import { paintState } from "./main";
 
 function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
@@ -60,34 +59,4 @@ export function getElements() {
   $id("undo-icon").innerHTML = UndoSvg;
   $id("redo-icon").innerHTML = RedoSvg;
 
-  // const hexColors = [
-  //   "#000000",
-  //   "#FFFFFF",
-  //   "#FF6F61",
-  //   "#98FF98",
-  //   "#FFA75F",
-  //   "#ACE7FF",
-  //   "#FFED65",
-  //   "#E5B5FF",
-  // ];
-
-  // colorElements.forEach((selectDiv, index) => {
-  //   const hexColor = hexColors[index];
-  //   const circle = selectDiv.querySelector(".circle-shape") as HTMLDivElement;
-
-  //   if (!circle) return;
-
-  //   // 배경색 적용
-  //   circle.style.backgroundColor = hexColor;
-
-  //   // 흰색일 경우 테두리 추가
-  //   if (hexColor.toUpperCase() === "#FFFFFF") {
-  //     circle.style.border = "1px solid #E3E3E3";
-  //   }
-
-  //   // 클릭 시 색상 설정
-  //   selectDiv.addEventListener("click", () => {
-  //     paintState.color = hexToRgb(hexColor);
-  //   });
-  // });
 }
