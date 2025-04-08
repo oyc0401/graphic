@@ -18,6 +18,8 @@ const pressedKeys = {
     },
 };
 
+
+
 export function addInteractionEvent() {
     els.selectBrushBtn.addEventListener("click", () => {
         toolManager.setBrushTool();

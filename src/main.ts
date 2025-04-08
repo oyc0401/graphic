@@ -17,13 +17,15 @@ type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
 type ToolId = "brush" | "eraser" | "liquify" | "select" | "selection";
 class PaintState {
     action: Action = "BRUSH";
-    brushSize = 5;
-    brushAlpha = 100;
+    private brushSize = { brush: 5, eraser: 10, liquify: 50 };
+    private brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
     color = { r: 30, g: 30, b: 30 };
     cursorX = 0;
     cursorY = 0;
     toolId: ToolId = "brush";
     pointerdown = false;
+
+    targetId = "brush";
 
     constructor() {
         makeAutoObservable(this);
@@ -40,16 +42,26 @@ class PaintState {
         this.cursorY = y;
     }
     setBrushSize(size: number) {
-        this.brushSize = size;
+        this.brushSize[this.targetId] = size;
     }
     setBrushAlpha(alpha: number) {
-        this.brushAlpha = alpha;
+        this.brushAlpha[this.targetId] = alpha;
     }
     setToolId(toolId: ToolId) {
         this.toolId = toolId;
+        if (toolId != "select" && toolId != "selection") {
+            this.targetId = toolId;
+        }
     }
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
+    }
+
+    getBrushSize() {
+        return this.brushSize[this.targetId];
+    }
+    getBrushAlpha() {
+        return this.brushAlpha[this.targetId];
     }
 }
 

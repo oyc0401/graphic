@@ -26,13 +26,17 @@ function bindToolButtonUI() {
 
 function bindSliderUI() {
     autorun(() => {
-        els.sizeValue.innerText = `${paintState.brushSize}px`;
-        els.sizeSlider.value = `${paintState.brushSize}`;
+        const brushSize = paintState.getBrushSize();
+
+        els.sizeValue.innerText = `${brushSize}px`;
+        els.sizeSlider.value = `${brushSize}`;
     });
 
     autorun(() => {
-        els.opacityValue.innerText = `${paintState.brushAlpha}%`;
-        els.opacitySlider.value = `${paintState.brushAlpha}`;
+        const brushAlpha = paintState.getBrushAlpha();
+
+        els.opacityValue.innerText = `${brushAlpha}%`;
+        els.opacitySlider.value = `${brushAlpha}`;
     });
 }
 
@@ -71,7 +75,8 @@ function bindCursorUI() {
 
         const isDesktop = !("ontouchstart" in window);
 
-        const scaled = paintState.brushSize * position.scale;
+        const brushSize = paintState.getBrushSize();
+        const scaled = brushSize * position.scale;
         const isBigSize = scaled > 50;
 
         // ───────────── container 클래스

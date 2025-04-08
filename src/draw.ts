@@ -6,7 +6,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { applySelection, canvasSelect, selectionCancel } from "./selection";
 
-export let toolManager = {
+export const toolManager = {
     setBrushTool() {
         paintState.setToolId("brush");
         paintState.setColor(30, 30, 30);
@@ -74,24 +74,28 @@ export function addDrawEvent() {
                 let point = to_canvas_coord(e.clientX, e.clientY);
                 const worker = getLayerWorker();
 
+                let brushSize = paintState.getBrushSize();
+                let brushAlpha = paintState.getBrushAlpha();
+
+
                 if (paintState.toolId == "brush") {
                     worker.setStrokeColor(
                         paintState.color.r,
                         paintState.color.g,
                         paintState.color.b,
                     );
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+                    worker.setStrokeSize(brushSize);
+                    worker.setAlpha(brushAlpha);
 
                     worker.start(point);
                 } else if (paintState.toolId == "eraser") {
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+                    worker.setStrokeSize(brushSize);
+                    worker.setAlpha(brushAlpha);
 
                     worker.start(point);
                 } else if (paintState.toolId == "liquify") {
-                    worker.setStrokeSize(paintState.brushSize);
-                    worker.setAlpha(paintState.brushAlpha);
+                    worker.setStrokeSize(brushSize);
+                    worker.setAlpha(brushAlpha);
 
                     worker.start(point);
                     start = { x: e.clientX, y: e.clientY };
@@ -111,7 +115,8 @@ export function addDrawEvent() {
 
             // console.log("current point", point);
             const worker = getLayerWorker();
-
+            let brushSize = paintState.getBrushSize();
+            
             if (paintState.toolId == "brush") {
                 worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {
@@ -120,7 +125,7 @@ export function addDrawEvent() {
                 end = point;
 
                 let length = Math.hypot(end.x - start.x, end.y - start.y);
-                if (length > paintState.brushSize / 25) {
+                if (length > brushSize / 25) {
                     worker.strokeTo(point);
                     start = end;
                 }
@@ -209,10 +214,12 @@ export function addDrawEvent() {
     })();
 
     globalThis.drawLine = () => {
+        let brushSize = paintState.getBrushSize();
+        let brushAlpha = paintState.getBrushAlpha();
         const worker = getLayerWorker();
         worker.setStrokeColor(10, 10, 0);
-        worker.setStrokeSize(paintState.brushSize);
-        worker.setAlpha(paintState.brushAlpha);
+        worker.setStrokeSize(brushSize);
+        worker.setAlpha(brushAlpha);
 
         worker.start({ x: 50, y: 50 });
         worker.strokeTo({ x: 630.2, y: 300 });

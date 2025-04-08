@@ -1,9 +1,9 @@
 import { paintState } from "./main";
 import { els } from "./elements";
-import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
+import {  position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
-import { autorun, makeAutoObservable } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 export class SelectionState {
   x = 0;
@@ -57,6 +57,11 @@ let beforeSelectionPos = {
 };
 
 export function addSelectionEvent() {
+  addSelectionDragEventListener();
+  addHandleEventListener();
+}
+
+function addSelectionDragEventListener() {
   let selectionDragPointer = { x: 0, y: 0 };
   (function () {
     els.selectionArea.addEventListener(
@@ -116,85 +121,11 @@ export function addSelectionEvent() {
       selection.active = false;
     });
   })();
-
-  addHandleEvent();
-}
-
-// 비트맵으로 선택창 만들기
-export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
-  applySelection();
-
-  let worker = getLayerWorker();
-
-  let newWidth = bitmap.width;
-  let newHeight = bitmap.height;
-
-  // 선택 영역 설정
-  selection.setPosition(
-    Math.ceil(Math.max(0, -position.x)),
-    Math.ceil(Math.max(0, -position.y)),
-  );
-  selection.setSize(newWidth, newHeight);
-
-  beforeSelectionPos = {
-    x: selection.x,
-    y: selection.y,
-    width: selection.width,
-    height: selection.height,
-  };
-
-  // 워커에 붙여넣기 지시
-  worker.paste(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-    Comlink.transfer(bitmap, [bitmap]),
-  );
-
-  paintState.setToolId("selection");
-  selection.setVisible(true);
-}
-
-// 해당 구역 선택
-export function canvasSelect(x, y, width, height) {
-  let worker = getLayerWorker();
-
-  selection.setPosition(x, y);
-  selection.setSize(width, height);
-
-  worker.select(selection.x, selection.y, selection.width, selection.height);
-
-  beforeSelectionPos = {
-    x: selection.x,
-    y: selection.y,
-    width: selection.width,
-    height: selection.height,
-  };
-
-  paintState.setToolId("selection");
-
-  console.log("선택:", x, y, width, height);
-  selection.setVisible(true);
-}
-
-// 선택창 적용
-export function applySelection() {
-  let worker = getLayerWorker();
-
-  selection.setVisible(false);
-  worker.applySelection();
-}
-
-// 자르기 한 이후에
-export function cutSelection() {
-  paintState.setToolId("select");
-  selection.setVisible(false);
 }
 
 let activeHandle: HTMLElement | null = null;
 
-function addHandleEvent() {
+function addHandleEventListener() {
   let worker = getLayerWorker();
 
   // 드래그 시작 시점의 마우스 위치
@@ -394,6 +325,79 @@ function addHandleEvent() {
   document.addEventListener("pointerup", onMouseUp);
 }
 
+// 비트맵으로 선택창 만들기
+export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
+  applySelection();
+
+  let worker = getLayerWorker();
+
+  let newWidth = bitmap.width;
+  let newHeight = bitmap.height;
+
+  // 선택 영역 설정
+  selection.setPosition(
+    Math.ceil(Math.max(0, -position.x)),
+    Math.ceil(Math.max(0, -position.y)),
+  );
+  selection.setSize(newWidth, newHeight);
+
+  beforeSelectionPos = {
+    x: selection.x,
+    y: selection.y,
+    width: selection.width,
+    height: selection.height,
+  };
+
+  // 워커에 붙여넣기 지시
+  worker.paste(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+    Comlink.transfer(bitmap, [bitmap]),
+  );
+
+  paintState.setToolId("selection");
+  selection.setVisible(true);
+}
+
+// 해당 구역 선택
+export function canvasSelect(x, y, width, height) {
+  let worker = getLayerWorker();
+
+  selection.setPosition(x, y);
+  selection.setSize(width, height);
+
+  worker.select(selection.x, selection.y, selection.width, selection.height);
+
+  beforeSelectionPos = {
+    x: selection.x,
+    y: selection.y,
+    width: selection.width,
+    height: selection.height,
+  };
+
+  paintState.setToolId("selection");
+
+  console.log("선택:", x, y, width, height);
+  selection.setVisible(true);
+}
+
+// 선택창 적용
+export function applySelection() {
+  let worker = getLayerWorker();
+
+  selection.setVisible(false);
+  worker.applySelection();
+}
+
+// 자르기 한 이후에
+export function cutSelection() {
+  paintState.setToolId("select");
+  selection.setVisible(false);
+}
+
+// 선택창 캔슬
 export function selectionCancel() {
   selection.active = false;
 
