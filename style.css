@@ -4,13 +4,15 @@ body {
   height: 100%;
   overscroll-behavior: none;
   touch-action: none;
+  overflow-x: hidden;
 }
 
 p,
 button,
 h1,
 h2,
-h3,input {
+h3,
+input {
   margin: 0;
   padding: 0;
 }
@@ -31,6 +33,18 @@ button:focus {
   overflow: hidden;
 }
 
+
+/* 이젠 웹 기본 스타일 */
+p {
+  color: #191919;
+}
+
+*{
+  flex-shrink: 0;
+}
+
+
+/* UI */
 #container {
   flex: 1;
   position: relative;

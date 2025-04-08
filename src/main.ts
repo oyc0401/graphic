@@ -24,6 +24,7 @@ class PaintState {
     cursorY = 0;
     toolId: ToolId = "brush";
     pointerdown = false;
+    drawdownAndMoved = false;
 
     targetId = "brush";
 
@@ -36,6 +37,9 @@ class PaintState {
     }
     setPointerdown(val: boolean) {
         this.pointerdown = val;
+    }
+    setDrawdownAndMoved(val: boolean) {
+        this.drawdownAndMoved = val;
     }
     setCursorPosition(x, y) {
         this.cursorX = x;

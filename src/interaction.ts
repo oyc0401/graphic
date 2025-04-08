@@ -18,8 +18,6 @@ const pressedKeys = {
     },
 };
 
-
-
 export function addInteractionEvent() {
     els.selectBrushBtn.addEventListener("click", () => {
         toolManager.setBrushTool();
@@ -99,6 +97,7 @@ export function addInteractionEvent() {
             "pointerdown",
             (_) => {
                 paintState.setPointerdown(true);
+
                 // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
             },
             true,
@@ -108,6 +107,7 @@ export function addInteractionEvent() {
             "pointerup",
             (_) => {
                 paintState.setPointerdown(false);
+                paintState.setDrawdownAndMoved(false);
                 // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
             },
             true,

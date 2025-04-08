@@ -135,8 +135,6 @@
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #ff7575;
-  /* 썸 색상 */
   border-radius: 50%;
   cursor: pointer;
   margin-top: -5px;

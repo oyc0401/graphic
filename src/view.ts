@@ -76,7 +76,9 @@ function bindCursorUI() {
         const isDesktop = !("ontouchstart" in window);
 
         const brushSize = paintState.getBrushSize();
-        const scaled = brushSize * position.scale;
+        const dpr = getPixelRatio();
+        
+        const scaled = (brushSize * position.scale) / dpr;
         const isBigSize = scaled > 50;
 
         // ───────────── container 클래스
@@ -85,7 +87,11 @@ function bindCursorUI() {
 
         // ───────────── 브러시 커서 스타일
         if (isValid && isBigSize) {
-            cursor.style.visibility = "visible";
+            if (isDesktop || paintState.drawdownAndMoved) {
+                cursor.style.visibility = "visible";
+            } else {
+                cursor.style.visibility = "hidden";
+            }
             cursor.style.left = `${paintState.cursorX - scaled / 2 - 1}px`;
             cursor.style.top = `${paintState.cursorY - scaled / 2 - 1}px`;
             cursor.style.width = `${scaled}px`;

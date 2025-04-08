@@ -77,7 +77,6 @@ export function addDrawEvent() {
                 let brushSize = paintState.getBrushSize();
                 let brushAlpha = paintState.getBrushAlpha();
 
-
                 if (paintState.toolId == "brush") {
                     worker.setStrokeColor(
                         paintState.color.r,
@@ -113,10 +112,9 @@ export function addDrawEvent() {
 
             let point = to_canvas_coord(e.clientX, e.clientY);
 
-            // console.log("current point", point);
             const worker = getLayerWorker();
             let brushSize = paintState.getBrushSize();
-            
+
             if (paintState.toolId == "brush") {
                 worker.strokeTo(point);
             } else if (paintState.toolId == "eraser") {
@@ -130,6 +128,9 @@ export function addDrawEvent() {
                     start = end;
                 }
             }
+
+            paintState.setDrawdownAndMoved(true);
+            paintState.setCursorPosition(e.clientX, e.clientY);
         });
 
         window.addEventListener("pointerup", (e) => {
@@ -183,8 +184,10 @@ export function addDrawEvent() {
             if (paintState.toolId != "select") return;
             if (!paintState.pointerdown) return;
             if (!activeSelect) return;
+
             ex = e.clientX;
             ey = e.clientY;
+
             let startX = sx < ex ? sx : ex;
             let startY = sy < ey ? sy : ey;
             let zoomW = Math.abs(sx - ex);
