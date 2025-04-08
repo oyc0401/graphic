@@ -3,16 +3,51 @@ import { els } from "./elements";
 import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
+import { autorun, makeAutoObservable } from "mobx";
 
+export class SelectionState {
+  x = 0;
+  y = 0;
+  width = 300;
+  height = 200;
+  visible = false;
+  active = false;
 
-export let selection = {
-  x: 0,
-  y: 0,
-  width: 300,
-  height: 200,
-  visible: false,
-  active: false,
-};
+  constructor() {
+    makeAutoObservable(this);
+  }
+  setX(x: number) {
+    this.x = x;
+  }
+
+  setY(y: number) {
+    this.y = y;
+  }
+
+  setWidth(width: number) {
+    this.width = width;
+  }
+
+  setHeight(height: number) {
+    this.height = height;
+  }
+
+  setPosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  setSize(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
+
+  setVisible(visible: boolean) {
+    this.visible = visible;
+  }
+}
+
+export const selection = new SelectionState();
 
 let beforeSelectionPos = {
   x: 0,
@@ -57,16 +92,13 @@ export function addSelectionEvent() {
       let newSelectionX = point.x - selectionDragPointer.x;
       let newSelectionY = point.y - selectionDragPointer.y;
 
-      selection.x = newSelectionX;
-      selection.y = newSelectionY;
+      selection.setPosition(newSelectionX, newSelectionY);
       worker.moveSelection(
         selection.x,
         selection.y,
         selection.width,
         selection.height,
       );
-
-      setSelectionStyle();
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -98,10 +130,11 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   let newHeight = bitmap.height;
 
   // 선택 영역 설정
-  selection.x = Math.ceil(Math.max(0, -position.x));
-  selection.y = Math.ceil(Math.max(0, -position.y));
-  selection.width = newWidth;
-  selection.height = newHeight;
+  selection.setPosition(
+    Math.ceil(Math.max(0, -position.x)),
+    Math.ceil(Math.max(0, -position.y)),
+  );
+  selection.setSize(newWidth, newHeight);
 
   beforeSelectionPos = {
     x: selection.x,
@@ -120,18 +153,15 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   );
 
   paintState.setToolId("selection");
-  selection.visible = true;
-  setSelectionStyle();
+  selection.setVisible(true);
 }
 
 // 해당 구역 선택
 export function canvasSelect(x, y, width, height) {
   let worker = getLayerWorker();
 
-  selection.x = x;
-  selection.y = y;
-  selection.width = width;
-  selection.height = height;
+  selection.setPosition(x, y);
+  selection.setSize(width, height);
 
   worker.select(selection.x, selection.y, selection.width, selection.height);
 
@@ -142,58 +172,27 @@ export function canvasSelect(x, y, width, height) {
     height: selection.height,
   };
 
-  // position.resizeScreen();
   paintState.setToolId("selection");
 
   console.log("선택:", x, y, width, height);
-  selection.visible = true;
-  setSelectionStyle();
+  selection.setVisible(true);
 }
 
 // 선택창 적용
 export function applySelection() {
   let worker = getLayerWorker();
 
-  selection.visible = false;
+  selection.setVisible(false);
   worker.applySelection();
-  setSelectionStyle();
 }
 
 // 자르기 한 이후에
 export function cutSelection() {
   paintState.setToolId("select");
-  selection.visible = false;
-  setSelectionStyle();
+  selection.setVisible(false);
 }
-
-let handleLT = document.getElementById("handle-lt")!;
-let handleT = document.getElementById("handle-t")!;
-let handleRT = document.getElementById("handle-rt")!;
-let handleR = document.getElementById("handle-r")!;
-let handleRB = document.getElementById("handle-rb")!;
-let handleB = document.getElementById("handle-b")!;
-let handleLB = document.getElementById("handle-lb")!;
-let handleL = document.getElementById("handle-l")!;
 
 let activeHandle: HTMLElement | null = null;
-
-let lastVisible = false;
-export function setSelectionStyle() {
-  // 숨겨져있는데, 이전에도 숨겨져있었으면 스킵
-  if (!selection.visible && lastVisible == selection.visible) return;
-  lastVisible = selection.visible;
-
-  els.selectionArea.style.visibility = selection.visible
-    ? "visible"
-    : "hidden";
-
-  els.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
-  els.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
-  els.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
-  els.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
-
-  setHandlePosition();
-}
 
 function addHandleEvent() {
   let worker = getLayerWorker();
@@ -243,26 +242,26 @@ function addHandleEvent() {
     // TODO: 나중에 정리하자~~
 
     // 어떤 핸들을 드래그 중인지에 따라 selection 갱신
-    if (activeHandle === handleR) {
+    if (activeHandle === els.handleR) {
       // 오른쪽 중앙: 폭만 늘어남
-      selection.width = Math.max(0, startWidth + dx);
-    } else if (activeHandle === handleL) {
+      selection.setWidth(Math.max(0, startWidth + dx));
+    } else if (activeHandle === els.handleL) {
       // 왼쪽 중앙: x와 width가 반대 방향으로 조정
-      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
-      selection.width = Math.max(0, startWidth - dx);
-    } else if (activeHandle === handleT) {
+      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
+      selection.setWidth(Math.max(0, startWidth - dx));
+    } else if (activeHandle === els.handleT) {
       // 위 중앙: y와 height
-      selection.y = Math.min(startTop + startHeight, startTop + dy);
-      selection.height = Math.max(0, startHeight - dy);
-    } else if (activeHandle === handleB) {
+      selection.setY(Math.min(startTop + startHeight, startTop + dy));
+      selection.setHeight(Math.max(0, startHeight - dy));
+    } else if (activeHandle === els.handleB) {
       // 아래 중앙: 높이만 늘어남
-      selection.height = Math.max(0, startHeight + dy);
-    } else if (activeHandle === handleLT) {
+      selection.setHeight(Math.max(0, startHeight + dy));
+    } else if (activeHandle === els.handleLT) {
       // 왼쪽 위 모서리: x, width, y, height 모두 영향
-      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
-      selection.width = Math.max(0, startWidth - dx);
-      selection.y = Math.min(startTop + startHeight, startTop + dy);
-      selection.height = Math.max(0, startHeight - dy);
+      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
+      selection.setWidth(Math.max(0, startWidth - dx));
+      selection.setY(Math.min(startTop + startHeight, startTop + dy));
+      selection.setHeight(Math.max(0, startHeight - dy));
 
       // SHIFT + 비율 고정
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
@@ -270,85 +269,85 @@ function addHandleEvent() {
         // 현재 비율과 비교 후 보정
         const currentRatio = selection.width / selection.height;
         if (currentRatio < ratio) {
-          selection.width = selection.height * ratio;
+          selection.setWidth(selection.height * ratio);
         } else {
-          selection.height = selection.width / ratio;
+          selection.setHeight(selection.width / ratio);
         }
         // '오른쪽 아래' 모서리를 고정하려면:
-        selection.x = startLeft + startWidth - selection.width;
-        selection.y = startTop + startHeight - selection.height;
+        selection.setX(startLeft + startWidth - selection.width);
+        selection.setY(startTop + startHeight - selection.height);
       }
-    } else if (activeHandle === handleRT) {
+    } else if (activeHandle === els.handleRT) {
       // 오른쪽 위 모서리: width, y, height
-      selection.width = Math.max(0, startWidth + dx);
-      selection.y = Math.min(startTop + startHeight, startTop + dy);
-      selection.height = Math.max(0, startHeight - dy);
+      selection.setWidth(Math.max(0, startWidth + dx));
+      selection.setY(Math.min(startTop + startHeight, startTop + dy));
+      selection.setHeight(Math.max(0, startHeight - dy));
 
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
         const ratio = startWidth / startHeight;
         const currentRatio = selection.width / selection.height;
         if (currentRatio < ratio) {
-          selection.width = selection.height * ratio;
+          selection.setWidth(selection.height * ratio);
         } else {
-          selection.height = selection.width / ratio;
+          selection.setHeight(selection.width / ratio);
         }
         // '왼쪽 아래' 모서리를 고정
-        selection.x = startLeft;
-        selection.y = startTop + startHeight - selection.height;
+        selection.setX(startLeft);
+        selection.setY(startTop + startHeight - selection.height);
       }
-    } else if (activeHandle === handleRB) {
+    } else if (activeHandle === els.handleRB) {
       // 오른쪽 아래 모서리: width, height
-      selection.width = Math.max(0, startWidth + dx);
-      selection.height = Math.max(0, startHeight + dy);
+      selection.setWidth(Math.max(0, startWidth + dx));
+      selection.setHeight(Math.max(0, startHeight + dy));
 
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
         const ratio = startWidth / startHeight;
         const currentRatio = selection.width / selection.height;
         if (currentRatio < ratio) {
-          selection.width = selection.height * ratio;
+          selection.setWidth(selection.height * ratio);
         } else {
-          selection.height = selection.width / ratio;
+          selection.setHeight(selection.width / ratio);
         }
         // '왼쪽 위' 모서리 고정
-        selection.x = startLeft;
-        selection.y = startTop;
+        selection.setX(startLeft);
+        selection.setY(startTop);
       }
-    } else if (activeHandle === handleLB) {
+    } else if (activeHandle === els.handleLB) {
       // 왼쪽 아래 모서리: x, width, height
-      selection.x = Math.min(startLeft + startWidth, startLeft + dx);
-      selection.width = Math.max(0, startWidth - dx);
-      selection.height = Math.max(0, startHeight + dy);
+      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
+      selection.setWidth(Math.max(0, startWidth - dx));
+      selection.setHeight(Math.max(0, startHeight + dy));
 
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
         const ratio = startWidth / startHeight;
         const currentRatio = selection.width / selection.height;
         if (currentRatio < ratio) {
-          selection.width = selection.height * ratio;
+          selection.setWidth(selection.height * ratio);
         } else {
-          selection.height = selection.width / ratio;
+          selection.setHeight(selection.width / ratio);
         }
         // '오른쪽 위' 모서리를 고정
-        selection.x = startLeft + startWidth - selection.width;
-        selection.y = startTop;
+        selection.setX(startLeft + startWidth - selection.width);
+        selection.setY(startTop);
       }
     }
 
     // 쉬프트 시 비율 고정
-    if (activeHandle === handleT || activeHandle === handleB) {
+    if (activeHandle === els.handleT || activeHandle === els.handleB) {
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
         const ratio = startWidth / startHeight;
-        selection.width = selection.height * ratio;
+        selection.setWidth(selection.height * ratio);
       } else {
-        selection.width = startWidth;
+        selection.setWidth(startWidth);
       }
     }
 
-    if (activeHandle === handleL || activeHandle === handleR) {
+    if (activeHandle === els.handleL || activeHandle === els.handleR) {
       if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
         const ratio = startWidth / startHeight;
-        selection.height = selection.width / ratio;
+        selection.setHeight(selection.width / ratio);
       } else {
-        selection.height = startHeight;
+        selection.setHeight(startHeight);
       }
     }
 
@@ -358,8 +357,6 @@ function addHandleEvent() {
       selection.width,
       selection.height,
     );
-
-    setSelectionStyle();
   }
 
   // 전역 MOUSEUP 이벤트 핸들러
@@ -379,14 +376,14 @@ function addHandleEvent() {
 
   // 각 핸들에 mousedown 이벤트 등록
   const handles = [
-    handleLT,
-    handleT,
-    handleRT,
-    handleR,
-    handleRB,
-    handleB,
-    handleLB,
-    handleL,
+    els.handleLT,
+    els.handleT,
+    els.handleRT,
+    els.handleR,
+    els.handleRB,
+    els.handleB,
+    els.handleLB,
+    els.handleL,
   ];
   for (const handle of handles) {
     handle.addEventListener("pointerdown", (e) => onMouseDown(e, handle));
@@ -397,58 +394,13 @@ function addHandleEvent() {
   document.addEventListener("pointerup", onMouseUp);
 }
 
-function visiableOrHideHandle() {
-  const handles = [
-    handleLT,
-    handleT,
-    handleRT,
-    handleR,
-    handleRB,
-    handleB,
-    handleLB,
-    handleL,
-  ];
-
-  for (const handle of handles) {
-    handle.style.visibility = selection.visible ? "visible" : "hidden";
-  }
-}
-
-function setHandlePosition() {
-  // selectionArea의 절대 위치 및 크기 계산
-  const areaLeft =
-    (selection.x / getPixelRatio() + position.x) * position.scale;
-  const areaTop = (selection.y / getPixelRatio() + position.y) * position.scale;
-  const areaWidth = (selection.width * position.scale) / getPixelRatio();
-  const areaHeight = (selection.height * position.scale) / getPixelRatio();
-  const offset = 22; // 핸들 크기 44px 기준 중심 정렬 보정값
-
-  visiableOrHideHandle();
-
-  // 각 핸들의 위치 설정
-  const setPos = (handle: HTMLElement, left: number, top: number) => {
-    handle.style.left = `${left - offset}px`;
-    handle.style.top = `${top - offset}px`;
-  };
-
-  setPos(handleLT, areaLeft, areaTop);
-  setPos(handleT, areaLeft + areaWidth / 2, areaTop);
-  setPos(handleRT, areaLeft + areaWidth, areaTop);
-  setPos(handleR, areaLeft + areaWidth, areaTop + areaHeight / 2);
-  setPos(handleRB, areaLeft + areaWidth, areaTop + areaHeight);
-  setPos(handleB, areaLeft + areaWidth / 2, areaTop + areaHeight);
-  setPos(handleLB, areaLeft, areaTop + areaHeight);
-  setPos(handleL, areaLeft, areaTop + areaHeight / 2);
-}
-
 export function selectionCancel() {
   selection.active = false;
 
-  console.log(beforeSelectionPos);
-  selection.x = beforeSelectionPos.x;
-  selection.y = beforeSelectionPos.y;
-  selection.width = beforeSelectionPos.width;
-  selection.height = beforeSelectionPos.height;
+  selection.setX(beforeSelectionPos.x);
+  selection.setY(beforeSelectionPos.y);
+  selection.setWidth(beforeSelectionPos.width);
+  selection.setHeight(beforeSelectionPos.height);
 
   const worker = getLayerWorker();
 
@@ -458,8 +410,6 @@ export function selectionCancel() {
     selection.width,
     selection.height,
   );
-
-  setSelectionStyle();
 
   activeHandle = null;
 }

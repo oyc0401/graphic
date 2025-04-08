@@ -2,97 +2,136 @@ import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
 import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
-import { setSelectionStyle } from "./selection";
+import { makeAutoObservable } from "mobx";
 
 const MIN_SCALE = 0.1;
 let MAX_SCALE = 0;
 
-export let position = {
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 0,
-  scale: 1,
-  dpr: 1,
-  bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
-  updateBouncingRect() {
-    this.bouncingRect = els.container.getBoundingClientRect();
-  },
-  resizeScreen() {
-    // console.log("resizeScreen");
-    position.updateBouncingRect();
+export class PositionState {
+  x = 10;
+  y = 10;
+  width = 10;
+  height = 10;
+  scale = 1;
+  dpr = 1;
+  bouncingRect = { x: 0, y: 0, width: 0, height: 0 };
 
-    // 스크롤 범위 제한!
-    let minW = -position.width;
-    let maxW = position.bouncingRect.width / this.scale;
-    let clampPositionX = Math.min(maxW, Math.max(minW, this.x));
+  constructor() {
+    makeAutoObservable(this);
+  }
 
-    let minH = -position.height;
-    let maxH = position.bouncingRect.height / this.scale;
-    let clampPositionY = Math.min(maxH, Math.max(minH, this.y));
+  setX(x: number) {
+    this.x = x;
+  }
 
-    this.x = clampPositionX;
-    this.y = clampPositionY;
+  setY(y: number) {
+    this.y = y;
+  }
 
-    setSelectionStyle();
-    const worker = getLayerWorker();
+  setWidth(width: number) {
+    this.width = width;
+  }
 
-    worker.render(
-      position.width,
-      position.height,
-      position.bouncingRect.width * getPixelRatio(),
-      position.bouncingRect.height * getPixelRatio(),
-      position.x * getPixelRatio(),
-      position.y * getPixelRatio(),
+  setHeight(height: number) {
+    this.height = height;
+  }
 
-      position.scale,
-    );
-  },
-};
+  setSize(width: number, height: number) {
+    this.width = width;
+    this.height = height;
+  }
+
+  setPosition(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  setScale(scale: number) {
+    this.scale = scale;
+  }
+}
+
+export const position = new PositionState();
+
+export function updateBouncingRect() {
+  position.bouncingRect = els.container.getBoundingClientRect();
+}
+
+export function resizeScreen() {
+  updateBouncingRect();
+
+  const minW = -position.width;
+  const maxW = position.bouncingRect.width / position.scale;
+  const clampX = Math.min(maxW, Math.max(minW, position.x));
+
+  const minH = -position.height;
+  const maxH = position.bouncingRect.height / position.scale;
+  const clampY = Math.min(maxH, Math.max(minH, position.y));
+
+  position.setX(clampX);
+  position.setY(clampY);
+
+  const worker = getLayerWorker();
+  const pxRatio = getPixelRatio();
+
+  worker.render(
+    position.width,
+    position.height,
+    position.bouncingRect.width * pxRatio,
+    position.bouncingRect.height * pxRatio,
+    position.x * pxRatio,
+    position.y * pxRatio,
+    position.scale,
+  );
+}
 
 export function setDefaultPosition() {
-  position.updateBouncingRect();
+  updateBouncingRect();
 
   // 초기 위치 설정
   let percent = 2 / 3;
   let dpr = getPixelRatio();
   let scaledDpr = dpr * percent;
+  let width, height;
+
   if (position.bouncingRect.width > position.bouncingRect.height) {
     // 가로가 김
-    position.width = position.bouncingRect.height * scaledDpr * 1.414;
-    position.height = position.bouncingRect.height * scaledDpr;
+    width = position.bouncingRect.height * scaledDpr * 1.414;
+    height = position.bouncingRect.height * scaledDpr;
   } else {
     // 세로가 김
-    position.width = position.bouncingRect.width * scaledDpr;
-    position.height = position.bouncingRect.width * scaledDpr * 1.414;
+    width = position.bouncingRect.width * scaledDpr;
+    height = position.bouncingRect.width * scaledDpr * 1.414;
   }
   position.dpr = dpr;
   MAX_SCALE = 120 * dpr;
 
   // 초기 위치 설정
-  position.scale = 1;
-  position.x = (position.bouncingRect.width - position.width / dpr) / 2;
-  position.y = (position.bouncingRect.height - position.height / dpr) / 2;
+  let x = (position.bouncingRect.width - width / dpr) / 2;
+  let y = (position.bouncingRect.height - height / dpr) / 2;
 
-  position.width = Math.floor(position.width);
-  position.height = Math.floor(position.height);
-  position.x = Math.floor(position.x);
-  position.y = Math.floor(position.y);
+  position.setScale(1);
+  position.setWidth(Math.floor(width));
+  position.setHeight(Math.floor(height));
+  position.setX(Math.floor(x));
+  position.setY(Math.floor(y));
 }
 
 export function addPositionEvent() {
   window.addEventListener("resize", function () {
-    position.resizeScreen();
+    resizeScreen();
   });
 
-  function setPinchEvent() {
-    paintState.setAction("PINCH");
-  }
+  addWheelListener();
 
-  function setLastTool() {
-    paintState.setAction("BRUSH");
-  }
+  addPinchListener();
 
+  addPanningListener();
+
+  addZoomListener();
+}
+
+function addWheelListener() {
   /**
    * 휠 스크롤 영역
    */
@@ -123,18 +162,27 @@ export function addPositionEvent() {
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
-            position.x -= delta / position.scale;
+            position.setX(position.x - delta / position.scale);
           } else {
             let delta = event.deltaY;
-            position.y -= delta / position.scale;
+            position.setY(position.y - delta / position.scale);
           }
         }
 
-        position.resizeScreen();
+        resizeScreen();
       },
       { passive: false },
     );
   })();
+}
+function addPinchListener() {
+  function setPinchEvent() {
+    paintState.setAction("PINCH");
+  }
+
+  function setLastTool() {
+    paintState.setAction("BRUSH");
+  }
 
   /**
    * 핀지줌 영역
@@ -251,8 +299,9 @@ export function addPositionEvent() {
         const pinchCenterPos = averageTouches();
         const dx = lastPinchCenterPos.x - pinchCenterPos.x;
         const dy = lastPinchCenterPos.y - pinchCenterPos.y;
-        position.x -= dx / position.scale;
-        position.y -= dy / position.scale;
+
+        position.setX(position.x - dx / position.scale);
+        position.setY(position.y - dy / position.scale);
         lastPinchCenterPos = pinchCenterPos;
 
         const points = Array.from(pointers.values());
@@ -271,7 +320,7 @@ export function addPositionEvent() {
         );
         lastPinchDistance = distance;
 
-        position.resizeScreen();
+        resizeScreen();
       },
       true,
     );
@@ -305,7 +354,8 @@ export function addPositionEvent() {
       true,
     );
   })();
-
+}
+function addPanningListener() {
   /**
    * 마우스 팬 영역
    */
@@ -328,19 +378,20 @@ export function addPositionEvent() {
 
       let dx = lastClientX - e.clientX;
       let dy = lastClientY - e.clientY;
-      position.x -= dx / position.scale;
-      position.y -= dy / position.scale;
+      position.setX(position.x - dx / position.scale);
+      position.setY(position.y - dy / position.scale);
 
       lastClientX = e.clientX;
       lastClientY = e.clientY;
-      position.resizeScreen();
+      resizeScreen();
     });
 
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "PAN") return;
     });
   })();
-
+}
+function addZoomListener() {
   /**
    * 줌 영역
    */
@@ -430,7 +481,7 @@ export function addPositionEvent() {
         setMagification(clamped_scale, to_screen_coord(centerX, centerY));
       }
 
-      position.resizeScreen();
+      resizeScreen();
 
       activeZoom = false;
     });
@@ -445,8 +496,7 @@ function setMagification(new_scale, anchor_point) {
 
   // 배율만 미리 바꿔놓든, 나중에 바꾸든 상관없지만
   // old_scale를 반드시 먼저 따로 보관하고 써야 함
-  position.scale = new_scale;
-  paintState.setBrushCursorScale(new_scale);
+  position.setScale(new_scale);
 
   // 화면에서 anchor_point가 고정되려면,
   // (anchor + position)의 스크린 좌표가
@@ -456,10 +506,12 @@ function setMagification(new_scale, anchor_point) {
   //   (anchor + oldPos) * old_scale  ==  (anchor + newPos) * new_scale
   //
   // 풀어서 새 newPos를 구하면 아래와 같은 공식이 됩니다.
-  position.x =
+  let newX =
     ((anchor_point.x + old_x) * old_scale) / new_scale - anchor_point.x;
-  position.y =
+  let newY =
     ((anchor_point.y + old_y) * old_scale) / new_scale - anchor_point.y;
+  position.setX(newX);
+  position.setY(newY);
 }
 
 // 캔버스 상의 좌표로 변환.
@@ -494,10 +546,10 @@ async function changeSize(number = 300) {
   let newWidth = number * 2;
   let newHeight = number;
 
-  position.width = newWidth;
-  position.height = newHeight;
+  position.setWidth(newWidth);
+  position.setHeight(newHeight);
 
-  position.resizeScreen();
+  resizeScreen();
 }
 
 globalThis.changeSize = changeSize;

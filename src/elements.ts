@@ -28,6 +28,15 @@ export const els = {
   opacityValue: $id("opacity-value")!,
   sizeSlider: $id<HTMLInputElement>("size-slider"),
   opacitySlider: $id<HTMLInputElement>("opacity-slider"),
+
+  handleLT: $id("handle-lt"),
+  handleT: $id("handle-t"),
+  handleRT: $id("handle-rt"),
+  handleR: $id("handle-r"),
+  handleRB: $id("handle-rb"),
+  handleB: $id("handle-b"),
+  handleLB: $id("handle-lb"),
+  handleL: $id("handle-l"),
 };
 
 export function getElements() {

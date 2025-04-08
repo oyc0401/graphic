@@ -4,9 +4,9 @@ import { getLayerWorker } from "./worker/workerPool";
 import { encode } from "@jsquash/png";
 
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
-import { position } from "./position";
+import { position, resizeScreen } from "./position";
 
-export function addClipboardListener() {
+export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
   els.container.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -34,7 +34,7 @@ export function addClipboardListener() {
           position.width = bitmap.width;
           position.height = bitmap.height;
 
-          position.resizeScreen();
+          resizeScreen();
 
           // 붙여넣기 로직 호출
           makeSelectionFromBitmap(bitmap);
@@ -112,7 +112,7 @@ export function addClipboardListener() {
   // 복사
   window.addEventListener("copy", (event: ClipboardEvent) => {
     event.preventDefault();
-    if (selection.visiable) {
+    if (selection.visible) {
       let worker = getLayerWorker();
       worker.copy();
     }
@@ -121,7 +121,7 @@ export function addClipboardListener() {
   // 잘라내기 = 복사와 동일, 나중에 cut 전용 로직 넣어도 됨
   window.addEventListener("cut", (event: ClipboardEvent) => {
     event.preventDefault();
-    if (selection.visiable) {
+    if (selection.visible) {
       let worker = getLayerWorker();
       worker.cut();
     }

@@ -1,28 +1,22 @@
 import { paintState } from "./main";
 import { autorun } from "mobx";
 import { els } from "./elements";
+import { selection } from "./selection";
+import { getPixelRatio, position } from "./position";
 
 export function bindView() {
     bindToolButtonUI();
     bindSliderUI();
     bindCursorUI();
+    bindSelectionUI();
 }
 
 function bindToolButtonUI() {
     autorun(() => {
         const active = paintState.toolId;
-        els.selectBrushBtn.classList.toggle(
-            "selected",
-            active === "brush",
-        );
-        els.selectEraserBtn.classList.toggle(
-            "selected",
-            active === "eraser",
-        );
-        els.selectLiquifyBtn.classList.toggle(
-            "selected",
-            active === "liquify",
-        );
+        els.selectBrushBtn.classList.toggle("selected", active === "brush");
+        els.selectEraserBtn.classList.toggle("selected", active === "eraser");
+        els.selectLiquifyBtn.classList.toggle("selected", active === "liquify");
         els.selectSelectionBtn.classList.toggle(
             "selected",
             active === "select" || active === "selection",
@@ -77,7 +71,7 @@ function bindCursorUI() {
 
         const isDesktop = !("ontouchstart" in window);
 
-        const scaled = paintState.brushSize * paintState.brushCursorScale;
+        const scaled = paintState.brushSize * position.scale;
         const isBigSize = scaled > 50;
 
         // ───────────── container 클래스
@@ -93,6 +87,70 @@ function bindCursorUI() {
             cursor.style.height = `${scaled}px`;
         } else {
             cursor.style.visibility = "hidden";
+        }
+    });
+}
+
+function bindSelectionUI() {
+    // 1) selectionArea 스타일 갱신
+    autorun(() => {
+        const visible = selection.visible;
+        els.selectionArea.style.visibility = visible ? "visible" : "hidden";
+
+        const px = getPixelRatio();
+        const scaledLeft = (selection.x / px + position.x) * position.scale;
+        const scaledTop = (selection.y / px + position.y) * position.scale;
+        const scaledWidth = (selection.width * position.scale) / px;
+        const scaledHeight = (selection.height * position.scale) / px;
+
+        if (visible) {
+            els.selectionArea.style.left = `${scaledLeft}px`;
+            els.selectionArea.style.top = `${scaledTop}px`;
+            els.selectionArea.style.width = `${scaledWidth}px`;
+            els.selectionArea.style.height = `${scaledHeight}px`;
+        }
+    });
+
+    // 2) 핸들 위치 및 표시
+    autorun(() => {
+        const visible = selection.visible;
+        const px = getPixelRatio();
+        const sLeft = (selection.x / px + position.x) * position.scale;
+        const sTop = (selection.y / px + position.y) * position.scale;
+        const sWidth = (selection.width * position.scale) / px;
+        const sHeight = (selection.height * position.scale) / px;
+
+        // 핸들 표시/숨김
+        const handles = [
+            els.handleLT,
+            els.handleT,
+            els.handleRT,
+            els.handleR,
+            els.handleRB,
+            els.handleB,
+            els.handleLB,
+            els.handleL,
+        ];
+        for (const h of handles) {
+            h.style.visibility = visible ? "visible" : "hidden";
+        }
+
+        // 위치 계산
+        const offset = 22;
+        const setPos = (handle: HTMLElement, left: number, top: number) => {
+            handle.style.left = `${left - offset}px`;
+            handle.style.top = `${top - offset}px`;
+        };
+
+        if (visible) {
+            setPos(els.handleLT, sLeft, sTop);
+            setPos(els.handleT, sLeft + sWidth / 2, sTop);
+            setPos(els.handleRT, sLeft + sWidth, sTop);
+            setPos(els.handleR, sLeft + sWidth, sTop + sHeight / 2);
+            setPos(els.handleRB, sLeft + sWidth, sTop + sHeight);
+            setPos(els.handleB, sLeft + sWidth / 2, sTop + sHeight);
+            setPos(els.handleLB, sLeft, sTop + sHeight);
+            setPos(els.handleL, sLeft, sTop + sHeight / 2);
         }
     });
 }

@@ -1,29 +1,35 @@
 import { addDrawEvent, tranferCanvas } from "./draw";
-import { addPositionEvent, position, setDefaultPosition } from "./position";
+import {
+    addPositionEvent,
+    position,
+    resizeScreen,
+    setDefaultPosition,
+} from "./position";
 import { getElements } from "./elements";
 import { addInteractionEvent } from "./interaction";
 import { addSelectionEvent } from "./selection";
-import { addClipboardListener } from "./file";
+import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./view";
 window.onload = main;
 
+type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
+type ToolId = "brush" | "eraser" | "liquify" | "select" | "selection";
 class PaintState {
-    action = "BRUSH";
+    action: Action = "BRUSH";
     brushSize = 5;
     brushAlpha = 100;
     color = { r: 30, g: 30, b: 30 };
     cursorX = 0;
     cursorY = 0;
-    toolId = "brush";
+    toolId: ToolId = "brush";
     pointerdown = false;
 
-    brushCursorScale = 1;
     constructor() {
         makeAutoObservable(this);
     }
 
-    setAction(val: string) {
+    setAction(val: Action) {
         this.action = val;
     }
     setPointerdown(val: boolean) {
@@ -39,14 +45,11 @@ class PaintState {
     setBrushAlpha(alpha: number) {
         this.brushAlpha = alpha;
     }
-    setToolId(toolId: string) {
+    setToolId(toolId: ToolId) {
         this.toolId = toolId;
     }
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
-    }
-    setBrushCursorScale(scale) {
-        this.brushCursorScale = scale;
     }
 }
 
@@ -60,6 +63,7 @@ async function main() {
     // 초기 캔버스 위치 계산
     setDefaultPosition();
 
+    // 캔버스 업로드
     await tranferCanvas();
 
     // 뷰 바인딩
@@ -67,13 +71,17 @@ async function main() {
 
     // 이벤트 추가
     addInteractionEvent();
-    addClipboardListener();
+
+    addClipboardEvent();
+
     addPositionEvent();
+
     addDrawEvent();
+
     addSelectionEvent();
 
     // 캔버스 렌더링
-    position.resizeScreen();
+    resizeScreen();
 
     console.log("Complete App!");
 
