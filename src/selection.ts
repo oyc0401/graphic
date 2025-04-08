@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
+import { applyKeyAction, elementStore } from "./interface";
 import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
@@ -82,7 +82,7 @@ export function addSelectionEvent() {
 
       selection.active = false;
       applyKeyAction();
-      updateCursorShape();
+      //updateCursorShape();
     });
   })();
 
@@ -120,7 +120,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     Comlink.transfer(bitmap, [bitmap]),
   );
 
-  paintState.toolId = "selection";
+  paintState.setToolId("selection");
   selection.visiable = true;
   setSelectionStyle();
 }
@@ -144,7 +144,7 @@ export function canvasSelect(x, y, width, height) {
   };
 
   // position.resizeScreen();
-  paintState.toolId = "selection";
+  paintState.setToolId("selection");
 
   console.log("선택:", x, y, width, height);
   selection.visiable = true;
@@ -162,7 +162,7 @@ export function applySelection() {
 
 // 자르기 한 이후에
 export function cutSelection() {
-  paintState.toolId = "select";
+  paintState.setToolId("select");
   selection.visiable = false;
   setSelectionStyle();
 }

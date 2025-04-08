@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@jsquash/png": "^3.0.1",
-    "comlink": "^4.4.2"
+    "comlink": "^4.4.2",
+    "mobx": "^6.13.7"
   },
   "devDependencies": {
     "vite": "^6.2.0",

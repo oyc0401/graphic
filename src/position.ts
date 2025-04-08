@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
-import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
+import { applyKeyAction, elementStore } from "./interface";
 import { getLayerWorker } from "./worker/workerPool";
 import { setSelectionStyle } from "./selection";
 
@@ -89,11 +89,11 @@ export function addPositionEvent() {
   });
 
   function setPinchEvent() {
-    paintState.action = "PINCH";
+    paintState.setAction("PINCH");
   }
 
   function setLastTool() {
-    paintState.action = "BRUSH";
+    paintState.setAction("BRUSH");
   }
 
   /**
@@ -121,7 +121,8 @@ export function addPositionEvent() {
             clamped_scale,
             to_screen_coord(event.clientX, event.clientY),
           );
-          updateCursorShape();
+
+          // updateCursorShape();
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
@@ -130,8 +131,6 @@ export function addPositionEvent() {
             let delta = event.deltaY;
             position.y -= delta / position.scale;
           }
-
-          //console.log(positionState.x, positionState.y);
         }
 
         position.resizeScreen();
@@ -343,7 +342,6 @@ export function addPositionEvent() {
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "PAN") return;
       applyKeyAction();
-      updateCursorShape();
     });
   })();
 
@@ -409,7 +407,6 @@ export function addPositionEvent() {
         }
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
         setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
-        updateCursorShape();
       } else {
         let px = position.bouncingRect.width / zoomW;
         let py = position.bouncingRect.height / zoomH;
@@ -435,7 +432,6 @@ export function addPositionEvent() {
         const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
 
         setMagification(clamped_scale, to_screen_coord(centerX, centerY));
-        updateCursorShape();
       }
 
       position.resizeScreen();
@@ -443,7 +439,6 @@ export function addPositionEvent() {
       activeZoom = false;
 
       applyKeyAction();
-      updateCursorShape();
     });
   })();
 }
@@ -457,6 +452,7 @@ function setMagification(new_scale, anchor_point) {
   // 배율만 미리 바꿔놓든, 나중에 바꾸든 상관없지만
   // old_scale를 반드시 먼저 따로 보관하고 써야 함
   position.scale = new_scale;
+  paintState.setBrushCursorScale(new_scale);
 
   // 화면에서 anchor_point가 고정되려면,
   // (anchor + position)의 스크린 좌표가

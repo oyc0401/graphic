@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { applyKeyAction, elementStore, updateCursorShape } from "./interface";
+import { applyKeyAction, elementStore } from "./interface";
 import { position, to_pixel_canvas_coord } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
@@ -8,10 +8,8 @@ import { applySelection, canvasSelect, selectionCancel } from "./selection";
 
 export let toolManager = {
     setBrushTool() {
-        paintState.toolId = "brush";
-       // paintState.brushSize = 5;
-       // paintState.brushAlpha = 100;
-        paintState.color = { r: 30, g: 30, b: 30 };
+        paintState.setToolId("brush");
+        paintState.setColor(30, 30, 30);
 
         const worker = getLayerWorker();
         applySelection();
@@ -20,18 +18,14 @@ export let toolManager = {
         console.log("brush");
     },
     setEraserTool() {
-        paintState.toolId = "eraser";
-       // paintState.brushSize = 10;
-        //paintState.brushAlpha = 100;
+        paintState.setToolId("eraser");
 
         const worker = getLayerWorker();
         applySelection();
         worker.setTool(paintState.toolId);
     },
     setLiquifyTool() {
-        paintState.toolId = "liquify";
-       // paintState.brushSize = 10;
-       // paintState.brushAlpha = 100;
+        paintState.setToolId("liquify");
 
         const worker = getLayerWorker();
         applySelection();
@@ -39,7 +33,8 @@ export let toolManager = {
     },
     setSelectTool() {
         applySelection();
-        paintState.toolId = "select";
+        paintState.setToolId("select");
+
         const worker = getLayerWorker();
         worker.setTool(paintState.toolId);
     },
@@ -150,7 +145,7 @@ export function addDrawEvent() {
             endDrawing();
 
             applyKeyAction();
-            updateCursorShape();
+            // updateCursorShape();
         });
     })();
 
@@ -215,7 +210,7 @@ export function addDrawEvent() {
             canvasSelect(startX, startY, zoomW, zoomH);
 
             applyKeyAction();
-            updateCursorShape();
+            // updateCursorShape();
         });
     })();
 
