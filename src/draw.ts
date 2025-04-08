@@ -42,7 +42,7 @@ export let toolManager = {
 
 let pointerActive = false;
 
-export async function initDraw() {
+export async function tranferCanvas() {
     const worker = getLayerWorker();
     const offscreen = els.canvas.transferControlToOffscreen();
 

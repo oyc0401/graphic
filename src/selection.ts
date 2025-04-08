@@ -4,12 +4,13 @@ import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 
+
 export let selection = {
   x: 0,
   y: 0,
   width: 300,
   height: 200,
-  visiable: false,
+  visible: false,
   active: false,
 };
 
@@ -119,7 +120,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   );
 
   paintState.setToolId("selection");
-  selection.visiable = true;
+  selection.visible = true;
   setSelectionStyle();
 }
 
@@ -145,7 +146,7 @@ export function canvasSelect(x, y, width, height) {
   paintState.setToolId("selection");
 
   console.log("선택:", x, y, width, height);
-  selection.visiable = true;
+  selection.visible = true;
   setSelectionStyle();
 }
 
@@ -153,7 +154,7 @@ export function canvasSelect(x, y, width, height) {
 export function applySelection() {
   let worker = getLayerWorker();
 
-  selection.visiable = false;
+  selection.visible = false;
   worker.applySelection();
   setSelectionStyle();
 }
@@ -161,7 +162,7 @@ export function applySelection() {
 // 자르기 한 이후에
 export function cutSelection() {
   paintState.setToolId("select");
-  selection.visiable = false;
+  selection.visible = false;
   setSelectionStyle();
 }
 
@@ -176,13 +177,13 @@ let handleL = document.getElementById("handle-l")!;
 
 let activeHandle: HTMLElement | null = null;
 
-let lastVisiable = false;
+let lastVisible = false;
 export function setSelectionStyle() {
   // 숨겨져있는데, 이전에도 숨겨져있었으면 스킵
-  if (!selection.visiable && lastVisiable == selection.visiable) return;
-  lastVisiable = selection.visiable;
+  if (!selection.visible && lastVisible == selection.visible) return;
+  lastVisible = selection.visible;
 
-  els.selectionArea.style.visibility = selection.visiable
+  els.selectionArea.style.visibility = selection.visible
     ? "visible"
     : "hidden";
 
@@ -409,7 +410,7 @@ function visiableOrHideHandle() {
   ];
 
   for (const handle of handles) {
-    handle.style.visibility = selection.visiable ? "visible" : "hidden";
+    handle.style.visibility = selection.visible ? "visible" : "hidden";
   }
 }
 

@@ -1,4 +1,4 @@
-import { addDrawEvent, initDraw } from "./draw";
+import { addDrawEvent, tranferCanvas } from "./draw";
 import { addPositionEvent, position, setDefaultPosition } from "./position";
 import { getElements } from "./elements";
 import { addInteractionEvent } from "./interaction";
@@ -45,7 +45,7 @@ class PaintState {
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
     }
-    setBrushCursorScale(scale){
+    setBrushCursorScale(scale) {
         this.brushCursorScale = scale;
     }
 }
@@ -54,26 +54,29 @@ export const paintState = new PaintState();
 
 async function main() {
     console.log("Start App!");
+
     getElements();
 
+    // 초기 캔버스 위치 계산
     setDefaultPosition();
 
-    await initDraw();
+    await tranferCanvas();
 
+    // 뷰 바인딩
     bindView();
+
+    // 이벤트 추가
     addInteractionEvent();
-
+    addClipboardListener();
     addPositionEvent();
-
     addDrawEvent();
     addSelectionEvent();
 
-    addClipboardListener();
-
+    // 캔버스 렌더링
     position.resizeScreen();
+
+    console.log("Complete App!");
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-
-    console.log("Complete App!");
 }
