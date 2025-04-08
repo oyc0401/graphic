@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { applyKeyAction, elementStore } from "./interface";
+import { els } from "./elements";
 import { position, to_pixel_canvas_coord } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
@@ -44,7 +44,7 @@ let pointerActive = false;
 
 export async function initDraw() {
     const worker = getLayerWorker();
-    const offscreen = elementStore.canvas.transferControlToOffscreen();
+    const offscreen = els.canvas.transferControlToOffscreen();
 
     await worker.makeLayer(
         Comlink.transfer(offscreen, [offscreen]),
@@ -61,7 +61,7 @@ export function addDrawEvent() {
     let end = { x: 0, y: 0 };
 
     (function () {
-        elementStore.container.addEventListener(
+        els.container.addEventListener(
             "pointerdown",
             function (e: PointerEvent) {
                 e.preventDefault();
@@ -143,9 +143,6 @@ export function addDrawEvent() {
 
             pointerActive = false;
             endDrawing();
-
-            applyKeyAction();
-            // updateCursorShape();
         });
     })();
 
@@ -156,7 +153,7 @@ export function addDrawEvent() {
 
         let startPoint;
 
-        elementStore.container.addEventListener("pointerdown", (e) => {
+        els.container.addEventListener("pointerdown", (e) => {
             if (paintState.action != "BRUSH") return;
             if (paintState.toolId != "select") return;
             //let point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -168,12 +165,12 @@ export function addDrawEvent() {
             ey = e.clientY;
             activeSelect = true;
 
-            elementStore.zoomArea.style.visibility = "visible";
+            els.zoomArea.style.visibility = "visible";
             console.log("선택 시작");
-            elementStore.zoomArea.style.left = `${sx}px`;
-            elementStore.zoomArea.style.top = `${sy}px`;
-            elementStore.zoomArea.style.width = `0px`;
-            elementStore.zoomArea.style.height = `0px`;
+            els.zoomArea.style.left = `${sx}px`;
+            els.zoomArea.style.top = `${sy}px`;
+            els.zoomArea.style.width = `0px`;
+            els.zoomArea.style.height = `0px`;
         });
 
         window.addEventListener("pointermove", (e) => {
@@ -187,10 +184,10 @@ export function addDrawEvent() {
             let startY = sy < ey ? sy : ey;
             let zoomW = Math.abs(sx - ex);
             let zoomH = Math.abs(sy - ey);
-            elementStore.zoomArea.style.left = `${startX}px`;
-            elementStore.zoomArea.style.top = `${startY}px`;
-            elementStore.zoomArea.style.width = `${zoomW}px`;
-            elementStore.zoomArea.style.height = `${zoomH}px`;
+            els.zoomArea.style.left = `${startX}px`;
+            els.zoomArea.style.top = `${startY}px`;
+            els.zoomArea.style.width = `${zoomW}px`;
+            els.zoomArea.style.height = `${zoomH}px`;
         });
 
         window.addEventListener("pointerup", (e) => {
@@ -199,7 +196,7 @@ export function addDrawEvent() {
             if (!activeSelect) return;
             activeSelect = false;
 
-            elementStore.zoomArea.style.visibility = "hidden";
+            els.zoomArea.style.visibility = "hidden";
 
             let pointer = to_pixel_canvas_coord(sx, sy);
             let pointer2 = to_pixel_canvas_coord(ex, ey);
@@ -208,9 +205,6 @@ export function addDrawEvent() {
             let zoomW = Math.abs(pointer.x - pointer2.x);
             let zoomH = Math.abs(pointer.y - pointer2.y);
             canvasSelect(startX, startY, zoomW, zoomH);
-
-            applyKeyAction();
-            // updateCursorShape();
         });
     })();
 

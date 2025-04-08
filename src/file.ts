@@ -1,4 +1,4 @@
-import { elementStore } from "./interface";
+import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 //import { encode } from "fast-png";
 import { encode } from "@jsquash/png";
@@ -8,12 +8,12 @@ import { position } from "./position";
 
 export function addClipboardListener() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
-  elementStore.container.addEventListener("dragover", (e) => {
+  els.container.addEventListener("dragover", (e) => {
     e.preventDefault();
   });
 
   // 실제 드롭이 발생했을 때
-  elementStore.container.addEventListener("drop", async (e) => {
+  els.container.addEventListener("drop", async (e) => {
     e.preventDefault();
     const dt = e.dataTransfer;
     if (!dt || !dt.files.length) return;

@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
-import { applyKeyAction, elementStore } from "./interface";
+import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { setSelectionStyle } from "./selection";
 
@@ -16,7 +16,7 @@ export let position = {
   dpr: 1,
   bouncingRect: { x: 0, y: 0, width: 0, height: 0 },
   updateBouncingRect() {
-    this.bouncingRect = elementStore.container.getBoundingClientRect();
+    this.bouncingRect = els.container.getBoundingClientRect();
   },
   resizeScreen() {
     // console.log("resizeScreen");
@@ -68,9 +68,6 @@ export function setDefaultPosition() {
   }
   position.dpr = dpr;
   MAX_SCALE = 120 * dpr;
-
-  // position.width = 5000;
-  // position.height = 5000;
 
   // 초기 위치 설정
   position.scale = 1;
@@ -176,7 +173,7 @@ export function addPositionEvent() {
 
     let pointers = new Map(); // pointerId -> {x, y} 저장
 
-    elementStore.container.addEventListener(
+    els.container.addEventListener(
       "pointerdown",
       (event) => {
         event.preventDefault();
@@ -316,7 +313,7 @@ export function addPositionEvent() {
     let lastClientX;
     let lastClientY;
 
-    elementStore.container.addEventListener("pointerdown", (e) => {
+    els.container.addEventListener("pointerdown", (e) => {
       if (paintState.action != "PAN") return;
 
       lastClientX = e.clientX;
@@ -341,7 +338,6 @@ export function addPositionEvent() {
 
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "PAN") return;
-      applyKeyAction();
     });
   })();
 
@@ -353,7 +349,7 @@ export function addPositionEvent() {
     let ex, ey;
     let activeZoom = false;
 
-    elementStore.container.addEventListener("pointerdown", (e) => {
+    els.container.addEventListener("pointerdown", (e) => {
       if (paintState.action != "ZOOM") return;
       if (activeZoom) return;
       sx = e.clientX;
@@ -362,12 +358,12 @@ export function addPositionEvent() {
       ey = e.clientY;
       activeZoom = true;
 
-      elementStore.zoomArea.style.visibility = "visible";
+      els.zoomArea.style.visibility = "visible";
       console.log("확대");
-      elementStore.zoomArea.style.left = `${sx}px`;
-      elementStore.zoomArea.style.top = `${sy}px`;
-      elementStore.zoomArea.style.width = `0px`;
-      elementStore.zoomArea.style.height = `0px`;
+      els.zoomArea.style.left = `${sx}px`;
+      els.zoomArea.style.top = `${sy}px`;
+      els.zoomArea.style.width = `0px`;
+      els.zoomArea.style.height = `0px`;
     });
 
     window.addEventListener("pointermove", (e) => {
@@ -380,17 +376,17 @@ export function addPositionEvent() {
       let startY = sy < ey ? sy : ey;
       let zoomW = Math.abs(sx - ex);
       let zoomH = Math.abs(sy - ey);
-      elementStore.zoomArea.style.left = `${startX}px`;
-      elementStore.zoomArea.style.top = `${startY}px`;
-      elementStore.zoomArea.style.width = `${zoomW}px`;
-      elementStore.zoomArea.style.height = `${zoomH}px`;
+      els.zoomArea.style.left = `${startX}px`;
+      els.zoomArea.style.top = `${startY}px`;
+      els.zoomArea.style.width = `${zoomW}px`;
+      els.zoomArea.style.height = `${zoomH}px`;
     });
 
     window.addEventListener("pointerup", (e) => {
       if (paintState.action != "ZOOM") return;
       if (!activeZoom) return;
 
-      elementStore.zoomArea.style.visibility = "hidden";
+      els.zoomArea.style.visibility = "hidden";
       let cx = (sx + ex) / 2;
       let cy = (sy + ey) / 2;
 
@@ -437,8 +433,6 @@ export function addPositionEvent() {
       position.resizeScreen();
 
       activeZoom = false;
-
-      applyKeyAction();
     });
   })();
 }

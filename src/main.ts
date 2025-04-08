@@ -1,9 +1,11 @@
 import { addDrawEvent, initDraw } from "./draw";
 import { addPositionEvent, position, setDefaultPosition } from "./position";
-import { addInteractionEvent, getElements } from "./interface";
+import { getElements } from "./elements";
+import { addInteractionEvent } from "./interaction";
 import { addSelectionEvent } from "./selection";
 import { addClipboardListener } from "./file";
 import { makeAutoObservable } from "mobx";
+import { bindView } from "./view";
 window.onload = main;
 
 class PaintState {
@@ -58,6 +60,7 @@ async function main() {
 
     await initDraw();
 
+    bindView();
     addInteractionEvent();
 
     addPositionEvent();

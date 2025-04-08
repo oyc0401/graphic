@@ -1,5 +1,5 @@
 import { paintState } from "./main";
-import { applyKeyAction, elementStore } from "./interface";
+import { els } from "./elements";
 import { getPixelRatio, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
@@ -23,7 +23,7 @@ let beforeSelectionPos = {
 export function addSelectionEvent() {
   let selectionDragPointer = { x: 0, y: 0 };
   (function () {
-    elementStore.selectionArea.addEventListener(
+    els.selectionArea.addEventListener(
       "pointerdown",
       function (e: PointerEvent) {
         e.preventDefault();
@@ -81,8 +81,6 @@ export function addSelectionEvent() {
       };
 
       selection.active = false;
-      applyKeyAction();
-      //updateCursorShape();
     });
   })();
 
@@ -184,14 +182,14 @@ export function setSelectionStyle() {
   if (!selection.visiable && lastVisiable == selection.visiable) return;
   lastVisiable = selection.visiable;
 
-  elementStore.selectionArea.style.visibility = selection.visiable
+  els.selectionArea.style.visibility = selection.visiable
     ? "visible"
     : "hidden";
 
-  elementStore.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
-  elementStore.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
-  elementStore.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
-  elementStore.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
+  els.selectionArea.style.left = `${(selection.x / getPixelRatio() + position.x) * position.scale}px`;
+  els.selectionArea.style.top = `${(selection.y / getPixelRatio() + position.y) * position.scale}px`;
+  els.selectionArea.style.width = `${(selection.width * position.scale) / getPixelRatio()}px`;
+  els.selectionArea.style.height = `${(selection.height * position.scale) / getPixelRatio()}px`;
 
   setHandlePosition();
 }
