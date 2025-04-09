@@ -90,6 +90,7 @@ function hexToRgb(hex) {
 
 export function addInteractionEvent() {
     addClickEventListener();
+    addKeyActionChangeEventListener();
 
     // 슬라이더 이벤트
     (function () {
@@ -181,8 +182,7 @@ export function addInteractionEvent() {
         );
     })();
 
-    addKeyActionChangeEvent();
-
+    //
     window.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
@@ -203,7 +203,7 @@ function applyKeyAction() {
     }
 }
 
-function addKeyActionChangeEvent() {
+function addKeyActionChangeEventListener() {
     // 이건 다른 pointerup이 모두 실행 된 이후.
     window.addEventListener("pointerup", (e) => {
         e.preventDefault();

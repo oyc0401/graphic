@@ -54,12 +54,11 @@ export class PositionState {
 export const position = new PositionState();
 
 export function updateBouncingRect() {
+  console.log('updateBouncingRect')
   position.bouncingRect = els.container.getBoundingClientRect();
 }
 
-export function resizeScreen() {
-  updateBouncingRect();
-
+export async function resizeScreen() {
   const minW = -position.width;
   const maxW = position.bouncingRect.width / position.scale;
   const clampX = Math.min(maxW, Math.max(minW, position.x));
@@ -74,7 +73,7 @@ export function resizeScreen() {
   const worker = getLayerWorker();
   const pxRatio = getPixelRatio();
 
-  worker.render(
+  await worker.render(
     position.width,
     position.height,
     position.bouncingRect.width * pxRatio,
@@ -118,10 +117,6 @@ export function setDefaultPosition() {
 }
 
 export function addPositionEvent() {
-  window.addEventListener("resize", function () {
-    resizeScreen();
-  });
-
   addWheelListener();
 
   addPinchListener();

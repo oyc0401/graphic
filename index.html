@@ -17,104 +17,107 @@
     <link href="/style.css" rel="stylesheet" />
   </head>
   <body class="body">
-    <div id="header">
-      <button id="menu-button" class="header-button">
-        <div id="menu-icon"></div>
-      </button>
-      <div class="flex-1"></div>
-      <button id="undo-button" class="header-button">
-        <div id="undo-icon"></div>
-      </button>
-      <button id="redo-button" class="header-button">
-        <div id="redo-icon"></div>
-      </button>
-    </div>
-    <div id="menu-bar">
-      <button id="select-selection" class="select-button">
-        <div id="selection-icon" class="button-icon"></div>
-        <p>선택</p>
-      </button>
-      <div class="div-bar"></div>
-      <div class="mini-buttons">
-        <button id="select-liquify" class="select-mini">
-          <div id="liquify-icon" class="button-icon"></div>
+    <div id=appbar>
+      <div id="header">
+        <button id="menu-button" class="header-button">
+          <div id="menu-icon"></div>
         </button>
-        <button class="select-mini"></button>
-      </div>
-      <div class="div-bar"></div>
-      <button id="select-brush" class="select-button">
-        <div id="brush-icon" class="button-icon"></div>
-        <p>브러시</p>
-      </button>
-      <button id="select-eraser" class="select-button">
-        <div id="eraser-icon" class="button-icon"></div>
-        <p>지우개</p>
-      </button>
-      <div class="div-bar"></div>
-      <div class="brush-control-group">
-        <div class="brush-control">
-          <p class="label">크기</p>
-          <p id="size-value" class="value">5px</p>
-          <div class="slider-area">
-            <input
-              type="range"
-              id="size-slider"
-              value="5"
-              min="0"
-              max="500"
-              class="slider"
-            />
-          </div>
-        </div>
-        <div class="brush-control">
-          <p class="label">투명도</p>
-          <p id="opacity-value" class="value">100%</p>
-          <div class="slider-area">
-            <input
-              type="range"
-              id="opacity-slider"
-              value="100"
-              min="0"
-              max="100"
-              class="slider"
-            />
-          </div>
-        </div>
-      </div>
-      <div class="div-bar"></div>
-      <div class="flex flex-row justify-center items-center">
-        <div id="color-box">
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-          <div class="select-color">
-            <div class="circle-shape"></div>
-          </div>
-        </div>
-        <button id="choose-color" class="select-button">
-          <div id="color-icon" class="button-icon"></div>
-          <p>색</p>
+        <div class="flex-1"></div>
+        <button id="undo-button" class="header-button">
+          <div id="undo-icon"></div>
+        </button>
+        <button id="redo-button" class="header-button">
+          <div id="redo-icon"></div>
         </button>
       </div>
+      <div id="menu-bar">
+        <button id="select-selection" class="select-button">
+          <div id="selection-icon" class="button-icon"></div>
+          <p>선택</p>
+        </button>
+        <div class="div-bar"></div>
+        <div class="mini-buttons">
+          <button id="select-liquify" class="select-mini">
+            <div id="liquify-icon" class="button-icon"></div>
+          </button>
+          <button class="select-mini"></button>
+        </div>
+        <div class="div-bar"></div>
+        <button id="select-brush" class="select-button">
+          <div id="brush-icon" class="button-icon"></div>
+          <p>브러시</p>
+        </button>
+        <button id="select-eraser" class="select-button">
+          <div id="eraser-icon" class="button-icon"></div>
+          <p>지우개</p>
+        </button>
+        <div class="div-bar"></div>
+        <div class="brush-control-group">
+          <div class="brush-control">
+            <p class="label">크기</p>
+            <p id="size-value" class="value">5px</p>
+            <div class="slider-area">
+              <input
+                type="range"
+                id="size-slider"
+                value="5"
+                min="0"
+                max="500"
+                class="slider"
+              />
+            </div>
+          </div>
+          <div class="brush-control">
+            <p class="label">투명도</p>
+            <p id="opacity-value" class="value">100%</p>
+            <div class="slider-area">
+              <input
+                type="range"
+                id="opacity-slider"
+                value="100"
+                min="0"
+                max="100"
+                class="slider"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="div-bar"></div>
+        <div class="flex flex-row justify-center items-center">
+          <div id="color-box">
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+            <div class="select-color">
+              <div class="circle-shape"></div>
+            </div>
+          </div>
+          <button id="choose-color" class="select-button">
+            <div id="color-icon" class="button-icon"></div>
+            <p>색</p>
+          </button>
+        </div>
+      </div>
     </div>
+    
     <div id="header-space"></div>
     <div id="container">
       <div id="layer-area">

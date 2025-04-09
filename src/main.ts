@@ -4,8 +4,9 @@ import {
     position,
     resizeScreen,
     setDefaultPosition,
+    updateBouncingRect,
 } from "./position";
-import { getElements } from "./elements";
+import { els, getElements } from "./elements";
 import { addInteractionEvent } from "./interaction";
 import { addSelectionEvent } from "./selection";
 import { addClipboardEvent } from "./file";
@@ -78,6 +79,7 @@ async function main() {
     console.log("Start App!");
 
     getElements();
+    setContainerWidth();
 
     // 초기 캔버스 위치 계산
     setDefaultPosition();
@@ -98,11 +100,36 @@ async function main() {
 
     // 캔버스 업로드
     await tranferCanvas();
-    // 캔버스 렌더링
-    resizeScreen();
 
     console.log("Complete App!");
 
     globalThis.position = position;
     globalThis.paintState = paintState;
+
+    // 캔버스 렌더링
+    resizeScreen();
+    window.addEventListener("resize", async function () {
+        debounce(async () => {
+            console.log("debounce");
+            updateBouncingRect();
+            setContainerWidth();
+            await resizeScreen(); // worker에 있는 webgl에 드로우콜 날림
+        }, 100);
+    });
+}
+
+function setContainerWidth() {
+    const hiddenAppbar = document.getElementById("header-space");
+    const appbar = document.getElementById("appbar");
+    if (hiddenAppbar && appbar) {
+        hiddenAppbar.style.height = appbar.offsetHeight + "px";
+    }
+}
+
+let timer;
+function debounce(func, delay) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+        func();
+    }, delay);
 }

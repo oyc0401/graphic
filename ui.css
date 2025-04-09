@@ -1,11 +1,16 @@
-#header {
+#appbar {
+  position: absolute;
   z-index: 100000;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+}
+
+#header {
   height: 44px;
   width: 100%;
   background: #F5F5F5;
-  position: absolute;
-  top: 0px;
-  left: 0px;
+
   display: flex;
   flex-direction: row;
   justify-content: start;
@@ -21,25 +26,21 @@
 
 #menu-bar {
   display: flex;
-   flex-wrap: wrap; /* ← 이거 추가! */
+  flex-wrap: wrap;
+  /* ← 이거 추가! */
   flex-direction: row;
   justify-content: start;
   align-items: center;
-  z-index: 100000;
   padding-top: 4px;
   padding-bottom: 4px;
   width: 100%;
   background: #FFFFFF;
-  position: absolute;
-  top: 44px;
-  left: 0px;
   padding-left: 8px;
   gap: 8px;
   border-bottom: 1px #E2E2E2 solid;
 }
 
 #header-space {
-  height: 133px;
   width: 100%;
 }
 

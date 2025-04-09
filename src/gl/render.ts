@@ -375,7 +375,7 @@ function makeRenderingManager(canvas, gl) {
   }
 
   function render() {
-    console.log("render");
+   // console.log("render");
 
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
@@ -403,7 +403,11 @@ function makeRenderingManager(canvas, gl) {
 
     gl.flush();
 
-    // 오프스크린을 null 프레임버퍼로 blit, 더블버퍼링을 구현하기 위해.
+    if (resizeFlag) {
+      canvas.width = paintOptions.screenWidth;
+      canvas.height = paintOptions.screenHeight;
+    }
+
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
@@ -419,6 +423,8 @@ function makeRenderingManager(canvas, gl) {
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
+    
+    console.log('render complete!')
   }
 
   return {
@@ -483,6 +489,7 @@ function createOffscreenManager(canvas, gl) {
   };
 }
 
+let resizeFlag = false;
 /**
  * 크기가 바뀌면 바꾸고 안바뀌면 렌더링만 함
  */
@@ -508,8 +515,8 @@ export async function resizeScreen(
   ) {
     console.log("전체 화면 크기가 변함!");
     // canvas Element의 크기를 변경
-    canvas.width = screenWidth;
-    canvas.height = screenHeight;
+
+    resizeFlag = true;
 
     offscreenManager.resize(screenWidth, screenHeight);
   }
