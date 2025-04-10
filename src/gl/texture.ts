@@ -11,9 +11,9 @@ export const TEXTURE_UNIT = {
   SOURCE_DISPLACEMENT: 6, // 변위맵 이전 상태 저장 용
   EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
   EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
-  SOURCE_SELECTION: 9,
-  RENDERED_SELECTION: 10,
-  OFFSCREEN: 11,
+  SOURCE_SELECTION: 9, // 선택창 확대/축소시 대상으로 사용할 텍스쳐
+  RENDERED_SELECTION: 10, // 선택창 확대/축소, copy시 그릴 버퍼
+  OFFSCREEN: 11, // 렌더링 전 미리 그릴 버퍼
 };
 
 export let paintOptions = {

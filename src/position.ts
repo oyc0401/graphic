@@ -4,7 +4,7 @@ import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
 
-const MIN_SCALE = 0.1;
+const MIN_SCALE = 0.25;
 let MAX_SCALE = 0;
 
 export class PositionState {
