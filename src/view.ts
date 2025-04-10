@@ -10,7 +10,6 @@ export function bindView() {
     bindColorUI();
     bindCursorUI();
     bindSelectionUI();
-    
 }
 
 function bindToolButtonUI() {
@@ -110,11 +109,11 @@ function bindSelectionUI() {
         const visible = selection.visible;
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
 
-        const px = getPixelRatio();
-        const scaledLeft = (selection.x / px + position.x) * position.scale;
-        const scaledTop = (selection.y / px + position.y) * position.scale;
-        const scaledWidth = (selection.width * position.scale) / px;
-        const scaledHeight = (selection.height * position.scale) / px;
+        const dpr = getPixelRatio();
+        const scaledLeft = (selection.x / dpr + position.x) * position.scale;
+        const scaledTop = (selection.y / dpr + position.y) * position.scale;
+        const scaledWidth = (selection.width * position.scale) / dpr;
+        const scaledHeight = (selection.height * position.scale) / dpr;
 
         if (visible) {
             els.selectionArea.style.left = `${scaledLeft}px`;
@@ -127,11 +126,11 @@ function bindSelectionUI() {
     // 2) 핸들 위치 및 표시
     autorun(() => {
         const visible = selection.visible;
-        const px = getPixelRatio();
-        const sLeft = (selection.x / px + position.x) * position.scale;
-        const sTop = (selection.y / px + position.y) * position.scale;
-        const sWidth = (selection.width * position.scale) / px;
-        const sHeight = (selection.height * position.scale) / px;
+        const dpr = getPixelRatio();
+        const sLeft = (selection.x / dpr + position.x) * position.scale;
+        const sTop = (selection.y / dpr + position.y) * position.scale;
+        const sWidth = (selection.width * position.scale) / dpr;
+        const sHeight = (selection.height * position.scale) / dpr;
 
         // 핸들 표시/숨김
         const handles = [

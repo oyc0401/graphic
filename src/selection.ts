@@ -64,6 +64,7 @@ export function addSelectionEvent() {
   addSelectionDragEventListener();
   addHandleEventListener();
 }
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 function addSelectionDragEventListener() {
   let selectionDragPointer = { x: 0, y: 0 };
@@ -102,6 +103,7 @@ function addSelectionDragEventListener() {
       let newSelectionY = point.y - selectionDragPointer.y;
 
       selection.setPosition(newSelectionX, newSelectionY);
+
       worker.moveSelection(
         selection.x,
         selection.y,
@@ -214,48 +216,44 @@ function addHandleEventListener() {
       newHeight = point.y - startPoint.y + 1;
     }
 
-    selection.setX(newX);
-    selection.setY(newY);
-    selection.setWidth(
-      Math.min(Math.max(1, Math.abs(newWidth)), position.width),
-    );
-    selection.setHeight(
-      Math.min(Math.max(1, Math.abs(newHeight)), position.height),
-    );
-
     if (e.shiftKey) {
       const ratio = startWidth / startHeight;
-      const currentRatio = selection.width / selection.height;
+      const currentRatio = newWidth / newHeight;
 
       if (activeHandle === els.handleL || activeHandle === els.handleR) {
-        selection.setHeight(Math.floor(selection.width / ratio));
+        newHeight = Math.floor(newWidth / ratio);
       } else if (activeHandle === els.handleT || activeHandle === els.handleB) {
-        selection.setWidth(Math.floor(selection.height * ratio));
+        newWidth = Math.floor(newHeight * ratio);
       } else {
         if (currentRatio < ratio) {
-          selection.setWidth(Math.floor(selection.height * ratio));
+          newWidth = Math.floor(newHeight * ratio);
         } else {
-          selection.setHeight(Math.floor(selection.width / ratio));
+          newHeight = Math.floor(newWidth / ratio);
         }
       }
 
       if (activeHandle === els.handleLT) {
-        selection.setX(startLeft + startWidth - selection.width);
-        selection.setY(startTop + startHeight - selection.height);
+        newX = startLeft + startWidth - newWidth;
+        newY = startTop + startHeight - newHeight;
       }
       if (activeHandle === els.handleRT) {
-        selection.setY(startTop + startHeight - selection.height);
+        newY = startTop + startHeight - newHeight;
       }
       if (activeHandle === els.handleLB) {
-        selection.setX(startLeft + startWidth - selection.width);
+        newX = startLeft + startWidth - newWidth;
       }
       if (activeHandle === els.handleL) {
-        selection.setX(startLeft + startWidth - selection.width);
+        newX = startLeft + startWidth - newWidth;
       }
       if (activeHandle === els.handleT) {
-        selection.setY(startTop + startHeight - selection.height);
+        newY = startTop + startHeight - newHeight;
       }
     }
+
+    selection.setX(newX);
+    selection.setY(newY);
+    selection.setWidth(newWidth);
+    selection.setHeight(newHeight);
 
     worker.moveSelection(
       selection.x,
