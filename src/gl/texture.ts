@@ -13,7 +13,7 @@ export const TEXTURE_UNIT = {
   EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
   SOURCE_SELECTION: 9,
   RENDERED_SELECTION: 10,
-  OFFSCREEN:11,
+  OFFSCREEN: 11,
 };
 
 export let paintOptions = {
@@ -31,7 +31,7 @@ export let paintOptions = {
   screenHeight: 800,
 
   showSelection: false,
-  selectionAntialias:true,
+  selectionAntialias: true,
 
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;
@@ -150,5 +150,3 @@ function makeSourceTextureManager(canvas, gl) {
 
   return sourceTextureManager;
 }
-
-

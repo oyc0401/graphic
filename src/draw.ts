@@ -156,18 +156,17 @@ export function addDrawEvent() {
         let ex, ey;
         let activeSelect = false;
 
-        let startPoint;
-
         els.container.addEventListener("pointerdown", (e) => {
             if (paintState.action != "BRUSH") return;
             if (paintState.toolId != "select") return;
-            //let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+            let point = to_pixel_canvas_coord(e.clientX, e.clientY);
             // startPoint = point;
+            console.log(point)
 
             sx = e.clientX;
             sy = e.clientY;
-            ex = e.clientX;
-            ey = e.clientY;
+            ex = e.clientX+1;
+            ey = e.clientY+1;
             activeSelect = true;
 
             els.zoomArea.style.visibility = "visible";
@@ -214,18 +213,6 @@ export function addDrawEvent() {
             canvasSelect(startX, startY, zoomW, zoomH);
         });
     })();
-
-    globalThis.drawLine = () => {
-        let brushSize = paintState.getBrushSize();
-        let brushAlpha = paintState.getBrushAlpha();
-        const worker = getLayerWorker();
-        worker.setStrokeColor(10, 10, 0);
-        worker.setStrokeSize(brushSize);
-        worker.setAlpha(brushAlpha);
-
-        worker.start({ x: 50, y: 50 });
-        worker.strokeTo({ x: 630.2, y: 300 });
-    };
 }
 
 /**

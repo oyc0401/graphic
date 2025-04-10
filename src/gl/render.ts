@@ -303,7 +303,7 @@ function makeRenderingManager(canvas, gl) {
       } 
 
       // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 8192텍스쳐 기준으로 잡으면
-      vec2 newLocal = local * size / 8192.0;
+      vec2 newLocal = local * size / 4096.0;
       vec4 imageColor = texture(u_selection, newLocal);
       outColor = vec4(imageColor.rgb, imageColor.a);
     }
