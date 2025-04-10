@@ -44,8 +44,8 @@ function createSelectionManager(canvas, gl) {
     gl.TEXTURE_2D,
     0,
     gl.RGBA,
-    8192,
-    8192,
+    4096,
+    4096,
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
@@ -100,7 +100,7 @@ function createSelectionManager(canvas, gl) {
         // 화면이 엄청 크면 걍 근사로
         selectionColor = texture(u_selection_source, local);    // 프리
       } else {
-        vec2 newLocal = local * size / 8192.0;
+        vec2 newLocal = local * size / 4096.0;
         selectionColor = texture(u_selection, newLocal);    // 프리
       }
       
