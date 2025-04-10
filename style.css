@@ -98,18 +98,25 @@ canvas {
 
 
 #zoom-area {
-  background: rgba(0, 0, 0, 0.1);
+  /* background: rgba(0, 0, 0, 0.1); */
+  border: 2px dashed rgba(255,255,255,0.5);
   position: absolute;
   z-index: 3000;
+  box-sizing: border-box;
+  touch-action: none;
+  pointer-events: none;
+  mix-blend-mode: difference;
 }
 
 #selection-area {
-  border: 2px dashed rgba(0, 0, 0, 0.1);
+  border: 2px dashed rgba(255,255,255,0.5);
   position: absolute;
   z-index: 2900;
   box-sizing: border-box;
   /* 보더를 포함한 크기 계산 */
   cursor: move;
+  mix-blend-mode: difference;
+
 }
 
 .handle {

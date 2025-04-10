@@ -54,7 +54,7 @@ export class PositionState {
 export const position = new PositionState();
 
 export function updateBouncingRect() {
-  console.log('updateBouncingRect')
+  console.log("updateBouncingRect");
   position.bouncingRect = els.container.getBoundingClientRect();
 }
 
@@ -460,8 +460,8 @@ function addZoomListener() {
 
         let dx = cx - centerX;
         let dy = cy - centerY - topMargin / minScale;
-        position.x -= dx / position.scale;
-        position.y -= dy / position.scale;
+        position.setX(position.x - dx / position.scale);
+        position.setY(position.y - dy / position.scale);
 
         let new_mag = position.scale * minScale;
 
@@ -518,16 +518,24 @@ export function to_canvas_coord(x, y) {
   return { x: px, y: py };
 }
 
-export function to_pixel_canvas_coord(x, y) {
-  let point = to_canvas_coord(x, y);
-  return to_pixel_coord(point);
+function to_world_coord(screenX, screenY) {
+  let worldX =
+    (screenX + position.x) * position.scale + position.bouncingRect.x;
+  let worldY =
+    (screenY + position.y) * position.scale + position.bouncingRect.y;
+  return { x: worldX, y: worldY };
+}
+// 캔버스 픽셀 좌표 → 스크린 좌표로 역변환 함수
+function canvas_coord_to_screen_coord(canvasX, canvasY) {
+  let px = canvasX / getPixelRatio();
+  let py = canvasY / getPixelRatio();
+  return { x: px, y: py };
 }
 
-function to_pixel_coord({ x, y }) {
-  return {
-    x: Math.floor(x),
-    y: Math.floor(y),
-  };
+export function canvas_coord_to_css_coord({ x, y }) {
+  const screen = canvas_coord_to_screen_coord(x, y);
+  const world = to_world_coord(screen.x, screen.y);
+  return world;
 }
 
 // 스크롤시의 좌표로 변환.
@@ -535,6 +543,21 @@ export function to_screen_coord(x, y) {
   let px = (x - position.bouncingRect.x) / position.scale - position.x;
   let py = (y - position.bouncingRect.y) / position.scale - position.y;
   return { x: px, y: py };
+}
+
+export function to_pixel_canvas_coord(x, y) {
+  let point = to_canvas_coord(x, y);
+  return {
+    x: Math.floor(point.x),
+    y: Math.floor(point.y),
+  };
+}
+export function to_pixel_canvas_coord_round(x, y) {
+  let point = to_canvas_coord(x, y);
+  return {
+    x: Math.round(point.x),
+    y: Math.round(point.y),
+  };
 }
 
 async function changeSize(number = 300) {

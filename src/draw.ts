@@ -1,6 +1,10 @@
 import { paintState } from "./main";
 import { els } from "./elements";
-import { position, to_pixel_canvas_coord } from "./position";
+import {
+    canvas_coord_to_css_coord,
+    position,
+    to_pixel_canvas_coord,
+} from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
@@ -9,7 +13,7 @@ import { applySelection, canvasSelect, selectionCancel } from "./selection";
 export const toolManager = {
     setBrushTool() {
         paintState.setToolId("brush");
-        
+
         const worker = getLayerWorker();
         applySelection();
         worker.setTool(paintState.toolId);
@@ -151,30 +155,39 @@ export function addDrawEvent() {
         });
     })();
 
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
     (function () {
-        let sx, sy;
-        let ex, ey;
+        let startPoint;
+        let endPoint;
+
+        let sp, ep;
+
         let activeSelect = false;
 
         els.container.addEventListener("pointerdown", (e) => {
             if (paintState.action != "BRUSH") return;
             if (paintState.toolId != "select") return;
             let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-            // startPoint = point;
-            console.log(point)
 
-            sx = e.clientX;
-            sy = e.clientY;
-            ex = e.clientX+1;
-            ey = e.clientY+1;
+            let px = clamp(point.x, 0, position.width);
+            let py = clamp(point.y, 0, position.height);
+            startPoint = { x: px, y: py };
+            endPoint = { x: px, y: py };
+
+            sp = {
+                x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
+                y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
+            };
+
+            ep = {
+                x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
+                y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
+            };
+
             activeSelect = true;
 
-            els.zoomArea.style.visibility = "visible";
             console.log("선택 시작");
-            els.zoomArea.style.left = `${sx}px`;
-            els.zoomArea.style.top = `${sy}px`;
-            els.zoomArea.style.width = `0px`;
-            els.zoomArea.style.height = `0px`;
         });
 
         window.addEventListener("pointermove", (e) => {
@@ -183,13 +196,31 @@ export function addDrawEvent() {
             if (!paintState.pointerdown) return;
             if (!activeSelect) return;
 
-            ex = e.clientX;
-            ey = e.clientY;
+            let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
-            let startX = sx < ex ? sx : ex;
-            let startY = sy < ey ? sy : ey;
-            let zoomW = Math.abs(sx - ex);
-            let zoomH = Math.abs(sy - ey);
+            let px = clamp(point.x, 0, position.width);
+            let py = clamp(point.y, 0, position.height);
+            endPoint = { x: px, y: py };
+
+            sp = {
+                x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
+                y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
+            };
+
+            ep = {
+                x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
+                y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
+            };
+
+            let startCss = canvas_coord_to_css_coord(sp);
+            let endCss = canvas_coord_to_css_coord(ep);
+
+            let startX = Math.min(startCss.x, endCss.x);
+            let startY = Math.min(startCss.y, endCss.y);
+            let zoomW = Math.abs(startCss.x - endCss.x);
+            let zoomH = Math.abs(startCss.y - endCss.y);
+
+            els.zoomArea.style.visibility = "visible";
             els.zoomArea.style.left = `${startX}px`;
             els.zoomArea.style.top = `${startY}px`;
             els.zoomArea.style.width = `${zoomW}px`;
@@ -204,12 +235,15 @@ export function addDrawEvent() {
 
             els.zoomArea.style.visibility = "hidden";
 
-            let pointer = to_pixel_canvas_coord(sx, sy);
-            let pointer2 = to_pixel_canvas_coord(ex, ey);
-            let startX = pointer.x < pointer2.x ? pointer.x : pointer2.x;
-            let startY = pointer.y < pointer2.y ? pointer.y : pointer2.y;
-            let zoomW = Math.abs(pointer.x - pointer2.x);
-            let zoomH = Math.abs(pointer.y - pointer2.y);
+            let startX = Math.min(sp.x, ep.x);
+            let startY = Math.min(sp.y, ep.y);
+            let zoomW = Math.abs(sp.x - ep.x);
+            let zoomH = Math.abs(sp.y - ep.y);
+
+            if (zoomH == 0 || zoomW == 0) {
+                console.error("선택창이 0이 나올 수 없는데?");
+                return;
+            }
             canvasSelect(startX, startY, zoomW, zoomH);
         });
     })();

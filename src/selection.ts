@@ -1,6 +1,10 @@
 import { paintState } from "./main";
 import { els } from "./elements";
-import {  position, to_pixel_canvas_coord } from "./position";
+import {
+  position,
+  to_pixel_canvas_coord,
+  to_pixel_canvas_coord_round,
+} from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
@@ -128,15 +132,14 @@ let activeHandle: HTMLElement | null = null;
 function addHandleEventListener() {
   let worker = getLayerWorker();
 
-  // 드래그 시작 시점의 마우스 위치
-  let startX = 0;
-  let startY = 0;
-
   // 드래그 시작 시점의 selection 상태
   let startLeft = 0; // selection.x
   let startTop = 0; // selection.y
   let startWidth = 0; // selection.width
   let startHeight = 0; // selection.height
+
+  let startPoint;
+  let endPoint;
 
   // 핸들 MOUSEDOWN 이벤트 핸들러
   function onMouseDown(e: MouseEvent, handle: HTMLElement) {
@@ -146,10 +149,13 @@ function addHandleEventListener() {
 
     activeHandle = handle;
 
-    let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-    // 마우스 시작 좌표 기록
-    startX = point.x;
-    startY = point.y;
+    startPoint = { x: selection.x, y: selection.y };
+    endPoint = {
+      x: selection.x + selection.width - 1,
+      y: selection.y + selection.height - 1,
+    };
+
+    console.log("start:", startPoint, endPoint);
 
     // selection의 초기 상태 기록
     startLeft = selection.x;
@@ -165,120 +171,89 @@ function addHandleEventListener() {
     if (!activeHandle) return;
 
     let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+    console.log("move:", point);
 
-    // 마우스가 얼마나 이동했는지
-    const dx = point.x - startX;
-    const dy = point.y - startY;
+    // 시작과 끝을 보고, 어떤 핸들인 지 보고 최종 결과 계산.
+    let newX = startLeft;
+    let newY = startTop;
+    let newWidth = startWidth;
+    let newHeight = startHeight;
 
-    // TODO: 나중에 정리하자~~
-
-    // 어떤 핸들을 드래그 중인지에 따라 selection 갱신
+    if (activeHandle === els.handleRB) {
+      newWidth = point.x - startPoint.x + 1;
+      newHeight = point.y - startPoint.y + 1;
+    }
+    if (activeHandle === els.handleLT) {
+      newX = startLeft - (startPoint.x - point.x);
+      newY = startTop - (startPoint.y - point.y);
+      newWidth = endPoint.x - point.x + 1;
+      newHeight = endPoint.y - point.y + 1;
+    }
+    if (activeHandle === els.handleRT) {
+      newY = startTop - (startPoint.y - point.y);
+      newWidth = point.x - startPoint.x + 1;
+      newHeight = endPoint.y - point.y + 1;
+    }
+    if (activeHandle === els.handleLB) {
+      newX = startLeft - (startPoint.x - point.x);
+      newWidth = endPoint.x - point.x + 1;
+      newHeight = point.y - startPoint.y + 1;
+    }
+    if (activeHandle === els.handleL) {
+      newX = startLeft - (startPoint.x - point.x);
+      newWidth = endPoint.x - point.x + 1;
+    }
     if (activeHandle === els.handleR) {
-      // 오른쪽 중앙: 폭만 늘어남
-      selection.setWidth(Math.max(0, startWidth + dx));
-    } else if (activeHandle === els.handleL) {
-      // 왼쪽 중앙: x와 width가 반대 방향으로 조정
-      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
-      selection.setWidth(Math.max(0, startWidth - dx));
-    } else if (activeHandle === els.handleT) {
-      // 위 중앙: y와 height
-      selection.setY(Math.min(startTop + startHeight, startTop + dy));
-      selection.setHeight(Math.max(0, startHeight - dy));
-    } else if (activeHandle === els.handleB) {
-      // 아래 중앙: 높이만 늘어남
-      selection.setHeight(Math.max(0, startHeight + dy));
-    } else if (activeHandle === els.handleLT) {
-      // 왼쪽 위 모서리: x, width, y, height 모두 영향
-      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
-      selection.setWidth(Math.max(0, startWidth - dx));
-      selection.setY(Math.min(startTop + startHeight, startTop + dy));
-      selection.setHeight(Math.max(0, startHeight - dy));
+      newWidth = point.x - startPoint.x + 1;
+    }
+    if (activeHandle === els.handleT) {
+      newY = startTop - (startPoint.y - point.y);
+      newHeight = endPoint.y - point.y + 1;
+    }
+    if (activeHandle === els.handleB) {
+      newHeight = point.y - startPoint.y + 1;
+    }
 
-      // SHIFT + 비율 고정
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        // 현재 비율과 비교 후 보정
-        const currentRatio = selection.width / selection.height;
+    selection.setX(newX);
+    selection.setY(newY);
+    selection.setWidth(
+      Math.min(Math.max(1, Math.abs(newWidth)), position.width),
+    );
+    selection.setHeight(
+      Math.min(Math.max(1, Math.abs(newHeight)), position.height),
+    );
+
+    if (e.shiftKey) {
+      const ratio = startWidth / startHeight;
+      const currentRatio = selection.width / selection.height;
+
+      if (activeHandle === els.handleL || activeHandle === els.handleR) {
+        selection.setHeight(Math.floor(selection.width / ratio));
+      } else if (activeHandle === els.handleT || activeHandle === els.handleB) {
+        selection.setWidth(Math.floor(selection.height * ratio));
+      } else {
         if (currentRatio < ratio) {
-          selection.setWidth(selection.height * ratio);
+          selection.setWidth(Math.floor(selection.height * ratio));
         } else {
-          selection.setHeight(selection.width / ratio);
+          selection.setHeight(Math.floor(selection.width / ratio));
         }
-        // '오른쪽 아래' 모서리를 고정하려면:
+      }
+
+      if (activeHandle === els.handleLT) {
         selection.setX(startLeft + startWidth - selection.width);
         selection.setY(startTop + startHeight - selection.height);
       }
-    } else if (activeHandle === els.handleRT) {
-      // 오른쪽 위 모서리: width, y, height
-      selection.setWidth(Math.max(0, startWidth + dx));
-      selection.setY(Math.min(startTop + startHeight, startTop + dy));
-      selection.setHeight(Math.max(0, startHeight - dy));
-
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        const currentRatio = selection.width / selection.height;
-        if (currentRatio < ratio) {
-          selection.setWidth(selection.height * ratio);
-        } else {
-          selection.setHeight(selection.width / ratio);
-        }
-        // '왼쪽 아래' 모서리를 고정
-        selection.setX(startLeft);
+      if (activeHandle === els.handleRT) {
         selection.setY(startTop + startHeight - selection.height);
       }
-    } else if (activeHandle === els.handleRB) {
-      // 오른쪽 아래 모서리: width, height
-      selection.setWidth(Math.max(0, startWidth + dx));
-      selection.setHeight(Math.max(0, startHeight + dy));
-
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        const currentRatio = selection.width / selection.height;
-        if (currentRatio < ratio) {
-          selection.setWidth(selection.height * ratio);
-        } else {
-          selection.setHeight(selection.width / ratio);
-        }
-        // '왼쪽 위' 모서리 고정
-        selection.setX(startLeft);
-        selection.setY(startTop);
-      }
-    } else if (activeHandle === els.handleLB) {
-      // 왼쪽 아래 모서리: x, width, height
-      selection.setX(Math.min(startLeft + startWidth, startLeft + dx));
-      selection.setWidth(Math.max(0, startWidth - dx));
-      selection.setHeight(Math.max(0, startHeight + dy));
-
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        const currentRatio = selection.width / selection.height;
-        if (currentRatio < ratio) {
-          selection.setWidth(selection.height * ratio);
-        } else {
-          selection.setHeight(selection.width / ratio);
-        }
-        // '오른쪽 위' 모서리를 고정
+      if (activeHandle === els.handleLB) {
         selection.setX(startLeft + startWidth - selection.width);
-        selection.setY(startTop);
       }
-    }
-
-    // 쉬프트 시 비율 고정
-    if (activeHandle === els.handleT || activeHandle === els.handleB) {
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        selection.setWidth(selection.height * ratio);
-      } else {
-        selection.setWidth(startWidth);
+      if (activeHandle === els.handleL) {
+        selection.setX(startLeft + startWidth - selection.width);
       }
-    }
-
-    if (activeHandle === els.handleL || activeHandle === els.handleR) {
-      if (e.shiftKey && startWidth !== 0 && startHeight !== 0) {
-        const ratio = startWidth / startHeight;
-        selection.setHeight(selection.width / ratio);
-      } else {
-        selection.setHeight(startHeight);
+      if (activeHandle === els.handleT) {
+        selection.setY(startTop + startHeight - selection.height);
       }
     }
 
@@ -295,6 +270,7 @@ function addHandleEventListener() {
     if (paintState.action != "BRUSH") return;
     if (!activeHandle) return;
 
+    console.log(endPoint);
     activeHandle = null;
 
     beforeSelectionPos = {
