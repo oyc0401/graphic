@@ -1,13 +1,33 @@
-
 import { paintOptions } from "../gl/texture";
 import { PaintService } from "./paintService";
 
 let paint: PaintService;
 
 export const workerApi = {
-  async makeLayer(main_canvas: OffscreenCanvas, dpr) {
-    paint = new PaintService(main_canvas);
+  async makeLayer(
+    main_canvas: OffscreenCanvas,
+    screenWidth: number,
+    screenHeight: number,
+    dpr: number,
+    width: number,
+    height: number,
+    x: number,
+    y: number,
+    scale: number,
+  ) {
+    paintOptions.screenWidth = screenWidth;
+    paintOptions.screenHeight = screenHeight;
     paintOptions.dpr = dpr;
+    paintOptions.width = width;
+    paintOptions.height = height;
+    paintOptions.x = x;
+    paintOptions.y = y;
+    paintOptions.magnification = scale;
+    
+    main_canvas.width = screenWidth;
+    main_canvas.height = screenHeight;
+
+    paint = new PaintService(main_canvas);
   },
   setCamaraPosition(x, y, magnification) {
     paint.setCameraPosition(x, y, magnification);

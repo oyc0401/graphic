@@ -104,21 +104,17 @@ async function main() {
 
     addSelectionEvent();
 
+    
+    // dpr이 1이 아니면, 캔버스 확대
+    setCanvasCSSSize();
+    
     // 캔버스 업로드
-    tranferCanvas();
+    await tranferCanvas();
 
     console.log("Complete App!");
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-
-    // 캔버스 렌더링
-    setCameraPosition();
-    resizeScreen();
-    resizeLayer();
-    render();
-
-    setCanvasCSSSize();
 
     window.addEventListener("resize", async function () {
         debounce(async () => {

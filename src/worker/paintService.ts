@@ -7,11 +7,7 @@ import {
   LiquifyTool,
 } from "../gl/tool/tool";
 import { paintOptions } from "../gl/texture";
-import {
-  getRenderingManager,
-  resizeLayer,
-  resizeScreen,
-} from "../gl/render";
+import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 interface Pointer {
   x: number;
@@ -41,12 +37,15 @@ export class PaintService {
     }
     this.gl = gl;
     this.toolId = "brush";
-    //paintOptions.dpr = dpr;
 
     this.init();
   }
   async init() {
     await this.installTools();
+    
+    const renderingManager = getRenderingManager(this.canvas, this.gl);
+    renderingManager.render();
+
     console.log("Making Layer Complete!");
   }
 
