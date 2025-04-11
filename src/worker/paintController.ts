@@ -1,3 +1,4 @@
+import { getLayerManager } from "../gl/layer";
 import { paintOptions } from "../gl/texture";
 import { PaintService } from "./paintService";
 
@@ -23,11 +24,14 @@ export const workerApi = {
     paintOptions.x = x;
     paintOptions.y = y;
     paintOptions.magnification = scale;
-    
+
     main_canvas.width = screenWidth;
     main_canvas.height = screenHeight;
 
     paint = new PaintService(main_canvas);
+  },
+  setLayerId(layerId) {
+    paint.setLayerId(layerId);
   },
   setCamaraPosition(x, y, magnification) {
     paint.setCameraPosition(x, y, magnification);

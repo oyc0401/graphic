@@ -19,6 +19,7 @@ export function getRenderingManager(canvas, gl) {
 function makeRenderingManager(canvas, gl) {
   const fullQuadVertexShader = getFullQuadShader(gl);
   const offscreenManager = getOffscreenManager(canvas, gl);
+  const layerManager = getLayerManager(canvas, gl);
 
   let displaySource = `#version 300 es
       precision highp float;
@@ -419,10 +420,17 @@ function makeRenderingManager(canvas, gl) {
     gl.enable(gl.BLEND);
 
     renderBackground();
-    renderTexture();
-    if (paintOptions.showSelection) {
-      renderSelection();
+
+    for (let i = 0; i < layerManager.layerArray.length; i++) {
+      let layerTex = layerManager.layerArray[i];
+      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+      gl.bindTexture(gl.TEXTURE_2D, layerTex);
+      renderTexture();
+      if (paintOptions.showSelection && i == paintOptions.layerId) {
+        renderSelection();
+      }
     }
+    layerManager.bindCurrentLayer();
 
     gl.disable(gl.BLEND);
 
@@ -580,7 +588,7 @@ function createResizeManager(canvas, gl) {
   const tempFBO = gl.createFramebuffer();
   let sourceTexManager = getSourceTextureManager(canvas, gl);
 
-  function resize(
+  function resizeNew(
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
@@ -630,7 +638,97 @@ function createResizeManager(canvas, gl) {
     );
   }
 
+  const tempTex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+  gl.bindTexture(gl.TEXTURE_2D, tempTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    tempTex,
+    0,
+  );
+
+  function resize(
+    oldWidth: number,
+    oldHeight: number,
+    newWidth: number,
+    newHeight: number,
+  ) {
+    console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
+    // 3. 기존 layerFBO → 임시 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
+
+    const diffHeight = newHeight - oldHeight;
+    gl.blitFramebuffer(
+      0,
+      0,
+      oldWidth,
+      oldHeight,
+      0,
+      diffHeight,
+      oldWidth,
+      oldHeight + diffHeight,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
+
+    // 레이어 텍스쳐 늘리기
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      newWidth,
+      newHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+
+    // 4. 임시 텍스처 → 레이어 텍스처로 복사
+    // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 activeTexture에 바인딩된 텍스처에 복사
+    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
+    // 마지막으로 바인딩된건 함수 밖에 있음.
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, newWidth, newHeight);
+  }
+
+  function resizeAll(
+    oldWidth: number,
+    oldHeight: number,
+    newWidth: number,
+    newHeight: number,
+  ) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, tempTex);
+    // temp 크기 설정
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      newWidth,
+      newHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+
+    for (let layerTex of layerManager.layerArray) {
+      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+      gl.bindTexture(gl.TEXTURE_2D, layerTex);
+      resize(oldWidth, oldHeight, newWidth, newHeight);
+    }
+    layerManager.bindCurrentLayer();
+  }
+
   return {
-    preserveAndResize: resize,
+    preserveAndResize: resizeAll,
   };
 }

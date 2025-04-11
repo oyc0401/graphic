@@ -32,6 +32,8 @@ export let paintOptions = {
 
   showSelection: false,
   selectionAntialias: true,
+  layerId: 0,
+  selectionLayerId: 0,
 
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;

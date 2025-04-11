@@ -9,6 +9,7 @@ import {
 import { paintOptions } from "../gl/texture";
 import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
+import { getLayerManager } from "../gl/layer";
 interface Pointer {
   x: number;
   y: number;
@@ -42,7 +43,7 @@ export class PaintService {
   }
   async init() {
     await this.installTools();
-    
+
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();
 
@@ -77,6 +78,14 @@ export class PaintService {
   render() {
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();
+  }
+  setLayerId(layerId) {
+     // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
+    this.getTool().exit();
+    this.getTool().enter();
+    
+    let layerManager = getLayerManager(this.canvas, this.gl);
+    layerManager.setLayerId(layerId);
   }
 
   setStrokeColor(r, g, b) {

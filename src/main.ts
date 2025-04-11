@@ -4,19 +4,17 @@ import {
     getPixelRatio,
     position,
     render,
-    renderChangedPosition,
-    resizeLayer,
     resizeScreen,
-    setCameraPosition,
     setDefaultPosition,
     updateBouncingRect,
 } from "./position";
 import { els, getElements } from "./elements";
 import { addInteractionEvent } from "./interaction";
-import { addSelectionEvent } from "./selection";
+import { addSelectionEvent, applySelection } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./view";
+import { getLayerWorker } from "./worker/workerPool";
 
 window.onload = main;
 
@@ -104,10 +102,9 @@ async function main() {
 
     addSelectionEvent();
 
-    
     // dpr이 1이 아니면, 캔버스 확대
     setCanvasCSSSize();
-    
+
     // 캔버스 업로드
     await tranferCanvas();
 
@@ -126,6 +123,13 @@ async function main() {
             setCanvasCSSSize();
         }, 100);
     });
+
+    globalThis.changeLayer = function (layerId = 1) {
+        let worker = getLayerWorker();
+        // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
+        applySelection();
+        worker.setLayerId(layerId);
+    };
 }
 
 function setCanvasCSSSize() {
