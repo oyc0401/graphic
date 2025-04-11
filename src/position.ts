@@ -13,7 +13,7 @@ export class PositionState {
   width = 10;
   height = 10;
   scale = 1;
-  dpr = 1;
+  dpr = 3;
   bouncingRect = { x: 0, y: 0, width: 0, height: 0 };
 
   constructor() {
@@ -57,8 +57,7 @@ export function updateBouncingRect() {
   console.log("updateBouncingRect");
   position.bouncingRect = els.container.getBoundingClientRect();
 }
-
-export async function resizeScreen() {
+export async function setCameraPosition() {
   const minW = -position.width;
   const maxW = position.bouncingRect.width / position.scale;
   const clampX = Math.min(maxW, Math.max(minW, position.x));
@@ -73,15 +72,36 @@ export async function resizeScreen() {
   const worker = getLayerWorker();
   const pxRatio = getPixelRatio();
 
-  await worker.render(
-    position.width,
-    position.height,
-    position.bouncingRect.width * pxRatio,
-    position.bouncingRect.height * pxRatio,
+  await worker.setCamaraPosition(
     position.x * pxRatio,
     position.y * pxRatio,
     position.scale,
   );
+}
+
+export async function resizeLayer() {
+  const worker = getLayerWorker();
+
+  await worker.resizeLayer(position.width, position.height);
+}
+
+export async function resizeScreen() {
+  const worker = getLayerWorker();
+  const pxRatio = getPixelRatio();
+  await worker.resizeScreenSize(
+    position.bouncingRect.width * pxRatio,
+    position.bouncingRect.height * pxRatio,
+  );
+}
+
+export function render() {
+  const worker = getLayerWorker();
+  worker.render();
+}
+
+export async function renderChangedPosition() {
+  setCameraPosition();
+  render();
 }
 
 export function setDefaultPosition() {
@@ -164,7 +184,7 @@ function addWheelListener() {
           }
         }
 
-        resizeScreen();
+        renderChangedPosition();
       },
       { passive: false },
     );
@@ -315,7 +335,7 @@ function addPinchListener() {
         );
         lastPinchDistance = distance;
 
-        resizeScreen();
+        renderChangedPosition();
       },
       true,
     );
@@ -378,7 +398,7 @@ function addPanningListener() {
 
       lastClientX = e.clientX;
       lastClientY = e.clientY;
-      resizeScreen();
+      renderChangedPosition();
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -476,7 +496,7 @@ function addZoomListener() {
         setMagification(clamped_scale, to_screen_coord(centerX, centerY));
       }
 
-      resizeScreen();
+      renderChangedPosition();
 
       activeZoom = false;
     });
@@ -567,7 +587,8 @@ async function changeSize(number = 300) {
   position.setWidth(newWidth);
   position.setHeight(newHeight);
 
-  resizeScreen();
+  resizeLayer();
+  render();
 }
 
 globalThis.changeSize = changeSize;

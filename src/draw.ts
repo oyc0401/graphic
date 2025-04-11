@@ -2,6 +2,7 @@ import { paintState } from "./main";
 import { els } from "./elements";
 import {
     canvas_coord_to_css_coord,
+    getPixelRatio,
     position,
     to_pixel_canvas_coord,
 } from "./position";
@@ -49,14 +50,8 @@ export async function tranferCanvas() {
     const worker = getLayerWorker();
     const offscreen = els.canvas.transferControlToOffscreen();
 
-    await worker.makeLayer(
-        Comlink.transfer(offscreen, [offscreen]),
-        position.width,
-        position.height,
-        position.bouncingRect.width,
-        position.bouncingRect.height,
-        position.dpr,
-    );
+    //let dpr = getPixelRatio();
+    await worker.makeLayer(Comlink.transfer(offscreen, [offscreen]), 1);
 }
 
 export function addDrawEvent() {

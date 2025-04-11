@@ -16,7 +16,7 @@ function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   throw new Error(`No element found with id "${elementId}"`);
 }
 
-export const els = {
+export let els = {
   canvas: $id<HTMLCanvasElement>("canvas")!,
   container: $id("container"),
   brushCursor: $id("brush-cursor"),
@@ -50,6 +50,39 @@ export const els = {
 };
 
 export function getElements() {
+  els = {
+    canvas: $id<HTMLCanvasElement>("canvas")!,
+    container: $id("container"),
+    brushCursor: $id("brush-cursor"),
+
+    selectSelectionBtn: $id("select-selection"),
+    selectBrushBtn: $id("select-brush"),
+    selectEraserBtn: $id("select-eraser"),
+    selectLiquifyBtn: $id("select-liquify"),
+
+    zoomArea: $id("zoom-area"),
+    selectionArea: $id("selection-area"),
+
+    sizeValue: $id("size-value"),
+    opacityValue: $id("opacity-value")!,
+    sizeSlider: $id<HTMLInputElement>("size-slider"),
+    opacitySlider: $id<HTMLInputElement>("opacity-slider"),
+
+    handleLT: $id("handle-lt"),
+    handleT: $id("handle-t"),
+    handleRT: $id("handle-rt"),
+    handleR: $id("handle-r"),
+    handleRB: $id("handle-rb"),
+    handleB: $id("handle-b"),
+    handleLB: $id("handle-lb"),
+    handleL: $id("handle-l"),
+
+    chooseColor: $id("choose-color"),
+    colorIcon: $id("color-icon"),
+
+    colorElements: $id("color-box").querySelectorAll(".select-color")!,
+  };
+  
   $id("selection-icon").innerHTML = SelectionSvg;
   $id("brush-icon").innerHTML = BrushSvg;
   $id("eraser-icon").innerHTML = EraserSvg;

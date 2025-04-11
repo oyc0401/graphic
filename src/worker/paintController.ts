@@ -1,29 +1,25 @@
+
+import { paintOptions } from "../gl/texture";
 import { PaintService } from "./paintService";
 
 let paint: PaintService;
 
 export const workerApi = {
-  async makeLayer(
-    main_canvas: OffscreenCanvas,
-    width: number,
-    height: number,
-    screenWidth: number,
-    screenHeight: number,
-    dpr: number,
-  ) {
-    console.log("Making Layer...", width, height);
-
-    paint = new PaintService(
-      main_canvas,
-      width,
-      height,
-      screenWidth,
-      screenHeight,
-      dpr,
-    );
+  async makeLayer(main_canvas: OffscreenCanvas, dpr) {
+    paint = new PaintService(main_canvas);
+    paintOptions.dpr = dpr;
   },
-  render(width, height, screenWidth, screenHeight, x, y, magnification) {
-    paint.render(width, height, screenWidth, screenHeight, x, y, magnification);
+  setCamaraPosition(x, y, magnification) {
+    paint.setCameraPosition(x, y, magnification);
+  },
+  resizeLayer(width, height) {
+    paint.resizeLayer(width, height);
+  },
+  resizeScreenSize(screenWidth, screenHeight) {
+    paint.resizeScreen(screenWidth, screenHeight);
+  },
+  render() {
+    paint.render();
   },
   setStrokeColor(r, g, b) {
     paint.setStrokeColor(r, g, b);
@@ -32,7 +28,7 @@ export const workerApi = {
     paint.setStrokeSize(size);
   },
   setAlpha(alpha) {
-    paint.setAlpha(alpha/100);
+    paint.setAlpha(alpha / 100);
   },
   setTool(toolId) {
     paint.setTool(toolId);

@@ -1,6 +1,5 @@
 /// <reference lib="webworker" />
 
-import { getGlHelper } from "../gl/utils/glHelper";
 import {
   BrushTool,
   EraserTool,
@@ -8,7 +7,11 @@ import {
   LiquifyTool,
 } from "../gl/tool/tool";
 import { paintOptions } from "../gl/texture";
-import { resizeScreen } from "../gl/render";
+import {
+  getRenderingManager,
+  resizeLayer,
+  resizeScreen,
+} from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 interface Pointer {
   x: number;
@@ -18,24 +21,12 @@ interface Pointer {
 export class PaintService {
   canvas: OffscreenCanvas;
   gl: WebGL2RenderingContext;
-  width: number;
-  height: number;
-  screenWidth: number;
-  screenHeight: number;
-  dpr: number;
 
   toolId: string;
   tools: any;
   lastPointer: Pointer;
 
-  constructor(
-    canvas: OffscreenCanvas,
-    width: number,
-    height: number,
-    screenWidth: number,
-    screenHeight: number,
-    dpr: number,
-  ) {
+  constructor(canvas: OffscreenCanvas) {
     this.canvas = canvas;
     let gl = canvas.getContext("webgl2", {
       alpha: false,
@@ -49,18 +40,8 @@ export class PaintService {
       throw Error("Can't make webgl2 context");
     }
     this.gl = gl;
-    this.width = width;
-    this.height = height;
-    this.screenWidth = screenWidth;
-    this.screenHeight = screenHeight;
-
-    paintOptions.width = width;
-    paintOptions.height = height;
-    paintOptions.screenWidth = width;
-    paintOptions.screenHeight = screenHeight;
-    paintOptions.dpr = dpr;
-
     this.toolId = "brush";
+    //paintOptions.dpr = dpr;
 
     this.init();
   }
@@ -83,30 +64,20 @@ export class PaintService {
     };
   }
 
-  clear() {
-    let glHelper = getGlHelper(this.gl);
-    glHelper.clearRect(0, 0, this.width, this.height);
+  setCameraPosition(x, y, magnification) {
+    paintOptions.x = x;
+    paintOptions.y = y;
+    paintOptions.magnification = magnification;
   }
-
-  render(width, height, screenWidth, screenHeight, x, y, magnification) {
-    resizeScreen(
-      this.canvas,
-      this.gl,
-      width,
-      height,
-      screenWidth,
-      screenHeight,
-      x,
-      y,
-      magnification,
-    );
+  resizeLayer(width, height) {
+    resizeLayer(this.canvas, this.gl, width, height);
   }
-  setSize(width, height) {
-    this.width = width;
-    this.height = height;
-
-    // this.drawManager.setSize();
-    //this.liquifyManager.setSize();
+  resizeScreen(screenWidth, screenHeight) {
+    resizeScreen(this.canvas, this.gl, screenWidth, screenHeight);
+  }
+  render() {
+    const renderingManager = getRenderingManager(this.canvas, this.gl);
+    renderingManager.render();
   }
 
   setStrokeColor(r, g, b) {
@@ -122,13 +93,12 @@ export class PaintService {
     paintOptions.setAlpha(alpha);
   }
   setTool(toolId) {
-    if(toolId == 'select') return;
+    if (toolId == "select") return;
     if (this.toolId != toolId) {
       this.getTool().exit();
     }
     this.toolId = toolId;
     this.getTool().enter();
-    
   }
   getTool() {
     return this.tools[this.toolId];

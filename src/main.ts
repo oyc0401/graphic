@@ -1,8 +1,13 @@
 import { addDrawEvent, tranferCanvas } from "./draw";
 import {
     addPositionEvent,
+    getPixelRatio,
     position,
+    render,
+    renderChangedPosition,
+    resizeLayer,
     resizeScreen,
+    setCameraPosition,
     setDefaultPosition,
     updateBouncingRect,
 } from "./position";
@@ -12,6 +17,7 @@ import { addSelectionEvent } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./view";
+
 window.onload = main;
 
 type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
@@ -99,7 +105,7 @@ async function main() {
     addSelectionEvent();
 
     // 캔버스 업로드
-    await tranferCanvas();
+    tranferCanvas();
 
     console.log("Complete App!");
 
@@ -107,15 +113,31 @@ async function main() {
     globalThis.paintState = paintState;
 
     // 캔버스 렌더링
+    setCameraPosition();
     resizeScreen();
+    resizeLayer();
+    render();
+
+    setCanvasCSSSize();
+
     window.addEventListener("resize", async function () {
         debounce(async () => {
             console.log("debounce");
             updateBouncingRect();
             setContainerWidth();
-            await resizeScreen(); // worker에 있는 webgl에 드로우콜 날림
+            resizeScreen(); // worker에 있는 webgl에 드로우콜 날림
+            render();
+            setCanvasCSSSize();
         }, 100);
     });
+}
+
+function setCanvasCSSSize() {
+    let dpr = getPixelRatio();
+    if (dpr != 1) {
+        els.canvas.style.width = `${position.bouncingRect.width}px`;
+        els.canvas.style.height = `${position.bouncingRect.height}px`;
+    }
 }
 
 function setContainerWidth() {

@@ -428,11 +428,6 @@ function makeRenderingManager(canvas, gl) {
 
     gl.flush();
 
-    if (resizeFlag) {
-      canvas.width = paintOptions.screenWidth;
-      canvas.height = paintOptions.screenHeight;
-    }
-
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
@@ -455,6 +450,52 @@ function makeRenderingManager(canvas, gl) {
   return {
     render,
   };
+}
+
+/**
+ * 도화지의 크기를 조절함
+ */
+export async function resizeLayer(canvas, gl, width, height) {
+  const resizeTexManager = getResizeLayerTexManager(canvas, gl);
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const drawManager = getBrushManager(canvas, gl);
+  const liquifyManager = getLiquifyManager(canvas, gl);
+  console.log("resizeLayer");
+
+  // 현재 그림은 그대로 둔 상태로 크기만 바꾸기
+  resizeTexManager.preserveAndResize(
+    paintOptions.width,
+    paintOptions.height,
+    width,
+    height,
+  );
+
+  paintOptions.width = width;
+  paintOptions.height = height;
+
+  sourceTextureManager.uploadCurrent();
+
+  if (!drawManager || !liquifyManager) {
+    console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
+  } else {
+    drawManager.setSize();
+    liquifyManager.setSize();
+  }
+}
+
+// 화면의 크기를 조절함
+export function resizeScreen(canvas, gl, screenWidth, screenHeight) {
+  const offscreenManager = getOffscreenManager(canvas, gl);
+
+  console.log("resizeScreen");
+
+  // canvas Element의 크기를 변경
+  canvas.width = screenWidth;
+  canvas.height = screenHeight;
+
+  paintOptions.screenWidth = screenWidth;
+  paintOptions.screenHeight = screenHeight;
+  offscreenManager.resize(screenWidth, screenHeight);
 }
 
 function getOffscreenManager(canvas, gl) {
@@ -514,77 +555,6 @@ function createOffscreenManager(canvas, gl) {
   };
 }
 
-let resizeFlag = false;
-/**
- * 크기가 바뀌면 바꾸고 안바뀌면 렌더링만 함
- */
-export async function resizeScreen(
-  canvas,
-  gl,
-  width,
-  height,
-  screenWidth,
-  screenHeight,
-  x,
-  y,
-  magnification,
-) {
-  const renderingManager = getRenderingManager(canvas, gl);
-  const resizeTexManager = getResizeLayerTexManager(canvas, gl);
-  const offscreenManager = getOffscreenManager(canvas, gl);
-  let resized = false;
-
-  if (
-    paintOptions.screenWidth != screenWidth ||
-    paintOptions.screenHeight != screenHeight
-  ) {
-    console.log("전체 화면 크기가 변함!");
-    // canvas Element의 크기를 변경
-
-    resizeFlag = true;
-
-    offscreenManager.resize(screenWidth, screenHeight);
-  }
-
-  if (paintOptions.width != width || paintOptions.height != height) {
-    console.log("그림 크기가 변함!");
-
-    // 텍스쳐 크기를 낮추기
-    resizeTexManager.resize(
-      paintOptions.width,
-      paintOptions.height,
-      width,
-      height,
-    );
-    resized = true;
-  }
-
-  paintOptions.width = width;
-  paintOptions.height = height;
-  paintOptions.screenWidth = screenWidth;
-  paintOptions.screenHeight = screenHeight;
-  paintOptions.x = x;
-  paintOptions.y = y;
-  paintOptions.magnification = magnification;
-
-  if (resized) {
-    const sourceTextureManager = getSourceTextureManager(canvas, gl);
-    sourceTextureManager.uploadCurrent();
-
-    const drawManager = getBrushManager(canvas, gl);
-    const liquifyManager = getLiquifyManager(canvas, gl);
-
-    if (!drawManager || !liquifyManager) {
-      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
-    } else {
-      drawManager.setSize();
-      liquifyManager.setSize();
-    }
-  }
-
-  renderingManager.render();
-}
-
 function getResizeLayerTexManager(canvas, gl) {
   const manager = getManager(gl, "resizeTex", () =>
     createResizeManager(canvas, gl),
@@ -597,21 +567,7 @@ function createResizeManager(canvas, gl) {
 
   // 1. 임시 텍스처 생성
   const tempFBO = gl.createFramebuffer();
-
-  const tempTex = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-  gl.bindTexture(gl.TEXTURE_2D, tempTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    tempTex,
-    0,
-  );
+  let sourceTexManager = getSourceTextureManager(canvas, gl);
 
   function resize(
     oldWidth: number,
@@ -619,16 +575,19 @@ function createResizeManager(canvas, gl) {
     newWidth: number,
     newHeight: number,
   ) {
-    console.log("[TextureResizeManager] resize", {
-      oldWidth,
-      oldHeight,
-      newWidth,
-      newHeight,
-    });
+    console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
 
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, tempTex);
-    // temp 크기 설정
+    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      sourceTexManager.texture,
+      0,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    // 레이어 크기 재 설정
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
@@ -641,9 +600,9 @@ function createResizeManager(canvas, gl) {
       null,
     );
 
-    // 3. 기존 layerFBO → 임시 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
+    // 3. 소스텍스쳐 -> layerFBO로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, tempFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, layerManager.layerFBO);
 
     const diffHeight = newHeight - oldHeight;
     gl.blitFramebuffer(
@@ -658,26 +617,9 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
-
-    // 4. 임시 텍스처 → 레이어 텍스처로 복사
-    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      newWidth,
-      newHeight,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-    // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 바인딩된 텍스처에 복사
-    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, newWidth, newHeight);
   }
 
   return {
-    resize,
+    preserveAndResize: resize,
   };
 }
