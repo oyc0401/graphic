@@ -4,7 +4,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { encode } from "@jsquash/png";
 
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
-import { position, renderChangedPosition } from "./position";
+import { position, renderChangedPosition, resizeLayer } from "./position";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -34,7 +34,7 @@ export function addClipboardEvent() {
           position.width = bitmap.width;
           position.height = bitmap.height;
 
-          renderChangedPosition();
+          resizeLayer();
 
           // 붙여넣기 로직 호출
           makeSelectionFromBitmap(bitmap);

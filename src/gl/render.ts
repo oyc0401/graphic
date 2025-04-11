@@ -399,7 +399,7 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  function render() {
+  function renderNow() {
     // console.log("render");
 
     getSelectionManager(canvas, gl);
@@ -447,6 +447,17 @@ function makeRenderingManager(canvas, gl) {
     console.log("render complete!");
   }
 
+  let scheduled = false;
+
+  function render() {
+    if (!scheduled) {
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        renderNow();
+      });
+    }
+  }
   return {
     render,
   };
