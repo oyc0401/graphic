@@ -11,6 +11,7 @@ import {
   resizeLayer,
   setCameraPosition,
 } from "./position";
+import { paintState } from "./main";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -122,10 +123,12 @@ export function addClipboardEvent() {
           premultiplyAlpha: "premultiply",
         });
 
-        if (bitmap) {
-          console.log("onpaste 이미지 붙여넣기 실행!");
+        event.preventDefault(); // 기본 동작 막기
+        console.log("onpaste 이미지 붙여넣기 실행!");
+        if (paintState.changed) {
           makeSelectionFromBitmap(bitmap);
-          event.preventDefault(); // 기본 동작 막기
+        } else {
+          uploadImage(bitmap);
         }
       }
     }

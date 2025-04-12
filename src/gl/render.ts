@@ -638,7 +638,7 @@ function createResizeManager(canvas, gl) {
     );
 
     // 대상 텍스쳐 늘리기
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(
       gl.TEXTURE_2D,

@@ -36,6 +36,7 @@ class PaintState {
 
     targetId = "brush";
 
+    changed = false;
     constructor() {
         makeAutoObservable(this);
     }

@@ -162,6 +162,7 @@ export function addDrawEvent() {
             }
 
             endDrawing();
+            paintState.changed = true;
 
             pointerActive = false;
         });
@@ -181,10 +182,9 @@ export function cancel() {
         selectionCancel();
         return;
     }
-    if(paintState.toolId=='brush'){
-          worker.cancel();
+    if (paintState.toolId == "brush") {
+        worker.cancel();
     }
-  
 }
 
 /**

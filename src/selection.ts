@@ -482,6 +482,7 @@ export function applySelection() {
 
   selection.setVisible(false);
   worker.applySelection();
+  paintState.changed = true;
 }
 
 // 자르기 한 이후에
