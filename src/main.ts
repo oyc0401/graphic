@@ -38,6 +38,7 @@ class PaintState {
 
     changed = false;
     showCircle = false;
+    appbarHeight=0;
     constructor() {
         makeAutoObservable(this);
     }
@@ -72,7 +73,7 @@ class PaintState {
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
     }
-    setShowCircle(value){
+    setShowCircle(value) {
         this.showCircle = value;
     }
 
@@ -153,7 +154,9 @@ function setCanvasCSSSize() {
 function setContainerWidth() {
     const hiddenAppbar = document.getElementById("header-space");
     const appbar = document.getElementById("appbar");
+
     if (hiddenAppbar && appbar) {
+        paintState.appbarHeight = appbar.offsetHeight;
         hiddenAppbar.style.height = appbar.offsetHeight + "px";
     }
 }

@@ -91,10 +91,16 @@ function bindCursorUI() {
         const showCircle = paintState.showCircle;
 
         // ───────────── container 클래스
-        container.classList.toggle("largeBrush", isValid && !showCircle && isBigSize);
-        container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
-        container.classList.toggle("noCursor", isValid && showCircle );
-        
+        container.classList.toggle(
+            "largeBrush",
+            isValid && !showCircle && isBigSize,
+        );
+        container.classList.toggle(
+            "brush",
+            isValid && !showCircle && !isBigSize,
+        );
+        container.classList.toggle("noCursor", isValid && showCircle);
+
         // ───────────── 브러시 커서 스타일
         if (isValid && (isBigSize || showCircle)) {
             if (isDesktop || paintState.drawdownAndMoved) {
@@ -152,6 +158,7 @@ function bindSelectionUI() {
             els.handleLB,
             els.handleL,
         ];
+
         for (const h of handles) {
             h.style.visibility = visible ? "visible" : "hidden";
         }
@@ -162,6 +169,17 @@ function bindSelectionUI() {
             handle.style.left = `${left - offset}px`;
             handle.style.top = `${top - offset}px`;
         };
+        
+        if ((selection.height * position.scale) / dpr < 100) {
+            for (const h of [els.handleL, els.handleR]) {
+                h.style.visibility = "hidden";
+            }
+        }
+        if ((selection.width * position.scale) / dpr < 100) {
+            for (const h of [els.handleT, els.handleB]) {
+                h.style.visibility = "hidden";
+            }
+        }
 
         if (visible) {
             setPos(els.handleLT, sLeft, sTop);

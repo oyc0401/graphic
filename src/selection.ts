@@ -73,7 +73,7 @@ export function addSelectionEvent() {
       if (!paintState.pointerdown) return;
       const blockedElement = document.getElementById("selections")!; // A 엘리먼트
       if (blockedElement.contains(e.target as Node)) return; // A 또는 자식 위면 무시
-      
+
       selectionDown = true;
       startTime = performance.now();
       console.log("selection pointerdown");
@@ -159,11 +159,11 @@ function addMakeSelectionEventListener() {
       let zoomW = Math.abs(startCss.x - endCss.x);
       let zoomH = Math.abs(startCss.y - endCss.y);
 
-      els.zoomArea.style.visibility = "visible";
-      els.zoomArea.style.left = `${startX}px`;
-      els.zoomArea.style.top = `${startY}px`;
-      els.zoomArea.style.width = `${zoomW}px`;
-      els.zoomArea.style.height = `${zoomH}px`;
+      els.selectionArea.style.visibility = "visible";
+      els.selectionArea.style.left = `${startX}px`;
+      els.selectionArea.style.top = `${startY - paintState.appbarHeight}px`;
+      els.selectionArea.style.width = `${zoomW}px`;
+      els.selectionArea.style.height = `${zoomH}px`;
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -172,7 +172,7 @@ function addMakeSelectionEventListener() {
       if (!activeSelect) return;
       activeSelect = false;
 
-      els.zoomArea.style.visibility = "hidden";
+      els.selectionArea.style.visibility = "hidden";
 
       let startX = Math.min(sp.x, ep.x);
       let startY = Math.min(sp.y, ep.y);
@@ -369,10 +369,14 @@ function addHandleEventListener() {
       }
     }
 
-    selection.setX(newX);
-    selection.setY(newY);
-    selection.setWidth(newWidth);
-    selection.setHeight(newHeight);
+    selection.setX(
+      Math.min(beforeSelectionPos.x + beforeSelectionPos.width - 1, newX),
+    );
+    selection.setY(
+      Math.min(beforeSelectionPos.y + beforeSelectionPos.height - 1, newY),
+    );
+    selection.setWidth(Math.max(1, newWidth));
+    selection.setHeight(Math.max(1, newHeight));
 
     worker.moveSelection(
       selection.x,
