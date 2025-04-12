@@ -88,13 +88,15 @@ function bindCursorUI() {
 
         const scaled = (brushSize * position.scale) / dpr;
         const isBigSize = scaled > 50;
+        const showCircle = paintState.showCircle;
 
         // ───────────── container 클래스
-        container.classList.toggle("largeBrush", isValid && isBigSize);
-        container.classList.toggle("brush", isValid && !isBigSize);
-
+        container.classList.toggle("largeBrush", isValid && !showCircle && isBigSize);
+        container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
+        container.classList.toggle("noCursor", isValid && showCircle );
+        
         // ───────────── 브러시 커서 스타일
-        if (isValid && isBigSize) {
+        if (isValid && (isBigSize || showCircle)) {
             if (isDesktop || paintState.drawdownAndMoved) {
                 cursor.style.visibility = "visible";
             } else {

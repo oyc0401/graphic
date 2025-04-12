@@ -132,6 +132,9 @@ export function addInteractionEvent() {
 
                 pressedKeys.setSpace(true);
             }
+            if (event.code === "AltLeft") {
+                paintState.setShowCircle(true);
+            }
 
             if (event.code === "Escape") {
                 event.preventDefault();
@@ -146,6 +149,7 @@ export function addInteractionEvent() {
         });
 
         document.addEventListener("keyup", (event) => {
+            console.log("알트 업", event);
             if (event.code == "KeyZ") {
                 event.preventDefault();
                 pressedKeys.setKeyZ(false);
@@ -153,6 +157,11 @@ export function addInteractionEvent() {
             if (event.code === "Space") {
                 event.preventDefault();
                 pressedKeys.setSpace(false);
+            }
+            if (event.code === "AltLeft") {
+                event.preventDefault();
+
+                paintState.setShowCircle(false);
             }
         });
     })();

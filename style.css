@@ -211,6 +211,9 @@ canvas {
 #container.largeBrush {
   cursor: pointer;
 }
+#container.noCursor{
+  cursor: none;
+}
 
 
 

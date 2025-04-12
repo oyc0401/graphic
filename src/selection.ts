@@ -93,7 +93,7 @@ export function addSelectionEvent() {
     });
   })();
 }
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 function addMakeSelectionEventListener() {
   (function () {

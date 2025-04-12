@@ -3,6 +3,7 @@ import { cancel, endDrawing } from "./draw";
 import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
+import { clamp } from "./selection";
 
 const MIN_SCALE = 0.25;
 let MAX_SCALE = 0;
@@ -174,6 +175,13 @@ function addWheelListener() {
           );
 
           // updateCursorShape();
+        } else if (event.altKey) {
+          let brushSize = paintState.getBrushSize();
+          let percent =
+            event.deltaY > 0 ? (brushSize - 1) / 1.1 : (brushSize + 1) * 1.1;
+          let newSize = Math.round(clamp(percent, 1, 500));
+          paintState.setBrushSize(newSize);
+          
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;

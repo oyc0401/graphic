@@ -37,6 +37,7 @@ class PaintState {
     targetId = "brush";
 
     changed = false;
+    showCircle = false;
     constructor() {
         makeAutoObservable(this);
     }
@@ -70,6 +71,9 @@ class PaintState {
 
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
+    }
+    setShowCircle(value){
+        this.showCircle = value;
     }
 
     getBrushSize() {
