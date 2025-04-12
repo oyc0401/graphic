@@ -421,6 +421,7 @@ function makeRenderingManager(canvas, gl) {
 
     renderBackground();
 
+    // 레이어 전부 그리기
     for (let i = 0; i < layerManager.layerArray.length; i++) {
       let layerTex = layerManager.layerArray[i];
       gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
@@ -436,6 +437,7 @@ function makeRenderingManager(canvas, gl) {
 
     gl.flush();
 
+    // null 프레임버퍼에 전송하기
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 

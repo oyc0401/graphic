@@ -160,9 +160,14 @@ export function addDrawEvent() {
                 worker.strokeTo(point);
             } else if (paintState.toolId == "liquify") {
             }
+            if (
+                paintState.toolId != "select" &&
+                paintState.toolId != "selection"
+            ) {
+                endDrawing();
+            }
 
             pointerActive = false;
-            endDrawing();
         });
     })();
 
