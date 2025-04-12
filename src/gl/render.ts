@@ -476,7 +476,7 @@ function makeRenderingManager(canvas, gl) {
 /**
  * 도화지의 크기를 조절함
  */
-export async function resizeLayer(canvas, gl, width, height) {
+export function resizeLayer(canvas, gl, width, height) {
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const drawManager = getBrushManager(canvas, gl);
@@ -529,6 +529,17 @@ function createOffscreenManager(canvas, gl) {
   const offscreenTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.OFFSCREEN);
   gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    paintOptions.screenWidth,
+    paintOptions.screenHeight,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
@@ -540,18 +551,6 @@ function createOffscreenManager(canvas, gl) {
     gl.TEXTURE_2D,
     offscreenTex,
     0,
-  );
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    paintOptions.screenWidth,
-    paintOptions.screenHeight,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
   );
 
   function resize(newWidth, newHeight) {
@@ -587,58 +586,6 @@ function createResizeManager(canvas, gl) {
   const layerManager = getLayerManager(canvas, gl);
 
   // 1. 임시 텍스처 생성
-  const tempFBO = gl.createFramebuffer();
-  let sourceTexManager = getSourceTextureManager(canvas, gl);
-
-  function resizeNew(
-    oldWidth: number,
-    oldHeight: number,
-    newWidth: number,
-    newHeight: number,
-  ) {
-    console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      sourceTexManager.texture,
-      0,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    // 레이어 크기 재 설정
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      newWidth,
-      newHeight,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
-
-    // 3. 소스텍스쳐 -> layerFBO로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, tempFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, layerManager.layerFBO);
-
-    const diffHeight = newHeight - oldHeight;
-    gl.blitFramebuffer(
-      0,
-      0,
-      oldWidth,
-      oldHeight,
-      0,
-      diffHeight,
-      oldWidth,
-      oldHeight + diffHeight,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
-  }
 
   const tempTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
@@ -646,25 +593,35 @@ function createResizeManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    tempTex,
-    0,
-  );
+  const tempFBO = gl.createFramebuffer();
+  const readFBO = gl.createFramebuffer();
 
   function resize(
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
     newHeight: number,
+    texture,
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
     // 3. 기존 layerFBO → 임시 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFBO);
+    gl.framebufferTexture2D(
+      gl.READ_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0,
+    );
+
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      tempTex,
+      0,
+    );
 
     const diffHeight = newHeight - oldHeight;
     gl.blitFramebuffer(
@@ -680,8 +637,9 @@ function createResizeManager(canvas, gl) {
       gl.NEAREST,
     );
 
-    // 레이어 텍스쳐 늘리기
+    // 대상 텍스쳐 늘리기
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
@@ -723,10 +681,9 @@ function createResizeManager(canvas, gl) {
     );
 
     for (let layerTex of layerManager.layerArray) {
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-      gl.bindTexture(gl.TEXTURE_2D, layerTex);
-      resize(oldWidth, oldHeight, newWidth, newHeight);
+      resize(oldWidth, oldHeight, newWidth, newHeight, layerTex);
     }
+
     layerManager.bindCurrentLayer();
   }
 

@@ -88,6 +88,9 @@ export const workerApi = {
   cut() {
     paint.cut();
   },
+  uploadImage(bitmap) {
+    paint.uploadImage(bitmap);
+  },
 };
 
 interface Pointer {

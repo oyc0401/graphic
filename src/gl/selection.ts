@@ -202,6 +202,7 @@ function createSelectionManager(canvas, gl) {
     const readY = paintOptions.height - (y + originalHeight);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0, // level
@@ -247,7 +248,7 @@ function createSelectionManager(canvas, gl) {
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = true;
-    
+
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.texImage2D(
       gl.TEXTURE_2D,

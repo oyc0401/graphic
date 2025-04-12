@@ -38,6 +38,7 @@ function makeLayerManager(canvas, gl) {
     layerTex,
     0,
   );
+  layerTex.id = 0;
 
   let layerTex2 = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
@@ -60,6 +61,7 @@ function makeLayerManager(canvas, gl) {
     gl.UNSIGNED_BYTE,
     null,
   );
+  layerTex2.id = 1;
 
   // 처음 레이어 ㄱㄱ
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
@@ -74,7 +76,7 @@ function makeLayerManager(canvas, gl) {
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, currentLayerTex);
-
+    console.log("setLayerId:", currentLayerTex.id);
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerFBO);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
@@ -89,8 +91,11 @@ function makeLayerManager(canvas, gl) {
   }
 
   function bindCurrentLayer() {
+    let currentLayerTex = layerArray[paintOptions.layerId];
+
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    gl.bindTexture(gl.TEXTURE_2D, layerArray[paintOptions.layerId]);
+    gl.bindTexture(gl.TEXTURE_2D, currentLayerTex);
+    //console.log("현재 bindCurrentLayer:", paintOptions.layerId);
   }
 
   function addLayer(newLayerId) {
@@ -115,8 +120,6 @@ function makeLayerManager(canvas, gl) {
       gl.UNSIGNED_BYTE,
       null,
     );
-
-    
   }
   return {
     layerFBO,

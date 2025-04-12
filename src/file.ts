@@ -2,9 +2,15 @@ import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 //import { encode } from "fast-png";
 import { encode } from "@jsquash/png";
-
+import * as Comlink from "comlink";
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
-import { position, renderChangedPosition, resizeLayer } from "./position";
+import {
+  getPixelRatio,
+  position,
+  renderChangedPosition,
+  resizeLayer,
+  setCameraPosition,
+} from "./position";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -30,14 +36,7 @@ export function addClipboardEvent() {
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
 
-          // 캔버스 크기 재설정하기.
-          position.width = bitmap.width;
-          position.height = bitmap.height;
-
-          resizeLayer();
-
-          // 붙여넣기 로직 호출
-          makeSelectionFromBitmap(bitmap);
+          uploadImage(bitmap);
         } catch (err) {
           console.error("드롭된 이미지를 처리 중 에러:", err);
         }
@@ -46,6 +45,29 @@ export function addClipboardEvent() {
       }
     }
   });
+
+  function uploadImage(bitmap: ImageBitmap) {
+    let dpr = getPixelRatio();
+
+    console.log(position.bouncingRect.width, bitmap.width);
+    let val = 1.125 / dpr;
+    let xScale = position.bouncingRect.width / (bitmap.width * val);
+    let yScale = position.bouncingRect.height / (bitmap.height * val);
+    let scale = Math.min(xScale, yScale);
+
+    let x = (position.bouncingRect.width - bitmap.width * scale) / 2 / scale;
+    let y = (position.bouncingRect.height - bitmap.height * scale) / 2 / scale;
+
+    position.setScale(scale);
+    position.setX(x);
+    position.setY(y);
+    position.setWidth(bitmap.width);
+    position.setHeight(bitmap.height);
+    setCameraPosition();
+
+    const worker = getLayerWorker();
+    worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
+  }
 
   // 붙여넣기
   window.addEventListener("paste", async (event: ClipboardEvent) => {

@@ -10,6 +10,7 @@ import { paintOptions } from "../gl/texture";
 import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
+import { uploadImage } from "../gl/file";
 interface Pointer {
   x: number;
   y: number;
@@ -80,10 +81,10 @@ export class PaintService {
     renderingManager.render();
   }
   setLayerId(layerId) {
-     // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
+    // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
     this.getTool().exit();
     this.getTool().enter();
-    
+
     let layerManager = getLayerManager(this.canvas, this.gl);
     layerManager.setLayerId(layerId);
   }
@@ -178,5 +179,8 @@ export class PaintService {
       },
       [pixels.buffer],
     );
+  }
+  uploadImage(imageBitmap: ImageBitmap) {
+    uploadImage(this.canvas, this.gl, imageBitmap);
   }
 }
