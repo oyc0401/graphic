@@ -1,6 +1,8 @@
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { els } from "./elements";
+import { canvasSelect } from "./selection";
+import { position } from "./position";
 
 /**
  * 단축키
@@ -114,8 +116,9 @@ export function addInteractionEvent() {
                 event.code === "Space" ||
                 event.code === "Tab" ||
                 event.code == "Enter"
-            )
+            ) {
                 event.preventDefault();
+            }
 
             if (event.repeat) return; // OS 기본 딜레이 방지
 
@@ -131,8 +134,14 @@ export function addInteractionEvent() {
             }
 
             if (event.code === "Escape") {
+                event.preventDefault();
                 //console.log("취소!");
                 cancel();
+            }
+            if ((event.ctrlKey || event.metaKey) && event.code === "KeyA") {
+                event.preventDefault();
+
+                canvasSelect(0, 0, position.width, position.height);
             }
         });
 
