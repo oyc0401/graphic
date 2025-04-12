@@ -369,14 +369,25 @@ function addHandleEventListener() {
       }
     }
 
+    const minSize = 1;
+    const maxSize = 4096;
+
     selection.setX(
-      Math.min(beforeSelectionPos.x + beforeSelectionPos.width - 1, newX),
+      clamp(
+        newX,
+        beforeSelectionPos.x + beforeSelectionPos.width - maxSize,
+        beforeSelectionPos.x + beforeSelectionPos.width - minSize,
+      ),
     );
     selection.setY(
-      Math.min(beforeSelectionPos.y + beforeSelectionPos.height - 1, newY),
+      clamp(
+        newY,
+        beforeSelectionPos.y + beforeSelectionPos.height - maxSize,
+        beforeSelectionPos.y + beforeSelectionPos.height - minSize,
+      ),
     );
-    selection.setWidth(Math.max(1, newWidth));
-    selection.setHeight(Math.max(1, newHeight));
+    selection.setWidth(clamp(newWidth, minSize, maxSize));
+    selection.setHeight(clamp(newHeight, minSize, maxSize));
 
     worker.moveSelection(
       selection.x,
