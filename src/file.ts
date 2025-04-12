@@ -37,7 +37,11 @@ export function addClipboardEvent() {
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
 
-          uploadImage(bitmap);
+          if (paintState.changed) {
+            makeSelectionFromBitmap(bitmap);
+          } else {
+            uploadImage(bitmap);
+          }
         } catch (err) {
           console.error("드롭된 이미지를 처리 중 에러:", err);
         }
