@@ -14,13 +14,23 @@ export function bindView() {
 
 function bindToolButtonUI() {
     autorun(() => {
-        const active = paintState.toolId;
-        els.selectBrushBtn.classList.toggle("selected", active === "brush");
-        els.selectEraserBtn.classList.toggle("selected", active === "eraser");
-        els.selectLiquifyBtn.classList.toggle("selected", active === "liquify");
+        const brushId = paintState.brushId;
+        const toolId = paintState.toolId;
+        els.selectBrushBtn.classList.toggle(
+            "selected",
+            toolId === "brush" && brushId === "brush",
+        );
+        els.selectEraserBtn.classList.toggle(
+            "selected",
+            toolId === "brush" && brushId === "eraser",
+        );
+        els.selectLiquifyBtn.classList.toggle(
+            "selected",
+            toolId === "brush" && brushId === "liquify",
+        );
         els.selectSelectionBtn.classList.toggle(
             "selected",
-            active === "select" || active === "selection",
+            toolId === "select" || toolId === "selection",
         );
     });
 }
@@ -68,10 +78,7 @@ function bindCursorUI() {
     autorun(() => {
         const isBrush = paintState.action === "BRUSH";
 
-        const isDrawingTool =
-            paintState.toolId === "brush" ||
-            paintState.toolId === "eraser" ||
-            paintState.toolId === "liquify";
+        const isDrawingTool = paintState.toolId == "brush";
         const isValid = isBrush && isDrawingTool;
 
         const isDesktop = !("ontouchstart" in window);

@@ -18,16 +18,19 @@ import { getLayerWorker } from "./worker/workerPool";
 
 window.onload = main;
 
-type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
-type ToolId = "brush" | "eraser" | "liquify" | "select" | "selection";
+type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
+type ToolId = "brush" | "select" | "selection"; // 선택창 풀면 brush로 됌
+type BrushId = "brush" | "eraser" | "liquify";
 class PaintState {
     action: Action = "BRUSH";
+    toolId: ToolId = "brush";
+    brushId: BrushId = "brush";
     private brushSize = { brush: 5, eraser: 10, liquify: 50 };
     private brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
     color = { r: 30, g: 30, b: 30 };
     cursorX = 0;
     cursorY = 0;
-    toolId: ToolId = "brush";
+
     pointerdown = false;
     drawdownAndMoved = false;
 
@@ -39,6 +42,13 @@ class PaintState {
 
     setAction(val: Action) {
         this.action = val;
+    }
+    setToolId(toolId: ToolId) {
+        this.toolId = toolId;
+    }
+    setBrushId(brushId: BrushId) {
+        this.brushId = brushId;
+        this.targetId = brushId;
     }
     setPointerdown(val: boolean) {
         this.pointerdown = val;
@@ -56,12 +66,7 @@ class PaintState {
     setBrushAlpha(alpha: number) {
         this.brushAlpha[this.targetId] = alpha;
     }
-    setToolId(toolId: ToolId) {
-        this.toolId = toolId;
-        if (toolId != "select" && toolId != "selection") {
-            this.targetId = toolId;
-        }
-    }
+
     setColor(r: number, g: number, b: number) {
         this.color = { r, g, b };
     }

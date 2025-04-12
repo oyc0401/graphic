@@ -1,9 +1,9 @@
 import { paintState } from "./main";
 import { els } from "./elements";
 import {
+  canvas_coord_to_css_coord,
   position,
   to_pixel_canvas_coord,
-  to_pixel_canvas_coord_round,
 } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
@@ -61,10 +61,132 @@ let beforeSelectionPos = {
 };
 
 export function addSelectionEvent() {
+  addMakeSelectionEventListener();
   addSelectionDragEventListener();
   addHandleEventListener();
+  (function () {
+    let startTime;
+    let selectionDown = false;
+    els.container.addEventListener("pointerdown", function (e) {
+      if (paintState.action != "BRUSH") return;
+      if (paintState.toolId != "selection") return;
+      if (!paintState.pointerdown) return;
+      const blockedElement = document.getElementById("selections")!; // A 엘리먼트
+      if (blockedElement.contains(e.target as Node)) return; // A 또는 자식 위면 무시
+      
+      selectionDown = true;
+      startTime = performance.now();
+      console.log("selection pointerdown");
+    });
+
+    els.container.addEventListener("pointerup", function (e) {
+      if (paintState.action != "BRUSH") return;
+      if (paintState.toolId != "selection") return;
+      if (!selectionDown) return;
+      let now = performance.now();
+      if (now - startTime < 150) {
+        console.log("cancel Selection!");
+        applySelection();
+        paintState.setToolId("select");
+      }
+      selectionDown = false;
+    });
+  })();
 }
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+function addMakeSelectionEventListener() {
+  (function () {
+    let startPoint;
+    let endPoint;
+
+    let sp, ep;
+
+    let activeSelect = false;
+
+    els.container.addEventListener("pointerdown", (e) => {
+      if (paintState.action != "BRUSH") return;
+      if (paintState.toolId != "select") return;
+      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+
+      let px = clamp(point.x, 0, position.width);
+      let py = clamp(point.y, 0, position.height);
+      startPoint = { x: px, y: py };
+      endPoint = { x: px, y: py };
+
+      sp = {
+        x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
+        y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
+      };
+
+      ep = {
+        x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
+        y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
+      };
+
+      activeSelect = true;
+
+      console.log("선택 시작");
+    });
+
+    window.addEventListener("pointermove", (e) => {
+      if (paintState.action != "BRUSH") return;
+      if (paintState.toolId != "select") return;
+      if (!paintState.pointerdown) return;
+      if (!activeSelect) return;
+
+      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
+
+      let px = clamp(point.x, 0, position.width);
+      let py = clamp(point.y, 0, position.height);
+      endPoint = { x: px, y: py };
+
+      sp = {
+        x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
+        y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
+      };
+
+      ep = {
+        x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
+        y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
+      };
+
+      let startCss = canvas_coord_to_css_coord(sp);
+      let endCss = canvas_coord_to_css_coord(ep);
+
+      let startX = Math.min(startCss.x, endCss.x);
+      let startY = Math.min(startCss.y, endCss.y);
+      let zoomW = Math.abs(startCss.x - endCss.x);
+      let zoomH = Math.abs(startCss.y - endCss.y);
+
+      els.zoomArea.style.visibility = "visible";
+      els.zoomArea.style.left = `${startX}px`;
+      els.zoomArea.style.top = `${startY}px`;
+      els.zoomArea.style.width = `${zoomW}px`;
+      els.zoomArea.style.height = `${zoomH}px`;
+    });
+
+    window.addEventListener("pointerup", (e) => {
+      if (paintState.action != "BRUSH") return;
+      if (paintState.toolId != "select") return;
+      if (!activeSelect) return;
+      activeSelect = false;
+
+      els.zoomArea.style.visibility = "hidden";
+
+      let startX = Math.min(sp.x, ep.x);
+      let startY = Math.min(sp.y, ep.y);
+      let zoomW = Math.abs(sp.x - ep.x);
+      let zoomH = Math.abs(sp.y - ep.y);
+
+      if (zoomH == 0 || zoomW == 0) {
+        console.error("선택창이 0이 나올 수 없는데?");
+        return;
+      }
+      canvasSelect(startX, startY, zoomW, zoomH);
+    });
+  })();
+}
 
 function addSelectionDragEventListener() {
   let selectionDragPointer = { x: 0, y: 0 };
@@ -157,8 +279,6 @@ function addHandleEventListener() {
       y: selection.y + selection.height - 1,
     };
 
-    console.log("start:", startPoint, endPoint);
-
     // selection의 초기 상태 기록
     startLeft = selection.x;
     startTop = selection.y;
@@ -173,7 +293,6 @@ function addHandleEventListener() {
     if (!activeHandle) return;
 
     let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-    console.log("move:", point);
 
     // 시작과 끝을 보고, 어떤 핸들인 지 보고 최종 결과 계산.
     let newX = startLeft;

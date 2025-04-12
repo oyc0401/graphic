@@ -1,46 +1,44 @@
 import { paintState } from "./main";
 import { els } from "./elements";
-import {
-    canvas_coord_to_css_coord,
-    getPixelRatio,
-    position,
-    to_pixel_canvas_coord,
-} from "./position";
+import { getPixelRatio, position } from "./position";
 import { to_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
-import { applySelection, canvasSelect, selectionCancel } from "./selection";
+import { applySelection, selectionCancel } from "./selection";
 
 export const toolManager = {
     setBrushTool() {
         paintState.setToolId("brush");
+        paintState.setBrushId("brush");
 
         const worker = getLayerWorker();
         applySelection();
-        worker.setTool(paintState.toolId);
+        worker.setTool(paintState.brushId);
 
         console.log("brush");
     },
     setEraserTool() {
-        paintState.setToolId("eraser");
+        paintState.setToolId("brush");
+        paintState.setBrushId("eraser");
 
         const worker = getLayerWorker();
         applySelection();
-        worker.setTool(paintState.toolId);
+        worker.setTool(paintState.brushId);
     },
     setLiquifyTool() {
-        paintState.setToolId("liquify");
+        paintState.setToolId("brush");
+        paintState.setBrushId("liquify");
 
         const worker = getLayerWorker();
         applySelection();
-        worker.setTool(paintState.toolId);
+        worker.setTool(paintState.brushId);
     },
     setSelectTool() {
         applySelection();
         paintState.setToolId("select");
 
         const worker = getLayerWorker();
-        worker.setTool(paintState.toolId);
+        worker.setTool(paintState.brushId);
     },
 };
 
@@ -81,7 +79,7 @@ export function addDrawEvent() {
                 e.preventDefault();
                 if (!paintState.pointerdown) return;
                 if (paintState.action != "BRUSH") return;
-
+                if (paintState.toolId != "brush") return;
                 //  console.log("brushStart!");
 
                 pointerActive = true;
@@ -91,7 +89,7 @@ export function addDrawEvent() {
                 let brushSize = paintState.getBrushSize();
                 let brushAlpha = paintState.getBrushAlpha();
 
-                if (paintState.toolId == "brush") {
+                if (paintState.brushId == "brush") {
                     worker.setStrokeColor(
                         paintState.color.r,
                         paintState.color.g,
@@ -101,12 +99,12 @@ export function addDrawEvent() {
                     worker.setAlpha(brushAlpha);
 
                     worker.start(point);
-                } else if (paintState.toolId == "eraser") {
+                } else if (paintState.brushId == "eraser") {
                     worker.setStrokeSize(brushSize);
                     worker.setAlpha(brushAlpha);
 
                     worker.start(point);
-                } else if (paintState.toolId == "liquify") {
+                } else if (paintState.brushId == "liquify") {
                     worker.setStrokeSize(brushSize);
                     worker.setAlpha(brushAlpha);
 
@@ -122,6 +120,7 @@ export function addDrawEvent() {
             // console.log(to_canvas_coord(e.clientX, e.clientY))
             if (!paintState.pointerdown) return;
             if (paintState.action != "BRUSH") return;
+            if (paintState.toolId != "brush") return;
             if (!pointerActive) return;
 
             let point = to_canvas_coord(e.clientX, e.clientY);
@@ -129,11 +128,11 @@ export function addDrawEvent() {
             const worker = getLayerWorker();
             let brushSize = paintState.getBrushSize();
 
-            if (paintState.toolId == "brush") {
+            if (paintState.brushId == "brush") {
                 worker.strokeTo(point);
-            } else if (paintState.toolId == "eraser") {
+            } else if (paintState.brushId == "eraser") {
                 worker.strokeTo(point);
-            } else if (paintState.toolId == "liquify") {
+            } else if (paintState.brushId == "liquify") {
                 end = point;
 
                 let length = Math.hypot(end.x - start.x, end.y - start.y);
@@ -150,117 +149,21 @@ export function addDrawEvent() {
         window.addEventListener("pointerup", (e) => {
             e.preventDefault();
             if (paintState.action != "BRUSH") return;
+            if (paintState.toolId != "brush") return;
             if (!pointerActive) return;
 
             let point = to_canvas_coord(e.clientX, e.clientY);
             const worker = getLayerWorker();
-            if (paintState.toolId == "brush") {
+            if (paintState.brushId == "brush") {
                 worker.strokeTo(point);
-            } else if (paintState.toolId == "eraser") {
+            } else if (paintState.brushId == "eraser") {
                 worker.strokeTo(point);
-            } else if (paintState.toolId == "liquify") {
+            } else if (paintState.brushId == "liquify") {
             }
-            if (
-                paintState.toolId != "select" &&
-                paintState.toolId != "selection"
-            ) {
-                endDrawing();
-            }
+
+            endDrawing();
 
             pointerActive = false;
-        });
-    })();
-
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-    (function () {
-        let startPoint;
-        let endPoint;
-
-        let sp, ep;
-
-        let activeSelect = false;
-
-        els.container.addEventListener("pointerdown", (e) => {
-            if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "select") return;
-            let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-
-            let px = clamp(point.x, 0, position.width);
-            let py = clamp(point.y, 0, position.height);
-            startPoint = { x: px, y: py };
-            endPoint = { x: px, y: py };
-
-            sp = {
-                x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
-                y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
-            };
-
-            ep = {
-                x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
-                y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
-            };
-
-            activeSelect = true;
-
-            console.log("선택 시작");
-        });
-
-        window.addEventListener("pointermove", (e) => {
-            if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "select") return;
-            if (!paintState.pointerdown) return;
-            if (!activeSelect) return;
-
-            let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-
-            let px = clamp(point.x, 0, position.width);
-            let py = clamp(point.y, 0, position.height);
-            endPoint = { x: px, y: py };
-
-            sp = {
-                x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
-                y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
-            };
-
-            ep = {
-                x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
-                y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
-            };
-
-            let startCss = canvas_coord_to_css_coord(sp);
-            let endCss = canvas_coord_to_css_coord(ep);
-
-            let startX = Math.min(startCss.x, endCss.x);
-            let startY = Math.min(startCss.y, endCss.y);
-            let zoomW = Math.abs(startCss.x - endCss.x);
-            let zoomH = Math.abs(startCss.y - endCss.y);
-
-            els.zoomArea.style.visibility = "visible";
-            els.zoomArea.style.left = `${startX}px`;
-            els.zoomArea.style.top = `${startY}px`;
-            els.zoomArea.style.width = `${zoomW}px`;
-            els.zoomArea.style.height = `${zoomH}px`;
-        });
-
-        window.addEventListener("pointerup", (e) => {
-            if (paintState.action != "BRUSH") return;
-            if (paintState.toolId != "select") return;
-            if (!activeSelect) return;
-            activeSelect = false;
-
-            els.zoomArea.style.visibility = "hidden";
-
-            let startX = Math.min(sp.x, ep.x);
-            let startY = Math.min(sp.y, ep.y);
-            let zoomW = Math.abs(sp.x - ep.x);
-            let zoomH = Math.abs(sp.y - ep.y);
-
-            if (zoomH == 0 || zoomW == 0) {
-                console.error("선택창이 0이 나올 수 없는데?");
-                return;
-            }
-            canvasSelect(startX, startY, zoomW, zoomH);
         });
     })();
 }
@@ -278,7 +181,10 @@ export function cancel() {
         selectionCancel();
         return;
     }
-    worker.cancel();
+    if(paintState.toolId=='brush'){
+          worker.cancel();
+    }
+  
 }
 
 /**
