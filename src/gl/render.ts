@@ -293,26 +293,28 @@ function makeRenderingManager(canvas, gl) {
       }
 
       vec2 screenPx = v_texCoord * u_screenSize;
-      // 5.) 캔버스 영역 내의 상대 좌표 (0~1) 계산
-      vec2 local = (scaledFragCoord - minCanvPos) / canvasSize;
 
       if(u_magnification > 20.0){
         float pixelStep   = u_magnification * u_dpr;  // device‑pixel 단위
-        float lineWidth   = u_dpr;                      // 선 두께 (device‑pixel)
-  
+     
         // 현재 프래그먼트의 캔버스 내 위치를 *스크린 픽셀* 단위로 환산
         // scaledFragCoord는 (스크린픽셀 / u_magnification) 단위이므로
         // 다시 u_magnification·u_dpr을 곱해주면 실제 스크린‑픽셀 좌표가 된다.
         vec2 canvasPx = (scaledFragCoord - minCanvPos) * u_magnification * u_dpr;
   
-        // 격자 선인지 판정
-        bool isGridLine =
-            mod(canvasPx.x, pixelStep) < lineWidth ||
-            mod(canvasPx.y, pixelStep) < lineWidth;
+        float gridX = fract(canvasPx.x / pixelStep + 0.005);
+        float gridY = fract(canvasPx.y / pixelStep + 0.005);
+        
+        // 임계값: 선 두께가 전체 격자 간격에서 차지하는 비율
+        float threshold = 1.0 / u_magnification;
+        
+        bool isGridLine = gridX <= threshold || gridY <= threshold;
   
         // 격자 색상(시안)으로 덮어쓰기
         if (isGridLine) {
-          outColor = vec4(0.9, 0.9, 0.9, 1.0);
+          vec3 rgb = vec3(1.0,1.0,1.0);
+          float alpha = 0.3;
+          outColor = vec4(rgb * alpha, alpha);
         }
       }
 
@@ -537,6 +539,8 @@ function makeRenderingManager(canvas, gl) {
       }
     }
     layerManager.bindCurrentLayer();
+
+    gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_COLOR);
 
     renderGrid();
 

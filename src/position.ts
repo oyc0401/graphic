@@ -246,7 +246,6 @@ function addPinchListener() {
     window.addEventListener(
       "pointerdown",
       (event) => {
-        event.preventDefault();
         //console.log("pointerdown - captured", event.pointerId);
 
         if (!pointers.has(event.pointerId)) {
