@@ -243,7 +243,7 @@ function addPinchListener() {
 
     let pointers = new Map(); // pointerId -> {x, y} 저장
 
-    els.container.addEventListener(
+    window.addEventListener(
       "pointerdown",
       (event) => {
         event.preventDefault();

@@ -183,6 +183,10 @@ function addMakeSelectionEventListener() {
         console.error("선택창이 0이 나올 수 없는데?");
         return;
       }
+      if (zoomH == 1 && zoomH == 1) {
+        console.log("1 x 1 선택창은 만들지 않습니다.");
+        return;
+      }
       canvasSelect(startX, startY, zoomW, zoomH);
     });
   })();
