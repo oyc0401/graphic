@@ -180,6 +180,11 @@ export class PaintService {
       [pixels.buffer],
     );
   }
+  selectionDelete() {
+    paintOptions.showSelection = false;
+    const renderingManager = getRenderingManager(this.canvas, this.gl);
+    renderingManager.render();
+  }
   uploadImage(imageBitmap: ImageBitmap) {
     uploadImage(this.canvas, this.gl, imageBitmap);
   }

@@ -510,23 +510,36 @@ export function cutSelection() {
   selection.setVisible(false);
 }
 
+export function selectionDelete() {
+  paintState.setToolId("select");
+  selection.setVisible(false);
+
+  let worker = getLayerWorker();
+  worker.selectionDelete();
+}
+
 // 선택창 캔슬
 export function selectionCancel() {
-  selection.active = false;
+  if (paintState.pointerdown) {
+    selection.active = false;
 
-  selection.setX(beforeSelectionPos.x);
-  selection.setY(beforeSelectionPos.y);
-  selection.setWidth(beforeSelectionPos.width);
-  selection.setHeight(beforeSelectionPos.height);
+    selection.setX(beforeSelectionPos.x);
+    selection.setY(beforeSelectionPos.y);
+    selection.setWidth(beforeSelectionPos.width);
+    selection.setHeight(beforeSelectionPos.height);
 
-  const worker = getLayerWorker();
+    const worker = getLayerWorker();
 
-  worker.moveSelection(
-    selection.x,
-    selection.y,
-    selection.width,
-    selection.height,
-  );
+    worker.moveSelection(
+      selection.x,
+      selection.y,
+      selection.width,
+      selection.height,
+    );
 
-  activeHandle = null;
+    activeHandle = null;
+  } else {
+    applySelection();
+    paintState.setToolId("select");
+  }
 }

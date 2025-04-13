@@ -88,6 +88,9 @@ export const workerApi = {
   cut() {
     paint.cut();
   },
+  selectionDelete() {
+    paint.selectionDelete();
+  },
   uploadImage(bitmap) {
     paint.uploadImage(bitmap);
   },

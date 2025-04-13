@@ -1,7 +1,7 @@
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { els } from "./elements";
-import { canvasSelect } from "./selection";
+import { canvasSelect, selectionDelete } from "./selection";
 import { position } from "./position";
 
 /**
@@ -119,7 +119,7 @@ export function addInteractionEvent() {
             ) {
                 event.preventDefault();
             }
-            //console.log('key:',event)
+            //console.log("key:", event);
 
             if (event.repeat) return; // OS 기본 딜레이 방지
 
@@ -142,6 +142,11 @@ export function addInteractionEvent() {
                 //console.log("취소!");
                 cancel();
             }
+
+            if (event.code === "Delete") {
+                selectionDelete();
+            }
+
             if ((event.ctrlKey || event.metaKey) && event.code === "KeyA") {
                 event.preventDefault();
 
@@ -172,7 +177,7 @@ export function addInteractionEvent() {
             }
             if (event.code === "AltLeft") {
                 event.preventDefault();
-                console.log("알트 업", event);
+                //console.log("알트 업", event);
                 paintState.setShowCircle(false);
             }
         });
