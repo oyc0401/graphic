@@ -97,9 +97,10 @@ export function addInteractionEvent() {
     // 슬라이더 이벤트
     (function () {
         els.sizeSlider.addEventListener("input", (event) => {
-            const size = Math.round(Number(els.sizeSlider.value));
-            console.log("브러시 크기:", size);
-            paintState.setBrushSize(size);
+            const size = Number(els.sizeSlider.value);
+            let realSize =(positionToSize(size/1000))
+            console.log("브러시 크기:", realSize);
+            paintState.setBrushSize(realSize);
         });
 
         els.opacitySlider.addEventListener("input", (event) => {
@@ -108,6 +109,14 @@ export function addInteractionEvent() {
             paintState.setBrushAlpha(alpha);
         });
     })();
+    function positionToSize(pos: number): number {
+      const min = 1;
+      const max = 3000;
+      const logMin = Math.log(min);
+      const logMax = Math.log(max);
+      const logValue = logMin + (logMax - logMin) * pos;
+      return Math.exp(logValue);
+    }
 
     // 키보드 이벤트
     (function () {
@@ -119,27 +128,29 @@ export function addInteractionEvent() {
             ) {
                 event.preventDefault();
             }
-            //console.log("key:", event);
 
-            if (event.repeat) return; // OS 기본 딜레이 방지
+            if (event.code === "Space") {
+                event.preventDefault();
+
+                pressedKeys.setSpace(true);
+            }
 
             if (event.code == "KeyZ") {
                 event.preventDefault();
                 pressedKeys.setKeyZ(true);
                 // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
             }
-            if (event.code === "Space") {
-                event.preventDefault();
 
-                pressedKeys.setSpace(true);
-            }
+            //console.log("키다운");
+            if (event.repeat) return; // OS 기본 딜레이 방지
+
             if (event.code === "AltLeft") {
                 paintState.setShowCircle(true);
             }
 
             if (event.code === "Escape") {
                 event.preventDefault();
-                //console.log("취소!");
+
                 cancel();
             }
 

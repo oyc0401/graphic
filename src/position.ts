@@ -17,6 +17,10 @@ export class PositionState {
   dpr = 3;
   bouncingRect = { x: 0, y: 0, width: 0, height: 0 };
 
+  setBouncingRect(rect) {
+    this.bouncingRect = rect;
+  }
+
   constructor() {
     makeAutoObservable(this);
   }
@@ -56,7 +60,7 @@ export const position = new PositionState();
 
 export function updateBouncingRect() {
   console.log("updateBouncingRect");
-  position.bouncingRect = els.container.getBoundingClientRect();
+  position.setBouncingRect(els.container.getBoundingClientRect());
 }
 export async function setCameraPosition() {
   const minW = -position.width;
@@ -179,7 +183,7 @@ function addWheelListener() {
           let brushSize = paintState.getBrushSize();
           let percent =
             event.deltaY > 0 ? (brushSize - 1) / 1.1 : (brushSize + 1) * 1.1;
-          let newSize = Math.round(clamp(percent, 1, 500));
+          let newSize = Math.round(clamp(percent, 1, 3000));
           paintState.setBrushSize(newSize);
         } else {
           if (event.shiftKey) {
@@ -607,6 +611,4 @@ export function getPixelRatio() {
   return dpr;
 }
 
-function addCanvasResizeHandleEvent() {
-  
-}
+function addCanvasResizeHandleEvent() {}

@@ -35,13 +35,23 @@ function bindToolButtonUI() {
         );
     });
 }
-
+function sizeToPosition(size: number): number {
+    const min = 1;
+    const max = 3000;
+    const logMin = Math.log(min);
+    const logMax = Math.log(max);
+    return ((Math.log(size) - logMin) / (logMax - logMin)) * 1000;
+}
 function bindSliderUI() {
     autorun(() => {
         const brushSize = paintState.getBrushSize();
 
-        els.sizeValue.innerText = `${brushSize}px`;
-        els.sizeSlider.value = `${brushSize}`;
+        let sizeText = brushSize.toFixed(1);
+        if (sizeText.endsWith(".0")) {
+            sizeText = sizeText.slice(0, -2);
+        }
+        els.sizeValue.innerText = `${sizeText}px`;
+        els.sizeSlider.value = `${sizeToPosition(brushSize)}`;
     });
 
     autorun(() => {
@@ -123,7 +133,7 @@ function bindSelectionUI() {
     // 1) selectionArea 스타일 갱신
     autorun(() => {
         const visible = selection.visible || selection.showHint;
-        
+
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
         els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
 
