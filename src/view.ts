@@ -2,7 +2,7 @@ import { paintState } from "./main";
 import { autorun } from "mobx";
 import { els } from "./elements";
 import { selection } from "./selection";
-import { getPixelRatio, position } from "./position";
+import { getPixelRatio, position, to_canvas_coord } from "./position";
 
 export function bindView() {
     bindToolButtonUI();
@@ -10,6 +10,7 @@ export function bindView() {
     bindColorUI();
     bindCursorUI();
     bindSelectionUI();
+    bindCursorPositionUI();
 }
 
 function bindToolButtonUI() {
@@ -121,12 +122,10 @@ function bindCursorUI() {
 function bindSelectionUI() {
     // 1) selectionArea 스타일 갱신
     autorun(() => {
-        const visible = selection.visible;
-        let selectionSizeBox = document.getElementById("selection-size")!;
-        let selectionText = document.getElementById("selection-text")!;
-
+        const visible = selection.visible || selection.showHint;
+        
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
-        selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
+        els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
 
         const dpr = getPixelRatio();
         const scaledLeft = (selection.x / dpr + position.x) * position.scale;
@@ -140,17 +139,17 @@ function bindSelectionUI() {
             els.selectionArea.style.width = `${scaledWidth}px`;
             els.selectionArea.style.height = `${scaledHeight}px`;
 
-            selectionSizeBox.style.left = `${scaledLeft}px`;
-            selectionSizeBox.style.top = `${scaledTop + scaledHeight + 24}px`;
-            selectionSizeBox.style.width = `${scaledWidth}px`;
+            els.selectionSizeBox.style.left = `${scaledLeft}px`;
+            els.selectionSizeBox.style.top = `${scaledTop + scaledHeight}px`;
+            els.selectionSizeBox.style.width = `${scaledWidth}px`;
 
-            selectionText.innerText = `${selection.width} x ${selection.height}`;
+            els.selectionText.innerText = `${selection.width} x ${selection.height}`;
         }
     });
 
     // 2) 핸들 위치 및 표시
     autorun(() => {
-        const visible = selection.visible;
+        const visible = selection.visible && !selection.showHint;
         const dpr = getPixelRatio();
         const sLeft = (selection.x / dpr + position.x) * position.scale;
         const sTop = (selection.y / dpr + position.y) * position.scale;
@@ -204,6 +203,18 @@ function bindSelectionUI() {
     });
 }
 
+function bindCursorPositionUI() {
+    autorun(() => {
+        let point = to_canvas_coord(paintState.cursorX, paintState.cursorY);
+        let x = Math.ceil(point.x);
+        let y = Math.ceil(point.y);
+        let visible =
+            0 < x && x <= position.width && 0 < y && y <= position.height;
+
+        els.positionBox.style.visibility = visible ? "visible" : "hidden";
+        els.positionText.innerText = `${x} x ${y}`;
+    });
+}
 function bindResizeHandleUI() {}
 
 function bindColorUI() {

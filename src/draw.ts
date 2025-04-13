@@ -88,26 +88,18 @@ export function addDrawEvent() {
 
                 let brushSize = paintState.getBrushSize();
                 let brushAlpha = paintState.getBrushAlpha();
-
+                worker.setStrokeSize(brushSize);
+                worker.setAlpha(brushAlpha);
+                worker.setStrokeColor(
+                    paintState.color.r,
+                    paintState.color.g,
+                    paintState.color.b,
+                );
                 if (paintState.brushId == "brush") {
-                    worker.setStrokeColor(
-                        paintState.color.r,
-                        paintState.color.g,
-                        paintState.color.b,
-                    );
-                    worker.setStrokeSize(brushSize);
-                    worker.setAlpha(brushAlpha);
-
                     worker.start(point);
                 } else if (paintState.brushId == "eraser") {
-                    worker.setStrokeSize(brushSize);
-                    worker.setAlpha(brushAlpha);
-
                     worker.start(point);
                 } else if (paintState.brushId == "liquify") {
-                    worker.setStrokeSize(brushSize);
-                    worker.setAlpha(brushAlpha);
-
                     worker.start(point);
                     start = { x: e.clientX, y: e.clientY };
                     end = { x: e.clientX, y: e.clientY };

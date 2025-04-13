@@ -15,6 +15,7 @@ export class SelectionState {
   width = 300;
   height = 200;
   visible = false;
+  showHint = false;
   active = false;
 
   constructor() {
@@ -48,6 +49,9 @@ export class SelectionState {
 
   setVisible(visible: boolean) {
     this.visible = visible;
+  }
+  setShowHint(val: boolean) {
+    this.showHint = val;
   }
 }
 
@@ -135,6 +139,8 @@ function addMakeSelectionEventListener() {
       if (!paintState.pointerdown) return;
       if (!activeSelect) return;
 
+      selection.setShowHint(true);
+
       let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
       let px = clamp(point.x, 0, position.width);
@@ -151,19 +157,15 @@ function addMakeSelectionEventListener() {
         y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
       };
 
-      let startCss = canvas_coord_to_css_coord(sp);
-      let endCss = canvas_coord_to_css_coord(ep);
+      let startX = Math.min(sp.x, ep.x);
+      let startY = Math.min(sp.y, ep.y);
+      let zoomW = Math.abs(sp.x - ep.x);
+      let zoomH = Math.abs(sp.y - ep.y);
 
-      let startX = Math.min(startCss.x, endCss.x);
-      let startY = Math.min(startCss.y, endCss.y);
-      let zoomW = Math.abs(startCss.x - endCss.x);
-      let zoomH = Math.abs(startCss.y - endCss.y);
-
-      els.selectionArea.style.visibility = "visible";
-      els.selectionArea.style.left = `${startX}px`;
-      els.selectionArea.style.top = `${startY - paintState.appbarHeight}px`;
-      els.selectionArea.style.width = `${zoomW}px`;
-      els.selectionArea.style.height = `${zoomH}px`;
+      selection.setX(startX);
+      selection.setY(startY);
+      selection.setWidth(zoomW);
+      selection.setHeight(zoomH);
     });
 
     window.addEventListener("pointerup", (e) => {
@@ -187,6 +189,8 @@ function addMakeSelectionEventListener() {
         console.log("1 x 1 선택창은 만들지 않습니다.");
         return;
       }
+
+      selection.setShowHint(false);
       canvasSelect(startX, startY, zoomW, zoomH);
     });
   })();
@@ -221,6 +225,7 @@ function addSelectionDragEventListener() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
+      selection.setShowHint(true);
       let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
       const worker = getLayerWorker();
@@ -251,6 +256,7 @@ function addSelectionDragEventListener() {
       };
 
       selection.active = false;
+      selection.setShowHint(false);
     });
   })();
 }

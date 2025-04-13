@@ -38,7 +38,7 @@ class PaintState {
 
     changed = false;
     showCircle = false;
-    appbarHeight=0;
+    appbarHeight = 0;
     constructor() {
         makeAutoObservable(this);
     }
@@ -65,6 +65,8 @@ class PaintState {
     }
     setBrushSize(size: number) {
         this.brushSize[this.targetId] = size;
+        const worker = getLayerWorker();
+        worker.setStrokeSize(size);
     }
     setBrushAlpha(alpha: number) {
         this.brushAlpha[this.targetId] = alpha;
@@ -142,10 +144,14 @@ async function main() {
         worker.setLayerId(layerId);
     };
 
-    els.container.addEventListener('touchstart', function( event ) { 
-        // text Loupe disable
-              event.preventDefault();
-        }, false);
+    els.container.addEventListener(
+        "touchstart",
+        function (event) {
+            // text Loupe disable
+            event.preventDefault();
+        },
+        false,
+    );
 }
 
 function setCanvasCSSSize() {
