@@ -141,6 +141,11 @@ async function main() {
         applySelection();
         worker.setLayerId(layerId);
     };
+
+    els.container.addEventListener('touchstart', function( event ) { 
+        // text Loupe disable
+              event.preventDefault();
+        }, false);
 }
 
 function setCanvasCSSSize() {

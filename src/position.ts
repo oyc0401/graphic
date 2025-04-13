@@ -181,7 +181,6 @@ function addWheelListener() {
             event.deltaY > 0 ? (brushSize - 1) / 1.1 : (brushSize + 1) * 1.1;
           let newSize = Math.round(clamp(percent, 1, 500));
           paintState.setBrushSize(newSize);
-          
         } else {
           if (event.shiftKey) {
             let delta = event.deltaY;
@@ -607,4 +606,8 @@ export function getPixelRatio() {
     dpr = window.devicePixelRatio;
   }
   return dpr;
+}
+
+function addCanvasResizeHandleEvent() {
+  
 }

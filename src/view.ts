@@ -194,6 +194,10 @@ function bindSelectionUI() {
     });
 }
 
+function bindResizeHandleUI(){
+    
+}
+
 function bindColorUI() {
     autorun(() => {
         const color = paintState.getColor();
