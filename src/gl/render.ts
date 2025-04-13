@@ -313,7 +313,7 @@ function makeRenderingManager(canvas, gl) {
         // 격자 색상(시안)으로 덮어쓰기
         if (isGridLine) {
           vec3 rgb = vec3(1.0,1.0,1.0);
-          float alpha = 0.3;
+          float alpha = 0.2;
           outColor = vec4(rgb * alpha, alpha);
         }
       }

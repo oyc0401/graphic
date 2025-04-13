@@ -119,6 +119,7 @@ export function addInteractionEvent() {
             ) {
                 event.preventDefault();
             }
+            //console.log('key:',event)
 
             if (event.repeat) return; // OS 기본 딜레이 방지
 
@@ -146,10 +147,21 @@ export function addInteractionEvent() {
 
                 canvasSelect(0, 0, position.width, position.height);
             }
+            if (event.code === "KeyB") {
+                toolManager.setBrushTool();
+            }
+            if (event.code === "KeyE") {
+                toolManager.setEraserTool();
+            }
+            if (event.code === "KeyL") {
+                toolManager.setLiquifyTool();
+            }
+            if (event.code === "KeyS") {
+                toolManager.setSelectTool();
+            }
         });
 
         document.addEventListener("keyup", (event) => {
-            console.log("알트 업", event);
             if (event.code == "KeyZ") {
                 event.preventDefault();
                 pressedKeys.setKeyZ(false);
@@ -160,7 +172,7 @@ export function addInteractionEvent() {
             }
             if (event.code === "AltLeft") {
                 event.preventDefault();
-
+                console.log("알트 업", event);
                 paintState.setShowCircle(false);
             }
         });
