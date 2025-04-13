@@ -255,6 +255,111 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
+  /**
+   * 격자무늬 렌더링
+   */
+
+  let gridShaderSource = `#version 300 es
+    precision highp float;
+
+    uniform vec2 u_resolution;    // 캔버스의 전체 화면 기준(왼쪽 상단) 위치 (픽셀 단위)
+    uniform vec2 u_pos;           // 전체 스크린 크기 (픽셀 단위)
+    uniform vec2 u_screenSize;    // 확대 배율 (값이 클수록 크게 보임)
+    uniform float u_magnification;
+    uniform float u_dpr;
+    
+    in vec2 v_texCoord;           // 풀스크린 정규화 좌표 (0~1)
+    out vec4 outColor;
+
+    void main() {
+      // 1. magnification 반영된 "스케일된 스크린" 크기 계산
+      vec2 scaledScreenSize = u_screenSize / u_magnification;
+      vec2 canvasSize = u_resolution;
+
+      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
+      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
+
+      // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
+      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - canvasSize.y - u_pos.y);
+      vec2 minCanvPos = canvasPos;
+      vec2 maxCanvPos = canvasPos + canvasSize;
+
+      // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 검사
+      if (scaledFragCoord.x < minCanvPos.x ||
+          scaledFragCoord.x > maxCanvPos.x ||
+          scaledFragCoord.y < minCanvPos.y ||
+          scaledFragCoord.y > maxCanvPos.y) {
+        discard;
+      }
+
+      vec2 screenPx = v_texCoord * u_screenSize;
+      // 5.) 캔버스 영역 내의 상대 좌표 (0~1) 계산
+      vec2 local = (scaledFragCoord - minCanvPos) / canvasSize;
+
+      if(u_magnification > 20.0){
+        float pixelStep   = u_magnification * u_dpr;  // device‑pixel 단위
+        float lineWidth   = u_dpr;                      // 선 두께 (device‑pixel)
+  
+        // 현재 프래그먼트의 캔버스 내 위치를 *스크린 픽셀* 단위로 환산
+        // scaledFragCoord는 (스크린픽셀 / u_magnification) 단위이므로
+        // 다시 u_magnification·u_dpr을 곱해주면 실제 스크린‑픽셀 좌표가 된다.
+        vec2 canvasPx = (scaledFragCoord - minCanvPos) * u_magnification * u_dpr;
+  
+        // 격자 선인지 판정
+        bool isGridLine =
+            mod(canvasPx.x, pixelStep) < lineWidth ||
+            mod(canvasPx.y, pixelStep) < lineWidth;
+  
+        // 격자 색상(시안)으로 덮어쓰기
+        if (isGridLine) {
+          outColor = vec4(0.9, 0.9, 0.9, 1.0);
+        }
+      }
+
+      
+    }
+  `;
+
+  let gridShader = createShader(gl, gl.FRAGMENT_SHADER, gridShaderSource);
+  let gridProgram = createProgram(gl, fullQuadVertexShader, gridShader);
+  gl.useProgram(gridProgram);
+
+  enable_a_position(gl, gridProgram);
+
+  function renderGrid() {
+    gl.useProgram(gridProgram);
+
+    gl.uniform2f(
+      gl.getUniformLocation(gridProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(gridProgram, "u_pos"),
+      paintOptions.x,
+      paintOptions.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(gridProgram, "u_screenSize"),
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+    );
+    gl.uniform1f(
+      gl.getUniformLocation(gridProgram, "u_magnification"),
+      paintOptions.magnification,
+    );
+    gl.uniform1f(gl.getUniformLocation(gridProgram, "u_dpr"), paintOptions.dpr);
+
+    // 쓰기 영역: 캔버스
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  /**
+   * 선택창 렌더링
+   */
+
   let selectionShaderSource = `#version 300 es
     precision highp float;
 
@@ -432,6 +537,8 @@ function makeRenderingManager(canvas, gl) {
       }
     }
     layerManager.bindCurrentLayer();
+
+    renderGrid();
 
     gl.disable(gl.BLEND);
 
