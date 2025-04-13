@@ -122,7 +122,11 @@ function bindSelectionUI() {
     // 1) selectionArea 스타일 갱신
     autorun(() => {
         const visible = selection.visible;
+        let selectionSizeBox = document.getElementById("selection-size")!;
+        let selectionText = document.getElementById("selection-text")!;
+
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
+        selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
 
         const dpr = getPixelRatio();
         const scaledLeft = (selection.x / dpr + position.x) * position.scale;
@@ -135,6 +139,12 @@ function bindSelectionUI() {
             els.selectionArea.style.top = `${scaledTop}px`;
             els.selectionArea.style.width = `${scaledWidth}px`;
             els.selectionArea.style.height = `${scaledHeight}px`;
+
+            selectionSizeBox.style.left = `${scaledLeft}px`;
+            selectionSizeBox.style.top = `${scaledTop + scaledHeight + 24}px`;
+            selectionSizeBox.style.width = `${scaledWidth}px`;
+
+            selectionText.innerText = `${selection.width} x ${selection.height}`;
         }
     });
 
@@ -169,7 +179,7 @@ function bindSelectionUI() {
             handle.style.left = `${left - offset}px`;
             handle.style.top = `${top - offset}px`;
         };
-        
+
         if ((selection.height * position.scale) / dpr < 100) {
             for (const h of [els.handleL, els.handleR]) {
                 h.style.visibility = "hidden";
@@ -194,9 +204,7 @@ function bindSelectionUI() {
     });
 }
 
-function bindResizeHandleUI(){
-    
-}
+function bindResizeHandleUI() {}
 
 function bindColorUI() {
     autorun(() => {
