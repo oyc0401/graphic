@@ -587,7 +587,7 @@ function makeRenderingManager(canvas, gl) {
 /**
  * 도화지의 크기를 조절함
  */
-export function resizeLayer(canvas, gl, width, height) {
+export function resizeLayer(canvas, gl, x, y, width, height) {
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const drawManager = getBrushManager(canvas, gl);
@@ -596,6 +596,8 @@ export function resizeLayer(canvas, gl, width, height) {
 
   // 현재 그림은 그대로 둔 상태로 크기만 바꾸기
   resizeTexManager.preserveAndResize(
+    x,
+    y,
     paintOptions.width,
     paintOptions.height,
     width,
@@ -708,6 +710,8 @@ function createResizeManager(canvas, gl) {
   const readFBO = gl.createFramebuffer();
 
   function resize(
+    x,
+    y,
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
@@ -767,10 +771,11 @@ function createResizeManager(canvas, gl) {
     // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 activeTexture에 바인딩된 텍스처에 복사
     gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
     // 마지막으로 바인딩된건 함수 밖에 있음.
-    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, newWidth, newHeight);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, -y, newWidth, newHeight);
   }
 
   function resizeAll(
+    x,y,
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
@@ -792,7 +797,7 @@ function createResizeManager(canvas, gl) {
     );
 
     for (let layerTex of layerManager.layerArray) {
-      resize(oldWidth, oldHeight, newWidth, newHeight, layerTex);
+      resize(x,y,oldWidth, oldHeight, newWidth, newHeight, layerTex);
     }
 
     layerManager.bindCurrentLayer();

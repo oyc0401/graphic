@@ -146,7 +146,7 @@ canvas {
   justify-content: center;
   align-items: center;
   position: absolute;
-  z-index: 2901;
+  z-index: 2900;
 }
 
 #selection-text {
@@ -308,11 +308,11 @@ canvas {
   align-items: end;
   background: transparent;
   border: none;
-  padding-bottom: 8px;
 
   cursor: pointer;
 
-  transform: translate(0, -44px);
+  /* 아래 margin 8px */
+  transform: translate(0, -52px);
 }
 
 #canvas-title {
@@ -370,7 +370,7 @@ canvas {
   justify-content: center;
   align-items: center;
   position: absolute;
-  z-index: 2901;
+  z-index: 2900;
 }
 
 #resize-text {

@@ -7,8 +7,6 @@ import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
 import {
   getPixelRatio,
   position,
-  renderChangedPosition,
-  resizeLayer,
   setCameraPosition,
 } from "./position";
 import { paintState } from "./main";

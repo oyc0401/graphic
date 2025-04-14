@@ -36,11 +36,8 @@ export const workerApi = {
   setCamaraPosition(x, y, magnification) {
     paint.setCameraPosition(x, y, magnification);
   },
-  resizeLayer(width, height) {
-    paint.resizeLayer(width, height);
-  },
-  resizeCutLayer(x,y,width,height){
-    
+  resizeLayer(x, y, width, height) {
+    paint.resizeLayer(x, y, width, height);
   },
   resizeScreenSize(screenWidth, screenHeight) {
     paint.resizeScreen(screenWidth, screenHeight);
@@ -77,7 +74,7 @@ export const workerApi = {
     paint.select(x, y, w, h);
   },
   moveSelection(x, y, width, height) {
-    console.log('moveSelection')
+    console.log("moveSelection");
     paint.moveSelection(x, y, width, height);
   },
   applySelection() {

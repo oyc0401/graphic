@@ -133,10 +133,16 @@ function bindCursorUI() {
 function bindSelectionUI() {
     // 1) selectionArea 스타일 갱신
     autorun(() => {
-        const visible = selection.visible || selection.showHint;
+        const visible =
+            selection.visible ||
+            selection.showHint ||
+            paintState.toolId == "resize";
 
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
         els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
+
+        els.selectionArea.style.pointerEvents =
+            paintState.toolId == "resize" ? "none" : "auto";
 
         const dpr = getPixelRatio();
         const scaledLeft = (selection.x / dpr + position.x) * position.scale;
@@ -162,13 +168,13 @@ function bindSelectionUI() {
     autorun(() => {
         const visible =
             (selection.visible && !selection.showHint) ||
-            paintState.toolId == 'resize';
+            paintState.toolId == "resize";
         const dpr = getPixelRatio();
         let sLeft = (selection.x / dpr + position.x) * position.scale;
         let sTop = (selection.y / dpr + position.y) * position.scale;
         let sWidth = (selection.width * position.scale) / dpr;
         let sHeight = (selection.height * position.scale) / dpr;
-        
+
         // 핸들 표시/숨김
         const handles = [
             els.handleLT,
@@ -237,35 +243,6 @@ function bindTitleUI() {
     autorun(() => {
         els.canvasTitle.innerText = "제목없음";
     });
-
-    // 1) selectionArea 스타일 갱신
-    autorun(() => {
-        const visible = paintState.toolId == 'resize';
-
-        els.resizeArea.style.visibility = visible ? "visible" : "hidden";
-        els.resizeSizeBox.style.visibility = visible ? "visible" : "hidden";
-
-        const dpr = getPixelRatio();
-        const scaledLeft = (selection.x / dpr + position.x) * position.scale;
-        const scaledTop = (selection.y / dpr + position.y) * position.scale;
-        const scaledWidth = (selection.width * position.scale) / dpr;
-        const scaledHeight = (selection.height * position.scale) / dpr;
-
-        if (visible) {
-            els.resizeArea.style.left = `${scaledLeft}px`;
-            els.resizeArea.style.top = `${scaledTop}px`;
-            els.resizeArea.style.width = `${scaledWidth}px`;
-            els.resizeArea.style.height = `${scaledHeight}px`;
-
-            els.resizeSizeBox.style.left = `${scaledLeft}px`;
-            els.resizeSizeBox.style.top = `${scaledTop + scaledHeight}px`;
-            els.resizeSizeBox.style.width = `${scaledWidth}px`;
-
-            els.resizeText.innerText = `${selection.width} x ${selection.height}`;
-        }
-    });
-
-  
 }
 function bindResizeHandleUI() {}
 

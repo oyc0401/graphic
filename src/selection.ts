@@ -1,11 +1,6 @@
 import { paintState } from "./main";
 import { els } from "./elements";
-import {
-  canvas_coord_to_css_coord,
-  changeCanvasSize,
-  position,
-  to_pixel_canvas_coord,
-} from "./position";
+import { changeCanvasSize, position, to_pixel_canvas_coord } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
@@ -69,31 +64,42 @@ export function addSelectionEvent() {
   addMakeSelectionEventListener();
   addSelectionDragEventListener();
   addHandleEventListener();
+
+  // 외부 클릭하면 선택창 취소
   (function () {
     let startTime;
     let selectionDown = false;
     els.container.addEventListener("pointerdown", function (e) {
       if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "selection") return;
+      if (paintState.toolId != "selection" && paintState.toolId != "resize")
+        return;
       if (!paintState.pointerdown) return;
+
       const blockedElement = document.getElementById("selections")!; // A 엘리먼트
       if (blockedElement.contains(e.target as Node)) return; // A 또는 자식 위면 무시
 
       selectionDown = true;
       startTime = performance.now();
       console.log("selection pointerdown");
+
+      if (paintState.toolId == "resize") {
+        paintState.setToolId("brush");
+      }
     });
 
     els.container.addEventListener("pointerup", function (e) {
       if (paintState.action != "BRUSH") return;
       if (paintState.toolId != "selection") return;
       if (!selectionDown) return;
+
       let now = performance.now();
       if (now - startTime < 150) {
         console.log("cancel Selection!");
+
         applySelection();
         paintState.setToolId("select");
       }
+
       selectionDown = false;
     });
   })();
@@ -432,10 +438,12 @@ function addHandleEventListener() {
       position.setX(position.x + selection.x);
       position.setY(position.y + selection.y);
 
+      let x = selection.x;
+      let y = selection.y;
       selection.setX(0);
       selection.setY(0);
       console.log("resize!!!");
-      changeCanvasSize(selection.width, selection.height);
+      changeCanvasSize(x, y, selection.width, selection.height);
     }
 
     beforeSelectionPos = {

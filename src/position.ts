@@ -5,7 +5,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
 import { clamp, selection } from "./selection";
 
-const MIN_SCALE = 0.25;
+const MIN_SCALE = 0.125;
 let MAX_SCALE = 0;
 
 export class PositionState {
@@ -82,12 +82,6 @@ export async function setCameraPosition() {
     position.y * pxRatio,
     position.scale,
   );
-}
-
-export async function resizeLayer() {
-  const worker = getLayerWorker();
-
-  await worker.resizeLayer(position.width, position.height);
 }
 
 export async function resizeScreen() {
@@ -594,14 +588,15 @@ export function to_pixel_canvas_coord_round(x, y) {
   };
 }
 
-export async function changeCanvasSize(newWidth, newHeight) {
+export async function changeCanvasSize(x, y, newWidth, newHeight) {
   position.setWidth(newWidth);
   position.setHeight(newHeight);
 
-  resizeLayer();
+  const worker = getLayerWorker();
+
+  await worker.resizeLayer(x, y, newWidth, newHeight);
   renderChangedPosition();
 }
-
 
 let dpr;
 export function getPixelRatio() {
@@ -619,6 +614,6 @@ function addCanvasResizeHandleEvent() {
     selection.setX(0);
     selection.setY(0);
 
-    paintState.setToolId('resize')
+    paintState.setToolId("resize");
   });
 }

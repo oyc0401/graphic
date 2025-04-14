@@ -19,7 +19,7 @@ import { getLayerWorker } from "./worker/workerPool";
 window.onload = main;
 
 type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
-type ToolId = "brush" | "select" | "selection"; // 선택창 풀면 brush로 됌
+type ToolId = "brush" | "select" | "selection" | 'resize'; // 선택창 풀면 brush로 됌
 type BrushId = "brush" | "eraser" | "liquify";
 class PaintState {
     action: Action = "BRUSH";
