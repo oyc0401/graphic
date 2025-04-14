@@ -240,9 +240,12 @@ function bindTitleUI() {
         els.titleArea.style.left = `${position.x * position.scale}px`;
         els.titleArea.style.top = `${position.y * position.scale}px`;
     });
-    autorun(() => {
-        els.canvasTitle.innerText = "제목없음";
-    });
+
+    requestAnimationFrame(()=>{
+          els.canvasTitle.innerText = "크기 조정";
+    })
+      
+    
 }
 function bindResizeHandleUI() {}
 

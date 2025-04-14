@@ -81,16 +81,18 @@ export function addSelectionEvent() {
       selectionDown = true;
       startTime = performance.now();
       console.log("selection pointerdown");
-
-      if (paintState.toolId == "resize") {
-        paintState.setToolId("brush");
-      }
     });
 
     els.container.addEventListener("pointerup", function (e) {
       if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "selection") return;
+      if (paintState.toolId != "selection" && paintState.toolId != "resize")
+        return;
       if (!selectionDown) return;
+      if (paintState.toolId == "resize") {
+        paintState.setToolId("brush");
+        selectionDown = false;
+        return;
+      }
 
       let now = performance.now();
       if (now - startTime < 150) {

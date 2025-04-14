@@ -1,7 +1,7 @@
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { els } from "./elements";
-import { canvasSelect, selectionDelete } from "./selection";
+import { applySelection, canvasSelect, selectionDelete } from "./selection";
 import { position } from "./position";
 
 /**
@@ -98,7 +98,7 @@ export function addInteractionEvent() {
     (function () {
         els.sizeSlider.addEventListener("input", (event) => {
             const size = Number(els.sizeSlider.value);
-            let realSize =(positionToSize(size/1000))
+            let realSize = positionToSize(size / 1000);
             console.log("브러시 크기:", realSize);
             paintState.setBrushSize(realSize);
         });
@@ -110,12 +110,12 @@ export function addInteractionEvent() {
         });
     })();
     function positionToSize(pos: number): number {
-      const min = 1;
-      const max = 3000;
-      const logMin = Math.log(min);
-      const logMax = Math.log(max);
-      const logValue = logMin + (logMax - logMin) * pos;
-      return Math.exp(logValue);
+        const min = 1;
+        const max = 3000;
+        const logMin = Math.log(min);
+        const logMax = Math.log(max);
+        const logValue = logMin + (logMax - logMin) * pos;
+        return Math.exp(logValue);
     }
 
     // 키보드 이벤트
@@ -160,6 +160,7 @@ export function addInteractionEvent() {
 
             if ((event.ctrlKey || event.metaKey) && event.code === "KeyA") {
                 event.preventDefault();
+                applySelection();
 
                 canvasSelect(0, 0, position.width, position.height);
             }
