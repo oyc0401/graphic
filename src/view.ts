@@ -1,6 +1,6 @@
 import { paintState } from "./main";
 import { autorun } from "mobx";
-import { els } from "./elements";
+import { els, getElements } from "./elements";
 import { selection } from "./selection";
 import { getPixelRatio, position, to_canvas_coord } from "./position";
 
@@ -11,6 +11,7 @@ export function bindView() {
     bindCursorUI();
     bindSelectionUI();
     bindCursorPositionUI();
+    bindTitleUI();
 }
 
 function bindToolButtonUI() {
@@ -159,13 +160,15 @@ function bindSelectionUI() {
 
     // 2) 핸들 위치 및 표시
     autorun(() => {
-        const visible = selection.visible && !selection.showHint;
+        const visible =
+            (selection.visible && !selection.showHint) ||
+            paintState.toolId == 'resize';
         const dpr = getPixelRatio();
-        const sLeft = (selection.x / dpr + position.x) * position.scale;
-        const sTop = (selection.y / dpr + position.y) * position.scale;
-        const sWidth = (selection.width * position.scale) / dpr;
-        const sHeight = (selection.height * position.scale) / dpr;
-
+        let sLeft = (selection.x / dpr + position.x) * position.scale;
+        let sTop = (selection.y / dpr + position.y) * position.scale;
+        let sWidth = (selection.width * position.scale) / dpr;
+        let sHeight = (selection.height * position.scale) / dpr;
+        
         // 핸들 표시/숨김
         const handles = [
             els.handleLT,
@@ -224,6 +227,45 @@ function bindCursorPositionUI() {
         els.positionBox.style.visibility = visible ? "visible" : "hidden";
         els.positionText.innerText = `${x} x ${y}`;
     });
+}
+
+function bindTitleUI() {
+    autorun(() => {
+        els.titleArea.style.left = `${position.x * position.scale}px`;
+        els.titleArea.style.top = `${position.y * position.scale}px`;
+    });
+    autorun(() => {
+        els.canvasTitle.innerText = "제목없음";
+    });
+
+    // 1) selectionArea 스타일 갱신
+    autorun(() => {
+        const visible = paintState.toolId == 'resize';
+
+        els.resizeArea.style.visibility = visible ? "visible" : "hidden";
+        els.resizeSizeBox.style.visibility = visible ? "visible" : "hidden";
+
+        const dpr = getPixelRatio();
+        const scaledLeft = (selection.x / dpr + position.x) * position.scale;
+        const scaledTop = (selection.y / dpr + position.y) * position.scale;
+        const scaledWidth = (selection.width * position.scale) / dpr;
+        const scaledHeight = (selection.height * position.scale) / dpr;
+
+        if (visible) {
+            els.resizeArea.style.left = `${scaledLeft}px`;
+            els.resizeArea.style.top = `${scaledTop}px`;
+            els.resizeArea.style.width = `${scaledWidth}px`;
+            els.resizeArea.style.height = `${scaledHeight}px`;
+
+            els.resizeSizeBox.style.left = `${scaledLeft}px`;
+            els.resizeSizeBox.style.top = `${scaledTop + scaledHeight}px`;
+            els.resizeSizeBox.style.width = `${scaledWidth}px`;
+
+            els.resizeText.innerText = `${selection.width} x ${selection.height}`;
+        }
+    });
+
+  
 }
 function bindResizeHandleUI() {}
 

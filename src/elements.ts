@@ -54,6 +54,22 @@ export let els = {
 
   positionBox: $id("cursor-position"),
   positionText: $id("cursor-position-text"),
+
+  titleArea: $id("title-area"),
+  canvasTitle: $id("canvas-title"),
+
+  resizeArea: $id("resize-area"),
+  resize_handleLT: $id("resize-handle-lt"),
+  resize_handleT: $id("resize-handle-t"),
+  resize_handleRT: $id("resize-handle-rt"),
+  resize_handleR: $id("resize-handle-r"),
+  resize_handleRB: $id("resize-handle-rb"),
+  resize_handleB: $id("resize-handle-b"),
+  resize_handleLB: $id("resize-handle-lb"),
+  resize_handleL: $id("resize-handle-l"),
+  
+  resizeSizeBox: $id("resize-size"),
+  resizeText: $id("resize-text"),
 };
 
 export function getElements() {

@@ -39,6 +39,8 @@ class PaintState {
     changed = false;
     showCircle = false;
     appbarHeight = 0;
+
+    showSizeHandle = false;
     constructor() {
         makeAutoObservable(this);
     }
@@ -77,6 +79,10 @@ class PaintState {
     }
     setShowCircle(value) {
         this.showCircle = value;
+    }
+
+    setShowSizeHandle(val) {
+        this.showSizeHandle = val;
     }
 
     getBrushSize() {

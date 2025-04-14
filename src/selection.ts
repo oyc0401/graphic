@@ -2,6 +2,7 @@ import { paintState } from "./main";
 import { els } from "./elements";
 import {
   canvas_coord_to_css_coord,
+  changeCanvasSize,
   position,
   to_pixel_canvas_coord,
 } from "./position";
@@ -50,7 +51,7 @@ export class SelectionState {
   setVisible(visible: boolean) {
     this.visible = visible;
   }
-  setShowHint(val: boolean) {
+  hideHint(val: boolean) {
     this.showHint = val;
   }
 }
@@ -139,7 +140,7 @@ function addMakeSelectionEventListener() {
       if (!paintState.pointerdown) return;
       if (!activeSelect) return;
 
-      selection.setShowHint(true);
+      selection.hideHint(true);
 
       let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
@@ -190,7 +191,7 @@ function addMakeSelectionEventListener() {
         return;
       }
 
-      selection.setShowHint(false);
+      selection.hideHint(false);
       canvasSelect(startX, startY, zoomW, zoomH);
     });
   })();
@@ -225,7 +226,7 @@ function addSelectionDragEventListener() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
-      selection.setShowHint(true);
+      selection.hideHint(true);
       let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
       const worker = getLayerWorker();
@@ -256,7 +257,7 @@ function addSelectionDragEventListener() {
       };
 
       selection.active = false;
-      selection.setShowHint(false);
+      selection.hideHint(false);
     });
   })();
 }
@@ -294,6 +295,13 @@ function addHandleEventListener() {
     startTop = selection.y;
     startWidth = selection.width;
     startHeight = selection.height;
+
+    beforeSelectionPos = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    };
   }
 
   // 전역 MOUSEMOVE 이벤트 핸들러
@@ -399,12 +407,17 @@ function addHandleEventListener() {
     selection.setWidth(clamp(newWidth, minSize, maxSize));
     selection.setHeight(clamp(newHeight, minSize, maxSize));
 
-    worker.moveSelection(
-      selection.x,
-      selection.y,
-      selection.width,
-      selection.height,
-    );
+    if (paintState.toolId == "selection") {
+      worker.moveSelection(
+        selection.x,
+        selection.y,
+        selection.width,
+        selection.height,
+      );
+    }
+
+    if (paintState.toolId == "resize") {
+    }
   }
 
   // 전역 MOUSEUP 이벤트 핸들러
@@ -414,6 +427,16 @@ function addHandleEventListener() {
 
     console.log(endPoint);
     activeHandle = null;
+
+    if (paintState.toolId == "resize") {
+      position.setX(position.x + selection.x);
+      position.setY(position.y + selection.y);
+
+      selection.setX(0);
+      selection.setY(0);
+      console.log("resize!!!");
+      changeCanvasSize(selection.width, selection.height);
+    }
 
     beforeSelectionPos = {
       x: selection.x,
@@ -544,6 +567,8 @@ export function selectionCancel() {
     );
 
     activeHandle = null;
+
+    selection.hideHint(false);
   } else {
     applySelection();
     paintState.setToolId("select");

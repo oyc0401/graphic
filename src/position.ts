@@ -3,7 +3,7 @@ import { cancel, endDrawing } from "./draw";
 import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
-import { clamp } from "./selection";
+import { clamp, selection } from "./selection";
 
 const MIN_SCALE = 0.25;
 let MAX_SCALE = 0;
@@ -149,6 +149,8 @@ export function addPositionEvent() {
   addPanningListener();
 
   addZoomListener();
+
+  addCanvasResizeHandleEvent();
 }
 
 function addWheelListener() {
@@ -403,8 +405,10 @@ function addPanningListener() {
 
       let dx = lastClientX - e.clientX;
       let dy = lastClientY - e.clientY;
-      position.setX(position.x - dx / position.scale);
-      position.setY(position.y - dy / position.scale);
+      let x = position.x - dx / position.scale;
+      let y = position.y - dy / position.scale;
+      position.setX(x);
+      position.setY(y);
 
       lastClientX = e.clientX;
       lastClientY = e.clientY;
@@ -590,18 +594,14 @@ export function to_pixel_canvas_coord_round(x, y) {
   };
 }
 
-async function changeSize(number = 300) {
-  let newWidth = number * 2;
-  let newHeight = number;
-
+export async function changeCanvasSize(newWidth, newHeight) {
   position.setWidth(newWidth);
   position.setHeight(newHeight);
 
   resizeLayer();
-  render();
+  renderChangedPosition();
 }
 
-globalThis.changeSize = changeSize;
 
 let dpr;
 export function getPixelRatio() {
@@ -611,4 +611,14 @@ export function getPixelRatio() {
   return dpr;
 }
 
-function addCanvasResizeHandleEvent() {}
+function addCanvasResizeHandleEvent() {
+  els.titleArea.addEventListener("click", () => {
+    // paintState.setShowSizeHandle(true);
+    selection.setWidth(position.width);
+    selection.setHeight(position.height);
+    selection.setX(0);
+    selection.setY(0);
+
+    paintState.setToolId('resize')
+  });
+}
