@@ -7,6 +7,7 @@ export class BrushTool {
   private start = { x: 0, y: 0 };
 
   down(e: PointerEvent) {
+    console.log("!");
     if (!paintState.pointerdown || paintState.toolId !== "brush") return;
     this.pointerActive = true;
 
@@ -58,12 +59,6 @@ export class BrushTool {
     worker.strokeTo(point);
     worker.end();
     paintState.changed = true;
-  }
-
-  forceEnd() {
-    if (!this.pointerActive) return;
-    this.pointerActive = false;
-    getLayerWorker().end();
   }
 
   cancel() {

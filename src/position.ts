@@ -1,10 +1,11 @@
 /** position.ts */ 
 import { paintState } from "./main";
-import { cancel, endDrawing } from "./draw";
+import { cancel } from "./draw";
 import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
 import { clamp, selection } from "./selection";
+import { dispatch } from "./pointerEvents";
 
 const MIN_SCALE = 0.125;
 let MAX_SCALE = 0;
@@ -143,7 +144,7 @@ export function addPositionEvent() {
 
   addPanningListener();
 
-  addZoomListener();
+  //addZoomListener();
 
   addCanvasResizeHandleEvent();
 }
@@ -278,7 +279,8 @@ function addPinchListener() {
               lastDoubleTouchTime = now;
             }
           } else {
-            endDrawing();
+            
+             dispatch(event, "up");
           }
 
           console.log("두 손가락 감지됨, 핀치 줌 시작");
@@ -415,104 +417,8 @@ function addPanningListener() {
     });
   })();
 }
-function addZoomListener() {
-  /**
-   * 줌 영역
-   */
-  (function () {
-    let sx, sy;
-    let ex, ey;
-    let activeZoom = false;
 
-    els.container.addEventListener("pointerdown", (e) => {
-      if (paintState.action != "ZOOM") return;
-      if (activeZoom) return;
-      sx = e.clientX;
-      sy = e.clientY;
-      ex = e.clientX;
-      ey = e.clientY;
-      activeZoom = true;
-
-      els.zoomArea.style.visibility = "visible";
-      console.log("확대");
-      els.zoomArea.style.left = `${sx}px`;
-      els.zoomArea.style.top = `${sy}px`;
-      els.zoomArea.style.width = `0px`;
-      els.zoomArea.style.height = `0px`;
-    });
-
-    window.addEventListener("pointermove", (e) => {
-      if (paintState.action != "ZOOM") return;
-      if (!paintState.pointerdown) return;
-      if (!activeZoom) return;
-      ex = e.clientX;
-      ey = e.clientY;
-      let startX = sx < ex ? sx : ex;
-      let startY = sy < ey ? sy : ey;
-      let zoomW = Math.abs(sx - ex);
-      let zoomH = Math.abs(sy - ey);
-      els.zoomArea.style.left = `${startX}px`;
-      els.zoomArea.style.top = `${startY}px`;
-      els.zoomArea.style.width = `${zoomW}px`;
-      els.zoomArea.style.height = `${zoomH}px`;
-    });
-
-    window.addEventListener("pointerup", (e) => {
-      if (paintState.action != "ZOOM") return;
-      if (!activeZoom) return;
-
-      els.zoomArea.style.visibility = "hidden";
-      let cx = (sx + ex) / 2;
-      let cy = (sy + ey) / 2;
-
-      let zoomW = Math.abs(sx - ex);
-      let zoomH = Math.abs(sy - ey);
-
-      // 그냥 클릭 시
-      if (zoomW < 10 || zoomH < 10) {
-        let new_mag = position.scale;
-        if (e.button === 0) {
-          new_mag = position.scale * 1.5;
-        } else if (e.button === 2) {
-          new_mag = position.scale / 1.5;
-        }
-        const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
-        setMagification(clamped_scale, to_screen_coord(e.clientX, e.clientY));
-      } else {
-        let px = position.bouncingRect.width / zoomW;
-        let py = position.bouncingRect.height / zoomH;
-        let minScale = px < py ? px : py;
-
-        let topMargin = position.bouncingRect.y;
-        let centerX = position.bouncingRect.width / 2;
-        let centerY = position.bouncingRect.height / 2;
-
-        let dx = cx - centerX;
-        let dy = cy - centerY - topMargin / minScale;
-        position.setX(position.x - dx / position.scale);
-        position.setY(position.y - dy / position.scale);
-
-        let new_mag = position.scale * minScale;
-
-        // if (e.button === 0) {
-        //   new_mag = position.scale * minScale;
-        // } else if (e.button === 2) {
-        //   new_mag = position.scale / minScale;
-        // }
-
-        const clamped_scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, new_mag));
-
-        setMagification(clamped_scale, to_screen_coord(centerX, centerY));
-      }
-
-      renderChangedPosition();
-
-      activeZoom = false;
-    });
-  })();
-}
-
-function setMagification(new_scale, anchor_point) {
+export function setMagification(new_scale, anchor_point) {
   // 확대 전 값을 따로 보관
   const old_scale = position.scale;
   const old_x = position.x;

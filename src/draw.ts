@@ -6,6 +6,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { applySelection, selectionCancel } from "./selection";
 import { toolRegistry } from "./tools";
+import { dispatch } from "./pointerEvents";
 
 export const toolManager = {
     setBrushTool() {
@@ -46,22 +47,15 @@ export const toolManager = {
 /**
  * 원본 텍스쳐로 돌려놓기
  */
-export function cancel() {
+export function cancel(event) {
     console.log("cancel!");
 
     if (paintState.toolId == "selection") {
         selectionCancel();
         return;
     }
-    if (paintState.toolId == "brush") {
-        toolRegistry[paintState.toolId]?.cancel?.();
-    }
+    
+    dispatch(event, "cancel");
 }
 
-/**
- * 그리기 종료
- */
-export function endDrawing() {
-    const tool = toolRegistry[paintState.action];
-    tool?.forceEnd?.(); // forceEnd()가 있는 컨트롤러에만
-}
+

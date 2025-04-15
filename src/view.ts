@@ -1,9 +1,10 @@
-/** view.ts */ 
+/** view.ts */
 import { paintState } from "./main";
 import { autorun } from "mobx";
 import { els, getElements } from "./elements";
 import { selection } from "./selection";
 import { getPixelRatio, position, to_canvas_coord } from "./position";
+import { zoomRect } from "./view/zoomState";
 
 export function bindView() {
     bindToolButtonUI();
@@ -13,6 +14,7 @@ export function bindView() {
     bindSelectionUI();
     bindCursorPositionUI();
     bindTitleUI();
+    bindZoomAreaUI();
 }
 
 function bindToolButtonUI() {
@@ -242,11 +244,9 @@ function bindTitleUI() {
         els.titleArea.style.top = `${position.y * position.scale}px`;
     });
 
-    requestAnimationFrame(()=>{
-          els.canvasTitle.innerText = "크기 조정";
-    })
-      
-    
+    requestAnimationFrame(() => {
+        els.canvasTitle.innerText = "크기 조정";
+    });
 }
 function bindResizeHandleUI() {}
 
@@ -260,4 +260,26 @@ function bindColorUI() {
 function rgbToHex({ r, g, b }) {
     const toHex = (v) => v.toString(16).padStart(2, "0").toUpperCase();
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function bindZoomAreaUI() {
+    autorun(() => {
+        const isZooming = paintState.action === "ZOOM";
+
+        if (!isZooming) {
+            els.zoomArea.style.visibility = "hidden";
+            return;
+        }
+
+        const startX = Math.min(zoomRect.sx, zoomRect.ex);
+        const startY = Math.min(zoomRect.sy, zoomRect.ey);
+        const width = Math.abs(zoomRect.sx - zoomRect.ex);
+        const height = Math.abs(zoomRect.sy - zoomRect.ey);
+
+        els.zoomArea.style.visibility = "visible";
+        els.zoomArea.style.left = `${startX}px`;
+        els.zoomArea.style.top = `${startY}px`;
+        els.zoomArea.style.width = `${width}px`;
+        els.zoomArea.style.height = `${height}px`;
+    });
 }

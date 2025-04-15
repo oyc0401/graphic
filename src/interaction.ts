@@ -259,6 +259,7 @@ function addKeyActionChangeEventListener() {
         // 키보드를 떼면 눌려있는 키가 적용되어야 한다.
         setTimeout(() => {
             applyKeyAction(); // 가장 마지막에 작동하게 함
+            console.log('apply')
         }, 0);
     });
 }
