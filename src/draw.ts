@@ -1,3 +1,4 @@
+/** draw.ts */ 
 import { paintState } from "./main";
 import { els } from "./elements";
 import { getPixelRatio, position } from "./position";

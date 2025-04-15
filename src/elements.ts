@@ -1,3 +1,4 @@
+/** elements.ts */ 
 import BrushSvg from "./assets/brush.svg?raw";
 import EraserSvg from "./assets/eraser.svg?raw";
 import SelectionSvg from "./assets/select_rectangle.svg?raw";

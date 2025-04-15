@@ -1,3 +1,4 @@
+/** position.ts */ 
 import { paintState } from "./main";
 import { cancel, endDrawing } from "./draw";
 import { els } from "./elements";
@@ -607,7 +608,7 @@ export function getPixelRatio() {
 }
 
 function addCanvasResizeHandleEvent() {
-  els.titleArea.addEventListener("click", () => {
+  els.titleArea.addEventListener("pointerup", () => {
     // paintState.setShowSizeHandle(true);
     selection.setWidth(position.width);
     selection.setHeight(position.height);
@@ -615,5 +616,6 @@ function addCanvasResizeHandleEvent() {
     selection.setY(0);
 
     paintState.setToolId("resize");
+    console.log('title click!')
   });
 }

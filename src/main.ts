@@ -1,3 +1,4 @@
+/** main.ts */ 
 import { addDrawEvent, tranferCanvas } from "./draw";
 import {
     addPositionEvent,

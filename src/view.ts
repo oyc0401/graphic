@@ -1,3 +1,4 @@
+/** view.ts */ 
 import { paintState } from "./main";
 import { autorun } from "mobx";
 import { els, getElements } from "./elements";

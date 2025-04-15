@@ -1,3 +1,4 @@
+/** file.ts */ 
 import { els } from "./elements";
 import { getLayerWorker } from "./worker/workerPool";
 //import { encode } from "fast-png";

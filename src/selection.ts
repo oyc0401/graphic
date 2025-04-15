@@ -1,6 +1,12 @@
+/** selection.ts */ 
 import { paintState } from "./main";
 import { els } from "./elements";
-import { changeCanvasSize, position, to_pixel_canvas_coord } from "./position";
+import {
+  changeCanvasSize,
+  getPixelRatio,
+  position,
+  to_pixel_canvas_coord,
+} from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
@@ -437,8 +443,8 @@ function addHandleEventListener() {
     activeHandle = null;
 
     if (paintState.toolId == "resize") {
-      position.setX(position.x + selection.x);
-      position.setY(position.y + selection.y);
+      position.setX(position.x + selection.x / getPixelRatio());
+      position.setY(position.y + selection.y / getPixelRatio());
 
       let x = selection.x;
       let y = selection.y;

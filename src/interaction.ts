@@ -1,3 +1,4 @@
+/** interaction.ts */ 
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { els } from "./elements";
