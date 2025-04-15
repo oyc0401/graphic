@@ -1,6 +1,5 @@
 /** main.ts */
 import {
-    addPositionEvent,
     getPixelRatio,
     position,
     render,
@@ -35,7 +34,7 @@ class PaintState {
     cursorY = 0;
 
     pointerdown = false;
-    drawdownAndMoved = false;
+    drawing = false;
 
     targetId = "brush";
 
@@ -61,8 +60,8 @@ class PaintState {
     setPointerdown(val: boolean) {
         this.pointerdown = val;
     }
-    setDrawdownAndMoved(val: boolean) {
-        this.drawdownAndMoved = val;
+    setDrawing(val: boolean) {
+        this.drawing = val;
     }
     setCursorPosition(x, y) {
         this.cursorX = x;
@@ -113,7 +112,7 @@ async function main() {
     // 뷰 바인딩
     bindView();
 
-        addGestureEvent();
+    addGestureEvent();
 
     // 이벤트 추가
     attachPointerEvents(els.container);
@@ -121,8 +120,6 @@ async function main() {
     addInteractionEvent();
 
     addClipboardEvent();
-
-    addPositionEvent();
 
     addSelectionEvent();
 

@@ -22,7 +22,13 @@ export function dispatch(e: PointerEvent, phase: Phase) {
 }
 
 export function attachPointerEvents(root: HTMLElement) {
-  root.addEventListener("pointerdown", (e) => dispatch(e, "down"));
-  window.addEventListener("pointermove", (e) => dispatch(e, "move"));
-  window.addEventListener("pointerup", (e) => dispatch(e, "up"));
+  root.addEventListener("pointerdown", (e) => dispatch(e, "down"), {
+    passive: false,
+  });
+  window.addEventListener("pointermove", (e) => dispatch(e, "move"), {
+    passive: false,
+  });
+  window.addEventListener("pointerup", (e) => dispatch(e, "up"), {
+    passive: false,
+  });
 }

@@ -1,9 +1,22 @@
-/** interaction.ts */ 
+/** interaction.ts */
 import { paintState } from "./main";
 import { cancel, toolManager } from "./draw";
 import { els } from "./elements";
-import { applySelection, canvasSelect, selectionDelete } from "./selection";
-import { position } from "./position";
+import {
+    applySelection,
+    canvasSelect,
+    clamp,
+    selection,
+    selectionDelete,
+} from "./selection";
+import {
+    MAX_SCALE,
+    MIN_SCALE,
+    position,
+    renderChangedPosition,
+    setMagification,
+    to_screen_coord,
+} from "./position";
 
 /**
  * 단축키
@@ -71,6 +84,17 @@ function addClickEventListener() {
             paintState.setColor(r, g, b);
         });
     });
+
+    els.titleArea.addEventListener("pointerup", () => {
+        // paintState.setShowSizeHandle(true);
+        selection.setWidth(position.width);
+        selection.setHeight(position.height);
+        selection.setX(0);
+        selection.setY(0);
+
+        paintState.setToolId("resize");
+        console.log("title click!");
+    });
 }
 
 function hexToRgb(hex) {
@@ -94,7 +118,7 @@ function hexToRgb(hex) {
 export function addInteractionEvent() {
     addClickEventListener();
     addKeyActionChangeEventListener();
-
+    addWheelListener();
     // 슬라이더 이벤트
     (function () {
         els.sizeSlider.addEventListener("input", (event) => {
@@ -197,41 +221,80 @@ export function addInteractionEvent() {
     })();
 
     // 커서 위치 이벤트
-    (function () {
-        els.container.addEventListener(
-            "pointerdown",
-            (_) => {
-                
 
-                // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
-            },
-            true,
-        );
+    window.addEventListener(
+        "pointermove",
+        (event) => {
+            if (event.pointerType == "mouse") {
+                // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
+                paintState.setCursorPosition(event.clientX, event.clientY);
+            }
+        },
+        true,
+    );
 
-        window.addEventListener(
-            "pointerup",
-            (_) => {
-                paintState.setPointerdown(false);
-                paintState.setDrawdownAndMoved(false);
-                // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 드로우 잘 작동 안됌!
-            },
-            true,
-        );
-
-        window.addEventListener(
-            "pointermove",
-            (event) => {
-                if (event.pointerType == "mouse") {
-                    // 이건 절대절대 모바일이 되는 작업에선 쓰면 안됌!!
-                    paintState.setCursorPosition(event.clientX, event.clientY);
-                }
-            },
-            true,
-        );
-    })();
-
+    document.addEventListener(
+        "gesturestart",
+        (e) => {
+            e.preventDefault(); // Safari 방지
+        },
+        { passive: false },
+    );
     //
     window.addEventListener("contextmenu", (event) => event.preventDefault());
+}
+
+function addWheelListener() {
+    /**
+     * 휠 스크롤 영역
+     */
+    (function () {
+        window.addEventListener(
+            "wheel",
+            (event) => {
+                // console.log("wheel", event);
+
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                    let new_mag;
+                    if (event.deltaY > 0) {
+                        new_mag = position.scale / 1.2;
+                    } else {
+                        new_mag = position.scale * 1.2;
+                    }
+                    const clamped_scale = Math.min(
+                        MAX_SCALE,
+                        Math.max(MIN_SCALE, new_mag),
+                    );
+                    setMagification(
+                        clamped_scale,
+                        to_screen_coord(event.clientX, event.clientY),
+                    );
+
+                    // updateCursorShape();
+                } else if (event.altKey) {
+                    let brushSize = paintState.getBrushSize();
+                    let percent =
+                        event.deltaY > 0
+                            ? (brushSize - 1) / 1.1
+                            : (brushSize + 1) * 1.1;
+                    let newSize = Math.round(clamp(percent, 1, 3000));
+                    paintState.setBrushSize(newSize);
+                } else {
+                    if (event.shiftKey) {
+                        let delta = event.deltaY;
+                        position.setX(position.x - delta / position.scale);
+                    } else {
+                        let delta = event.deltaY;
+                        position.setY(position.y - delta / position.scale);
+                    }
+                }
+
+                renderChangedPosition();
+            },
+            { passive: false },
+        );
+    })();
 }
 
 // 누르고 있는 키에 따라서 도구를 바꿈
@@ -259,7 +322,7 @@ function addKeyActionChangeEventListener() {
         // 키보드를 떼면 눌려있는 키가 적용되어야 한다.
         setTimeout(() => {
             applyKeyAction(); // 가장 마지막에 작동하게 함
-            console.log('apply')
+            console.log("apply");
         }, 0);
     });
 }

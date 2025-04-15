@@ -118,7 +118,7 @@ function bindCursorUI() {
 
         // ───────────── 브러시 커서 스타일
         if (isValid && (isBigSize || showCircle)) {
-            if (isDesktop || paintState.drawdownAndMoved) {
+            if (isDesktop || paintState.drawing) {
                 cursor.style.visibility = "visible";
             } else {
                 cursor.style.visibility = "hidden";

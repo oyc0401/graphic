@@ -22,9 +22,8 @@ export class BrushTool {
     );
 
     worker.start(point);
-    if (paintState.brushId === "liquify") {
-      this.start = { x: e.clientX, y: e.clientY };
-    }
+
+    this.start = { x: e.clientX, y: e.clientY };
   }
 
   move(e: PointerEvent) {
@@ -49,7 +48,7 @@ export class BrushTool {
       worker.strokeTo(point);
     }
 
-    paintState.setDrawdownAndMoved(true);
+    paintState.setDrawing(true);
     paintState.setCursorPosition(e.clientX, e.clientY);
   }
 
@@ -59,8 +58,10 @@ export class BrushTool {
 
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
+    if (this.start.x == e.clientX && this.start.x == e.clientY) {
+      worker.strokeTo(point);
+    }
 
-    worker.strokeTo(point);
     worker.end();
     paintState.changed = true;
   }
