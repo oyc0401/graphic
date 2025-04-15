@@ -140,11 +140,7 @@ export function setDefaultPosition() {
 export function addPositionEvent() {
   addWheelListener();
 
-  addPinchListener();
-
-  addPanningListener();
-
-  //addZoomListener();
+ //addPinchListener();
 
   addCanvasResizeHandleEvent();
 }
@@ -270,7 +266,7 @@ function addPinchListener() {
         if (pointers.size === 2) {
           const elapsed = performance.now() - firstPointerTime;
           if (elapsed <= twoFingerTapInterval) {
-            cancel();
+            cancel(event);
             let now = performance.now();
             if (now - lastDoubleTouchTime <= doubleTapInterval) {
               alert(`더블터치! ${now - lastDoubleTouchTime}`);
@@ -377,44 +373,6 @@ function addPinchListener() {
       },
       true,
     );
-  })();
-}
-function addPanningListener() {
-  /**
-   * 마우스 팬 영역
-   */
-  (function () {
-    let lastClientX;
-    let lastClientY;
-
-    els.container.addEventListener("pointerdown", (e) => {
-      if (paintState.action != "PAN") return;
-
-      lastClientX = e.clientX;
-      lastClientY = e.clientY;
-
-      console.log("팬 시작!");
-    });
-
-    window.addEventListener("pointermove", (e) => {
-      if (paintState.action != "PAN") return;
-      if (!paintState.pointerdown) return;
-
-      let dx = lastClientX - e.clientX;
-      let dy = lastClientY - e.clientY;
-      let x = position.x - dx / position.scale;
-      let y = position.y - dy / position.scale;
-      position.setX(x);
-      position.setY(y);
-
-      lastClientX = e.clientX;
-      lastClientY = e.clientY;
-      renderChangedPosition();
-    });
-
-    window.addEventListener("pointerup", (e) => {
-      if (paintState.action != "PAN") return;
-    });
   })();
 }
 

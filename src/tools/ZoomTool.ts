@@ -5,6 +5,7 @@ import {
   renderChangedPosition,
   to_screen_coord,
   setMagification,
+  getPixelRatio,
 } from "../position";
 import { zoomRect } from "../view/zoomState";
 
@@ -46,10 +47,15 @@ export class ZoomTool {
     const cx = (sx + ex) / 2;
     const cy = (sy + ey) / 2;
 
+    let max_scale = MAX_SCALE * getPixelRatio();
+
     if (zoomW < 10 || zoomH < 10) {
       let newMag = position.scale;
       newMag *= e.button === 2 ? 1 / 1.5 : 1.5;
-      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newMag));
+      const clamped = Math.min(
+        max_scale * getPixelRatio(),
+        Math.max(MIN_SCALE, newMag),
+      );
       setMagification(clamped, to_screen_coord(e.clientX, e.clientY));
     } else {
       const px = position.bouncingRect.width / zoomW;
@@ -65,7 +71,7 @@ export class ZoomTool {
       position.setY(position.y - dy / position.scale);
 
       const newMag = position.scale * zoomFactor;
-      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newMag));
+      const clamped = Math.min(max_scale, Math.max(MIN_SCALE, newMag));
       setMagification(clamped, to_screen_coord(centerX, centerY));
     }
 

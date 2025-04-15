@@ -1,11 +1,7 @@
 /** draw.ts */
 import { paintState } from "./main";
-import { els } from "./elements";
-import { getPixelRatio, position } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
-import * as Comlink from "comlink";
 import { applySelection, selectionCancel } from "./selection";
-import { toolRegistry } from "./tools";
 import { dispatch } from "./pointerEvents";
 
 export const toolManager = {
@@ -47,15 +43,13 @@ export const toolManager = {
 /**
  * 원본 텍스쳐로 돌려놓기
  */
-export function cancel(event) {
+export function cancel() {
     console.log("cancel!");
 
     if (paintState.toolId == "selection") {
         selectionCancel();
         return;
     }
-    
-    dispatch(event, "cancel");
+
+    dispatch(undefined, "cancel");
 }
-
-

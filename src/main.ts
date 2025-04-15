@@ -1,4 +1,4 @@
-/** main.ts */ 
+/** main.ts */
 import {
     addPositionEvent,
     getPixelRatio,
@@ -17,11 +17,12 @@ import { bindView } from "./view";
 import { getLayerWorker } from "./worker/workerPool";
 import { attachPointerEvents } from "./pointerEvents";
 import { tranferCanvas } from "./canvas";
+import { addGestureEvent } from "./gestures";
 
 window.onload = main;
 
 type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
-type ToolId = "brush" | "select" | "selection" | 'resize'; // 선택창 풀면 brush로 됌
+type ToolId = "brush" | "select" | "selection" | "resize"; // 선택창 풀면 brush로 됌
 type BrushId = "brush" | "eraser" | "liquify";
 class PaintState {
     action: Action = "BRUSH";
@@ -112,9 +113,11 @@ async function main() {
     // 뷰 바인딩
     bindView();
 
+        addGestureEvent();
+
     // 이벤트 추가
     attachPointerEvents(els.container);
-    
+
     addInteractionEvent();
 
     addClipboardEvent();

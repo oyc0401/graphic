@@ -3,13 +3,12 @@ import { getLayerWorker } from "../worker/workerPool";
 import { to_canvas_coord } from "../position";
 
 export class BrushTool {
-  private pointerActive = false;
+  private active = false;
   private start = { x: 0, y: 0 };
 
   down(e: PointerEvent) {
-    console.log("!");
     if (!paintState.pointerdown || paintState.toolId !== "brush") return;
-    this.pointerActive = true;
+    this.active = true;
 
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
@@ -29,7 +28,12 @@ export class BrushTool {
   }
 
   move(e: PointerEvent) {
-    if (!this.pointerActive || paintState.toolId !== "brush") return;
+    if (
+      !paintState.pointerdown ||
+      !this.active ||
+      paintState.toolId !== "brush"
+    )
+      return;
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
     const brushSize = paintState.getBrushSize();
@@ -50,8 +54,8 @@ export class BrushTool {
   }
 
   up(e: PointerEvent) {
-    if (!this.pointerActive || paintState.toolId !== "brush") return;
-    this.pointerActive = false;
+    if (!this.active || paintState.toolId !== "brush") return;
+    this.active = false;
 
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
@@ -62,9 +66,9 @@ export class BrushTool {
   }
 
   cancel() {
-    if (this.pointerActive) {
-      this.pointerActive = false;
-    }
+    console.log("brushCancel");
+    this.active = false;
+
     getLayerWorker().cancel();
   }
 }

@@ -1,22 +1,19 @@
 import { paintState } from "./main";
 import { toolRegistry } from "./tools";
-//import { panTool } from "./tools/PanTool";
+import { panTool } from "./tools/PanTool";
 import { zoomTool } from "./tools/ZoomTool";
 
-type Phase = "down" | "move" | "up" | 'cancel';
+type Phase = "down" | "move" | "up" | "cancel";
 
 export function dispatch(e: PointerEvent, phase: Phase) {
   // 1. 모드(action)가 PAN, ZOOM이면 우선 분기
   switch (paintState.action) {
     case "PAN":
-    //panTool[phase]?.(e);
-    // return;
+      panTool[phase]?.(e);
+      return;
     case "ZOOM":
       zoomTool[phase]?.(e);
       return;
-    case "PINCH":
-    // 나중에 pinchTool[phase]?.(e); 추가
-    // return;
   }
 
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
@@ -25,13 +22,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
 }
 
 export function attachPointerEvents(root: HTMLElement) {
-  root.addEventListener("pointerdown", (e) => dispatch(e, "down"), {
-    passive: false,
-  });
-  window.addEventListener("pointermove", (e) => dispatch(e, "move"), {
-    passive: false,
-  });
-  window.addEventListener("pointerup", (e) => dispatch(e, "up"), {
-    passive: false,
-  });
+  root.addEventListener("pointerdown", (e) => dispatch(e, "down"));
+  window.addEventListener("pointermove", (e) => dispatch(e, "move"));
+  window.addEventListener("pointerup", (e) => dispatch(e, "up"));
 }

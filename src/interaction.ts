@@ -201,7 +201,7 @@ export function addInteractionEvent() {
         els.container.addEventListener(
             "pointerdown",
             (_) => {
-                paintState.setPointerdown(true);
+                
 
                 // 이 안에서 도구가 변하면 안됌!! 여기서 변하면 투터치때 위험함
             },
