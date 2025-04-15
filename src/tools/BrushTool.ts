@@ -58,7 +58,7 @@ export class BrushTool {
 
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
-    if (this.start.x == e.clientX && this.start.x == e.clientY) {
+    if (this.start.x == e.clientX && this.start.y == e.clientY) {
       worker.strokeTo(point);
     }
 

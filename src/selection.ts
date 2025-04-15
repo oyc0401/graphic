@@ -10,6 +10,7 @@ import {
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
+import { clamp } from "./utils";
 
 export class SelectionState {
   x = 0;
@@ -52,7 +53,7 @@ export class SelectionState {
   setVisible(visible: boolean) {
     this.visible = visible;
   }
-  hideHint(val: boolean) {
+  setShowHint(val: boolean) {
     this.showHint = val;
   }
 }
@@ -67,7 +68,7 @@ let beforeSelectionPos = {
 };
 
 export function addSelectionEvent() {
-  addMakeSelectionEventListener();
+  //addMakeSelectionEventListener();
   addSelectionDragEventListener();
   addHandleEventListener();
 
@@ -112,104 +113,6 @@ export function addSelectionEvent() {
     });
   })();
 }
-export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-function addMakeSelectionEventListener() {
-  (function () {
-    let startPoint;
-    let endPoint;
-
-    let sp, ep;
-
-    let activeSelect = false;
-
-    els.container.addEventListener("pointerdown", (e) => {
-      if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "select") return;
-      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-
-      let px = clamp(point.x, 0, position.width);
-      let py = clamp(point.y, 0, position.height);
-      startPoint = { x: px, y: py };
-      endPoint = { x: px, y: py };
-
-      sp = {
-        x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
-        y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
-      };
-
-      ep = {
-        x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
-        y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
-      };
-
-      activeSelect = true;
-
-      console.log("선택 시작");
-    });
-
-    window.addEventListener("pointermove", (e) => {
-      if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "select") return;
-      if (!paintState.pointerdown) return;
-      if (!activeSelect) return;
-
-      selection.hideHint(true);
-
-      let point = to_pixel_canvas_coord(e.clientX, e.clientY);
-
-      let px = clamp(point.x, 0, position.width);
-      let py = clamp(point.y, 0, position.height);
-      endPoint = { x: px, y: py };
-
-      sp = {
-        x: startPoint.x + (startPoint.x > endPoint.x ? 1 : 0),
-        y: startPoint.y + (startPoint.y > endPoint.y ? 1 : 0),
-      };
-
-      ep = {
-        x: endPoint.x + (startPoint.x <= endPoint.x ? 1 : 0),
-        y: endPoint.y + (startPoint.y <= endPoint.y ? 1 : 0),
-      };
-
-      let startX = Math.min(sp.x, ep.x);
-      let startY = Math.min(sp.y, ep.y);
-      let zoomW = Math.abs(sp.x - ep.x);
-      let zoomH = Math.abs(sp.y - ep.y);
-
-      selection.setX(startX);
-      selection.setY(startY);
-      selection.setWidth(zoomW);
-      selection.setHeight(zoomH);
-    });
-
-    window.addEventListener("pointerup", (e) => {
-      if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "select") return;
-      if (!activeSelect) return;
-      activeSelect = false;
-
-      els.selectionArea.style.visibility = "hidden";
-
-      let startX = Math.min(sp.x, ep.x);
-      let startY = Math.min(sp.y, ep.y);
-      let zoomW = Math.abs(sp.x - ep.x);
-      let zoomH = Math.abs(sp.y - ep.y);
-
-      if (zoomH == 0 || zoomW == 0) {
-        console.error("선택창이 0이 나올 수 없는데?");
-        return;
-      }
-      if (zoomH == 1 && zoomH == 1) {
-        console.log("1 x 1 선택창은 만들지 않습니다.");
-        return;
-      }
-
-      selection.hideHint(false);
-      canvasSelect(startX, startY, zoomW, zoomH);
-    });
-  })();
-}
 
 function addSelectionDragEventListener() {
   let selectionDragPointer = { x: 0, y: 0 };
@@ -240,7 +143,7 @@ function addSelectionDragEventListener() {
       if (paintState.action != "BRUSH") return;
       if (!selection.active) return;
 
-      selection.hideHint(true);
+      selection.setShowHint(true);
       let point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
       const worker = getLayerWorker();
@@ -271,7 +174,7 @@ function addSelectionDragEventListener() {
       };
 
       selection.active = false;
-      selection.hideHint(false);
+      selection.setShowHint(false);
     });
   })();
 }
@@ -584,7 +487,7 @@ export function selectionCancel() {
 
     activeHandle = null;
 
-    selection.hideHint(false);
+    selection.setShowHint(false);
   } else {
     applySelection();
     paintState.setToolId("select");

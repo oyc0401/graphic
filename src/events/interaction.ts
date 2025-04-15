@@ -5,7 +5,6 @@ import { els } from "../ui/elements";
 import {
     applySelection,
     canvasSelect,
-    clamp,
     selection,
     selectionDelete,
 } from "../selection";
@@ -17,6 +16,7 @@ import {
     setMagification,
     to_screen_coord,
 } from "../position";
+import { clamp } from "../utils";
 
 /**
  * 단축키
