@@ -1,5 +1,5 @@
 /** position.ts */ 
-import { els } from "./elements";
+import { els } from "./ui/elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
 

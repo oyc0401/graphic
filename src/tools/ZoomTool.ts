@@ -7,7 +7,7 @@ import {
   setMagification,
   getPixelRatio,
 } from "../position";
-import { zoomRect } from "../view/zoomState";
+import { zoomRect } from "../ui/zoomState";
 
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;

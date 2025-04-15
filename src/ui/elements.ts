@@ -1,14 +1,14 @@
 /** elements.ts */ 
-import BrushSvg from "./assets/brush.svg?raw";
-import EraserSvg from "./assets/eraser.svg?raw";
-import SelectionSvg from "./assets/select_rectangle.svg?raw";
-import LiquifySvg from "./assets/liquify.svg?raw";
+import BrushSvg from "../assets/brush.svg?raw";
+import EraserSvg from "../assets/eraser.svg?raw";
+import SelectionSvg from "../assets/select_rectangle.svg?raw";
+import LiquifySvg from "../assets/liquify.svg?raw";
 
-import MenuSvg from "./assets/menu.svg?raw";
-import UndoSvg from "./assets/undo.svg?raw";
-import RedoSvg from "./assets/redo_disabled.svg?raw";
+import MenuSvg from "../assets/menu.svg?raw";
+import UndoSvg from "../assets/undo.svg?raw";
+import RedoSvg from "../assets/redo_disabled.svg?raw";
 
-import CursorSvg from "./assets/cursor.svg?raw";
+import CursorSvg from "../assets/cursor.svg?raw";
 
 function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);

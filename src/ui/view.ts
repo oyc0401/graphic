@@ -1,10 +1,10 @@
 /** view.ts */
-import { paintState } from "./main";
+import { paintState } from "../main";
 import { autorun } from "mobx";
-import { els, getElements } from "./elements";
-import { selection } from "./selection";
-import { getPixelRatio, position, to_canvas_coord } from "./position";
-import { zoomRect } from "./view/zoomState";
+import { els } from "./elements";
+import { selection } from "../selection";
+import { getPixelRatio, position, to_canvas_coord } from "../position";
+import { zoomRect } from "./zoomState";
 
 export function bindView() {
     bindToolButtonUI();

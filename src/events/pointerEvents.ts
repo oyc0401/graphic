@@ -1,5 +1,5 @@
 import { paintState } from "../main";
-import { toolRegistry } from "../tools";
+import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { zoomTool } from "../tools/ZoomTool";
 

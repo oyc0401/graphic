@@ -1,6 +1,6 @@
 /** selection.ts */ 
 import { paintState } from "./main";
-import { els } from "./elements";
+import { els } from "./ui/elements";
 import {
   changeCanvasSize,
   getPixelRatio,

@@ -1,7 +1,7 @@
 /** canvas.ts */
 import { els } from "./elements";
-import { getPixelRatio, position } from "./position";
-import { getLayerWorker } from "./worker/workerPool";
+import { getPixelRatio, position } from "../position";
+import { getLayerWorker } from "../worker/workerPool";
 import * as Comlink from "comlink";
 
 
