@@ -60,7 +60,7 @@ export class SelectionState {
 
 export const selection = new SelectionState();
 
-let beforeSelectionPos = {
+export let beforeSelectionPos = {
   x: 0,
   y: 0,
   width: 50,
@@ -69,49 +69,49 @@ let beforeSelectionPos = {
 
 export function addSelectionEvent() {
   //addMakeSelectionEventListener();
-  addSelectionDragEventListener();
-  addHandleEventListener();
+ // addSelectionDragEventListener();
+ // addHandleEventListener();
 
-  // 외부 클릭하면 선택창 취소
-  (function () {
-    let startTime;
-    let selectionDown = false;
-    els.container.addEventListener("pointerdown", function (e) {
-      if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "selection" && paintState.toolId != "resize")
-        return;
-      if (!paintState.pointerdown) return;
+  // // 외부 클릭하면 선택창 취소
+  // (function () {
+  //   let startTime;
+  //   let selectionDown = false;
+  //   els.container.addEventListener("pointerdown", function (e) {
+  //     if (paintState.action != "BRUSH") return;
+  //     if (paintState.toolId != "selection" && paintState.toolId != "resize")
+  //       return;
+  //     if (!paintState.pointerdown) return;
 
-      const blockedElement = document.getElementById("selections")!; // A 엘리먼트
-      if (blockedElement.contains(e.target as Node)) return; // A 또는 자식 위면 무시
+  //     const blockedElement = document.getElementById("selections")!; // A 엘리먼트
+  //     if (blockedElement.contains(e.target as Node)) return; // A 또는 자식 위면 무시
 
-      selectionDown = true;
-      startTime = performance.now();
-      console.log("selection pointerdown");
-    });
+  //     selectionDown = true;
+  //     startTime = performance.now();
+  //     console.log("selection pointerdown");
+  //   });
 
-    els.container.addEventListener("pointerup", function (e) {
-      if (paintState.action != "BRUSH") return;
-      if (paintState.toolId != "selection" && paintState.toolId != "resize")
-        return;
-      if (!selectionDown) return;
-      if (paintState.toolId == "resize") {
-        paintState.setToolId("brush");
-        selectionDown = false;
-        return;
-      }
+  //   els.container.addEventListener("pointerup", function (e) {
+  //     if (paintState.action != "BRUSH") return;
+  //     if (paintState.toolId != "selection" && paintState.toolId != "resize")
+  //       return;
+  //     if (!selectionDown) return;
+  //     if (paintState.toolId == "resize") {
+  //       paintState.setToolId("brush");
+  //       selectionDown = false;
+  //       return;
+  //     }
 
-      let now = performance.now();
-      if (now - startTime < 150) {
-        console.log("cancel Selection!");
+  //     let now = performance.now();
+  //     if (now - startTime < 150) {
+  //       console.log("cancel Selection!");
 
-        applySelection();
-        paintState.setToolId("select");
-      }
+  //       applySelection();
+  //       paintState.setToolId("select");
+  //     }
 
-      selectionDown = false;
-    });
-  })();
+  //     selectionDown = false;
+  //   });
+  // })();
 }
 
 function addSelectionDragEventListener() {

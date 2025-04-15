@@ -170,7 +170,7 @@ canvas {
   touch-action: none;
 }
 
-#handle-lt {
+/* #handle-lt {
   cursor: nwse-resize;
 }
 
@@ -205,7 +205,7 @@ canvas {
 
 #handle-l {
   cursor: ew-resize;
-}
+} */
 
 
 #brush-cursor {

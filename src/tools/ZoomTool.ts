@@ -63,9 +63,8 @@ export class ZoomTool {
       const zoomFactor = Math.min(px, py);
 
       const centerX = position.bouncingRect.width / 2;
-      const centerY =
-        position.bouncingRect.height / 2 +
-        (window.innerHeight - position.bouncingRect.height);
+      const centerY = position.bouncingRect.height / 2 + position.appBarHeight;
+
       const dx = cx - centerX;
       const dy = cy - centerY;
 

@@ -1,87 +1,180 @@
-// tools/SelectTool.ts
+// tools/SelectionTool.ts
 import { paintState } from "../main";
-import { selection } from "../selection";
-import { position, to_pixel_canvas_coord } from "../position";
-import { canvasSelect } from "../selection";
+import { selection, beforeSelectionPos, applySelection } from "../selection";
+import { getSelectionHandleAtPoint, HandleType } from "../utils";
+import { getPixelRatio, position, to_pixel_canvas_coord } from "../position";
+import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils";
 
-export class SelectTool {
-  private startPoint: { x: number; y: number } | null = null;
-  private endPoint: { x: number; y: number } | null = null;
-  private active = false;
+export class SelectionTool {
+  private activeHandle: HandleType = null;
+  private dragOffset = { x: 0, y: 0 };
+  private start = { x: 0, y: 0, w: 0, h: 0 };
+  private startTime;
+  private selectionDown;
 
   down(e: PointerEvent) {
-    if (paintState.action !== "BRUSH" || paintState.toolId !== "select") return;
+    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
+      return;
 
-    const point = to_pixel_canvas_coord(e.clientX, e.clientY);
-    const px = clamp(point.x, 0, position.width);
-    const py = clamp(point.y, 0, position.height);
+    const rect = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    };
 
-    this.startPoint = { x: px, y: py };
-    this.endPoint = { x: px, y: py };
-    this.active = true;
+    const handle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
+    this.activeHandle = handle;
+    this.start = {
+      x: selection.x,
+      y: selection.y,
+      w: selection.width,
+      h: selection.height,
+    };
+    console.log("handle:", handle);
+    if (handle === "INSIDE") {
+      const point = to_pixel_canvas_coord(e.clientX, e.clientY);
+      this.dragOffset = {
+        x: point.x - selection.x,
+        y: point.y - selection.y,
+      };
+      selection.active = true;
+    }
+
+    if (handle === "OUTSIDE") {
+      this.selectionDown = true;
+      this.startTime = performance.now();
+    }
   }
 
   move(e: PointerEvent) {
-    if (!this.active || !paintState.pointerdown) return;
-    if (paintState.action !== "BRUSH" || paintState.toolId !== "select") return;
-    
+    if (!paintState.pointerdown) return;
+
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
-    const px = clamp(point.x, 0, position.width);
-    const py = clamp(point.y, 0, position.height);
-    this.endPoint = { x: px, y: py };
 
-    const sp = {
-      x: this.startPoint!.x + (this.startPoint!.x > this.endPoint.x ? 1 : 0),
-      y: this.startPoint!.y + (this.startPoint!.y > this.endPoint.y ? 1 : 0),
-    };
-    const ep = {
-      x: this.endPoint.x + (this.startPoint!.x <= this.endPoint.x ? 1 : 0),
-      y: this.endPoint.y + (this.startPoint!.y <= this.endPoint.y ? 1 : 0),
-    };
+    if (this.activeHandle === "INSIDE") {
+      if (!selection.active) return;
+      selection.setShowHint(true);
+      const newX = point.x - this.dragOffset.x;
+      const newY = point.y - this.dragOffset.y;
+      selection.setPosition(newX, newY);
 
-    const startX = Math.min(sp.x, ep.x);
-    const startY = Math.min(sp.y, ep.y);
-    const width = Math.abs(sp.x - ep.x);
-    const height = Math.abs(sp.y - ep.y);
+      getLayerWorker().moveSelection(
+        selection.x,
+        selection.y,
+        selection.width,
+        selection.height,
+      );
+    } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
+      let { x, y, w, h } = this.start;
+      const p = point;
 
-    selection.setX(startX);
-    selection.setY(startY);
-    selection.setWidth(width);
-    selection.setHeight(height);
-    selection.setShowHint(true);
+      switch (this.activeHandle) {
+        case "RB":
+          w = p.x - x + 1;
+          h = p.y - y + 1;
+          break;
+
+        case "RT":
+          h = y + h - p.y;
+          y = p.y;
+          w = p.x - x + 1;
+          break;
+
+        case "LB":
+          w = x + w - p.x;
+          x = p.x;
+          h = p.y - y + 1;
+          break;
+
+        case "LT":
+          w = x + w - p.x;
+          h = y + h - p.y;
+          x = p.x;
+          y = p.y;
+          break;
+
+        case "R":
+          w = p.x - x + 1;
+          break;
+
+        case "L":
+          w = x + w - p.x;
+          x = p.x;
+          break;
+
+        case "B":
+          h = p.y - y + 1;
+          break;
+
+        case "T":
+          h = y + h - p.y;
+          y = p.y;
+          break;
+      }
+
+      if (e.shiftKey) {
+        const ratio = this.start.w / this.start.h;
+        const curRatio = w / h;
+        if (curRatio < ratio) w = Math.floor(h * ratio);
+        else h = Math.floor(w / ratio);
+        if (["L", "LT", "LB"].includes(this.activeHandle))
+          x = this.start.x + this.start.w - w;
+        if (["T", "LT", "RT"].includes(this.activeHandle))
+          y = this.start.y + this.start.h - h;
+      }
+
+      const min = 1,
+        max = 4096;
+      selection.setX(
+        clamp(
+          x,
+          beforeSelectionPos.x + beforeSelectionPos.width - max,
+          beforeSelectionPos.x + beforeSelectionPos.width - min,
+        ),
+      );
+      selection.setY(
+        clamp(
+          y,
+          beforeSelectionPos.y + beforeSelectionPos.height - max,
+          beforeSelectionPos.y + beforeSelectionPos.height - min,
+        ),
+      );
+      selection.setWidth(clamp(w, min, max));
+      selection.setHeight(clamp(h, min, max));
+
+      getLayerWorker().moveSelection(
+        selection.x,
+        selection.y,
+        selection.width,
+        selection.height,
+      );
+    }
   }
 
-  up(e: PointerEvent) {
-    if (!this.active) return;
-    this.active = false;
-
-    const sp = {
-      x: this.startPoint!.x + (this.startPoint!.x > this.endPoint!.x ? 1 : 0),
-      y: this.startPoint!.y + (this.startPoint!.y > this.endPoint!.y ? 1 : 0),
-    };
-    const ep = {
-      x: this.endPoint!.x + (this.startPoint!.x <= this.endPoint!.x ? 1 : 0),
-      y: this.endPoint!.y + (this.startPoint!.y <= this.endPoint!.y ? 1 : 0),
-    };
-
-    const startX = Math.min(sp.x, ep.x);
-    const startY = Math.min(sp.y, ep.y);
-    const width = Math.abs(sp.x - ep.x);
-    const height = Math.abs(sp.y - ep.y);
-
-    if (width === 0 || height === 0) {
-      console.error("선택창이 0이 나올 수 없는데?");
-      return;
+  up() {
+    if (this.activeHandle === "INSIDE") {
+      beforeSelectionPos.x = selection.x;
+      beforeSelectionPos.y = selection.y;
+      beforeSelectionPos.width = selection.width;
+      beforeSelectionPos.height = selection.height;
     }
-    if (width === 1 && height === 1) {
-      console.log("1x1 선택창은 만들지 않습니다.");
-      return;
-    }
+    if (this.activeHandle == "OUTSIDE") {
+      let now = performance.now();
+      if (now - this.startTime < 150) {
+        console.log("cancel Selection!");
 
+        applySelection();
+        paintState.setToolId("select");
+      }
+
+      this.selectionDown = false;
+    }
+    selection.active = false;
     selection.setShowHint(false);
-    canvasSelect(startX, startY, width, height);
+    this.activeHandle = null;
   }
 }
 
-export const selectTool = new SelectTool();
+export const selectionTool = new SelectionTool();
