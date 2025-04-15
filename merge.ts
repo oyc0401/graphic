@@ -25,3 +25,6 @@ const list = [
   "src/view.ts",
 ];
 merge(list, "out.ts");
+
+
+// RUN: tsx merge.ts

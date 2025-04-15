@@ -1,5 +1,4 @@
 /** main.ts */ 
-import { addDrawEvent, tranferCanvas } from "./draw";
 import {
     addPositionEvent,
     getPixelRatio,
@@ -16,6 +15,8 @@ import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./view";
 import { getLayerWorker } from "./worker/workerPool";
+import { attachPointerEvents } from "./pointerEvents";
+import { tranferCanvas } from "./canvas";
 
 window.onload = main;
 
@@ -112,13 +113,13 @@ async function main() {
     bindView();
 
     // 이벤트 추가
+    attachPointerEvents(els.container);
+    
     addInteractionEvent();
 
     addClipboardEvent();
 
     addPositionEvent();
-
-    addDrawEvent();
 
     addSelectionEvent();
 
