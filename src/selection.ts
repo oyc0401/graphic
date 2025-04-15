@@ -179,6 +179,10 @@ function addSelectionDragEventListener() {
   })();
 }
 
+
+export function setBefore(ele){
+  beforeSelectionPos = ele
+}
 let activeHandle: HTMLElement | null = null;
 
 function addHandleEventListener() {

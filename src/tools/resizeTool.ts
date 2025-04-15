@@ -1,12 +1,22 @@
 // tools/SelectionTool.ts
 import { paintState } from "../main";
-import { selection, beforeSelectionPos, applySelection } from "../selection";
+import {
+  selection,
+  beforeSelectionPos,
+  applySelection,
+  setBefore,
+} from "../selection";
 import { getSelectionHandleAtPoint, HandleType } from "../utils";
-import { getPixelRatio, position, to_pixel_canvas_coord } from "../position";
+import {
+  changeCanvasSize,
+  getPixelRatio,
+  position,
+  to_pixel_canvas_coord,
+} from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils";
 
-export class SelectionTool {
+export class ResizeTool {
   private activeHandle: HandleType = null;
   private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0 };
@@ -14,8 +24,7 @@ export class SelectionTool {
   private selectionDown = false;
 
   down(e: PointerEvent) {
-    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
-      return;
+    if (paintState.toolId !== "resize" || paintState.action !== "BRUSH") return;
 
     const rect = {
       x: selection.x,
@@ -23,6 +32,14 @@ export class SelectionTool {
       width: selection.width,
       height: selection.height,
     };
+    setBefore({
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    });
+
+    console.log(selection);
 
     const handle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
     this.activeHandle = handle;
@@ -34,12 +51,12 @@ export class SelectionTool {
     };
     console.log("handle:", handle);
     if (handle === "INSIDE") {
-      const point = to_pixel_canvas_coord(e.clientX, e.clientY);
-      this.dragOffset = {
-        x: point.x - selection.x,
-        y: point.y - selection.y,
-      };
-      selection.active = true;
+      // const point = to_pixel_canvas_coord(e.clientX, e.clientY);
+      // this.dragOffset = {
+      //   x: point.x - selection.x,
+      //   y: point.y - selection.y,
+      // };
+      // selection.active = true;
     }
 
     if (handle === "OUTSIDE") {
@@ -54,18 +71,11 @@ export class SelectionTool {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
     if (this.activeHandle === "INSIDE") {
-      if (!selection.active) return;
-      selection.setShowHint(true);
-      const newX = point.x - this.dragOffset.x;
-      const newY = point.y - this.dragOffset.y;
-      selection.setPosition(newX, newY);
-
-      getLayerWorker().moveSelection(
-        selection.x,
-        selection.y,
-        selection.width,
-        selection.height,
-      );
+      // if (!selection.active) return;
+      // selection.setShowHint(true);
+      // const newX = point.x - this.dragOffset.x;
+      // const newY = point.y - this.dragOffset.y;
+      // selection.setPosition(newX, newY);
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
       const p = point;
@@ -144,12 +154,12 @@ export class SelectionTool {
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
 
-      getLayerWorker().moveSelection(
-        selection.x,
-        selection.y,
-        selection.width,
-        selection.height,
-      );
+      // getLayerWorker().moveSelection(
+      //   selection.x,
+      //   selection.y,
+      //   selection.width,
+      //   selection.height,
+      // );
     }
   }
 
@@ -159,22 +169,31 @@ export class SelectionTool {
       beforeSelectionPos.y = selection.y;
       beforeSelectionPos.width = selection.width;
       beforeSelectionPos.height = selection.height;
-    }
-    if (this.activeHandle == "OUTSIDE") {
+    } else if (this.activeHandle == "OUTSIDE") {
       let now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");
 
-        applySelection();
         paintState.setToolId("select");
       }
 
       this.selectionDown = false;
+    } else {
+      position.setX(position.x + selection.x / getPixelRatio());
+      position.setY(position.y + selection.y / getPixelRatio());
+
+      let x = selection.x;
+      let y = selection.y;
+      selection.setX(0);
+      selection.setY(0);
+      console.log("resize!!!");
+      changeCanvasSize(x, y, selection.width, selection.height);
     }
+
     selection.active = false;
     selection.setShowHint(false);
     this.activeHandle = null;
   }
 }
 
-export const selectionTool = new SelectionTool();
+export const resizeTool = new ResizeTool();
