@@ -2,7 +2,7 @@
 import { paintState } from "./main";
 import { getLayerWorker } from "./worker/workerPool";
 import { applySelection, selectionCancel } from "./selection";
-import { dispatch } from "./pointerEvents";
+import { dispatch } from "./events/pointerEvents";
 
 export const toolManager = {
     setBrushTool() {

@@ -8,15 +8,15 @@ import {
     updateBouncingRect,
 } from "./position";
 import { els, getElements } from "./elements";
-import { addInteractionEvent } from "./interaction";
+import { addInteractionEvent } from "./events/interaction";
 import { addSelectionEvent, applySelection } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./view";
 import { getLayerWorker } from "./worker/workerPool";
-import { attachPointerEvents } from "./pointerEvents";
+import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./canvas";
-import { addGestureEvent } from "./gestures";
+import { addGestureEvent } from "./events/gestures";
 
 window.onload = main;
 

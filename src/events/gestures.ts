@@ -1,13 +1,13 @@
 /** position.ts */
-import { paintState } from "./main";
-import { cancel } from "./draw";
+import { paintState } from "../main";
+import { cancel } from "../draw";
 import { dispatch } from "./pointerEvents";
 import {
   position,
   renderChangedPosition,
   setMagification,
   to_screen_coord,
-} from "./position";
+} from "../position";
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;
 const twoFingerTapInterval = 75; // 이중클릭 범위

@@ -1,14 +1,14 @@
 /** interaction.ts */
-import { paintState } from "./main";
-import { cancel, toolManager } from "./draw";
-import { els } from "./elements";
+import { paintState } from "../main";
+import { cancel, toolManager } from "../draw";
+import { els } from "../elements";
 import {
     applySelection,
     canvasSelect,
     clamp,
     selection,
     selectionDelete,
-} from "./selection";
+} from "../selection";
 import {
     MAX_SCALE,
     MIN_SCALE,
@@ -16,7 +16,7 @@ import {
     renderChangedPosition,
     setMagification,
     to_screen_coord,
-} from "./position";
+} from "../position";
 
 /**
  * 단축키

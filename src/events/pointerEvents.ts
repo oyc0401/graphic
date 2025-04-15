@@ -1,7 +1,7 @@
-import { paintState } from "./main";
-import { toolRegistry } from "./tools";
-import { panTool } from "./tools/PanTool";
-import { zoomTool } from "./tools/ZoomTool";
+import { paintState } from "../main";
+import { toolRegistry } from "../tools";
+import { panTool } from "../tools/PanTool";
+import { zoomTool } from "../tools/ZoomTool";
 
 type Phase = "down" | "move" | "up" | "cancel";
 
