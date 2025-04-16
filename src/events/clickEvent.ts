@@ -2,6 +2,7 @@
 import { paintState } from "../main";
 import { toolManager } from "../draw";
 import { els } from "../ui/elements";
+import { hexToRgb } from "../utils/color";
 
 export function addClickEvent() {
     addClickEventListener();
@@ -31,7 +32,6 @@ export function addClickEvent() {
     }
 
     // 커서 위치 이벤트
-
     window.addEventListener(
         "pointermove",
         (event) => {
@@ -108,22 +108,4 @@ function addClickEventListener() {
     els.titleArea.addEventListener("click", () => {
         toolManager.setResizeTool();
     });
-}
-
-function hexToRgb(hex) {
-    hex = hex.replace("#", "");
-
-    // 3자리 짧은 hex (#fff) → 확장
-    if (hex.length === 3) {
-        hex = hex
-            .split("")
-            .map((c) => c + c)
-            .join("");
-    }
-
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-
-    return { r, g, b };
 }

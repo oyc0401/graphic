@@ -1,8 +1,5 @@
-export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
 // utils/selectionHitTest.ts
-// utils/selectionHitTest.ts
-import { getPixelRatio, position } from "./position";
+import { getPixelRatio, position } from "../position";
 
 export type HandleType =
   | "LT"

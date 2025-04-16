@@ -14,7 +14,7 @@ import {
     setMagification,
     to_screen_coord,
 } from "../position";
-import { clamp } from "../utils";
+import { clamp } from "../utils/math";
 
 function addWheelListener() {
     /**

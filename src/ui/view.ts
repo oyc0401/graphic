@@ -5,6 +5,7 @@ import { els } from "./elements";
 import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
+import { rgbToHex } from "../utils/color";
 
 export function bindView() {
     bindToolButtonUI();
@@ -280,10 +281,6 @@ function bindColorUI() {
     });
 }
 
-function rgbToHex({ r, g, b }) {
-    const toHex = (v) => v.toString(16).padStart(2, "0").toUpperCase();
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
 
 function bindZoomAreaUI() {
     autorun(() => {

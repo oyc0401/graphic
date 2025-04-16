@@ -3,7 +3,7 @@ import { paintState } from "../main";
 import { selection } from "../selection";
 import { position, to_pixel_canvas_coord } from "../position";
 import { canvasSelect } from "../selection";
-import { clamp } from "../utils";
+import { clamp } from "../utils/math";
 
 export class SelectTool {
   private startPoint: { x: number; y: number } | null = null;

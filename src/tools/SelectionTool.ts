@@ -1,11 +1,13 @@
 // tools/SelectionTool.ts
 import { paintState } from "../main";
 import { selection, beforeSelectionPos, applySelection } from "../selection";
-import { getSelectionHandleAtPoint, HandleType } from "../utils";
-import { getPixelRatio, position, to_pixel_canvas_coord } from "../position";
+import {
+  getSelectionHandleAtPoint,
+  HandleType,
+} from "../utils/selectionHitTest";
+import { to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
-import { clamp } from "../utils";
-import { els } from "../ui/elements";
+import { clamp } from "../utils/math";
 
 export class SelectionTool {
   private activeHandle: HandleType = null;
@@ -90,7 +92,7 @@ export class SelectionTool {
 
     if (this.activeHandle === "INSIDE") {
       if (!selection.active) return;
-      
+
       selection.setShowHandle(false);
       const newX = point.x - this.dragOffset.x;
       const newY = point.y - this.dragOffset.y;
@@ -206,7 +208,7 @@ export class SelectionTool {
         paintState.setToolId("select");
       }
     }
-    
+
     selection.active = false;
     this.activeHandle = null;
   }

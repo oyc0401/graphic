@@ -3,10 +3,9 @@ import { paintState } from "../main";
 import {
   selection,
   beforeSelectionPos,
-  applySelection,
   setBefore,
 } from "../selection";
-import { getSelectionHandleAtPoint, HandleType } from "../utils";
+import { getSelectionHandleAtPoint, HandleType } from "../utils/selectionHitTest";
 import {
   changeCanvasSize,
   getPixelRatio,
@@ -14,8 +13,7 @@ import {
   to_pixel_canvas_coord,
 } from "../position";
 
-import { clamp } from "../utils";
-import { els } from "../ui/elements";
+import { clamp } from "../utils/math";
 
 export class ResizeTool {
   private activeHandle: HandleType = null;
