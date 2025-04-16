@@ -13,15 +13,14 @@ import {
   position,
   to_pixel_canvas_coord,
 } from "../position";
-import { getLayerWorker } from "../worker/workerPool";
+
 import { clamp } from "../utils";
+import { els } from "../ui/elements";
 
 export class ResizeTool {
   private activeHandle: HandleType = null;
-  private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0 };
   private startTime;
-  private selectionDown = false;
 
   down(e: PointerEvent) {
     if (paintState.toolId !== "resize" || paintState.action !== "BRUSH") return;
@@ -50,33 +49,49 @@ export class ResizeTool {
       h: selection.height,
     };
     console.log("handle:", handle);
-    if (handle === "INSIDE") {
-      // const point = to_pixel_canvas_coord(e.clientX, e.clientY);
-      // this.dragOffset = {
-      //   x: point.x - selection.x,
-      //   y: point.y - selection.y,
-      // };
-      // selection.active = true;
-    }
 
-    if (handle === "OUTSIDE") {
-      this.selectionDown = true;
+    if (handle === "OUTSIDE" || this.activeHandle === "INSIDE") {
       this.startTime = performance.now();
     }
   }
 
   move(e: PointerEvent) {
+    const rect = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    };
+
+    const hoveredHandle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
+    switch (hoveredHandle) {
+      case "LT":
+      case "RB":
+        selection.setHover("nwse-resize");
+        break;
+      case "RT":
+      case "LB":
+        selection.setHover("nesw-resize");
+        break;
+      case "T":
+      case "B":
+        selection.setHover("ns-resize");
+        break;
+      case "L":
+      case "R":
+        selection.setHover("ew-resize");
+        break;
+      case "INSIDE":
+      case "OUTSIDE":
+        selection.setHover("default");
+        break;
+    }
+
     if (!paintState.pointerdown) return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
-    if (this.activeHandle === "INSIDE") {
-      // if (!selection.active) return;
-      // selection.setShowHint(true);
-      // const newX = point.x - this.dragOffset.x;
-      // const newY = point.y - this.dragOffset.y;
-      // selection.setPosition(newX, newY);
-    } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
+    if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
       const p = point;
 
@@ -153,31 +168,20 @@ export class ResizeTool {
       );
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
-
-      // getLayerWorker().moveSelection(
-      //   selection.x,
-      //   selection.y,
-      //   selection.width,
-      //   selection.height,
-      // );
     }
   }
 
   up() {
-    if (this.activeHandle === "INSIDE") {
-      beforeSelectionPos.x = selection.x;
-      beforeSelectionPos.y = selection.y;
-      beforeSelectionPos.width = selection.width;
-      beforeSelectionPos.height = selection.height;
-    } else if (this.activeHandle == "OUTSIDE") {
+    console.log("selection up");
+    if (this.activeHandle == "OUTSIDE" || this.activeHandle == "INSIDE") {
       let now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");
 
-        paintState.setToolId("select");
+        paintState.setToolId("brush");
+        selection.setShowHint(false);
+        selection.setShowHandle(false);
       }
-
-      this.selectionDown = false;
     } else {
       position.setX(position.x + selection.x / getPixelRatio());
       position.setY(position.y + selection.y / getPixelRatio());
@@ -191,7 +195,6 @@ export class ResizeTool {
     }
 
     selection.active = false;
-    selection.setShowHint(false);
     this.activeHandle = null;
   }
 }

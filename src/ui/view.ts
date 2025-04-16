@@ -87,10 +87,36 @@ function bindCursorUI() {
         const isSelectTool = paintState.toolId === "select";
         container.classList.toggle("select", isBrush && isSelectTool);
     });
-
-    const cursor = els.brushCursor;
+    autorun(() => {
+        const isSelectionTool =
+            (paintState.action === "BRUSH" &&
+                paintState.toolId === "selection") ||
+            paintState.toolId === "resize";
+        container.classList.toggle(
+            "nwse-resize",
+            isSelectionTool && selection.hover == "nwse-resize",
+        );
+        container.classList.toggle(
+            "nesw-resize",
+            isSelectionTool && selection.hover == "nesw-resize",
+        );
+        container.classList.toggle(
+            "ns-resize",
+            isSelectionTool && selection.hover == "ns-resize",
+        );
+        container.classList.toggle(
+            "ew-resize",
+            isSelectionTool && selection.hover == "ew-resize",
+        );
+        container.classList.toggle(
+            "move",
+            isSelectionTool && selection.hover == "move",
+        );
+    });
 
     autorun(() => {
+        const cursor = els.brushCursor;
+
         const isBrush = paintState.action === "BRUSH";
 
         const isDrawingTool = paintState.toolId == "brush";
@@ -136,10 +162,7 @@ function bindCursorUI() {
 function bindSelectionUI() {
     // 1) selectionArea 스타일 갱신
     autorun(() => {
-        const visible =
-            selection.visible ||
-            selection.showHint ||
-            paintState.toolId == "resize";
+        const visible = selection.showHint;
 
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
         els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
@@ -169,9 +192,7 @@ function bindSelectionUI() {
 
     // 2) 핸들 위치 및 표시
     autorun(() => {
-        const visible =
-            (selection.visible && !selection.showHint) ||
-            paintState.toolId == "resize";
+        const visible = selection.showHandle;
         const dpr = getPixelRatio();
         let sLeft = (selection.x / dpr + position.x) * position.scale;
         let sTop = (selection.y / dpr + position.y) * position.scale;
@@ -195,21 +216,24 @@ function bindSelectionUI() {
         }
 
         // 위치 계산
-        const offset = 22;
+        const offset = 3;
         const setPos = (handle: HTMLElement, left: number, top: number) => {
             handle.style.left = `${left - offset}px`;
             handle.style.top = `${top - offset}px`;
         };
 
-        if ((selection.height * position.scale) / dpr < 100) {
-            for (const h of [els.handleL, els.handleR]) {
-                h.style.visibility = "hidden";
-            }
-        }
-        if ((selection.width * position.scale) / dpr < 100) {
-            for (const h of [els.handleT, els.handleB]) {
-                h.style.visibility = "hidden";
-            }
+        // if ((selection.height * position.scale) / dpr < 100) {
+        //     for (const h of [els.handleL, els.handleR]) {
+        //         h.style.visibility = "hidden";
+        //     }
+
+        // if ((selection.width * position.scale) / dpr < 100) {
+        //     for (const h of [els.handleT, els.handleB]) {
+        //         h.style.visibility = "hidden";
+        //     }
+        // }
+        for (const h of [els.handleT, els.handleB, els.handleL, els.handleR]) {
+            h.style.visibility = "hidden";
         }
 
         if (visible) {
@@ -248,7 +272,6 @@ function bindTitleUI() {
         els.canvasTitle.innerText = "크기 조정";
     });
 }
-function bindResizeHandleUI() {}
 
 function bindColorUI() {
     autorun(() => {

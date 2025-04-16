@@ -50,6 +50,7 @@ export class SelectTool {
     selection.setWidth(width);
     selection.setHeight(height);
     selection.setShowHint(true);
+    selection.setShowHandle(false);
   }
 
   up(e: PointerEvent) {
@@ -79,7 +80,8 @@ export class SelectTool {
       return;
     }
 
-    selection.setShowHint(false);
+    selection.setShowHint(true);
+    selection.setShowHandle(true);
     canvasSelect(startX, startY, width, height);
   }
 }

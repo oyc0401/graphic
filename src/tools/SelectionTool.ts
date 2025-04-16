@@ -5,13 +5,13 @@ import { getSelectionHandleAtPoint, HandleType } from "../utils";
 import { getPixelRatio, position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils";
+import { els } from "../ui/elements";
 
 export class SelectionTool {
   private activeHandle: HandleType = null;
   private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0 };
   private startTime;
-  private selectionDown = false;
 
   down(e: PointerEvent) {
     if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
@@ -43,19 +43,55 @@ export class SelectionTool {
     }
 
     if (handle === "OUTSIDE") {
-      this.selectionDown = true;
       this.startTime = performance.now();
     }
   }
 
   move(e: PointerEvent) {
+    // el.container의 커서를 grab으로, paintState.pointerdown이면 grabbing으로
+    // 그리고 핸들 범위에 올라가면, nesw-resize이런 4개방향 화살표로.
+
+    const rect = {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    };
+
+    const hoveredHandle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
+    switch (hoveredHandle) {
+      case "LT":
+      case "RB":
+        selection.setHover("nwse-resize");
+        break;
+      case "RT":
+      case "LB":
+        selection.setHover("nesw-resize");
+        break;
+      case "T":
+      case "B":
+        selection.setHover("ns-resize");
+        break;
+      case "L":
+      case "R":
+        selection.setHover("ew-resize");
+        break;
+      case "INSIDE":
+        selection.setHover("move");
+        break;
+      case "OUTSIDE":
+        selection.setHover("default");
+        break;
+    }
+
     if (!paintState.pointerdown) return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
     if (this.activeHandle === "INSIDE") {
       if (!selection.active) return;
-      selection.setShowHint(true);
+      
+      selection.setShowHandle(false);
       const newX = point.x - this.dragOffset.x;
       const newY = point.y - this.dragOffset.y;
       selection.setPosition(newX, newY);
@@ -159,6 +195,7 @@ export class SelectionTool {
       beforeSelectionPos.y = selection.y;
       beforeSelectionPos.width = selection.width;
       beforeSelectionPos.height = selection.height;
+      selection.setShowHandle(true);
     }
     if (this.activeHandle == "OUTSIDE") {
       let now = performance.now();
@@ -168,11 +205,9 @@ export class SelectionTool {
         applySelection();
         paintState.setToolId("select");
       }
-
-      this.selectionDown = false;
     }
+    
     selection.active = false;
-    selection.setShowHint(false);
     this.activeHandle = null;
   }
 }

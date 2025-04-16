@@ -118,27 +118,47 @@ canvas {
   pointer-events: none;
 }
 
+
+/* 선택창 ui */
+
 #selection-area {
   border: 1px dashed rgba(255, 255, 255, 0.5);
   position: absolute;
   z-index: 2900;
   box-sizing: border-box;
   /* 보더를 포함한 크기 계산 */
-  cursor: move;
   mix-blend-mode: difference;
 
 }
 
 .handle {
-  width: 45px;
-  height: 45px;
   z-index: 2901;
   position: absolute;
-  /* background: rgba(255, 0, 0,0.3); */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 7px;
+  height: 7px;
+  background: rgb(255, 255, 255);
+  border: 1px solid black;
+  box-sizing: border-box;
+  /* border-radius: 1000px; */
+  touch-action: none;
 }
+
+
+
+#handle-rt {
+  transform: translate(-1px, 0);
+}
+
+#handle-rb {
+  transform: translate(-1px, -1px);
+}
+
+
+#handle-lb {
+  transform: translate(0, -1px);
+}
+
+
 
 #selection-size {
   display: flex;
@@ -159,53 +179,6 @@ canvas {
   -webkit-backdrop-filter: blur(4px);
   /* Safari용 */
 }
-
-.handleGrab {
-  width: 9px;
-  height: 9px;
-  background: rgb(255, 255, 255);
-  border: 1px solid black;
-  box-sizing: border-box;
-  /* border-radius: 1000px; */
-  touch-action: none;
-}
-
-/* #handle-lt {
-  cursor: nwse-resize;
-}
-
-#handle-t {
-  cursor: ns-resize;
-}
-
-#handle-rt {
-  cursor: nesw-resize;
-  transform: translate(-1px, 0);
-}
-
-#handle-r {
-  cursor: ew-resize;
-  transform: translate(-1px, 0);
-}
-
-#handle-rb {
-  cursor: nwse-resize;
-  transform: translate(-1px, -1px);
-}
-
-#handle-b {
-  cursor: ns-resize;
-  transform: translate(0, -1px);
-}
-
-#handle-lb {
-  cursor: nesw-resize;
-  transform: translate(0, -1px);
-}
-
-#handle-l {
-  cursor: ew-resize;
-} */
 
 
 #brush-cursor {
@@ -248,30 +221,24 @@ canvas {
   cursor: none;
 }
 
-
-
-/* grab 상태일 때 */
-#container.grab #selection-area,
-#container.grab .handle {
-  cursor: grab !important;
+#container.nwse-resize {
+  cursor: nwse-resize;
 }
 
-/* grabbing 상태일 때 */
-#container.grabbing #selection-area,
-#container.grabbing .handle {
-  cursor: grabbing !important;
+#container.nesw-resize {
+  cursor: nesw-resize;
 }
 
-/* zoom 상태일 때 */
-#container.zoom #selection-area,
-#container.zoom .handle {
-  cursor: zoom-in !important;
+#container.ns-resize {
+  cursor: ns-resize;
 }
 
-/* select 상태일 때 */
-#container.select #selection-area,
-#container.crosshair .handle {
-  cursor: crosshair !important;
+#container.ew-resize {
+  cursor: ew-resize;
+}
+
+#container.move {
+  cursor: move;
 }
 
 
@@ -322,64 +289,4 @@ canvas {
 
 #title-area :hover {
   color: #368DFF;
-}
-
-
-/* 
- * <Canvas Resize Area>
- */
-
-
-/* grab 상태일 때 */
-#container.grab #resize-area,
-#container.grab .handle {
-  cursor: grab !important;
-}
-
-/* grabbing 상태일 때 */
-#container.grabbing #resize-area,
-#container.grabbing .handle {
-  cursor: grabbing !important;
-}
-
-/* zoom 상태일 때 */
-#container.zoom #resize-area,
-#container.zoom .handle {
-  cursor: zoom-in !important;
-}
-
-/* select 상태일 때 */
-#container.select #resize-area,
-#container.crosshair .handle {
-  cursor: crosshair !important;
-}
-
-#resize-area {
-  border: 1px dashed rgba(255, 255, 255, 0.5);
-  position: absolute;
-  z-index: 2900;
-  box-sizing: border-box;
-  /* 보더를 포함한 크기 계산 */
-  mix-blend-mode: difference;
-
-}
-
-#resize-size {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  z-index: 2900;
-}
-
-#resize-text {
-  background: rgba(200, 200, 200, 0.5);
-  margin-top: 16px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  /* Safari용 */
 }

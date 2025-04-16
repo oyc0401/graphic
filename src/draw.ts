@@ -1,8 +1,9 @@
 /** draw.ts */
 import { paintState } from "./main";
 import { getLayerWorker } from "./worker/workerPool";
-import { applySelection, selectionCancel } from "./selection";
+import { applySelection, selection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
+import { position } from "./position";
 
 export const toolManager = {
     setBrushTool() {
@@ -37,6 +38,16 @@ export const toolManager = {
 
         const worker = getLayerWorker();
         worker.setTool(paintState.brushId);
+    },
+    setResizeTool() {
+        applySelection();
+        selection.setWidth(position.width);
+        selection.setHeight(position.height);
+        selection.setX(0);
+        selection.setY(0);
+        selection.setShowHint(true);
+        selection.setShowHandle(true);
+        paintState.setToolId("resize");
     },
 };
 

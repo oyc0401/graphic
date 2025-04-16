@@ -1,4 +1,4 @@
-/** elements.ts */ 
+/** elements.ts */
 import BrushSvg from "../assets/brush.svg?raw";
 import EraserSvg from "../assets/eraser.svg?raw";
 import SelectionSvg from "../assets/select_rectangle.svg?raw";
@@ -29,13 +29,17 @@ export let els = {
   selectLiquifyBtn: $id("select-liquify"),
 
   zoomArea: $id("zoom-area"),
-  selectionArea: $id("selection-area"),
 
   sizeValue: $id("size-value"),
   opacityValue: $id("opacity-value")!,
   sizeSlider: $id<HTMLInputElement>("size-slider"),
   opacitySlider: $id<HTMLInputElement>("opacity-slider"),
 
+  chooseColor: $id("choose-color"),
+  colorIcon: $id("color-icon"),
+  colorElements: $id("color-box").querySelectorAll(".select-color")!,
+
+  selectionArea: $id("selection-area"),
   handleLT: $id("handle-lt"),
   handleT: $id("handle-t"),
   handleRT: $id("handle-rt"),
@@ -45,11 +49,6 @@ export let els = {
   handleLB: $id("handle-lb"),
   handleL: $id("handle-l"),
 
-  chooseColor: $id("choose-color"),
-  colorIcon: $id("color-icon"),
-
-  colorElements: $id("color-box").querySelectorAll(".select-color")!,
-
   selectionSizeBox: $id("selection-size"),
   selectionText: $id("selection-text"),
 
@@ -58,7 +57,6 @@ export let els = {
 
   titleArea: $id("title-area"),
   canvasTitle: $id("canvas-title"),
-
 };
 
 export function getElements() {

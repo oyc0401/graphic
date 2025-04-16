@@ -8,8 +8,8 @@ import {
     updateBouncingRect,
 } from "./position";
 import { els, getElements } from "./ui/elements";
-import { addInteractionEvent } from "./events/interaction";
-import { addSelectionEvent, applySelection } from "./selection";
+import { addClickEvent } from "./events/clickEvent";
+import { applySelection, selection } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./ui/view";
@@ -17,6 +17,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";
+import { addKeyboardEvent } from "./events/keyboardEvent";
 
 window.onload = main;
 
@@ -117,11 +118,10 @@ async function main() {
     // 이벤트 추가
     attachPointerEvents(els.container);
 
-    addInteractionEvent();
+    addClickEvent();
+    addKeyboardEvent();
 
     addClipboardEvent();
-
-    addSelectionEvent();
 
     // dpr이 1이 아니면, 캔버스 확대
     setCanvasCSSSize();
@@ -133,7 +133,8 @@ async function main() {
 
     globalThis.position = position;
     globalThis.paintState = paintState;
-
+    globalThis.selection = selection;
+    
     window.addEventListener("resize", async function () {
         debounce(async () => {
             console.log("debounce");
