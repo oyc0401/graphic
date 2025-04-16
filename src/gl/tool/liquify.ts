@@ -3,7 +3,7 @@ import {
     getSourceTextureManager,
     paintOptions,
 } from "../texture";
-import {getLayerManager} from '../layer'
+import { getLayerManager } from "../layer";
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
 
 import {
@@ -47,8 +47,6 @@ export function getLiquifyManager(canvas, gl) {
     return liquifyManager;
 }
 
-
-
 async function makeLiquifyManager(canvas, gl) {
     let integralData = await getIntegralEaseInOut(); // 함수 내부에서 캐싱됌 많이 실행해도 ㄱㅊ
     let integralMirrorData = await getIntegralEaseInOutMirror();
@@ -69,7 +67,6 @@ async function makeLiquifyManager(canvas, gl) {
     // 원본 이미지 텍스처 생성
     const sourceTextureManager = getSourceTextureManager(canvas, gl);
     const fullQuadVertexShader = getFullQuadShader(gl);
-
 
     let liquifyPushShader = createShader(
         gl,
@@ -236,11 +233,12 @@ async function makeLiquifyManager(canvas, gl) {
         TEXTURE_UNIT.SOURCE,
     ); // 텍스처 유닛 1에 할당
 
-      enable_a_position(gl, renderProgram);
+    enable_a_position(gl, renderProgram);
 
     ////////////////
 
     let strength = 1;
+    // 변경된 부분만 캔슬, 소스텍스쳐 이전 하기 위해서
     let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
     /////////////////////////////
@@ -260,7 +258,7 @@ async function makeLiquifyManager(canvas, gl) {
         const height = paintOptions.height;
 
         gl.viewport(0, 0, width, height);
-        gl.clearColor(0,0,0, 0);
+        gl.clearColor(0, 0, 0, 0);
 
         gl.useProgram(liquifyPushProgram);
 

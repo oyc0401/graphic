@@ -3,6 +3,7 @@ body {
   margin: 0;
   height: 100%;
   overscroll-behavior: none;
+  overscroll-behavior-x: none;
   /* touch-action: none; */
   -webkit-user-select: none !important;
   /* 텍스트 선택·루페 모두 차단 */

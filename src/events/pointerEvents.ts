@@ -21,13 +21,32 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   tool?.[phase]?.(e);
 }
 
+// 프레임당 1회 move 디스패치 제어용 변수
+let moveQueued = false;
+let lastMoveEvent: PointerEvent | null = null;
+
+function throttledMove(e: PointerEvent) {
+  lastMoveEvent = e;
+  if (moveQueued) return;
+
+  moveQueued = true;
+
+  requestAnimationFrame(() => {
+    if (lastMoveEvent) dispatch(lastMoveEvent, "move");
+    moveQueued = false;
+    lastMoveEvent = null;
+  });
+}
+
 export function attachPointerEvents(root: HTMLElement) {
   root.addEventListener("pointerdown", (e) => dispatch(e, "down"), {
     passive: false,
   });
-  window.addEventListener("pointermove", (e) => dispatch(e, "move"), {
+
+  window.addEventListener("pointermove", throttledMove, {
     passive: false,
   });
+
   window.addEventListener("pointerup", (e) => dispatch(e, "up"), {
     passive: false,
   });

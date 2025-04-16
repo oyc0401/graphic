@@ -5,6 +5,9 @@ import { to_canvas_coord } from "../position";
 export class BrushTool {
   private active = false;
   private start = { x: 0, y: 0 };
+  private lastFrameTime = 0;
+  private timer;
+  private lastPoint;
 
   down(e: PointerEvent) {
     if (!paintState.pointerdown || paintState.toolId !== "brush") return;
@@ -24,6 +27,8 @@ export class BrushTool {
     worker.start(point);
 
     this.start = { x: e.clientX, y: e.clientY };
+    const now = performance.now();
+    this.lastFrameTime = now;
   }
 
   move(e: PointerEvent) {
@@ -33,19 +38,38 @@ export class BrushTool {
       paintState.toolId !== "brush"
     )
       return;
-    const point = to_canvas_coord(e.clientX, e.clientY);
+
     const worker = getLayerWorker();
     const brushSize = paintState.getBrushSize();
+    const point = to_canvas_coord(e.clientX, e.clientY);
 
-    if (paintState.brushId === "liquify") {
-      const dx = e.clientX - this.start.x;
-      const dy = e.clientY - this.start.y;
-      if (Math.hypot(dx, dy) > brushSize / 25) {
-        this.start = { x: e.clientX, y: e.clientY };
-        worker.strokeTo(point);
-      }
-    } else {
+    const now = performance.now();
+    const area = brushSize * brushSize;
+
+    const minInterval =
+      paintState.brushId == "liquify" ? area / 80000 : area / (100000 * 4);
+
+    this.lastPoint = point;
+    clearTimeout(this.timer);
+    
+    if (now - this.lastFrameTime > minInterval) {
+      this.lastFrameTime = now;
       worker.strokeTo(point);
+      console.log("draw!");
+    } else {
+      this.timer = setTimeout(() => {
+        if (
+          !paintState.pointerdown ||
+          !this.active ||
+          paintState.toolId !== "brush"
+        )
+          return;
+        this.lastFrameTime = now;
+        worker.strokeTo(this.lastPoint);
+        console.warn("inner draw");
+      }, 150);
+
+      console.log("skip", minInterval);
     }
 
     paintState.setDrawing(true);
