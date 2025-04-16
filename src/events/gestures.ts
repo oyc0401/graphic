@@ -13,6 +13,8 @@ const MAX_SCALE = 120;
 const twoFingerTapInterval = 75; // 이중클릭 범위
 const doubleTapInterval = 250; // 더블클릭 범위
 
+export const pointers = new Map(); // pointerId -> {x, y} 저장
+
 export function addGestureEvent() {
   let pointerIndex = 0;
 
@@ -21,7 +23,7 @@ export function addGestureEvent() {
   let firstPointerTime = 0;
   let lastDoubleTouchTime = 0;
   let moveDistance = 0;
-  let pointers = new Map(); // pointerId -> {x, y} 저장
+  
 
   function averageTouches() {
     if (pointers.size < 2) throw new Error("포인터가 2개 미만"); // 포인터가 2개 미만이면 평균 계산 불가

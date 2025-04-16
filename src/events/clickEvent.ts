@@ -105,7 +105,7 @@ function addClickEventListener() {
         });
     });
 
-    els.titleArea.addEventListener("click", () => {
+    els.titleArea.addEventListener("pointerup", () => {
         toolManager.setResizeTool();
     });
 }

@@ -137,7 +137,7 @@ canvas {
   width: 7px;
   height: 7px;
   background: rgb(255, 255, 255);
-  border: 1px solid black;
+  border: 1px solid #404040;
   box-sizing: border-box;
   /* border-radius: 1000px; */
   touch-action: none;

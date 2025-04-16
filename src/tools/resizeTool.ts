@@ -1,11 +1,10 @@
 // tools/SelectionTool.ts
 import { paintState } from "../main";
+import { selection, beforeSelectionPos, setBefore } from "../selection";
 import {
-  selection,
-  beforeSelectionPos,
-  setBefore,
-} from "../selection";
-import { getSelectionHandleAtPoint, HandleType } from "../utils/selectionHitTest";
+  getSelectionHandleAtPoint,
+  HandleType,
+} from "../utils/selectionHitTest";
 import {
   changeCanvasSize,
   getPixelRatio,
@@ -14,11 +13,13 @@ import {
 } from "../position";
 
 import { clamp } from "../utils/math";
+import { dispatch } from "../events/pointerEvents";
+import { pointers } from "../events/gestures";
 
 export class ResizeTool {
-  private activeHandle: HandleType = null;
+  private activeHandle: HandleType | null = null;
   private start = { x: 0, y: 0, w: 0, h: 0 };
-  private startTime;
+  private startTime = 0;
 
   down(e: PointerEvent) {
     if (paintState.toolId !== "resize" || paintState.action !== "BRUSH") return;
@@ -35,8 +36,6 @@ export class ResizeTool {
       width: selection.width,
       height: selection.height,
     });
-
-    console.log(selection);
 
     const handle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
     this.activeHandle = handle;
@@ -87,9 +86,18 @@ export class ResizeTool {
 
     if (!paintState.pointerdown) return;
 
-    const point = to_pixel_canvas_coord(e.clientX, e.clientY);
+    // 크기 조정 안하려고 하면 브러시로 이동
+    if (this.activeHandle === "OUTSIDE" || this.activeHandle === "INSIDE") {
+      paintState.setToolId("brush");
+      selection.setShowHint(false);
+      selection.setShowHandle(false);
+      this.activeHandle = null;
+      dispatch(e, "down");
+      return;
+    }
 
-    if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
+    const point = to_pixel_canvas_coord(e.clientX, e.clientY);
+    if (this.activeHandle) {
       let { x, y, w, h } = this.start;
       const p = point;
 
@@ -170,8 +178,11 @@ export class ResizeTool {
   }
 
   up() {
-    console.log("selection up");
-    if (this.activeHandle == "OUTSIDE" || this.activeHandle == "INSIDE") {
+    if (
+      pointers.size == 0 &&
+      (this.activeHandle == "OUTSIDE" || this.activeHandle == "INSIDE")
+    ) {
+      // 이러면 롱 클릭할때만 현상유지임
       let now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");

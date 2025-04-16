@@ -176,8 +176,6 @@ export function selectionCancel() {
     );
 
     activeHandle = null;
-
-    selection.setShowHint(false);
   } else {
     applySelection();
     paintState.setToolId("select");

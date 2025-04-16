@@ -8,6 +8,7 @@ import {
 import { to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils/math";
+import { pointers } from "../events/gestures";
 
 export class SelectionTool {
   private activeHandle: HandleType = null;
@@ -199,7 +200,7 @@ export class SelectionTool {
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
     }
-    if (this.activeHandle == "OUTSIDE") {
+    if ( pointers.size == 0 && this.activeHandle == "OUTSIDE") {
       let now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");

@@ -168,9 +168,6 @@ function bindSelectionUI() {
         els.selectionArea.style.visibility = visible ? "visible" : "hidden";
         els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
 
-        els.selectionArea.style.pointerEvents =
-            paintState.toolId == "resize" ? "none" : "auto";
-
         const dpr = getPixelRatio();
         const scaledLeft = (selection.x / dpr + position.x) * position.scale;
         const scaledTop = (selection.y / dpr + position.y) * position.scale;
