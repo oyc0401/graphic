@@ -28,8 +28,8 @@ class PaintState {
     action: Action = "BRUSH";
     toolId: ToolId = "brush";
     brushId: BrushId = "brush";
-    private brushSize = { brush: 5, eraser: 10, liquify: 50 };
-    private brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
+    private brushSize = { brush: 3000, eraser: 10, liquify: 3000 };
+    private brushAlpha = { brush: 40, eraser: 100, liquify: 100 };
     color = { r: 30, g: 30, b: 30 };
     cursorX = 0;
     cursorY = 0;

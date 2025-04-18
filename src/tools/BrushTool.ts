@@ -40,10 +40,10 @@ export class BrushTool {
 
     const dx = point.x - this.start.x;
     const dy = point.y - this.start.y;
-    if (Math.hypot(dx, dy) > brushSize / 25) {
+   // if (Math.hypot(dx, dy) > brushSize / 25) {
       this.start = point;
       worker.strokeTo(point);
-    }
+    //}
 
     paintState.setDrawing(true);
     paintState.setCursorPosition(e.clientX, e.clientY);

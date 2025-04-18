@@ -66,10 +66,11 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   float percent = 1.0;
   float power = 0.0;
 
+   float value = min(1.0, dist / radius);
+  float addValue = edgeCut(value);
+  
   // 1) (t > 0.0 && t < len)
   if (t > 0.0 && t < len) {
-    float value = min(1.0, dist / radius);
-    float addValue = edgeCut(value);
     power = addValue * radius * 2.0;
   }
 
@@ -77,8 +78,6 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   //float vLength;
   float dotV = dot(v, v);
   if (dotV < squareR) {
-    float value = min(1.0, dist / radius);
-    float addValue = edgeCut(value);
     power = addValue * radius * 2.0 * percent;
   }
 
@@ -87,18 +86,15 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   // float eLength;
   float dotE = dot(eVec, eVec);
   if (dotE < squareR) {
-    float value = min(1.0, dist / radius);
-    float addValue = edgeCut(value);
     power = addValue * radius * 2.0 * percent;
   }
 
   // 4) gradation 계산
   float originalCell = power;
 
+  float v2 = sqrt(1.0 - pow(value, 2.0)) * percent;
+  
   if (dotV < squareR) {
-    float value = min(1.0, dist / radius);
-    float v2 = sqrt(1.0 - pow(value, 2.0)) * percent;
-
     float gradation = (radius + t) / radius / 2.0;
     float result = (gradation - 0.5) / v2 + 0.5;
 
@@ -106,9 +102,6 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   }
 
   if (dotE < squareR) {
-    float value = min(1.0, dist/ radius);
-    float v2 = sqrt(1.0 - pow(value, 2.0)) * percent;
-
     float gradation = (radius + (len - t)) / radius / 2.0;
     float result = (gradation - 0.5) / v2 + 0.5;
 
@@ -135,8 +128,7 @@ void main() {
     pixel.x < minCoord.x || pixel.x > maxCoord.x ||
     pixel.y < minCoord.y || pixel.y > maxCoord.y
   ) {
-    outDisplacement = value;
-    return;
+     discard;
   }
 
   // liquify 그리드 계산 (CPU 코드와 동일한 방식)
@@ -144,8 +136,7 @@ void main() {
   float len = length(d);
   if (len == 0.0) {
     // u_start == u_end라면 이동 없음
-    outDisplacement = value;
-    return;
+     discard;
   }
 
   vec2 unit = d / len;

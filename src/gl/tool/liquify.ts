@@ -280,12 +280,12 @@ async function makeLiquifyManager(canvas, gl) {
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
-            gl.RG32F,
+            gl.RG16F,
             width,
             height,
             0,
             gl.RG,
-            gl.FLOAT,
+            gl.HALF_FLOAT,
             null,
         );
 
@@ -294,12 +294,12 @@ async function makeLiquifyManager(canvas, gl) {
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
-            gl.RG32F,
+            gl.RG16F,
             width,
             height,
             0,
             gl.RG,
-            gl.FLOAT,
+            gl.HALF_FLOAT,
             null,
         );
 
@@ -308,12 +308,12 @@ async function makeLiquifyManager(canvas, gl) {
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
-            gl.RG32F,
+            gl.RG16F,
             width,
             height,
             0,
             gl.RG,
-            gl.FLOAT,
+            gl.HALF_FLOAT,
             null,
         );
 
@@ -352,41 +352,24 @@ async function makeLiquifyManager(canvas, gl) {
         //console.log(pathDirtyRect);
     }
 
+    // init 시에 한 번만 호출 (ex. setSize()나 초기화 구간)
+    const u_radiusLoc = gl.getUniformLocation(liquifyPushProgram, "u_radius");
+    const u_strengthLoc = gl.getUniformLocation(
+        liquifyPushProgram,
+        "u_strength",
+    );
+    const u_startLoc = gl.getUniformLocation(liquifyPushProgram, "u_start");
+    const u_endLoc = gl.getUniformLocation(liquifyPushProgram, "u_end");
+
     function push(start, end) {
         let height = paintOptions.height;
 
         gl.useProgram(liquifyPushProgram);
         // 유나폼 변수 설정
-        gl.uniform1f(
-            gl.getUniformLocation(liquifyPushProgram, "u_radius"),
-            paintOptions.radius,
-        );
-        gl.uniform1f(
-            gl.getUniformLocation(liquifyPushProgram, "u_strength"),
-            strength,
-        );
-
-        gl.uniform2f(
-            gl.getUniformLocation(liquifyPushProgram, "u_start"),
-            start.x,
-            height - start.y,
-        );
-        gl.uniform2f(
-            gl.getUniformLocation(liquifyPushProgram, "u_end"),
-            end.x,
-            height - end.y,
-        );
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        // 프레임버퍼에 쓰기 텍스처 넣기
-        // 이전에 blit할때 다른거 지정되어있었음
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTexOut,
-            0,
-        );
+        gl.uniform1f(u_radiusLoc, paintOptions.radius);
+        gl.uniform1f(u_strengthLoc, strength);
+        gl.uniform2f(u_startLoc, start.x, height - start.y);
+        gl.uniform2f(u_endLoc, end.x, height - end.y);
 
         let ceiledRadius = Math.ceil(paintOptions.radius);
         let minX = Math.min(start.x, end.x);
@@ -405,6 +388,19 @@ async function makeLiquifyManager(canvas, gl) {
 
         updatePathDirtyRect(start);
         updatePathDirtyRect(end);
+
+        // displacementTex를 보고 displacementTexOut에 쓰고
+        // 그 쓰여진 내용을 displacementTex에 옮기기
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        // 프레임버퍼에 쓰기 텍스처 넣기
+        // 이전에 blit할때 다른거 지정되어있었음
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            displacementTexOut,
+            0,
+        );
 
         // SCISSOR TEST로 일부만 렌더링
         gl.enable(gl.SCISSOR_TEST);
