@@ -15,12 +15,18 @@ in vec2 v_texCoord;
 out vec2 outDisplacement;
 
 // 샘플링을 통한 ease 함수 구현 (정확한 결과를 위해 precomputed 텍스처 사용)
-float easeInOutCubicIntegral(float x) {
+float edgeCut(float x) {
   // x를 [0,1]로 가정하고, 1D 텍스처에서 선형 보간
-  return texture(u_ease_integral, vec2(x, 0.5)).r;
+  // flat
+  //return sqrt(1.0 - x * x) * 0.5;
+  // ease
+   return texture(u_ease_integral, vec2(x, 0.5)).r;
 }
-float easeInOutCubicIntegralMirror(float x) {
-  return texture(u_ease_mirror, vec2(x, 0.5)).r;
+float sliceCut(float x) {
+  // flat
+  //return x;
+  // ease
+   return texture(u_ease_mirror, vec2(x, 0.5)).r;
 }
 
 // getPower()와 유사한 로직: liquify 그리드 내에서 현재 픽셀의 영향력을 계산합니다.
@@ -63,7 +69,7 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   // 1) (t > 0.0 && t < len)
   if (t > 0.0 && t < len) {
     float value = min(1.0, dist / radius);
-    float addValue = easeInOutCubicIntegral(value);
+    float addValue = edgeCut(value);
     power = addValue * radius * 2.0;
   }
 
@@ -72,7 +78,7 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   float dotV = dot(v, v);
   if (dotV < squareR) {
     float value = min(1.0, dist / radius);
-    float addValue = easeInOutCubicIntegral(value);
+    float addValue = edgeCut(value);
     power = addValue * radius * 2.0 * percent;
   }
 
@@ -82,19 +88,31 @@ float getPower(vec2 centerCoord, vec2 d, float radius) {
   float dotE = dot(eVec, eVec);
   if (dotE < squareR) {
     float value = min(1.0, dist / radius);
-    float addValue = easeInOutCubicIntegral(value);
+    float addValue = edgeCut(value);
     power = addValue * radius * 2.0 * percent;
   }
 
   // 4) gradation 계산
   float originalCell = power;
+
   if (dotV < squareR) {
+    float value = min(1.0, dist / radius);
+    float v2 = sqrt(1.0 - pow(value, 2.0)) * percent;
+
     float gradation = (radius + t) / radius / 2.0;
-    power -= originalCell * (1.0 - easeInOutCubicIntegralMirror(gradation));
+    float result = (gradation - 0.5) / v2 + 0.5;
+
+    power -= originalCell * (1.0 - sliceCut(result));
   }
+
   if (dotE < squareR) {
+    float value = min(1.0, dist/ radius);
+    float v2 = sqrt(1.0 - pow(value, 2.0)) * percent;
+
     float gradation = (radius + (len - t)) / radius / 2.0;
-    power -= originalCell * (1.0 - easeInOutCubicIntegralMirror(gradation));
+    float result = (gradation - 0.5) / v2 + 0.5;
+
+    power -= originalCell * (1.0 - sliceCut(result));
   }
 
   return power;

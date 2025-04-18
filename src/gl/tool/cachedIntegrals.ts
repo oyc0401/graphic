@@ -23,6 +23,8 @@ function decodeBase64ToFloat32Array(base64) {
  **/
 // F(x) = easeinoutCirc(x) 일 때
 export async function getIntegralEaseInOut() {
+   // console.log(edgeCutLookup())
+   // return edgeCutLookup();
     // return new Float32Array([0.5,0.4,0.3,0.2,0.1,0]);
     if (cacheIntegralEaseInOut) {
         return cacheIntegralEaseInOut;
@@ -36,6 +38,65 @@ export async function getIntegralEaseInOut() {
     // cacheIntegralEaseInOut = new Float32Array(arrayBuffer1);
     // return cacheIntegralEaseInOut;
 }
+
+function F(x) {
+    return easeInOutSine(x)
+}
+function easeInOutSine(x: number): number {
+return -(Math.cos(Math.PI * x) - 1) / 2;
+}
+const EDGE_GRID_SIZE = 20;          // x ∈ [0,1] 을 100등분
+let edgeCutTable = null;             // 1‑차원 Float32Array (EDGE_GRID_SIZE)
+
+
+/**
+ * 단순 복합 사다리꼴 법칙으로 적분을 근사 계산합니다.
+ * @param {Function} f    – t에 대한 함수
+ * @param {number} a      – 하한
+ * @param {number} b      – 상한
+ * @param {number} steps  – 분할 수
+ * @returns {number}
+ */
+function numericIntegrate(f, a, b, steps = 200) {
+  if (b <= a) return 0;
+  const h = (b - a) / steps;
+  let sum = f(a) + f(b);
+  for (let i = 1; i < steps; i++) {
+    sum += 2 * f(a + i * h);
+  }
+  return (h / 2) * sum;
+}
+
+/* ----------  edgeCut 테이블 초기화 ---------- */
+function initEdgeCutTable() {
+  edgeCutTable = new Float32Array(EDGE_GRID_SIZE);
+
+  for (let xi = 0; xi < EDGE_GRID_SIZE; xi++) {
+    const x = xi / (EDGE_GRID_SIZE - 1);            // x ∈ [0,1]
+    const upper = Math.sqrt(1 - x * x);             // √(1 - x²)
+    edgeCutTable[xi] = numericIntegrate(
+      t => F(1 - Math.hypot(x, t)),                 // F(1 - √(x² + t²))
+      0,
+      upper
+    );
+  }
+}
+
+/* ----------  edgeCut 값 조회 ---------- */
+/**
+ * edgeCutLookup(x)  →  ∫₀^(√(1-x²)) F(1-√(x²+t²)) dt
+ * @param {number} x  0 ≤ x ≤ 1
+ * @returns {number}
+ */
+function edgeCutLookup() {
+  if (!edgeCutTable) initEdgeCutTable();
+
+  return edgeCutTable;
+}
+
+/* ----------  사용 예시 ---------- */
+// console.log(edgeCutLookup(0.0));   // x = 0  →  최대 적분 범위
+// console.log(edgeCutLookup(0.7));   // x = 0.7
 
 /**
  * F(x)를 뒤집어놓은 함수의 적분 0~x까지 가져옴
