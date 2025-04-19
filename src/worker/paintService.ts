@@ -10,7 +10,7 @@ import { paintOptions } from "../gl/texture";
 import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
-import { uploadImage } from "../gl/file";
+import { resetImage, uploadImage } from "../gl/file";
 interface Pointer {
   x: number;
   y: number;
@@ -187,5 +187,8 @@ export class PaintService {
   }
   uploadImage(imageBitmap: ImageBitmap) {
     uploadImage(this.canvas, this.gl, imageBitmap);
+  }
+  resetImage(width, height) {
+    resetImage(this.canvas, this.gl, width, height);
   }
 }

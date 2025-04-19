@@ -95,6 +95,10 @@ export const workerApi = {
   uploadImage(bitmap) {
     paint.uploadImage(bitmap);
   },
+  resetImage(width, height) {
+    paint.resetImage(width, height);
+  },
+  downloadImage() {},
 };
 
 interface Pointer {

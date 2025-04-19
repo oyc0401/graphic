@@ -3,7 +3,8 @@ import { paintState } from "../main";
 import { toolManager } from "../draw";
 import { els } from "./elements";
 import { hexToRgb } from "../utils/color";
-import { openFile } from "../file";
+import { openFile, resetImage } from "../file";
+import { getLayerWorker } from "../worker/workerPool";
 
 function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {
@@ -61,7 +62,12 @@ function addClickEventListener() {
     });
 
     els.newButton.addEventListener("click", () => {
-        //toolManager.setSelectTool();
+        const confirmed = window.confirm(
+            "작업 중인 이미지가 초기화됩니다.\n계속하시겠습니까?",
+        );
+        if (confirmed) {
+            resetImage();
+        }
     });
     els.openButton.addEventListener("click", () => {
         openFile();

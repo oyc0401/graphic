@@ -4,8 +4,19 @@ import { getLayerWorker } from "./worker/workerPool";
 //import { encode } from "fast-png";
 import { encode } from "@jsquash/png";
 import * as Comlink from "comlink";
-import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
-import { getPixelRatio, position, setCameraPosition } from "./position";
+import {
+  applySelection,
+  cutSelection,
+  makeSelectionFromBitmap,
+  selection,
+} from "./selection";
+import {
+  getPixelRatio,
+  position,
+  renderChangedPosition,
+  setCameraPosition,
+  setDefaultPosition,
+} from "./position";
 import { paintState } from "./main";
 
 export function addClipboardEvent() {
@@ -228,4 +239,12 @@ export async function openFile() {
   } catch (err) {
     console.error("파일 열기 실패:", err);
   }
+}
+
+export function resetImage() {
+  applySelection();
+  setDefaultPosition();
+  const worker = getLayerWorker();
+  worker.resetImage(position.width, position.height);
+  renderChangedPosition();
 }

@@ -518,7 +518,7 @@ function makeRenderingManager(canvas, gl) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
-    //gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     renderDisplay();
