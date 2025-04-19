@@ -518,7 +518,7 @@ function makeRenderingManager(canvas, gl) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
-    gl.disable(gl.SCISSOR_TEST);
+    //gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     renderDisplay();
@@ -571,13 +571,13 @@ function makeRenderingManager(canvas, gl) {
   let scheduled = false;
 
   function render() {
-    if (!scheduled) {
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
+   // if (!scheduled) {
+     // scheduled = true;
+     // requestAnimationFrame(() => {
+      //  scheduled = false;
         renderNow();
-      });
-    }
+     // });
+    //}
   }
   return {
     render,
