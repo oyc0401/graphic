@@ -57,7 +57,7 @@ function makeBrushManager(canvas, gl) {
   const fullQuadVertexShader = getFullQuadShader(gl);
 
   let strokeShaderSource = `#version 300 es
-    precision highp float;
+    precision mediump float;
     
     // 현재까지 그려진 알파 채널이 담긴 텍스처
     uniform sampler2D u_pathMap;
@@ -215,7 +215,7 @@ function makeBrushManager(canvas, gl) {
   //////////////////////////
   //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   let brushShaderSource = `#version 300 es
-      precision highp float;
+      precision mediump float;
 
       uniform sampler2D u_pathMap;
       uniform sampler2D u_sourse;  // 원본 텍스처
@@ -261,7 +261,7 @@ function makeBrushManager(canvas, gl) {
 
   ///////////////////////////////////////
   let eraserShaderSource = `#version 300 es
-      precision highp float;
+      precision mediump float;
 
       uniform sampler2D u_pathMap;
       uniform sampler2D u_sourse;  // 원본 텍스처
@@ -336,12 +336,12 @@ function makeBrushManager(canvas, gl) {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.R32F,
+      gl.R8,
       width,
       height,
       0,
       gl.RED,
-      gl.FLOAT,
+      gl.UNSIGNED_BYTE,
       null,
     );
 
@@ -351,12 +351,12 @@ function makeBrushManager(canvas, gl) {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.R32F,
+      gl.R8,
       width,
       height,
       0,
       gl.RED,
-      gl.FLOAT,
+      gl.UNSIGNED_BYTE,
       null,
     );
 
