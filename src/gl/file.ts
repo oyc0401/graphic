@@ -1,13 +1,13 @@
 import { getLayerManager } from "./layer";
 import { getRenderingManager, resizeLayer } from "./render";
-import { getSourceTextureManager, TEXTURE_UNIT } from "./texture";
+import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 
 export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
 
-  resizeLayer(canvas, gl, bitmap.width, bitmap.height);
+  resizeLayer(canvas, gl,paintOptions.x, paintOptions.y, bitmap.width, bitmap.height);
 
   layerManager.bindCurrentLayer();
 
