@@ -8,7 +8,7 @@ import {
     updateBouncingRect,
 } from "./position";
 import { els, getElements } from "./ui/elements";
-import { addClickEvent } from "./events/clickEvent";
+import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";

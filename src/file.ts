@@ -1,15 +1,11 @@
-/** file.ts */ 
+/** file.ts */
 import { els } from "./ui/elements";
 import { getLayerWorker } from "./worker/workerPool";
 //import { encode } from "fast-png";
 import { encode } from "@jsquash/png";
 import * as Comlink from "comlink";
 import { cutSelection, makeSelectionFromBitmap, selection } from "./selection";
-import {
-  getPixelRatio,
-  position,
-  setCameraPosition,
-} from "./position";
+import { getPixelRatio, position, setCameraPosition } from "./position";
 import { paintState } from "./main";
 
 export function addClipboardEvent() {
@@ -49,29 +45,6 @@ export function addClipboardEvent() {
       }
     }
   });
-
-  function uploadImage(bitmap: ImageBitmap) {
-    let dpr = getPixelRatio();
-
-    console.log(position.bouncingRect.width, bitmap.width);
-    let val = 1.125 / dpr;
-    let xScale = position.bouncingRect.width / (bitmap.width * val);
-    let yScale = position.bouncingRect.height / (bitmap.height * val);
-    let scale = Math.min(xScale, yScale);
-
-    let x = (position.bouncingRect.width - bitmap.width * scale) / 2 / scale;
-    let y = (position.bouncingRect.height - bitmap.height * scale) / 2 / scale;
-
-    position.setScale(scale);
-    position.setX(x);
-    position.setY(y);
-    position.setWidth(bitmap.width);
-    position.setHeight(bitmap.height);
-    setCameraPosition();
-
-    const worker = getLayerWorker();
-    worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
-  }
 
   // 붙여넣기
   window.addEventListener("paste", async (event: ClipboardEvent) => {
@@ -158,6 +131,29 @@ export function addClipboardEvent() {
   });
 }
 
+function uploadImage(bitmap: ImageBitmap) {
+  let dpr = getPixelRatio();
+
+  console.log("uploadImage", position.bouncingRect.width, bitmap.width);
+  let val = 1.125 / dpr;
+  let xScale = position.bouncingRect.width / (bitmap.width * val);
+  let yScale = position.bouncingRect.height / (bitmap.height * val);
+  let scale = Math.min(xScale, yScale);
+
+  let x = (position.bouncingRect.width - bitmap.width * scale) / 2 / scale;
+  let y = (position.bouncingRect.height - bitmap.height * scale) / 2 / scale;
+
+  position.setScale(scale);
+  position.setX(x);
+  position.setY(y);
+  position.setWidth(bitmap.width);
+  position.setHeight(bitmap.height);
+  setCameraPosition();
+
+  const worker = getLayerWorker();
+  worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
+}
+
 export async function copyPixelsToClipboard(
   pixels: Uint8ClampedArray,
   width: number,
@@ -174,4 +170,62 @@ export async function copyPixelsToClipboard(
   await navigator.clipboard.write([item]);
 
   console.log("클립보드 복사 완료!!");
+}
+
+async function selectFileChrome(): Promise<File> {
+  if (!window.showOpenFilePicker) {
+    console.warn("이 브라우저는 showOpenFilePicker를 지원하지 않습니다.");
+    return await selectFile();
+  }
+
+  const [handle] = await window.showOpenFilePicker({
+    types: [
+      {
+        description: "Images",
+        accept: {
+          "image/*": [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+        },
+      },
+    ],
+    excludeAcceptAllOption: true,
+    multiple: false,
+  });
+
+  const file = await handle.getFile();
+  return file;
+}
+
+function selectFile(accept = "image/*"): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.style.display = "none";
+
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (file) {
+        resolve(file);
+      } else {
+        reject(new Error("파일이 선택되지 않았습니다."));
+      }
+      document.body.removeChild(input);
+    });
+
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+export async function openFile() {
+  try {
+    const file = await selectFileChrome(); // 파일 선택
+    const bitmap = await createImageBitmap(file, {
+      imageOrientation: "flipY",
+      premultiplyAlpha: "premultiply",
+    });
+    uploadImage(bitmap);
+  } catch (err) {
+    console.error("파일 열기 실패:", err);
+  }
 }

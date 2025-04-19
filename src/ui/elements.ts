@@ -10,6 +10,10 @@ import RedoSvg from "../assets/redo_disabled.svg?raw";
 
 import CursorSvg from "../assets/cursor.svg?raw";
 
+import NewSvg from "../assets/new.svg?raw";
+import OpenSvg from "../assets/open.svg?raw";
+import SaveSvg from "../assets/save.svg?raw";
+
 function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
   if (element) {
@@ -57,6 +61,10 @@ export let els = {
 
   titleArea: $id("title-area"),
   canvasTitle: $id("canvas-title"),
+
+  newButton: $id("new-button"),
+  openButton: $id("open-button"),
+  saveButton: $id("save-button"),
 };
 
 export function getElements() {
@@ -70,4 +78,8 @@ export function getElements() {
   $id("redo-icon").innerHTML = RedoSvg;
 
   $id("cursor-icon").innerHTML = CursorSvg;
+
+  $id("new-icon").innerHTML = NewSvg;
+  $id("open-icon").innerHTML = OpenSvg;
+  $id("save-icon").innerHTML = SaveSvg;
 }

@@ -1,8 +1,9 @@
 /** clickEvent.ts */
 import { paintState } from "../main";
 import { toolManager } from "../draw";
-import { els } from "../ui/elements";
+import { els } from "./elements";
 import { hexToRgb } from "../utils/color";
+import { openFile } from "../file";
 
 function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {
@@ -57,6 +58,16 @@ function addClickEventListener() {
 
     els.titleArea.addEventListener("pointerup", () => {
         toolManager.setResizeTool();
+    });
+
+    els.newButton.addEventListener("click", () => {
+        //toolManager.setSelectTool();
+    });
+    els.openButton.addEventListener("click", () => {
+        openFile();
+    });
+    els.saveButton.addEventListener("click", () => {
+        //toolManager.setSelectTool();
     });
 }
 
