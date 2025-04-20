@@ -81,9 +81,9 @@ async function makeLiquifyManager(canvas, gl) {
     gl.useProgram(liquifyPushProgram);
 
     // 변위맵 텍스처 생성 및 데이터 업로드
-    let displacementTex = gl.createTexture();
+    let displacementTexInput = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTex);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
 
     // 행렬에 linear를 사용하는 이유는 기존의 getVector는 보간으로 값을 가져오기 대문에
     // 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
@@ -97,9 +97,9 @@ async function makeLiquifyManager(canvas, gl) {
     );
 
     // 출력용 텍스처 생성
-    let displacementTexOut = gl.createTexture();
+    let displacementTexOutput = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexOutput);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -161,7 +161,7 @@ async function makeLiquifyManager(canvas, gl) {
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        displacementTexOut,
+        displacementTexOutput,
         0,
     );
 
@@ -173,7 +173,7 @@ async function makeLiquifyManager(canvas, gl) {
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        displacementTexOut,
+        displacementTexOutput,
         0,
     );
 
@@ -276,7 +276,7 @@ async function makeLiquifyManager(canvas, gl) {
         );
 
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-        gl.bindTexture(gl.TEXTURE_2D, displacementTex);
+        gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
@@ -290,7 +290,7 @@ async function makeLiquifyManager(canvas, gl) {
         );
 
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-        gl.bindTexture(gl.TEXTURE_2D, displacementTexOut);
+        gl.bindTexture(gl.TEXTURE_2D, displacementTexOutput);
         gl.texImage2D(
             gl.TEXTURE_2D,
             0,
@@ -389,16 +389,13 @@ async function makeLiquifyManager(canvas, gl) {
         updatePathDirtyRect(start);
         updatePathDirtyRect(end);
 
-        // displacementTex를 보고 displacementTexOut에 쓰고
-        // 그 쓰여진 내용을 displacementTex에 옮기기
+        // 프레임버퍼에 output 텍스처 넣기
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        // 프레임버퍼에 쓰기 텍스처 넣기
-        // 이전에 blit할때 다른거 지정되어있었음
         gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            displacementTexOut,
+            displacementTexOutput,
             0,
         );
 
@@ -408,7 +405,7 @@ async function makeLiquifyManager(canvas, gl) {
         gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        // 적용된 텍스처를 read에도 옮기기
+        // output 텍스처를 input 텍스쳐에도 옮기기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
 
@@ -416,7 +413,7 @@ async function makeLiquifyManager(canvas, gl) {
             gl.READ_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            displacementTexOut,
+            displacementTexOutput,
             0,
         );
 
@@ -424,7 +421,7 @@ async function makeLiquifyManager(canvas, gl) {
             gl.DRAW_FRAMEBUFFER,
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
-            displacementTex,
+            displacementTexInput,
             0,
         );
 
@@ -500,7 +497,8 @@ async function makeLiquifyManager(canvas, gl) {
         let height = paintOptions.height;
 
         let glHelper = getGlHelper(gl);
-        glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
+        glHelper.clearTextureVec2(displacementTexInput, width, height, [0, 0]);
+        glHelper.clearTextureVec2(displacementTexOutput, width, height, [0, 0]);
         glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
     }
 
@@ -511,11 +509,11 @@ async function makeLiquifyManager(canvas, gl) {
         render,
         end() {
             // displacementTex -> sourceDisplacementTex
-            transfer(displacementTex, sourceDisplacementTex);
+            transfer(displacementTexInput, sourceDisplacementTex);
         },
         cancel() {
             // sourceDisplacementTex -> displacementTex
-            transfer(sourceDisplacementTex, displacementTex);
+            transfer(sourceDisplacementTex, displacementTexInput);
             render();
         },
         exit() {
