@@ -29,7 +29,6 @@ interface liquifyManager {
     cancel(): void;
     exit(): void;
     setSize: () => void;
-    setStrength: (s: any) => void;
 }
 const liquifyManagerStore = new Map<any, liquifyManager>();
 
@@ -237,7 +236,6 @@ async function makeLiquifyManager(canvas, gl) {
 
     ////////////////
 
-    let strength = 1;
     // 변경된 부분만 캔슬, 소스텍스쳐 이전 하기 위해서
     let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 
@@ -367,7 +365,7 @@ async function makeLiquifyManager(canvas, gl) {
         gl.useProgram(liquifyPushProgram);
         // 유나폼 변수 설정
         gl.uniform1f(u_radiusLoc, paintOptions.radius);
-        gl.uniform1f(u_strengthLoc, strength);
+        gl.uniform1f(u_strengthLoc, paintOptions.alpha);
         gl.uniform2f(u_startLoc, start.x, height - start.y);
         gl.uniform2f(u_endLoc, end.x, height - end.y);
 
@@ -488,10 +486,6 @@ async function makeLiquifyManager(canvas, gl) {
             gl.NEAREST,
         );
     }
-
-    function setStrength(s) {
-        strength = s;
-    }
     function clearMap() {
         let width = paintOptions.width;
         let height = paintOptions.height;
@@ -521,7 +515,6 @@ async function makeLiquifyManager(canvas, gl) {
             sourceTextureManager.uploadCurrent();
         },
         setSize,
-        setStrength,
     };
 
     return Liquify;
