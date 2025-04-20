@@ -23,18 +23,16 @@ export function dispatch(e: PointerEvent, phase: Phase) {
 
 // 프레임당 1회 move 디스패치 제어용 변수
 let moveQueued = false;
-let lastMoveEvent: PointerEvent | null = null;
+//let lastMoveEvent: PointerEvent | null = null;
 
 function throttledMove(e: PointerEvent) {
-  lastMoveEvent = e;
   if (moveQueued) return;
 
   moveQueued = true;
-
+  dispatch(e, "move");
+  
   requestAnimationFrame(() => {
-    if (lastMoveEvent) dispatch(lastMoveEvent, "move");
     moveQueued = false;
-    lastMoveEvent = null;
   });
 }
 
