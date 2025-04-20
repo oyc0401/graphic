@@ -188,7 +188,7 @@ async function makeLiquifyManager(canvas, gl) {
     enable_a_position(gl, liquifyPushProgram);
 
     let colorShaderSource = `#version 300 es
-      precision highp float;
+      precision mediump float;
       uniform sampler2D u_displacement;
       uniform sampler2D u_sourse;  // 원본 텍스처
       uniform vec2 u_resolution;
