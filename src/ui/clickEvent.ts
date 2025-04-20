@@ -4,6 +4,7 @@ import { toolManager } from "../draw";
 import { els } from "./elements";
 import { hexToRgb } from "../utils/color";
 import { openFile, resetImage } from "../file";
+import { getLayerWorker } from "../core/worker/workerPool";
 
 function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {
@@ -72,7 +73,7 @@ function addClickEventListener() {
         openFile();
     });
     els.saveButton.addEventListener("click", () => {
-        //toolManager.setSelectTool();
+       getLayerWorker().downloadImage();
     });
 }
 

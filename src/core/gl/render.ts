@@ -508,7 +508,6 @@ function makeRenderingManager(canvas, gl) {
   }
 
   function renderNow() {
-    // console.log("render");
 
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);

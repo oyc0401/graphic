@@ -10,7 +10,7 @@ import { paintOptions } from "../gl/texture";
 import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
-import { resetImage, uploadImage } from "../gl/file";
+import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 interface Pointer {
   x: number;
   y: number;
@@ -33,7 +33,6 @@ export class PaintService {
       antialias: false,
       preserveDrawingBuffer: false,
       premultipliedAlpha: true,
-      
     });
     if (!gl) {
       throw Error("Can't make webgl2 context");
@@ -191,5 +190,21 @@ export class PaintService {
   }
   resetImage(width, height) {
     resetImage(this.canvas, this.gl, width, height);
+  }
+  downloadImage() {
+    let manager = getCanvasPixelManager(this.canvas, this.gl);
+    let { pixels, width, height } = manager.getCanvasPixelData();
+
+    self.postMessage(
+      {
+        type: "download",
+        payload: {
+          pixels,
+          width,
+          height,
+        },
+      },
+      [pixels.buffer],
+    );
   }
 }

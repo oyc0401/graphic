@@ -57,7 +57,6 @@ export const workerApi = {
   setTool(toolId) {
     paint.setTool(toolId);
   },
-
   start(pointer: Pointer) {
     paint.start(pointer);
   },
@@ -74,7 +73,6 @@ export const workerApi = {
     paint.select(x, y, w, h);
   },
   moveSelection(x, y, width, height) {
-    console.log("moveSelection");
     paint.moveSelection(x, y, width, height);
   },
   applySelection() {
@@ -98,7 +96,9 @@ export const workerApi = {
   resetImage(width, height) {
     paint.resetImage(width, height);
   },
-  downloadImage() {},
+  downloadImage() {
+    paint.downloadImage();
+  },
 };
 
 interface Pointer {

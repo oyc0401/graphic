@@ -248,3 +248,31 @@ export function resetImage() {
   worker.resetImage(position.width, position.height);
   renderChangedPosition();
 }
+
+export async function downloadPixels(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+) {
+  const imageData = new ImageData(pixels, width, height);
+
+  // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
+  const pngData = await encode(imageData);
+
+  // 2. Blob 생성
+  const blob = new Blob([pngData], { type: "image/png" });
+
+  // 3. 다운로드 링크 생성
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "image.png"; // 다운로드할 파일 이름 지정
+
+  // 4. 링크 클릭하여 다운로드 실행
+  link.click();
+
+  // 5. Blob URL 해제
+  URL.revokeObjectURL(url);
+
+  console.log("파일 다운로드 완료!!");
+}

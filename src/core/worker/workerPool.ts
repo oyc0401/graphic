@@ -1,6 +1,6 @@
 import * as Comlink from "comlink";
 import { workerApi } from "./paintController";
-import { copyPixelsToClipboard } from "../../file";
+import { copyPixelsToClipboard, downloadPixels } from "../../file";
 import WorkerModule from "./worker?worker";
 
 type WorkerApi = typeof workerApi;
@@ -24,6 +24,11 @@ function getWorkerObject() {
         let { pixels, width, height } = payload;
         let pixelData: Uint8ClampedArray = pixels;
         copyPixelsToClipboard(pixelData, width, height);
+      }
+      if (type === "download") {
+        let { pixels, width, height } = payload;
+        let pixelData: Uint8ClampedArray = pixels;
+        downloadPixels(pixelData, width, height);
       }
     };
     const api = Comlink.wrap<WorkerApi>(worker);
