@@ -31,8 +31,9 @@ export class PaintService {
       depth: false,
       stencil: false,
       antialias: false,
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer: false,
       premultipliedAlpha: true,
+      
     });
     if (!gl) {
       throw Error("Can't make webgl2 context");

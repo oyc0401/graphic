@@ -107,6 +107,8 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
 
   paintState.setToolId("selection");
   selection.setVisible(true);
+  selection.setShowHint(true);
+  selection.setShowHandle(true);
 }
 
 // 해당 구역 선택
