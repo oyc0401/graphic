@@ -189,7 +189,7 @@ async function makeLiquifyManager(canvas, gl) {
     let colorShaderSource = `#version 300 es
       precision mediump float;
       uniform sampler2D u_displacement;
-      uniform sampler2D u_sourse;  // 원본 텍스처
+      uniform sampler2D u_source;  // 원본 텍스처
       uniform vec2 u_resolution;
 
       in vec2 v_texCoord;
@@ -209,10 +209,10 @@ async function makeLiquifyManager(canvas, gl) {
               // 경계 외부는 투명색 반환
               outColor = vec4(0.0, 0.0, 0.0, 0.0);
           } else {
-                // vec4 newColor = texture(u_sourse, target);
+                // vec4 newColor = texture(u_source, target);
                 // float newAlpha = newColor.a;
                 // outColor = vec4(newColor.rgb, newAlpha);
-               outColor = texture(u_sourse, target);
+               outColor = texture(u_source, target);
                 // outColor = vec4(0.0,1.0,0.0,value.y/8.0);
           }
       }
@@ -228,7 +228,7 @@ async function makeLiquifyManager(canvas, gl) {
     );
 
     gl.uniform1i(
-        gl.getUniformLocation(renderProgram, "u_sourse"),
+        gl.getUniformLocation(renderProgram, "u_source"),
         TEXTURE_UNIT.SOURCE,
     ); // 텍스처 유닛 1에 할당
 

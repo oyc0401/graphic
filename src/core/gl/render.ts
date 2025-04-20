@@ -175,7 +175,7 @@ function makeRenderingManager(canvas, gl) {
   let renderShaderSource = `#version 300 es
     precision highp float;
     
-    uniform sampler2D u_sourse;   // 원본 텍스처
+    uniform sampler2D u_source;   // 원본 텍스처
     
     uniform vec2 u_resolution;    // 캔버스의 전체 화면 기준(왼쪽 상단) 위치 (픽셀 단위)
     uniform vec2 u_pos;           // 전체 스크린 크기 (픽셀 단위)
@@ -210,7 +210,7 @@ function makeRenderingManager(canvas, gl) {
       vec2 local = (scaledFragCoord - minCanvPos) / canvasSize;
     
       // 6. 원본 텍스처에서 local 좌표로 색상을 샘플링
-      vec4 imageColor = texture(u_sourse, local);
+      vec4 imageColor = texture(u_source, local);
       outColor = vec4(imageColor.rgb, imageColor.a);
     }
   `;
@@ -220,7 +220,7 @@ function makeRenderingManager(canvas, gl) {
   gl.useProgram(renderProgram);
 
   gl.uniform1i(
-    gl.getUniformLocation(renderProgram, "u_sourse"),
+    gl.getUniformLocation(renderProgram, "u_source"),
     TEXTURE_UNIT.LAYER,
   );
 

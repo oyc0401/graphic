@@ -218,7 +218,7 @@ function makeBrushManager(canvas, gl) {
       precision mediump float;
 
       uniform sampler2D u_pathMap;
-      uniform sampler2D u_sourse;  // 원본 텍스처
+      uniform sampler2D u_source;  // 원본 텍스처
       uniform vec2 u_resolution;
       uniform vec3 u_color; // 원하는 색
 
@@ -228,7 +228,7 @@ function makeBrushManager(canvas, gl) {
       void main() {
        float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
         vec4 brushColor = vec4(u_color, value); // 새로운 색
-        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
 
        // Premultiplied Alpha 적용
         vec3 premultBrush = brushColor.rgb * brushColor.a; // RGB에 알파를 미리 곱함
@@ -253,7 +253,7 @@ function makeBrushManager(canvas, gl) {
   );
 
   gl.uniform1i(
-    gl.getUniformLocation(brushProgram, "u_sourse"),
+    gl.getUniformLocation(brushProgram, "u_source"),
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
@@ -264,7 +264,7 @@ function makeBrushManager(canvas, gl) {
       precision mediump float;
 
       uniform sampler2D u_pathMap;
-      uniform sampler2D u_sourse;  // 원본 텍스처
+      uniform sampler2D u_source;  // 원본 텍스처
       uniform vec2 u_resolution;
 
       in vec2 v_texCoord;
@@ -272,7 +272,7 @@ function makeBrushManager(canvas, gl) {
 
       void main() {
         float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
-        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
 
         float factor = 1.0 - value;
         outColor = vec4(imageColor.rgb * factor, imageColor.a * factor);
@@ -289,7 +289,7 @@ function makeBrushManager(canvas, gl) {
   );
 
   gl.uniform1i(
-    gl.getUniformLocation(eraserProgram, "u_sourse"),
+    gl.getUniformLocation(eraserProgram, "u_source"),
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 

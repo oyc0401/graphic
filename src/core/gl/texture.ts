@@ -110,13 +110,13 @@ function makeSourceTextureManager(canvas, gl) {
   let cancelShaderSource = `#version 300 es
       precision highp float;
 
-      uniform sampler2D u_sourse;  // 원본 텍스처
+      uniform sampler2D u_source;  // 원본 텍스처
 
       in vec2 v_texCoord;
       out vec4 outColor;
 
       void main() {
-        vec4 imageColor = texture(u_sourse, v_texCoord); // 기존 이미지 색
+        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
 
         outColor = vec4(imageColor.rgb, imageColor.a);
       }
@@ -127,7 +127,7 @@ function makeSourceTextureManager(canvas, gl) {
   gl.useProgram(cancelProgram);
 
   gl.uniform1i(
-    gl.getUniformLocation(cancelProgram, "u_sourse"),
+    gl.getUniformLocation(cancelProgram, "u_source"),
     TEXTURE_UNIT.SOURCE,
   );
 

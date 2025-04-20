@@ -63,7 +63,7 @@ function createSelectionManager(canvas, gl) {
 
     uniform sampler2D u_selection_source;
     uniform sampler2D u_selection;
-    uniform sampler2D u_sourse;
+    uniform sampler2D u_source;
 
     uniform vec2 u_resolution;      // 실제 캔버스 크기 (px)
 
@@ -105,7 +105,7 @@ function createSelectionManager(canvas, gl) {
         selectionColor = texture(u_selection, newLocal);    // 프리
       }
       
-      vec4 imageColor = texture(u_sourse, v_texCoord);      // 프리
+      vec4 imageColor = texture(u_source, v_texCoord);      // 프리
       
       float srcA = selectionColor.a;
       float dstA = imageColor.a;
@@ -138,7 +138,7 @@ function createSelectionManager(canvas, gl) {
     TEXTURE_UNIT.RENDERED_SELECTION,
   );
   gl.uniform1i(
-    gl.getUniformLocation(selectionProgram, "u_sourse"),
+    gl.getUniformLocation(selectionProgram, "u_source"),
     TEXTURE_UNIT.SOURCE,
   );
 
