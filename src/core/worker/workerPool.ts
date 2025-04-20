@@ -1,6 +1,6 @@
 import * as Comlink from "comlink";
 import { workerApi } from "./paintController";
-import { copyPixelsToClipboard } from "../file";
+import { copyPixelsToClipboard } from "../../file";
 import WorkerModule from "./worker?worker";
 
 type WorkerApi = typeof workerApi;

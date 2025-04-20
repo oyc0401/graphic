@@ -6,7 +6,7 @@ import {
   HandleType,
 } from "../utils/selectionHitTest";
 import { to_pixel_canvas_coord } from "../position";
-import { getLayerWorker } from "../worker/workerPool";
+import { getLayerWorker } from "../core/worker/workerPool";
 import { clamp } from "../utils/math";
 import { pointers } from "../events/gestures";
 

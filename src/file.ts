@@ -1,6 +1,6 @@
 /** file.ts */
 import { els } from "./ui/elements";
-import { getLayerWorker } from "./worker/workerPool";
+import { getLayerWorker } from "./core/worker/workerPool";
 //import { encode } from "fast-png";
 import { encode } from "@jsquash/png";
 import * as Comlink from "comlink";

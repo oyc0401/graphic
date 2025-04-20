@@ -4,7 +4,6 @@ import { toolManager } from "../draw";
 import { els } from "./elements";
 import { hexToRgb } from "../utils/color";
 import { openFile, resetImage } from "../file";
-import { getLayerWorker } from "../worker/workerPool";
 
 function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {

@@ -1,6 +1,6 @@
 /** draw.ts */
 import { paintState } from "./main";
-import { getLayerWorker } from "./worker/workerPool";
+import { getLayerWorker } from "./core/worker/workerPool";
 import { applySelection, selection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { position } from "./position";

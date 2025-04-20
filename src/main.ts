@@ -13,7 +13,7 @@ import { applySelection, selection } from "./selection";
 import { addClipboardEvent } from "./file";
 import { makeAutoObservable } from "mobx";
 import { bindView } from "./ui/view";
-import { getLayerWorker } from "./worker/workerPool";
+import { getLayerWorker } from "./core/worker/workerPool";
 import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";

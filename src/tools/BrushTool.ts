@@ -1,5 +1,5 @@
 import { paintState } from "../main";
-import { getLayerWorker } from "../worker/workerPool";
+import { getLayerWorker } from "../core/worker/workerPool";
 import { to_canvas_coord } from "../position";
 
 export class BrushTool {

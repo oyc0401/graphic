@@ -1,7 +1,7 @@
 /** selection.ts */
 import { paintState } from "./main";
 import { position } from "./position";
-import { getLayerWorker } from "./worker/workerPool";
+import { getLayerWorker } from "./core/worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
 
