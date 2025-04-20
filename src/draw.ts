@@ -7,6 +7,7 @@ import { position } from "./position";
 
 export const toolManager = {
     setBrushTool() {
+        if (paintState.pointerdown) return;
         paintState.setToolId("brush");
         paintState.setBrushId("brush");
 
@@ -17,6 +18,7 @@ export const toolManager = {
         console.log("brush");
     },
     setEraserTool() {
+        if (paintState.pointerdown) return;
         paintState.setToolId("brush");
         paintState.setBrushId("eraser");
 
@@ -25,6 +27,7 @@ export const toolManager = {
         worker.setTool(paintState.brushId);
     },
     setLiquifyTool() {
+        if (paintState.pointerdown) return;
         paintState.setToolId("brush");
         paintState.setBrushId("liquify");
 
@@ -33,6 +36,7 @@ export const toolManager = {
         worker.setTool(paintState.brushId);
     },
     setSelectTool() {
+        if (paintState.pointerdown) return;
         applySelection();
         paintState.setToolId("select");
 
@@ -40,6 +44,7 @@ export const toolManager = {
         worker.setTool(paintState.brushId);
     },
     setResizeTool() {
+        if (paintState.pointerdown) return;
         applySelection();
         selection.setWidth(position.width);
         selection.setHeight(position.height);
