@@ -2,7 +2,7 @@ import { makeAutoObservable } from "mobx";
 
 class MenuState {
     showMenu = false;
-
+    showColorMenu = false;
     constructor() {
         makeAutoObservable(this);
     }
@@ -10,9 +10,11 @@ class MenuState {
     setShowMenu(value) {
         this.showMenu = value;
     }
-
-    closeAllMenu(){
-         this.showMenu = false;
+    setShowColorMenu(value) {
+        this.showColorMenu = value;
+    }
+    closeAllMenu() {
+        this.showMenu = false;
     }
 }
 

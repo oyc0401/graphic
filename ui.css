@@ -19,8 +19,6 @@
 
 #main-menu {
   position: absolute;
-  left: 0px;
-  top: 44px;
   width: 200px;
   background: #ffffff;
   display: flex;
@@ -57,6 +55,17 @@
 }
 
 
+#color-menu {
+  position: absolute;
+  width: 200px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  padding: 8px 0px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
+}
+
 #menu-bar {
   display: flex;
   /* flex-wrap: wrap; */
@@ -73,7 +82,7 @@
   border-bottom: 1px #E2E2E2 solid;
 }
 
-#appbar-root{
+#appbar-root {
   height: 133px;
 }
 

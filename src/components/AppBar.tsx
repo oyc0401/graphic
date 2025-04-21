@@ -2,12 +2,9 @@
 import React from "react";
 import { paintState } from "../paintState";
 import { toolManager } from "../draw";
-import { menuState } from "../ui/menuState";
-import { hexToRgb, rgbToHex } from "../utils/color";
-import { downloadImage, openFile, resetImage } from "../file";
+import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
-// AppBar.jsx 상단
-import MenuIcon from "../assets/menu.svg?react";
+
 import UndoIcon from "../assets/undo.svg?react";
 import RedoIcon from "../assets/redo_disabled.svg?react";
 
@@ -16,10 +13,7 @@ import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
 
-import NewIcon from "../assets/new.svg?react";
-import OpenIcon from "../assets/open.svg?react";
-import SaveIcon from "../assets/save.svg?react";
-import { useRef, useEffect } from "react";
+import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 
 const hexColors = [
   "#000000",
@@ -105,60 +99,7 @@ export default function AppBar() {
   );
 }
 
-const MainMenuToggleButton = observer(() => {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!menuState.showMenu) return;
-
-    const handleClickOutside = (e: PointerEvent) => {
-      if (
-        !menuRef.current?.contains(e.target as Node) &&
-        !buttonRef.current?.contains(e.target as Node)
-      ) {
-        menuState.setShowMenu(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handleClickOutside);
-    return () => {
-      document.removeEventListener("pointerdown", handleClickOutside);
-    };
-  }, [menuState.showMenu]);
-
-  const toggleMenu = () => {
-    menuState.setShowMenu(!menuState.showMenu);
-  };
-
-  return (
-    <>
-      <button
-        id="menu-button"
-        className="header-button"
-        onClick={toggleMenu}
-        ref={buttonRef}
-      >
-        <MenuIcon />
-      </button>
-
-      {menuState.showMenu && (
-        <div id="main-menu" ref={menuRef}>
-          <button id="new-button" onClick={resetImage}>
-            <NewIcon /> <p>새로 만들기</p>
-          </button>
-          <button id="open-button" onClick={openFile}>
-            <OpenIcon /> <p>열기</p>
-          </button>
-          <button id="save-button" onClick={downloadImage}>
-            <SaveIcon />
-            <p>저장</p>
-          </button>
-        </div>
-      )}
-    </>
-  );
-});
 
 const SelectionToolButton = observer(() => {
   const isSelected =
@@ -292,17 +233,3 @@ function sizeToPosition(size: number): number {
   return ((Math.log(size) - logMin) / (logMax - logMin)) * 1000;
 }
 
-const ColorIndicatorButton = observer(() => {
-  const colorHex = rgbToHex(paintState.getColor());
-
-  return (
-    <button id="choose-color" className="select-button">
-      <div
-        id="color-icon"
-        className="button-icon"
-        style={{ background: colorHex }}
-      />
-      <p>색</p>
-    </button>
-  );
-});
