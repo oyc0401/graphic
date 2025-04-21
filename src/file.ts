@@ -161,6 +161,12 @@ function uploadImage(bitmap: ImageBitmap) {
   position.setHeight(bitmap.height);
   setCameraPosition();
 
+  applySelection();
+  selection.setVisible(false);
+  selection.setShowHint(false);
+  selection.setShowHandle(false);
+
+
   const worker = getLayerWorker();
   worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
 }

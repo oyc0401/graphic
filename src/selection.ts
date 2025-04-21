@@ -148,11 +148,15 @@ export function applySelection() {
 export function cutSelection() {
   paintState.setToolId("select");
   selection.setVisible(false);
+  selection.setShowHint(false);
+  selection.setShowHandle(false);
 }
 
 export function selectionDelete() {
   paintState.setToolId("select");
   selection.setVisible(false);
+  selection.setShowHint(false);
+  selection.setShowHandle(false);
 
   let worker = getLayerWorker();
   worker.selectionDelete();
