@@ -1,5 +1,5 @@
 // tools/ZoomTool.ts
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import {
   position,
   renderChangedPosition,

@@ -1,4 +1,4 @@
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { getLayerWorker } from "../core/worker/workerPool";
 import { position, to_canvas_coord } from "../position";
 

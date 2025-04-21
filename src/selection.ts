@@ -1,5 +1,5 @@
 /** selection.ts */
-import { paintState } from "./main";
+import { paintState } from "./paintState";
 import { position } from "./position";
 import { getLayerWorker } from "./core/worker/workerPool";
 import * as Comlink from "comlink";

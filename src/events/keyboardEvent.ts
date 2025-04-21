@@ -1,5 +1,5 @@
 /** keyboard.ts */
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { cancel, toolManager } from "../draw";
 import {
     applySelection,

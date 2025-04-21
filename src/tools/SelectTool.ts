@@ -1,5 +1,5 @@
 // tools/SelectTool.ts
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { selection } from "../selection";
 import { position, to_pixel_canvas_coord } from "../position";
 import { canvasSelect } from "../selection";

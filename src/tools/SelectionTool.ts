@@ -1,5 +1,5 @@
 // tools/SelectionTool.ts
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { selection, beforeSelectionPos, applySelection } from "../selection";
 import {
   getSelectionHandleAtPoint,

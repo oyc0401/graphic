@@ -17,7 +17,7 @@ import {
   setCameraPosition,
   setDefaultPosition,
 } from "./position";
-import { paintState } from "./main";
+import { paintState } from "./paintState";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지

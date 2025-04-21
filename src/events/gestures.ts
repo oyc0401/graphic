@@ -1,4 +1,4 @@
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { cancel } from "../draw";
 import { dispatch } from "./pointerEvents";
 import {

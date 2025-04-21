@@ -11,95 +11,16 @@ import { els, getElements } from "./ui/elements";
 import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
 import { addClipboardEvent } from "./file";
-import { makeAutoObservable } from "mobx";
+
 import { bindView } from "./ui/view";
 import { getLayerWorker } from "./core/worker/workerPool";
 import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
+import { paintState } from "./paintState";
 
 window.onload = main;
-
-type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
-type ToolId = "brush" | "select" | "selection" | "resize"; // 선택창 풀면 brush로 됌
-type BrushId = "brush" | "eraser" | "liquify";
-class PaintState {
-    action: Action = "BRUSH";
-    toolId: ToolId = "brush";
-    brushId: BrushId = "brush";
-    private brushSize = { brush: 5, eraser: 10, liquify: 50 };
-    private brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
-    color = { r: 30, g: 30, b: 30 };
-    cursorX = 0;
-    cursorY = 0;
-
-    pointerdown = false;
-    drawing = false;
-
-    targetId = "brush";
-
-    changed = false;
-    showCircle = false;
-    appbarHeight = 0;
-
-    showSizeHandle = false;
-    constructor() {
-        makeAutoObservable(this);
-    }
-
-    setAction(val: Action) {
-        this.action = val;
-    }
-    setToolId(toolId: ToolId) {
-        this.toolId = toolId;
-    }
-    setBrushId(brushId: BrushId) {
-        this.brushId = brushId;
-        this.targetId = brushId;
-    }
-    setPointerdown(val: boolean) {
-        this.pointerdown = val;
-    }
-    setDrawing(val: boolean) {
-        this.drawing = val;
-    }
-    setCursorPosition(x, y) {
-        this.cursorX = x;
-        this.cursorY = y;
-    }
-    setBrushSize(size: number) {
-        this.brushSize[this.targetId] = size;
-        const worker = getLayerWorker();
-        worker.setStrokeSize(size);
-    }
-    setBrushAlpha(alpha: number) {
-        this.brushAlpha[this.targetId] = alpha;
-    }
-
-    setColor(r: number, g: number, b: number) {
-        this.color = { r, g, b };
-    }
-    setShowCircle(value) {
-        this.showCircle = value;
-    }
-
-    setShowSizeHandle(val) {
-        this.showSizeHandle = val;
-    }
-
-    getBrushSize() {
-        return this.brushSize[this.targetId];
-    }
-    getBrushAlpha() {
-        return this.brushAlpha[this.targetId];
-    }
-    getColor() {
-        return this.color;
-    }
-}
-
-export const paintState = new PaintState();
 
 async function main() {
     console.log("Start App!");
@@ -131,9 +52,9 @@ async function main() {
 
     console.log("Complete App!");
 
-    globalThis.position = position;
-    globalThis.paintState = paintState;
-    globalThis.selection = selection;
+    // globalThis.position = position;
+    // globalThis.paintState = paintState;
+    // globalThis.selection = selection;
     
     window.addEventListener("resize", async function () {
         debounce(async () => {

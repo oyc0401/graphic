@@ -1,5 +1,5 @@
 // tools/PanTool.ts
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { position, renderChangedPosition } from "../position";
 
 export class PanTool {

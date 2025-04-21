@@ -1,5 +1,5 @@
 /** clickEvent.ts */
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { toolManager } from "../draw";
 import { els } from "./elements";
 import { hexToRgb } from "../utils/color";

@@ -1,5 +1,5 @@
 /** view.ts */
-import { paintState } from "../main";
+import { paintState } from "../paintState";
 import { autorun } from "mobx";
 import { els } from "./elements";
 import { selection } from "../selection";
