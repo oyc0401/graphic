@@ -1,6 +1,6 @@
 import { paintState } from "../main";
 import { getLayerWorker } from "../core/worker/workerPool";
-import { to_canvas_coord } from "../position";
+import { position, to_canvas_coord } from "../position";
 
 export class BrushTool {
   private active = false;
@@ -40,7 +40,7 @@ export class BrushTool {
 
     const dx = point.x - this.start.x;
     const dy = point.y - this.start.y;
-   // if (Math.hypot(dx, dy) > brushSize / 25) {
+   //if (Math.hypot(dx, dy) > 4/ position.scale) {
       this.start = point;
       worker.strokeTo(point);
     //}

@@ -3,8 +3,9 @@ import { paintState } from "../main";
 import { toolManager } from "../draw";
 import { els } from "./elements";
 import { hexToRgb } from "../utils/color";
-import { openFile, resetImage } from "../file";
+import { downloadImage, openFile, resetImage } from "../file";
 import { getLayerWorker } from "../core/worker/workerPool";
+import { menuState } from "./menuState";
 
 function addClickEventListener() {
     els.selectBrushBtn.addEventListener("click", () => {
@@ -61,6 +62,25 @@ function addClickEventListener() {
         toolManager.setResizeTool();
     });
 
+    function handleClickOutside(e) {
+        if (
+            !els.mainMenu.contains(e.target) &&
+            !els.menuButton.contains(e.target)
+        ) {
+            menuState.setShowMenu(false);
+            document.removeEventListener("pointerdown", handleClickOutside);
+        }
+    }
+    els.menuButton.addEventListener("click", (e) => {
+        if (!menuState.showMenu) {
+            menuState.setShowMenu(true);
+            document.addEventListener("pointerdown", handleClickOutside);
+        } else {
+            menuState.setShowMenu(false);
+            document.removeEventListener("pointerdown", handleClickOutside);
+        }
+    });
+
     els.newButton.addEventListener("click", () => {
         const confirmed = window.confirm(
             "작업 중인 이미지가 초기화됩니다.\n계속하시겠습니까?",
@@ -73,7 +93,7 @@ function addClickEventListener() {
         openFile();
     });
     els.saveButton.addEventListener("click", () => {
-       getLayerWorker().downloadImage();
+        downloadImage();
     });
 }
 

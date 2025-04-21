@@ -6,6 +6,7 @@ import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
 import { rgbToHex } from "../utils/color";
+import { menuState } from "./menuState";
 
 export function bindView() {
     bindToolButtonUI();
@@ -16,6 +17,14 @@ export function bindView() {
     bindCursorPositionUI();
     bindTitleUI();
     bindZoomAreaUI();
+    bindMenuUI();
+}
+function bindMenuUI() {
+    autorun(() => {
+        const showMenu = menuState.showMenu;
+        els.mainMenu.style.visibility = showMenu ? "visible" : "hidden";
+    });
+
 }
 
 function bindToolButtonUI() {
@@ -277,7 +286,6 @@ function bindColorUI() {
         els.colorIcon.style.background = rgbToHex(color);
     });
 }
-
 
 function bindZoomAreaUI() {
     autorun(() => {

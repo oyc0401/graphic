@@ -2,10 +2,13 @@ import { paintState } from "../main";
 import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { zoomTool } from "../tools/ZoomTool";
+import { menuState } from "../ui/menuState";
 
 type Phase = "down" | "move" | "up" | "cancel";
 
 export function dispatch(e: PointerEvent, phase: Phase) {
+  
+
   // 1. 모드(action)가 PAN, ZOOM이면 우선 분기
   switch (paintState.action) {
     case "PAN":
@@ -30,7 +33,7 @@ function throttledMove(e: PointerEvent) {
 
   moveQueued = true;
   dispatch(e, "move");
-  
+
   requestAnimationFrame(() => {
     moveQueued = false;
   });

@@ -62,6 +62,8 @@ export let els = {
   titleArea: $id("title-area"),
   canvasTitle: $id("canvas-title"),
 
+  menuButton: $id("menu-button"),
+  mainMenu: $id("main-menu"),
   newButton: $id("new-button"),
   openButton: $id("open-button"),
   saveButton: $id("save-button"),

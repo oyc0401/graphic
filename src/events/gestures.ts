@@ -1,4 +1,3 @@
-/** position.ts */
 import { paintState } from "../main";
 import { cancel } from "../draw";
 import { dispatch } from "./pointerEvents";

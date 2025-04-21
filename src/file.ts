@@ -276,3 +276,8 @@ export async function downloadPixels(
 
   console.log("파일 다운로드 완료!!");
 }
+
+export function downloadImage() {
+  let worker = getLayerWorker();
+  worker.downloadImage();
+}
