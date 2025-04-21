@@ -4,6 +4,11 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
   plugins: [react(), wasm(), topLevelAwait(), svgr()],
   server: {
@@ -12,5 +17,13 @@ export default defineConfig({
       "474901b9-b1fa-4d22-8f03-6e9abf61ed38-00-3f3714blflx8h.sisko.replit.dev",
     ],
     hmr: false,
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        en: resolve(__dirname, "en/index.html"),
+      },
+    },
   },
 });
