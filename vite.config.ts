@@ -22,7 +22,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
-        en: resolve(__dirname, "en/index.html"),
+          nini: resolve(__dirname, "nini/index.html"),
       },
     },
   },
