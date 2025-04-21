@@ -2,13 +2,16 @@ import { defineConfig } from "vite";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 import react from "@vitejs/plugin-react";
-
+import svgr from "vite-plugin-svgr";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     wasm(),
     topLevelAwait(),
+    svgr({
+      //exportAsDefault: false, // 👈 이거 있어야 `ReactComponent as` 방식 작동
+    }),
     // viteStaticCopy({
     //   targets: [
     //     {

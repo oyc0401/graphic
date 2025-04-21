@@ -5,75 +5,13 @@ import { els } from "./elements";
 import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
-import { rgbToHex } from "../utils/color";
-import { menuState } from "./menuState";
 
 export function bindView() {
-    bindToolButtonUI();
-    bindSliderUI();
-    bindColorUI();
     bindCursorUI();
     bindSelectionUI();
     bindCursorPositionUI();
     bindTitleUI();
     bindZoomAreaUI();
-    bindMenuUI();
-}
-function bindMenuUI() {
-    autorun(() => {
-        const showMenu = menuState.showMenu;
-        els.mainMenu.style.visibility = showMenu ? "visible" : "hidden";
-    });
-
-}
-
-function bindToolButtonUI() {
-    autorun(() => {
-        const brushId = paintState.brushId;
-        const toolId = paintState.toolId;
-        els.selectBrushBtn.classList.toggle(
-            "selected",
-            toolId === "brush" && brushId === "brush",
-        );
-        els.selectEraserBtn.classList.toggle(
-            "selected",
-            toolId === "brush" && brushId === "eraser",
-        );
-        els.selectLiquifyBtn.classList.toggle(
-            "selected",
-            toolId === "brush" && brushId === "liquify",
-        );
-        els.selectSelectionBtn.classList.toggle(
-            "selected",
-            toolId === "select" || toolId === "selection",
-        );
-    });
-}
-function sizeToPosition(size: number): number {
-    const min = 1;
-    const max = 3000;
-    const logMin = Math.log(min);
-    const logMax = Math.log(max);
-    return ((Math.log(size) - logMin) / (logMax - logMin)) * 1000;
-}
-function bindSliderUI() {
-    autorun(() => {
-        const brushSize = paintState.getBrushSize();
-
-        let sizeText = brushSize.toFixed(1);
-        if (sizeText.endsWith(".0")) {
-            sizeText = sizeText.slice(0, -2);
-        }
-        els.sizeValue.innerText = `${sizeText}px`;
-        els.sizeSlider.value = `${sizeToPosition(brushSize)}`;
-    });
-
-    autorun(() => {
-        const brushAlpha = paintState.getBrushAlpha();
-
-        els.opacityValue.innerText = `${brushAlpha}%`;
-        els.opacitySlider.value = `${brushAlpha}`;
-    });
 }
 
 function bindCursorUI() {
@@ -277,13 +215,6 @@ function bindTitleUI() {
 
     requestAnimationFrame(() => {
         els.canvasTitle.innerText = "크기 조정";
-    });
-}
-
-function bindColorUI() {
-    autorun(() => {
-        const color = paintState.getColor();
-        els.colorIcon.style.background = rgbToHex(color);
     });
 }
 

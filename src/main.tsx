@@ -1,4 +1,8 @@
 /** main.ts */
+import React from "react";
+import { createRoot } from "react-dom/client";
+import AppBar from "./components/AppBar";
+
 import {
     getPixelRatio,
     position,
@@ -22,11 +26,17 @@ import { paintState } from "./paintState";
 
 window.onload = main;
 
+const root = document.getElementById("appbar-root");
+if (root) {
+    createRoot(root).render(<AppBar />);
+} else {
+    console.error("appbar-root not found!");
+}
+
 async function main() {
     console.log("Start App!");
 
     getElements();
-    setContainerWidth();
 
     // 초기 캔버스 위치 계산
     setDefaultPosition();
@@ -52,15 +62,18 @@ async function main() {
 
     console.log("Complete App!");
 
-    // globalThis.position = position;
-    // globalThis.paintState = paintState;
-    // globalThis.selection = selection;
-    
+    debugSetting();
+}
+
+function debugSetting() {
+    globalThis.position = position;
+    globalThis.paintState = paintState;
+    globalThis.selection = selection;
+
     window.addEventListener("resize", async function () {
         debounce(async () => {
             console.log("debounce");
             updateBouncingRect();
-            setContainerWidth();
             resizeScreen(); // worker에 있는 webgl에 드로우콜 날림
             render();
             setCanvasCSSSize();
@@ -83,22 +96,11 @@ async function main() {
         false,
     );
 }
-
 function setCanvasCSSSize() {
     let dpr = getPixelRatio();
     if (dpr != 1) {
         els.canvas.style.width = `${position.bouncingRect.width}px`;
         els.canvas.style.height = `${position.bouncingRect.height}px`;
-    }
-}
-
-function setContainerWidth() {
-    const hiddenAppbar = document.getElementById("header-space");
-    const appbar = document.getElementById("appbar");
-
-    if (hiddenAppbar && appbar) {
-        paintState.appbarHeight = appbar.offsetHeight;
-        hiddenAppbar.style.height = appbar.offsetHeight + "px";
     }
 }
 

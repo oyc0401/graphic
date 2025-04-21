@@ -15,9 +15,8 @@ export class PositionState {
   dpr = 3;
   bouncingRect = { x: 0, y: 0, width: 0, height: 0 };
 
-  appBarHeight = 133;
-  bottomNavHeight=0;
-  
+  bottomNavHeight = 0;
+
   setBouncingRect(rect) {
     this.bouncingRect = rect;
   }

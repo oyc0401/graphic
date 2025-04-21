@@ -8,8 +8,8 @@ class PaintState {
     action: Action = "BRUSH";
     toolId: ToolId = "brush";
     brushId: BrushId = "brush";
-    private brushSize = { brush: 5, eraser: 10, liquify: 50 };
-    private brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
+     brushSize = { brush: 5, eraser: 10, liquify: 50 };
+     brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
     color = { r: 30, g: 30, b: 30 };
     cursorX = 0;
     cursorY = 0;
@@ -21,9 +21,8 @@ class PaintState {
 
     changed = false;
     showCircle = false;
-    appbarHeight = 0;
-
     showSizeHandle = false;
+    
     constructor() {
         makeAutoObservable(this);
     }
@@ -77,6 +76,7 @@ class PaintState {
     getColor() {
         return this.color;
     }
+    
 }
 
 export const paintState = new PaintState();

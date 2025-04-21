@@ -33,7 +33,7 @@ export function getSelectionHandleAtPoint(
     x: (canvasX / dpr + position.x) * position.scale,
     y:
       (canvasY / dpr + position.y) * position.scale +
-      position.appBarHeight - // 상단 AppBar
+      position.bouncingRect.y - // 상단 AppBar
       position.bottomNavHeight, // 하단 NavBar
   });
 

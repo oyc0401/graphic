@@ -2,7 +2,6 @@ import { paintState } from "../paintState";
 import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { zoomTool } from "../tools/ZoomTool";
-import { menuState } from "../ui/menuState";
 
 type Phase = "down" | "move" | "up" | "cancel";
 
