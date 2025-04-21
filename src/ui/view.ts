@@ -147,13 +147,12 @@ function bindSelectionUI() {
         // 핸들 표시/숨김
         const handles = [
             els.handleLT,
-            els.handleT,
+
             els.handleRT,
-            els.handleR,
+
             els.handleRB,
-            els.handleB,
+
             els.handleLB,
-            els.handleL,
         ];
 
         for (const h of handles) {
@@ -167,29 +166,11 @@ function bindSelectionUI() {
             handle.style.top = `${top - offset}px`;
         };
 
-        // if ((selection.height * position.scale) / dpr < 100) {
-        //     for (const h of [els.handleL, els.handleR]) {
-        //         h.style.visibility = "hidden";
-        //     }
-
-        // if ((selection.width * position.scale) / dpr < 100) {
-        //     for (const h of [els.handleT, els.handleB]) {
-        //         h.style.visibility = "hidden";
-        //     }
-        // }
-        for (const h of [els.handleT, els.handleB, els.handleL, els.handleR]) {
-            h.style.visibility = "hidden";
-        }
-
         if (visible) {
             setPos(els.handleLT, sLeft, sTop);
-            setPos(els.handleT, sLeft + sWidth / 2, sTop);
             setPos(els.handleRT, sLeft + sWidth, sTop);
-            setPos(els.handleR, sLeft + sWidth, sTop + sHeight / 2);
             setPos(els.handleRB, sLeft + sWidth, sTop + sHeight);
-            setPos(els.handleB, sLeft + sWidth / 2, sTop + sHeight);
             setPos(els.handleLB, sLeft, sTop + sHeight);
-            setPos(els.handleL, sLeft, sTop + sHeight / 2);
         }
     });
 }

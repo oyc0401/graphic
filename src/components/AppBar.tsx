@@ -32,6 +32,79 @@ const hexColors = [
   "#E5B5FF",
 ];
 
+export default function AppBar() {
+  /** 색상 팔레트 콜백 */
+  const chooseColor = (hex) => {
+    const { r, g, b } = hexToRgb(hex);
+    paintState.setColor(r, g, b);
+  };
+
+  // --------------------------- JSX ---------------------------
+  return (
+    <div id="appbar">
+      {/* ===== 헤더 ===== */}
+      <div id="header">
+        <MainMenuToggleButton />
+
+        <div className="flex-1" />
+
+        <button id="undo-button" className="header-button">
+          <UndoIcon />
+        </button>
+        <button id="redo-button" className="header-button">
+          <RedoIcon />
+        </button>
+      </div>
+
+      {/* ===== 툴바 ===== */}
+      <div id="menu-bar">
+        <SelectionToolButton />
+
+        <div className="div-bar"></div>
+        <div className="mini-buttons">
+          <LiquifyToolButton />
+          <button className="select-mini"></button>
+        </div>
+        <div className="div-bar"></div>
+
+        <BrushToolButton />
+        <EraserToolButton />
+        <div className="div-bar"></div>
+        {/* ===== 슬라이더 ===== */}
+        <div className="brush-control-group">
+          <BrushSizeSlider />
+
+          <BrushAlphaSlider />
+        </div>
+
+        <div className="div-bar"></div>
+        {/* ===== 색상 팔레트 ===== */}
+        <div className="flex flex-row items-center">
+          <div id="color-box">
+            {hexColors.map((hex) => (
+              <div
+                key={hex}
+                className="select-color"
+                onClick={() => chooseColor(hex)}
+              >
+                <div
+                  className="circle-shape"
+                  style={{
+                    background: hex,
+                    border: hex === "#FFFFFF" ? "1px solid #E3E3E3" : undefined,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <ColorIndicatorButton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const MainMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -86,101 +159,6 @@ const MainMenuToggleButton = observer(() => {
     </>
   );
 });
-
-export default function AppBar() {
-  /** 선택 툴 버튼 콜백 */
-  const selectTool = (id) => {
-    switch (id) {
-      case "brush":
-        toolManager.setBrushTool();
-        break;
-      case "eraser":
-        toolManager.setEraserTool();
-        break;
-      case "liquify":
-        toolManager.setLiquifyTool();
-        break;
-      case "select":
-        toolManager.setSelectTool();
-        break;
-      default:
-        break;
-    }
-  };
-
-  /** 색상 팔레트 콜백 */
-  const chooseColor = (hex) => {
-    const { r, g, b } = hexToRgb(hex);
-    paintState.setColor(r, g, b);
-  };
-
-  // --------------------------- JSX ---------------------------
-  return (
-    <div id="appbar">
-      {/* ===== 헤더 ===== */}
-      <div id="header">
-        <MainMenuToggleButton  />
-
-        <div className="flex-1" />
-
-        <button id="undo-button" className="header-button">
-          <UndoIcon />
-        </button>
-        <button id="redo-button" className="header-button">
-          <RedoIcon />
-        </button>
-
-        {/* <MainMenu /> */}
-      </div>
-
-      {/* ===== 툴바 ===== */}
-      <div id="menu-bar">
-        <SelectionToolButton />
-
-        <div className="div-bar"></div>
-        <div className="mini-buttons">
-          <LiquifyToolButton />
-          <button className="select-mini"></button>
-        </div>
-        <div className="div-bar"></div>
-
-        <BrushToolButton />
-        <EraserToolButton />
-        <div className="div-bar"></div>
-        {/* ===== 슬라이더 ===== */}
-        <div className="brush-control-group">
-          <BrushSizeSlider />
-
-          <BrushAlphaSlider />
-        </div>
-
-        <div className="div-bar"></div>
-        {/* ===== 색상 팔레트 ===== */}
-        <div className="flex flex-row items-center">
-          <div id="color-box">
-            {hexColors.map((hex) => (
-              <div
-                key={hex}
-                className="select-color"
-                onClick={() => chooseColor(hex)}
-              >
-                <div
-                  className="circle-shape"
-                  style={{
-                    background: hex,
-                    border: hex === "#FFFFFF" ? "1px solid #E3E3E3" : undefined,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <ColorIndicatorButton />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const SelectionToolButton = observer(() => {
   const isSelected =
@@ -262,12 +240,12 @@ const BrushSizeSlider = observer(() => {
       <p className="value">{`${fixedNumber(paintState.getBrushSize())}px`}</p>
       <div className="slider-area">
         <input
-           id="size-slider"
+          id="size-slider"
           type="range"
           min="1"
           max="1000"
           onChange={(e) => {
-            paintState.setBrushSize(positionToSize(e.target.value / 1000));
+            paintState.setBrushSize(positionToSize(+e.target.value / 1000));
           }}
           value={sliderValue}
           className="slider"
@@ -284,7 +262,7 @@ const BrushAlphaSlider = observer(() => {
       <p className="value">{paintState.getBrushAlpha()}%</p>
       <div className="slider-area">
         <input
-           id="opacity-slider"
+          id="opacity-slider"
           type="range"
           min="1"
           max="100"

@@ -64,7 +64,6 @@ p {
   flex-shrink: 0;
 }
 
-
 /* UI */
 #container {
   flex: 1;
@@ -82,12 +81,6 @@ p {
   background-color: white;
   image-rendering: pixelated;
   border: none;
-}
-
-.layer {
-  position: relative;
-  height: 100%;
-  width: 100%;
 }
 
 canvas {

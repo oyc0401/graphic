@@ -24,13 +24,17 @@ import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
 
-window.onload = main;
 
 const root = document.getElementById("appbar-root");
 if (root) {
     createRoot(root).render(<AppBar />);
 } else {
     console.error("appbar-root not found!");
+}
+main();
+
+window.onload = ()=>{
+    console.log('load')
 }
 
 async function main() {

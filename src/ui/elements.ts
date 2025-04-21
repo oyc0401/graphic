@@ -16,13 +16,9 @@ export let els = {
 
   selectionArea: $id("selection-area"),
   handleLT: $id("handle-lt"),
-  handleT: $id("handle-t"),
   handleRT: $id("handle-rt"),
-  handleR: $id("handle-r"),
   handleRB: $id("handle-rb"),
-  handleB: $id("handle-b"),
   handleLB: $id("handle-lb"),
-  handleL: $id("handle-l"),
 
   selectionSizeBox: $id("selection-size"),
   selectionText: $id("selection-text"),

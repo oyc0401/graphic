@@ -73,8 +73,7 @@
   border-bottom: 1px #E2E2E2 solid;
 }
 
-#header-space {
-  width: 100%;
+#appbar-root{
   height: 133px;
 }
 
