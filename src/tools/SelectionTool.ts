@@ -11,7 +11,7 @@ import { clamp } from "../utils/math";
 import { pointers } from "../events/gestures";
 
 export class SelectionTool {
-  private activeHandle: HandleType = null;
+  private activeHandle: HandleType | null = null;
   private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0 };
   private startTime;
@@ -43,10 +43,10 @@ export class SelectionTool {
         y: point.y - selection.y,
       };
       selection.active = true;
-    }
-
-    if (handle === "OUTSIDE") {
+    } else if (handle === "OUTSIDE") {
       this.startTime = performance.now();
+    } else {
+      selection.active = true;
     }
   }
 
@@ -103,7 +103,7 @@ export class SelectionTool {
         selection.x,
         selection.y,
         selection.width,
-        selection.height,
+        selection.height
       );
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
@@ -170,15 +170,15 @@ export class SelectionTool {
         clamp(
           x,
           beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min,
-        ),
+          beforeSelectionPos.x + beforeSelectionPos.width - min
+        )
       );
       selection.setY(
         clamp(
           y,
           beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min,
-        ),
+          beforeSelectionPos.y + beforeSelectionPos.height - min
+        )
       );
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
@@ -187,7 +187,7 @@ export class SelectionTool {
         selection.x,
         selection.y,
         selection.width,
-        selection.height,
+        selection.height
       );
     }
   }
@@ -200,7 +200,7 @@ export class SelectionTool {
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
     }
-    if ( pointers.size == 0 && this.activeHandle == "OUTSIDE") {
+    if (pointers.size == 0 && this.activeHandle == "OUTSIDE") {
       let now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");

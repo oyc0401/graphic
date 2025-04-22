@@ -1,4 +1,5 @@
 /** elements.ts */
+import CursorSvg from "../assets/cursor.svg?raw";
 
 function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
@@ -31,5 +32,5 @@ export let els = {
 };
 
 export function getElements() {
-
+  $id("cursor-icon").innerHTML = CursorSvg;
 }

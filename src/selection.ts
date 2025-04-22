@@ -13,7 +13,7 @@ export class SelectionState {
   visible = false;
   showHint = false;
   showHandle = false;
-  active = false;
+  active = false; // 작동중인지 확인. 작동중이면 캔슬할 때 돌아감
   hover = "";
 
   constructor() {
@@ -85,7 +85,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   // 선택 영역 설정
   selection.setPosition(
     Math.ceil(Math.max(0, -position.x)),
-    Math.ceil(Math.max(0, -position.y)),
+    Math.ceil(Math.max(0, -position.y))
   );
   selection.setSize(newWidth, newHeight);
 
@@ -102,7 +102,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     selection.y,
     selection.width,
     selection.height,
-    Comlink.transfer(bitmap, [bitmap]),
+    Comlink.transfer(bitmap, [bitmap])
   );
 
   paintState.setToolId("selection");
@@ -164,24 +164,27 @@ export function selectionDelete() {
 
 // 선택창 캔슬
 export function selectionCancel() {
+  // 핀치줌으로 인한 캔슬이면 선택창 안 끄기
   if (paintState.pointerdown) {
     selection.active = false;
 
-    selection.setX(beforeSelectionPos.x);
-    selection.setY(beforeSelectionPos.y);
-    selection.setWidth(beforeSelectionPos.width);
-    selection.setHeight(beforeSelectionPos.height);
+    if (selection.active) {
+      selection.setX(beforeSelectionPos.x);
+      selection.setY(beforeSelectionPos.y);
+      selection.setWidth(beforeSelectionPos.width);
+      selection.setHeight(beforeSelectionPos.height);
 
-    const worker = getLayerWorker();
+      const worker = getLayerWorker();
 
-    worker.moveSelection(
-      selection.x,
-      selection.y,
-      selection.width,
-      selection.height,
-    );
+      worker.moveSelection(
+        selection.x,
+        selection.y,
+        selection.width,
+        selection.height
+      );
 
-    activeHandle = null;
+      activeHandle = null;
+    }
   } else {
     applySelection();
     paintState.setToolId("select");

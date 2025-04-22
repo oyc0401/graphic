@@ -49,6 +49,8 @@ export class ResizeTool {
 
     if (handle === "OUTSIDE" || this.activeHandle === "INSIDE") {
       this.startTime = performance.now();
+    } else {
+      selection.active = true;
     }
   }
 
@@ -162,15 +164,15 @@ export class ResizeTool {
         clamp(
           x,
           beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min,
-        ),
+          beforeSelectionPos.x + beforeSelectionPos.width - min
+        )
       );
       selection.setY(
         clamp(
           y,
           beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min,
-        ),
+          beforeSelectionPos.y + beforeSelectionPos.height - min
+        )
       );
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
