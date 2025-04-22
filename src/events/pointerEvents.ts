@@ -6,8 +6,6 @@ import { zoomTool } from "../tools/ZoomTool";
 type Phase = "down" | "move" | "up" | "cancel";
 
 export function dispatch(e: PointerEvent, phase: Phase) {
-  
-
   // 1. 모드(action)가 PAN, ZOOM이면 우선 분기
   switch (paintState.action) {
     case "PAN":

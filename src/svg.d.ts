@@ -4,3 +4,14 @@ declare module "*.svg?react" {
   const ReactComponent: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   export default ReactComponent;
 }
+
+declare module "*?worker" {
+  const workerConstructor: {
+    new (): Worker;
+  };
+  export default workerConstructor;
+}
+
+interface Window {
+  showOpenFilePicker?: any;
+}

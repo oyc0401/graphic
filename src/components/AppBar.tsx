@@ -40,7 +40,7 @@ export default function AppBar() {
       <div id="header">
         <MainMenuToggleButton />
 
-        <div className="flex-1" />
+        <div style={{ flex: 1 }} />
 
         <button id="undo-button" className="header-button">
           <UndoIcon />
@@ -91,15 +91,12 @@ export default function AppBar() {
               </div>
             ))}
           </div>
-
-          <ColorIndicatorButton />
         </div>
+        <ColorIndicatorButton />
       </div>
     </div>
   );
 }
-
-
 
 const SelectionToolButton = observer(() => {
   const isSelected =
@@ -232,4 +229,3 @@ function sizeToPosition(size: number): number {
   const logMax = Math.log(max);
   return ((Math.log(size) - logMin) / (logMax - logMin)) * 1000;
 }
-
