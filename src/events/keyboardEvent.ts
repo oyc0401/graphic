@@ -20,16 +20,16 @@ function addWheelListener() {
     window.addEventListener(
       "wheel",
       (event) => {
-        // console.log("wheel", event);
+        console.log("wheel", event);
 
         if (event.ctrlKey || event.metaKey) {
+
           event.preventDefault();
-          let new_mag;
-          if (event.deltaY > 0) {
-            new_mag = position.scale / 1.2;
-          } else {
-            new_mag = position.scale * 1.2;
-          }
+
+          const clampedDelta = clamp(event.deltaY, -12,12);
+          const percent = -clampedDelta * 0.01 + 1;
+          const new_mag = position.scale * percent;
+
           const clamped_scale = Math.min(
             MAX_SCALE,
             Math.max(MIN_SCALE, new_mag)
@@ -47,12 +47,13 @@ function addWheelListener() {
           let newSize = Math.round(clamp(percent, 1, 3000));
           paintState.setBrushSize(newSize);
         } else {
-          if (event.shiftKey) {
-            let delta = event.deltaY;
-            position.setX(position.x - delta / position.scale);
+
+          if (event.shiftKey && event.deltaX === 0) {
+            position.setX(position.x - event.deltaY / position.scale);
+            position.setY(position.y - event.deltaX / position.scale);
           } else {
-            let delta = event.deltaY;
-            position.setY(position.y - delta / position.scale);
+            position.setX(position.x - event.deltaX / position.scale);
+            position.setY(position.y - event.deltaY / position.scale);
           }
         }
 
