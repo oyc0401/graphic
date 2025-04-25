@@ -1,0 +1,30 @@
+#color-menu{
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    padding: 16px 16px 24px;
+}
+#color-title-box{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-bottom: 24px;
+}
+#color-title{
+    font-size: 16px;
+}
+#color-picker{
+    width: 200px;
+    height: 200px;
+    background: #FAFAFA;
+}
+#color-slider{
+    height: 4px;
+    padding: 10px 0;
+}
+#color-input{
+    height: 24px;
+    background: #FAFAFA;
+
+}
