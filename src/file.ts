@@ -32,7 +32,7 @@ export function addClipboardEvent() {
     if (!dt || !dt.files.length) return;
 
     // 여러 파일을 드롭할 수도 있으므로 루프
-    for (const file of dt.files) {
+    for (const file of Array.from(dt.files)) {
       // 이미지 파일인지 확인
       if (file.type.startsWith("image/")) {
         try {
@@ -73,7 +73,7 @@ export function addClipboardEvent() {
     const items = event.clipboardData?.items;
     if (!items) return;
 
-    for (const item of items) {
+    for (const item of Array.from(items)) {
       console.log(item);
 
       // // 클립보드의 데이터 타입이 text/html일 때

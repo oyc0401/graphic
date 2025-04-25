@@ -28,7 +28,7 @@ export function addGestureEvent() {
     if (pointers.size < 2) throw new Error("포인터가 2개 미만"); // 포인터가 2개 미만이면 평균 계산 불가
 
     // 1. pointerId를 오름차순 정렬하여 가장 낮은 두 개 선택
-    const sortedPointers = [...pointers.values()].sort(
+    const sortedPointers = Array.from(pointers.values()).sort(
       (a, b) => a.index - b.index,
     );
     const firstPoint = sortedPointers[0];

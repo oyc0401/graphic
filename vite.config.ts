@@ -4,8 +4,8 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
