@@ -1,19 +1,20 @@
-import React, {useLayoutEffect} from "react";
-import {paintState} from "../paintState";
-import {menuState} from "../ui/menuState";
-import {hexToRgb, rgbToHex} from "../utils/color";
-import {downloadImage, openFile, resetImage} from "../file";
-import {observer} from "mobx-react-lite";
+import React, { useLayoutEffect } from "react";
+import { paintState } from "../paintState";
+import { menuState } from "../ui/menuState";
+import { hexToRgb, rgbToHex } from "../utils/color";
+import { downloadImage, openFile, resetImage } from "../file";
+import { observer } from "mobx-react-lite";
 // AppBar.jsx 상단
 import MenuIcon from "../assets/menu.svg?react";
 
 import NewIcon from "../assets/new.svg?react";
 import OpenIcon from "../assets/open.svg?react";
 import SaveIcon from "../assets/save.svg?react";
-import {useRef, useEffect} from "react";
-import './color-box.css';
-import {makeAutoObservable} from "mobx";
-import {useClickOutside, useDropdownPosition} from "./menu-hooks";
+import { useRef, useEffect } from "react";
+import "./color-box.css";
+import { makeAutoObservable } from "mobx";
+import { useClickOutside, useDropdownPosition } from "./menu-hooks";
+import { colorState, HsvToCss, rgbToCss } from "../colorState";
 
 export const MainMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -39,19 +40,19 @@ export const MainMenuToggleButton = observer(() => {
         onClick={toggleMenu}
         ref={buttonRef}
       >
-        <MenuIcon/>
+        <MenuIcon />
       </button>
 
       {menuState.showMenu && (
         <div id="main-menu" ref={menuRef}>
           <button id="new-button" onClick={resetImage}>
-            <NewIcon/> <p>새로 만들기</p>
+            <NewIcon /> <p>새로 만들기</p>
           </button>
           <button id="open-button" onClick={openFile}>
-            <OpenIcon/> <p>열기</p>
+            <OpenIcon /> <p>열기</p>
           </button>
           <button id="save-button" onClick={downloadImage}>
-            <SaveIcon/>
+            <SaveIcon />
             <p>저장</p>
           </button>
         </div>
@@ -61,10 +62,9 @@ export const MainMenuToggleButton = observer(() => {
 });
 
 export const ColorIndicatorButton = observer(() => {
-  const colorHex = rgbToHex(paintState.getColor());
+  const colorHex = rgbToHex(colorState.getRGB());
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
 
   // 바깥 클릭 시 메뉴 닫기
   useClickOutside([menuRef, buttonRef], () => {
@@ -85,7 +85,6 @@ export const ColorIndicatorButton = observer(() => {
     menuState.showColorMenu = true;
   }, []);
 
-
   return (
     <>
       <button
@@ -97,57 +96,41 @@ export const ColorIndicatorButton = observer(() => {
         <div
           id="color-icon"
           className="button-icon"
-          style={{background: colorHex}}
+          style={{ background: colorHex }}
         />
         <p>색</p>
       </button>
-
-      {menuState.showColorMenu && (
+      {/* menuState.showColorMenu && */}
+      {
         <div id="color-menu" ref={menuRef}>
-          <div id={'color-title-box'}>
-            <p id={'color-title'}>색 선택</p>
+          <div id={"color-title-box"}>
+            <p id={"color-title"}>색 선택</p>
           </div>
 
+          <div id={"color-picker"}></div>
 
-          <div id={'color-picker'}></div>
-          <div id={'color-slider'}></div>
-          <div id={'color-input'}>
+          <input
+            id="color-slider"
+            type="range"
+            min="0"
+            max="360"
+            className="slider"
+            value={colorState.getH()}
+            style={{
+              "--thumb-color": `${HsvToCss(colorState.getH(), 1, 1)}`,
+            }}
+            onChange={(e) => {
+              colorState.setH(+e.target.value);
+              
+            }}
+          />
+
+          <div id={"color-input-area"}>
             <p>Hex</p>
-            <input></input>
+            <input id="color-input" type="text"></input>
           </div>
-
         </div>
-      )}
+      }
     </>
   );
 });
-
-class ColorState {
-  r = 255;
-  g = 0;
-  b = 0;
-
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  setRGB(r: number, g: number, b: number) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
-  }
-
-  setHex(hex: string) {
-    if (/^#?[0-9A-Fa-f]{6}$/.test(hex)) {
-      const cleaned = hex.replace("#", "");
-      this.r = parseInt(cleaned.substring(0, 2), 16);
-      this.g = parseInt(cleaned.substring(2, 4), 16);
-      this.b = parseInt(cleaned.substring(4, 6), 16);
-    }
-  }
-}
-
-
-const colorState = new ColorState();
-
-

@@ -8,9 +8,9 @@ class PaintState {
     action: Action = "BRUSH";
     toolId: ToolId = "brush";
     brushId: BrushId = "brush";
-     brushSize = { brush: 5, eraser: 10, liquify: 50 };
-     brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
-    color = { r: 30, g: 30, b: 30 };
+    brushSize = { brush: 5, eraser: 10, liquify: 50 };
+    brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
+    
     cursorX = 0;
     cursorY = 0;
 
@@ -22,7 +22,7 @@ class PaintState {
     changed = false;
     showCircle = false;
     showSizeHandle = false;
-    
+
     constructor() {
         makeAutoObservable(this);
     }
@@ -55,10 +55,6 @@ class PaintState {
     setBrushAlpha(alpha: number) {
         this.brushAlpha[this.targetId] = alpha;
     }
-
-    setColor(r: number, g: number, b: number) {
-        this.color = { r, g, b };
-    }
     setShowCircle(value) {
         this.showCircle = value;
     }
@@ -73,10 +69,6 @@ class PaintState {
     getBrushAlpha() {
         return this.brushAlpha[this.targetId];
     }
-    getColor() {
-        return this.color;
-    }
-    
 }
 
 export const paintState = new PaintState();

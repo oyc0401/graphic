@@ -1,30 +1,78 @@
-#color-menu{
+#color-menu {
     display: flex;
     flex-direction: column;
     align-items: start;
     justify-content: start;
     padding: 16px 16px 24px;
 }
-#color-title-box{
+
+#color-title-box {
     display: flex;
     flex-direction: row;
     align-items: center;
     padding-bottom: 24px;
 }
-#color-title{
+
+#color-title {
     font-size: 16px;
 }
-#color-picker{
+
+#color-picker {
     width: 200px;
     height: 200px;
     background: #FAFAFA;
 }
-#color-slider{
-    height: 4px;
-    padding: 10px 0;
-}
-#color-input{
+
+#color-input {
     height: 24px;
     background: #FAFAFA;
 
+}
+
+#color-slider {
+    -webkit-appearance: none;
+    height: 6px;
+    background: transparent;
+    /* 트랙 배경색 */
+    border-radius: 3px;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    padding: 10px 0;
+}
+#color-slider::-webkit-slider-runnable-track {
+    border-radius: 100px;
+    height: 6px;
+    background: linear-gradient(
+        to right,
+        rgb(255, 0, 0) 0%,
+        rgb(255, 255, 0) 16.667%,
+        rgb(0, 255, 0) 33.333%,
+        rgb(0, 255, 255) 50%,
+        rgb(0, 0, 255) 66.667%,
+        rgb(255, 0, 255) 83.333%,
+        rgb(255, 0, 0) 100%
+    );
+}
+/* 슬라이더의 썸 (버튼) */
+#color-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -5px;
+     background: var(--thumb-color);
+    /* 썸 정렬 */
+}
+
+#color-input-area {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+#color-input {
+    flex: 1;
 }

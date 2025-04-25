@@ -1,6 +1,7 @@
 import { paintState } from "../paintState";
 import { getLayerWorker } from "../core/worker/workerPool";
 import { position, to_canvas_coord } from "../position";
+import { colorState } from "../colorState";
 
 export class BrushTool {
   private active = false;
@@ -15,11 +16,8 @@ export class BrushTool {
 
     worker.setStrokeSize(paintState.getBrushSize());
     worker.setAlpha(paintState.getBrushAlpha());
-    worker.setStrokeColor(
-      paintState.color.r,
-      paintState.color.g,
-      paintState.color.b,
-    );
+    let { r, g, b } = colorState.getRGB();
+    worker.setStrokeColor(r, g, b);
 
     worker.start(point);
 
@@ -40,9 +38,9 @@ export class BrushTool {
 
     const dx = point.x - this.start.x;
     const dy = point.y - this.start.y;
-   //if (Math.hypot(dx, dy) > 4/ position.scale) {
-      this.start = point;
-      worker.strokeTo(point);
+    //if (Math.hypot(dx, dy) > 4/ position.scale) {
+    this.start = point;
+    worker.strokeTo(point);
     //}
 
     paintState.setDrawing(true);

@@ -14,6 +14,7 @@ import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
 
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
+import { colorState } from "../colorState";
 
 const hexColors = [
   "#000000",
@@ -30,7 +31,7 @@ export default function AppBar() {
   /** 색상 팔레트 콜백 */
   const chooseColor = (hex) => {
     const { r, g, b } = hexToRgb(hex);
-    paintState.setColor(r, g, b);
+    colorState.setColorFromRGB(r, g, b);
   };
 
   // --------------------------- JSX ---------------------------
