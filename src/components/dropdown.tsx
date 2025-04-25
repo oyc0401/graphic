@@ -121,13 +121,19 @@ export const ColorIndicatorButton = observer(() => {
             }}
             onChange={(e) => {
               colorState.setH(+e.target.value);
-              
             }}
           />
 
           <div id={"color-input-area"}>
             <p>Hex</p>
-            <input id="color-input" type="text"></input>
+            <input
+              id="color-input"
+              type="text"
+              value={`${colorState.getHex()}`}
+              onChange={(e) => {
+                colorState.setColorFromHex(e.target.value);
+              }}
+            ></input>
           </div>
         </div>
       }

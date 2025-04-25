@@ -11,8 +11,8 @@ class ColorState {
 
   getRGB() {
     const rgb = hsvToRgb(this.h, this.s, this.v);
-    console.log(rgb)
-    return rgb
+    console.log(rgb);
+    return rgb;
   }
   setColorFromRGB(r: number, g: number, b: number) {
     let { h, s, v } = rgbToHsv(r, g, b);
@@ -25,6 +25,22 @@ class ColorState {
   }
   getH() {
     return this.h;
+  }
+
+  getHex() {
+    const { r, g, b } = hsvToRgb(this.h, this.s, this.v);
+    return rgbToHex(r, g, b);
+  }
+  setColorFromHex(hexStr) {
+    let rgb = hexToRGB(hexStr);
+    if (!rgb) {
+      return;
+    }
+    let { r, g, b } = rgb;
+    let { h, s, v } = rgbToHsv(r, g, b);
+    this.h = h;
+    this.s = s;
+    this.v = v;
   }
 }
 
@@ -119,4 +135,31 @@ export function rgbToCss(r, g, b) {
 export function HsvToCss(h: number, s: number, v: number): string {
   const { r, g, b } = hsvToRgb(h, s, v);
   return `rgb(${r}, ${g}, ${b})`;
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (n: number) => {
+    const hex = n.toString(16).toUpperCase();
+    return hex.length === 1 ? "0" + hex : hex;
+  };
+
+  return toHex(r) + toHex(g) + toHex(b);
+}
+
+function hexToRGB(hex: string): { r: number; g: number; b: number } | null {
+  // 1. 전처리: #이 앞에 붙어있으면 제거
+  if (hex.startsWith("#")) {
+    hex = hex.slice(1);
+  }
+
+  // 2. 형식 검증: 정확히 6자리 16진수인지 확인
+  if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+    return null;
+  }
+
+  // 3. 파싱
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+
+  return { r, g, b };
 }
