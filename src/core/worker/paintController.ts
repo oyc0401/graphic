@@ -99,6 +99,9 @@ export const workerApi = {
   downloadImage() {
     paint.downloadImage();
   },
+  undo(){
+     paint.undo();
+  }
 };
 
 interface Pointer {

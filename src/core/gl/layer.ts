@@ -98,6 +98,13 @@ function makeLayerManager(canvas, gl) {
     //console.log("현재 bindCurrentLayer:", paintOptions.layerId);
   }
 
+  function getLayerTex(layerId) {
+    if (layerId == 1) {
+      return layerTex2;
+    }
+    return layerTex;
+  }
+
   function addLayer(newLayerId) {
     let newLayerTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
@@ -126,5 +133,6 @@ function makeLayerManager(canvas, gl) {
     setLayerId,
     layerArray,
     bindCurrentLayer,
+    getLayerTex,
   };
 }

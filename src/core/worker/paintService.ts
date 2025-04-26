@@ -11,6 +11,7 @@ import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
+import { getHistoryManager } from "../gl/tool/history";
 interface Pointer {
   x: number;
   y: number;
@@ -206,5 +207,9 @@ export class PaintService {
       },
       [pixels.buffer],
     );
+  }
+  undo(){
+    let historyManager = getHistoryManager(this.canvas,this.gl);
+    historyManager.undo();
   }
 }

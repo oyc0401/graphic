@@ -1,5 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager, installBrushManager } from "./brushTool";
+import { getHistoryManager } from "./history";
 
 interface Pointer {
   x: number;
@@ -23,29 +24,33 @@ export async function installTools(canvas, gl) {
 
 export class BrushTool implements Tool {
   drawManager;
+  historyManager;
+  
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
+    this.historyManager = getHistoryManager(canvas, gl);
   }
   enter() {
-    console.log('brush enter')
+    console.log("brush enter");
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
-     this.drawManager.start(pointer);
+    this.drawManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
     this.drawManager.stroke(p1, p2);
     this.drawManager.brush();
   }
   end() {
-     console.log('brush end')
+    console.log("brush end");
     this.drawManager.end();
+    this.historyManager.addUndo();
   }
   cancel() {
     this.drawManager.cancel();
   }
   exit() {
-    console.log('brush exit')
+    console.log("brush exit");
   }
 }
 
@@ -79,11 +84,11 @@ export class LiquifyTool implements Tool {
     this.liquifyManager = getLiquifyManager(canvas, gl);
   }
   enter() {
-     console.log('liquify enter')
+    console.log("liquify enter");
     this.liquifyManager.enter();
   }
   start(pointer: Pointer) {
-    console.log('liquify start')
+    console.log("liquify start");
     this.liquifyManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
@@ -91,14 +96,14 @@ export class LiquifyTool implements Tool {
     this.liquifyManager.render();
   }
   end() {
-    console.log('liquify end')
+    console.log("liquify end");
     this.liquifyManager.end();
   }
   cancel() {
     this.liquifyManager.cancel();
   }
   exit() {
-    console.log('liquify exit')
+    console.log("liquify exit");
     this.liquifyManager.exit();
   }
 }

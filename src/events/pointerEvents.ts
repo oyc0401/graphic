@@ -26,6 +26,7 @@ let moveQueued = false;
 //let lastMoveEvent: PointerEvent | null = null;
 
 function throttledMove(e: PointerEvent) {
+ // console.log('move')
   if (moveQueued) return;
 
   moveQueued = true;

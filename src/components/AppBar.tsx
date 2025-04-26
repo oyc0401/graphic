@@ -93,13 +93,13 @@ export default function AppBar() {
           </div>
         </div>
         <ColorIndicatorButton />
-        {/* <button
+        <button
           onClick={() => {
             toolManager.setResizeTool();
           }}
         >
           화면 크기 조절
-        </button> */}
+        </button>
       </div>
     </div>
   );

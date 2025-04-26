@@ -11,6 +11,7 @@ import {
   to_screen_coord,
 } from "../position";
 import { clamp } from "../utils/math";
+import { getLayerWorker } from "../core/worker/workerPool";
 
 function addWheelListener() {
   /**
@@ -135,6 +136,12 @@ export function addKeyboardEvent() {
         applySelection();
 
         canvasSelect(0, 0, position.width, position.height);
+      }
+      if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") {
+        event.preventDefault();
+        console.log('undo!')
+        let worker = getLayerWorker();
+        worker.undo();
       }
       if (event.code === "KeyB") {
         toolManager.setBrushTool();

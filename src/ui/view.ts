@@ -8,10 +8,10 @@ import { zoomRect } from "./zoomState";
 
 export function bindView() {
   bindCursorUI();
-  bindSelectionUI();
-  bindCursorPositionUI();
-  bindTitleUI();
-  bindZoomAreaUI();
+ // bindSelectionUI();
+ // bindCursorPositionUI();
+ // bindTitleUI();
+ //bindZoomAreaUI();
 }
 
 function bindCursorUI() {
@@ -61,46 +61,46 @@ function bindCursorUI() {
     );
   });
 
-    autorun(() => {
-      const cursor = els.brushCursor;
+    // autorun(() => {
+    //   const cursor = els.brushCursor;
 
-      const isBrush = paintState.action === "BRUSH";
+    //   const isBrush = paintState.action === "BRUSH";
 
-      const isDrawingTool = paintState.toolId == "brush";
-      const isValid = isBrush && isDrawingTool;
+    //   const isDrawingTool = paintState.toolId == "brush";
+    //   const isValid = isBrush && isDrawingTool;
 
-      const isDesktop = !("ontouchstart" in window);
+    //   const isDesktop = !("ontouchstart" in window);
 
-      const brushSize = paintState.getBrushSize();
-      const dpr = getPixelRatio();
+    //   const brushSize = paintState.getBrushSize();
+    //   const dpr = getPixelRatio();
 
-      const scaled = (brushSize * position.scale) / dpr;
-      const isBigSize = scaled > 50;
-      const showCircle = paintState.showCircle;
+    //   const scaled = (brushSize * position.scale) / dpr;
+    //   const isBigSize = scaled > 50;
+    //   const showCircle = paintState.showCircle;
 
-      // ───────────── container 클래스
-      container.classList.toggle(
-        "largeBrush",
-        isValid && !showCircle && isBigSize
-      );
-      container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
-      container.classList.toggle("noCursor", isValid && showCircle);
+    //   // ───────────── container 클래스
+    //   container.classList.toggle(
+    //     "largeBrush",
+    //     isValid && !showCircle && isBigSize
+    //   );
+    //   container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
+    //   container.classList.toggle("noCursor", isValid && showCircle);
 
-      // ───────────── 브러시 커서 스타일
-      if (isValid && (isBigSize || showCircle)) {
-        if (isDesktop || paintState.drawing) {
-          cursor.style.visibility = "visible";
-        } else {
-          cursor.style.visibility = "hidden";
-        }
-        cursor.style.left = `${paintState.cursorX - scaled / 2 - 1}px`;
-        cursor.style.top = `${paintState.cursorY - scaled / 2 - 1}px`;
-        cursor.style.width = `${scaled}px`;
-        cursor.style.height = `${scaled}px`;
-      } else {
-        cursor.style.visibility = "hidden";
-      }
-    });
+    //   // ───────────── 브러시 커서 스타일
+    //   if (isValid && (isBigSize || showCircle)) {
+    //     if (isDesktop || paintState.drawing) {
+    //       cursor.style.visibility = "visible";
+    //     } else {
+    //       cursor.style.visibility = "hidden";
+    //     }
+    //     cursor.style.left = `${paintState.cursorX - scaled / 2 - 1}px`;
+    //     cursor.style.top = `${paintState.cursorY - scaled / 2 - 1}px`;
+    //     cursor.style.width = `${scaled}px`;
+    //     cursor.style.height = `${scaled}px`;
+    //   } else {
+    //     cursor.style.visibility = "hidden";
+    //   }
+    // });
 }
 
 function bindSelectionUI() {
