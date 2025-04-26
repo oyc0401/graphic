@@ -82,7 +82,7 @@ export const ColorIndicatorButton = observer(() => {
   };
 
   useEffect(() => {
-    menuState.showColorMenu = true;
+    // menuState.showColorMenu = true;
   }, []);
 
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -153,89 +153,103 @@ export const ColorIndicatorButton = observer(() => {
         />
         <p>색</p>
       </button>
-      {/* menuState.showColorMenu && */}
-      {
-        <div id="color-menu" ref={menuRef}>
-          <div id={"color-title-box"}>
-            <p id={"color-title"}>색 선택</p>
-          </div>
 
-          <div
-            id={"color-field"}
-            ref={fieldRef}
-            style={{ "--field-end-color": HsvToCss(colorState.getH(), 1, 1) }}
-          >
-            <div
-              id="color-picker"
-              ref={pickerRef}
-              style={{
-                left: colorState.getS() * 200 - 10,
-                bottom: colorState.getV() * 200 - 10,
-                background: colorHex,
-              }}
-            ></div>
-          </div>
-
-          <input
-            id="color-h-slider"
-            type="range"
-            min="0"
-            max="360"
-            className="color-slider"
-            value={colorState.getH()}
-            style={{
-              "--thumb-h-color": HsvToCss(colorState.getH(), 1, 1),
-            }}
-            onChange={(e) => {
-              colorState.setH(+e.target.value);
-            }}
-          />
-          <input
-            id="color-s-slider"
-            type="range"
-            min="0"
-            max="100"
-            className="color-slider"
-            value={colorState.getS() * 100}
-            style={{
-              "--thumb-s-color": `${HsvToCss(colorState.getH(), colorState.getS(), 0.5 + 0.5 * colorState.getS())}`,
-              "--thumb-s-start-color": `${HsvToCss(colorState.getH(), 0, 0.5)}`,
-              "--thumb-s-end-color": `${HsvToCss(colorState.getH(), 1, 1)}`,
-            }}
-            onChange={(e) => {
-              colorState.setS(+e.target.value / 100);
-            }}
-          />
-          <input
-            id="color-v-slider"
-            type="range"
-            min="0"
-            max="100"
-            className="color-slider"
-            value={colorState.getV() * 100}
-            style={{
-              "--thumb-v-color": `${HsvToCss(1, 0, colorState.getV())}`,
-            }}
-            onChange={(e) => {
-              colorState.setV(+e.target.value / 100);
-            }}
-          />
-
-          <div id={"color-input-area"}>
-            <p id="color-type">Hex</p>
-            <div className="div-bar" style={{ height: "20px" }}></div>
-            <input
-              id="color-input"
-              type="text"
-              value={colorState.getInputText()}
-              onChange={(e) => {
-                colorState.setInputText(e.target.value);
-                colorState.setColorFromHex(e.target.value);
-              }}
-            ></input>
-          </div>
+      <div
+        id="color-menu"
+        style={{ visibility: menuState.showColorMenu ? "visible" : "hidden" }}
+        ref={menuRef}
+      >
+        <div id={"color-title-box"}>
+          <p id={"color-title"}>색 선택</p>
         </div>
-      }
+
+        <div
+          id={"color-field"}
+          ref={fieldRef}
+          style={{ "--field-end-color": HsvToCss(colorState.getH(), 1, 1) }}
+        >
+          <div
+            id="color-picker"
+            ref={pickerRef}
+            style={{
+              left: colorState.getS() * 200 - 10,
+              bottom: colorState.getV() * 200 - 10,
+              background: colorHex,
+            }}
+          ></div>
+        </div>
+
+        <input
+          id="color-h-slider"
+          type="range"
+          min="0"
+          max="360"
+          className="color-slider"
+          value={colorState.getH()}
+          style={{
+            "--thumb-h-color": HsvToCss(colorState.getH(), 1, 1),
+          }}
+          onChange={(e) => {
+            colorState.setH(+e.target.value);
+          }}
+        />
+        <input
+          id="color-s-slider"
+          type="range"
+          min="0"
+          max="100"
+          className="color-slider"
+          value={colorState.getS() * 100}
+          style={{
+            "--thumb-s-color": `${HsvToCss(colorState.getH(), colorState.getS(), 0.5 + 0.5 * colorState.getS())}`,
+            "--thumb-s-start-color": `${HsvToCss(colorState.getH(), 0, 0.5)}`,
+            "--thumb-s-end-color": `${HsvToCss(colorState.getH(), 1, 1)}`,
+          }}
+          onChange={(e) => {
+            colorState.setS(+e.target.value / 100);
+          }}
+        />
+        <input
+          id="color-v-slider"
+          type="range"
+          min="0"
+          max="100"
+          className="color-slider"
+          value={colorState.getV() * 100}
+          style={{
+            "--thumb-v-color": `${HsvToCss(1, 0, colorState.getV())}`,
+          }}
+          onChange={(e) => {
+            colorState.setV(+e.target.value / 100);
+          }}
+        />
+
+        <div id={"color-input-area"}>
+          <p id="color-type">Hex</p>
+          <div className="div-bar" style={{ height: "20px" }}></div>
+          <input
+            id="color-input"
+            type="text"
+            value={colorState.getInputText()}
+            onChange={(e) => {
+              colorState.setInputText(e.target.value);
+              colorState.setColorFromHex(e.target.value);
+            }}
+            onBlur={() => {
+              console.log("input blur (나감)");
+              let hexStr = colorState.autoComplete();
+              colorState.setInputText(hexStr);
+              colorState.setColorFromHex(hexStr);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                console.log("input enter");
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          ></input>
+        </div>
+      </div>
     </>
   );
 });

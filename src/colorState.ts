@@ -14,7 +14,6 @@ class ColorState {
 
   getRGB() {
     const rgb = hsvToRgb(this.h, this.s, this.v);
-    console.log(rgb);
     return rgb;
   }
   setColorFromRGB(r: number, g: number, b: number) {
@@ -68,6 +67,45 @@ class ColorState {
   }
   getInputText() {
     return this.inputText;
+  }
+  autoComplete(): string {
+    // 1. 앞뒤 공백 제거, 맨 앞 # 제거, 공백 내부 제거
+    let s = this.inputText.trim().replace(/^#/, "").replace(/\s+/g, "");
+    // 2. 대문자로 변환하고, 0-9/A-F 외 문자 제거
+    s = s.toUpperCase().replace(/[^0-9A-F]/g, "");
+
+    // 3. 길이에 따라 처리
+    if (s.length >= 6) {
+      // 6자리 이상 → 앞 6자리만
+      return s.slice(0, 6);
+    }
+    if (s.length === 0) {
+      const { r, g, b } = hsvToRgb(this.h, this.s, this.v);
+      return rgbToHex(r, g, b);
+    }
+    if (s.length === 1) {
+      // 1자리 → 6번 반복
+      return s.repeat(6);
+    }
+    if (s.length === 2) {
+      // 2자리 → 3번 반복
+      return s.repeat(3);
+    }
+    // 길이 3,4,5 → 앞 3글자 가져와서 each char를 2번씩 반복
+    const triplet = s.slice(0, 3);
+    let hexStr = triplet
+      .split("")
+      .map((c) => c + c)
+      .join("");
+
+    let rgb = hexToRGB(hexStr);
+    if (!rgb) {
+      console.warn("hex validation 실패");
+      const { r, g, b } = hsvToRgb(this.h, this.s, this.v);
+      return rgbToHex(r, g, b);
+    }
+
+    return hexStr;
   }
 }
 

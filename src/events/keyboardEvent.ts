@@ -90,7 +90,7 @@ export function addKeyboardEvent() {
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement;
-      console.log(target);
+      // console.log(target);
       if (isInput) return; // 인풋창이면 기본 이벤트 허용
 
       if (
