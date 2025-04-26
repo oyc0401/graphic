@@ -1,12 +1,15 @@
 import { makeAutoObservable } from "mobx";
 
 class ColorState {
-  h = 0;
+  h = 150;
   s = 0;
   v = 0;
 
+  inputText = "";
+
   constructor() {
     makeAutoObservable(this);
+    this.onChangeColor();
   }
 
   getRGB() {
@@ -19,17 +22,7 @@ class ColorState {
     this.h = h;
     this.s = s;
     this.v = v;
-  }
-  setH(h) {
-    this.h = h;
-  }
-  getH() {
-    return this.h;
-  }
-
-  getHex() {
-    const { r, g, b } = hsvToRgb(this.h, this.s, this.v);
-    return rgbToHex(r, g, b);
+    this.onChangeColor();
   }
   setColorFromHex(hexStr) {
     let rgb = hexToRGB(hexStr);
@@ -41,6 +34,40 @@ class ColorState {
     this.h = h;
     this.s = s;
     this.v = v;
+    this.onChangeColor();
+  }
+  onChangeColor() {
+    const { r, g, b } = hsvToRgb(this.h, this.s, this.v);
+    this.inputText = rgbToHex(r, g, b);
+  }
+
+  setH(h) {
+    this.h = h;
+    this.onChangeColor();
+  }
+  getH() {
+    return this.h;
+  }
+  setS(s) {
+    this.s = s;
+    this.onChangeColor();
+  }
+  getS() {
+    return this.s;
+  }
+  setV(v) {
+    this.v = v;
+    this.onChangeColor();
+  }
+  getV() {
+    return this.v;
+  }
+
+  setInputText(text) {
+    this.inputText = text;
+  }
+  getInputText() {
+    return this.inputText;
   }
 }
 

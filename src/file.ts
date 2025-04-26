@@ -59,6 +59,13 @@ export function addClipboardEvent() {
 
   // 붙여넣기
   window.addEventListener("paste", async (event: ClipboardEvent) => {
+    const target = event.target;
+    const isInput =
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement;
+    console.log(target);
+    if (isInput) return; // 인풋창이면 기본 이벤트 허용
     //  const clipboardItems = await navigator.clipboard.read();
     // console.log("clipboardItems", clipboardItems);
     // for (const item of clipboardItems) {
@@ -123,6 +130,13 @@ export function addClipboardEvent() {
 
   // 복사
   window.addEventListener("copy", (event: ClipboardEvent) => {
+    const target = event.target;
+    const isInput =
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement;
+    console.log(target);
+    if (isInput) return; // 인풋창이면 기본 이벤트 허용
     event.preventDefault();
     if (selection.visible) {
       let worker = getLayerWorker();
@@ -132,6 +146,13 @@ export function addClipboardEvent() {
 
   // 잘라내기 = 복사와 동일, 나중에 cut 전용 로직 넣어도 됨
   window.addEventListener("cut", (event: ClipboardEvent) => {
+    const target = event.target;
+    const isInput =
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement;
+    console.log(target);
+    if (isInput) return; // 인풋창이면 기본 이벤트 허용
     event.preventDefault();
     if (selection.visible) {
       let worker = getLayerWorker();

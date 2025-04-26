@@ -17,62 +17,118 @@
     font-size: 16px;
 }
 
-#color-picker {
+#color-field {
+    position: relative;
     width: 200px;
     height: 200px;
-    background: #FAFAFA;
+    background:
+        linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgb(0, 0, 0) 100%),
+        linear-gradient(to right, rgb(255, 255, 255) 0%, var(--field-end-color) 100%);
+    margin-bottom: 16px;
+    border-radius: 4px;
 }
 
-#color-input {
-    height: 24px;
-    background: #FAFAFA;
-
+#color-picker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #b13e3e;
+    border-radius: 20px;
+    border: white solid 2px;
+    box-sizing: border-box;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
-#color-slider {
+
+
+.color-slider {
     -webkit-appearance: none;
-    height: 6px;
+    height: 4px;
     background: transparent;
     /* 트랙 배경색 */
-    border-radius: 3px;
+    border-radius: 4px;
     outline: none;
     background: transparent;
     width: 100%;
     padding: 10px 0;
 }
-#color-slider::-webkit-slider-runnable-track {
+
+.color-slider::-webkit-slider-runnable-track {
     border-radius: 100px;
-    height: 6px;
-    background: linear-gradient(
-        to right,
-        rgb(255, 0, 0) 0%,
-        rgb(255, 255, 0) 16.667%,
-        rgb(0, 255, 0) 33.333%,
-        rgb(0, 255, 255) 50%,
-        rgb(0, 0, 255) 66.667%,
-        rgb(255, 0, 255) 83.333%,
-        rgb(255, 0, 0) 100%
-    );
+    height: 4px;
 }
+
 /* 슬라이더의 썸 (버튼) */
-#color-slider::-webkit-slider-thumb {
+.color-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 16px;
     height: 16px;
     border-radius: 50%;
     cursor: pointer;
-    margin-top: -5px;
-     background: var(--thumb-color);
-    /* 썸 정렬 */
+    margin-top: -6px;
+
 }
+
+#color-h-slider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+            rgb(255, 0, 0) 0%,
+            rgb(255, 255, 0) 16.667%,
+            rgb(0, 255, 0) 33.333%,
+            rgb(0, 255, 255) 50%,
+            rgb(0, 0, 255) 66.667%,
+            rgb(255, 0, 255) 83.333%,
+            rgb(255, 0, 0) 100%);
+}
+
+/* 슬라이더의 썸 (버튼) */
+#color-h-slider::-webkit-slider-thumb {
+    background: var(--thumb-h-color);
+}
+
+#color-s-slider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+            var(--thumb-s-start-color) 0%,
+            var(--thumb-s-end-color) 100%)
+}
+
+#color-s-slider::-webkit-slider-thumb {
+    background: var(--thumb-s-color);
+}
+
+#color-v-slider::-webkit-slider-runnable-track {
+    background: linear-gradient(to right,
+            rgb(0, 0, 0) 0%,
+            rgb(255, 255, 255) 100%)
+}
+
+#color-v-slider::-webkit-slider-thumb {
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    background: var(--thumb-v-color);
+}
+
+
 
 #color-input-area {
     display: flex;
     flex-direction: row;
     width: 100%;
+    border: #E2E2E3 solid 1px;
+    padding: 3px 0px;
+    margin-top: 12px;
+    align-items: center;
+    border-radius: 4px;
+}
+
+#color-type {
+    padding: 0 10px;
+    font-size: 12px;
 }
 
 #color-input {
+    font-size: 12px;
     flex: 1;
+    border: none;
+    outline: none;
+    padding: 0 10px;
 }

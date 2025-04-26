@@ -56,9 +56,14 @@ button:focus {
   font-family: "Roboto", sans-serif;
 }
 
-p {
+p,
+input,
+h1,
+h2,
+h3 {
   color: #191919;
 }
+
 
 * {
   flex-shrink: 0;

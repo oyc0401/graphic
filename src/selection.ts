@@ -1,9 +1,9 @@
 /** selection.ts */
-import {paintState} from "./paintState";
-import {position} from "./position";
-import {getLayerWorker} from "./core/worker/workerPool";
+import { paintState } from "./paintState";
+import { position } from "./position";
+import { getLayerWorker } from "./core/worker/workerPool";
 import * as Comlink from "comlink";
-import {makeAutoObservable} from "mobx";
+import { makeAutoObservable } from "mobx";
 
 export class SelectionState {
     x = 0;
@@ -15,7 +15,6 @@ export class SelectionState {
     showHandle = false;
     active = false; // 작동중인지 확인. 작동중이면 캔슬할 때 돌아감
     hover = "";
-
 
     constructor() {
         makeAutoObservable(this);
@@ -91,7 +90,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     // 선택 영역 설정
     selection.setPosition(
         Math.ceil(Math.max(0, -position.x)),
-        Math.ceil(Math.max(0, -position.y))
+        Math.ceil(Math.max(0, -position.y)),
     );
     selection.setSize(newWidth, newHeight);
 
@@ -108,7 +107,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
         selection.y,
         selection.width,
         selection.height,
-        Comlink.transfer(bitmap, [bitmap])
+        Comlink.transfer(bitmap, [bitmap]),
     );
 
     paintState.setToolId("selection");
@@ -137,6 +136,8 @@ export function canvasSelect(x, y, width, height) {
 
     console.log("선택:", x, y, width, height);
     selection.setVisible(true);
+    selection.setShowHandle(true);
+    selection.setShowHint(true);
 }
 
 // 선택창 적용
@@ -186,7 +187,7 @@ export function selectionCancel() {
                 selection.x,
                 selection.y,
                 selection.width,
-                selection.height
+                selection.height,
             );
 
             activeHandle = null;

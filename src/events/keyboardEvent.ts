@@ -23,20 +23,19 @@ function addWheelListener() {
         console.log("wheel", event);
 
         if (event.ctrlKey || event.metaKey) {
-
           event.preventDefault();
 
-          const clampedDelta = clamp(event.deltaY, -12,12);
+          const clampedDelta = clamp(event.deltaY, -12, 12);
           const percent = -clampedDelta * 0.01 + 1;
           const new_mag = position.scale * percent;
 
           const clamped_scale = Math.min(
             MAX_SCALE,
-            Math.max(MIN_SCALE, new_mag)
+            Math.max(MIN_SCALE, new_mag),
           );
           setMagification(
             clamped_scale,
-            to_screen_coord(event.clientX, event.clientY)
+            to_screen_coord(event.clientX, event.clientY),
           );
 
           // updateCursorShape();
@@ -47,7 +46,6 @@ function addWheelListener() {
           let newSize = Math.round(clamp(percent, 1, 3000));
           paintState.setBrushSize(newSize);
         } else {
-
           if (event.shiftKey && event.deltaX === 0) {
             position.setX(position.x - event.deltaY / position.scale);
             position.setY(position.y - event.deltaX / position.scale);
@@ -59,7 +57,7 @@ function addWheelListener() {
 
         renderChangedPosition();
       },
-      { passive: false }
+      { passive: false },
     );
   })();
 }
@@ -87,6 +85,14 @@ export function addKeyboardEvent() {
   // 키보드 이벤트
   (function () {
     document.addEventListener("keydown", (event) => {
+      const target = event.target;
+      const isInput =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+      console.log(target);
+      if (isInput) return; // 인풋창이면 기본 이벤트 허용
+
       if (
         event.code === "Space" ||
         event.code === "Tab" ||
@@ -182,8 +188,6 @@ function applyKeyAction() {
 function addKeyActionChangeEventListener() {
   // 이건 다른 pointerup이 모두 실행 된 이후.
   window.addEventListener("pointerup", (e) => {
-    e.preventDefault();
-
     // 키보드를 떼면 눌려있는 키가 적용되어야 한다.
     setTimeout(() => {
       applyKeyAction(); // 가장 마지막에 작동하게 함

@@ -85,6 +85,59 @@ export const ColorIndicatorButton = observer(() => {
     menuState.showColorMenu = true;
   }, []);
 
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const field = fieldRef.current;
+    if (!field) return;
+
+    let dragging = false;
+
+    const onMouseDown = (e: MouseEvent) => {
+      dragging = true;
+      movePicker(e);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (dragging) {
+        movePicker(e);
+      }
+    };
+
+    const onMouseUp = () => {
+      dragging = false;
+    };
+
+    const movePicker = (e: MouseEvent) => {
+      const rect = field.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      let y = rect.bottom - e.clientY; // y축 뒤집기 (bottom 기준)
+
+      // clamp
+      x = Math.max(0, Math.min(200, x));
+      y = Math.max(0, Math.min(200, y));
+
+      // 비율로 변환 (0~1)
+      const s = x / 200;
+      const v = y / 200;
+
+      // 바로 저장
+      colorState.setS(s);
+      colorState.setV(v);
+    };
+
+    field.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      field.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
   return (
     <>
       <button
@@ -107,30 +160,76 @@ export const ColorIndicatorButton = observer(() => {
             <p id={"color-title"}>색 선택</p>
           </div>
 
-          <div id={"color-picker"}></div>
+          <div
+            id={"color-field"}
+            ref={fieldRef}
+            style={{ "--field-end-color": HsvToCss(colorState.getH(), 1, 1) }}
+          >
+            <div
+              id="color-picker"
+              ref={pickerRef}
+              style={{
+                left: colorState.getS() * 200 - 10,
+                bottom: colorState.getV() * 200 - 10,
+                background: colorHex,
+              }}
+            ></div>
+          </div>
 
           <input
-            id="color-slider"
+            id="color-h-slider"
             type="range"
             min="0"
             max="360"
-            className="slider"
+            className="color-slider"
             value={colorState.getH()}
             style={{
-              "--thumb-color": `${HsvToCss(colorState.getH(), 1, 1)}`,
+              "--thumb-h-color": HsvToCss(colorState.getH(), 1, 1),
             }}
             onChange={(e) => {
               colorState.setH(+e.target.value);
             }}
           />
+          <input
+            id="color-s-slider"
+            type="range"
+            min="0"
+            max="100"
+            className="color-slider"
+            value={colorState.getS() * 100}
+            style={{
+              "--thumb-s-color": `${HsvToCss(colorState.getH(), colorState.getS(), 0.5 + 0.5 * colorState.getS())}`,
+              "--thumb-s-start-color": `${HsvToCss(colorState.getH(), 0, 0.5)}`,
+              "--thumb-s-end-color": `${HsvToCss(colorState.getH(), 1, 1)}`,
+            }}
+            onChange={(e) => {
+              colorState.setS(+e.target.value / 100);
+            }}
+          />
+          <input
+            id="color-v-slider"
+            type="range"
+            min="0"
+            max="100"
+            className="color-slider"
+            value={colorState.getV() * 100}
+            style={{
+              "--thumb-v-color": `${HsvToCss(1, 0, colorState.getV())}`,
+            }}
+            onChange={(e) => {
+              colorState.setV(+e.target.value / 100);
+            }}
+          />
 
           <div id={"color-input-area"}>
-            <p>Hex</p>
+            <p id="color-type">Hex</p>
+            <div className="div-bar" style={{ height: "20px" }}></div>
             <input
               id="color-input"
               type="text"
-              value={`${colorState.getHex()}`}
+              value={colorState.getInputText()}
               onChange={(e) => {
+                colorState.setInputText(e.target.value);
                 colorState.setColorFromHex(e.target.value);
               }}
             ></input>
