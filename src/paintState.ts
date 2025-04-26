@@ -9,7 +9,7 @@ class PaintState {
     toolId: ToolId = "brush";
     brushId: BrushId = "brush";
     brushSize = { brush: 5, eraser: 10, liquify: 50 };
-    brushAlpha = { brush: 70, eraser: 100, liquify: 100 };
+    brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
     
     cursorX = 0;
     cursorY = 0;

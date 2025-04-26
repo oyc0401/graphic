@@ -86,7 +86,6 @@ export default function AppBar() {
                   className="circle-shape"
                   style={{
                     background: hex,
-                    border: hex === "#FFFFFF" ? "1px solid #E3E3E3" : undefined,
                   }}
                 />
               </div>
@@ -94,13 +93,13 @@ export default function AppBar() {
           </div>
         </div>
         <ColorIndicatorButton />
-        <button
+        {/* <button
           onClick={() => {
             toolManager.setResizeTool();
           }}
         >
           화면 크기 조절
-        </button>
+        </button> */}
       </div>
     </div>
   );
