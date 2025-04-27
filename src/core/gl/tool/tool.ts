@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager, installBrushManager } from "./brushTool";
-import { getHistoryManager } from "./history";
+import { getHistoryManager, setQueueDrawingFlag } from "./history";
 
 interface Pointer {
   x: number;
@@ -22,10 +22,11 @@ export async function installTools(canvas, gl) {
   console.log("Tool Installed");
 }
 
+let drawId = 0;
 export class BrushTool implements Tool {
   drawManager;
   historyManager;
-  
+
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
     this.historyManager = getHistoryManager(canvas, gl);
@@ -35,6 +36,8 @@ export class BrushTool implements Tool {
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
+    drawId++;
+    setQueueDrawingFlag(true);
     this.drawManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
@@ -44,7 +47,16 @@ export class BrushTool implements Tool {
   end() {
     console.log("brush end");
     this.drawManager.end();
+
     this.historyManager.addUndo();
+
+    let nowDrawId = drawId;
+     setQueueDrawingFlag(false);
+    // setTimeout(() => {
+    //   if (drawId == nowDrawId) {
+       
+    //   }
+    // }, 200);
   }
   cancel() {
     this.drawManager.cancel();

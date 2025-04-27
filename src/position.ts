@@ -111,7 +111,8 @@ export function setDefaultPosition() {
   let dpr = getPixelRatio();
   let scaledDpr = dpr * percent;
   let width, height;
-
+  let scale = 1;
+  
   if (position.bouncingRect.width > position.bouncingRect.height) {
     // 가로가 김
     width = position.bouncingRect.height * scaledDpr * 1.414;
@@ -128,7 +129,12 @@ export function setDefaultPosition() {
   let x = (position.bouncingRect.width - width / dpr) / 2;
   let y = (position.bouncingRect.height - height / dpr) / 2;
 
-  position.setScale(1);
+
+  width = 4096;
+  height = 4096;
+  scale = 0.25
+
+  position.setScale(scale);
   position.setWidth(Math.floor(width));
   position.setHeight(Math.floor(height));
   position.setX(Math.floor(x));

@@ -21,12 +21,23 @@ let currentHistory;
 
 let pendingHistoryQueue = [];
 let runQueue = false;
-async function runPendingHistoryQueue() {
+let drawing = false;
+export function setQueueDrawingFlag(value) {
+  drawing = value;
+}
+async function runPendingHistoryQueue(gl) {
   if (runQueue) return;
   runQueue = true;
   while (pendingHistoryQueue.length > 0) {
-    const task = pendingHistoryQueue.shift();
-    await task();
+    // 읽고 나서 다음 작업으로 넘어가기 전에 잠시 대기
+   
+    if (!drawing) {
+      await waitForSync(gl);
+      const task = pendingHistoryQueue.shift();
+      await task();
+    }else{
+       await new Promise((r) => setTimeout(r, 32));
+    }
   }
   runQueue = false;
 }
@@ -43,7 +54,7 @@ async function waitForSync(gl) {
 
   while (true) {
     const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
-    console.log("while:", status);
+    // console.log("while:", status);
     if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
       break;
     }
@@ -70,45 +81,102 @@ function createHistoryManager(canvas, gl) {
     pixelData: null,
   };
 
+  // 2. FBO 설정
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
   async function addUndo() {
     const { width, height, layerId } = paintOptions;
     const totalPixels = width * height;
     const bytesPerPixel = 4;
-    const chunkPixels = 100_000;
-    const chunkBytes = chunkPixels * bytesPerPixel;
+    const chunkPixels = 2000_000;
     const totalBytes = totalPixels * bytesPerPixel;
 
+    let now = performance.now();
     console.log("addUndo readPixels", width, height);
+    console.log("undoStart!", now);
 
-    // 1. PBO 생성
-    const pbo = gl.createBuffer();
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-    gl.bufferData(gl.PIXEL_PACK_BUFFER, totalBytes, gl.STREAM_READ);
+    const texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    ); // 빈 텍스처 생성
+    
+    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
 
-    // 2. 화면 → PBO 복사
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-    gl.flush();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0,
+    );
+    gl.blitFramebuffer(
+      0,
+      0,
+      width,
+      height, // 읽기 버퍼의 영역 (화면 영역)
+      0,
+      0,
+      width,
+      height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
+    );
 
-    await waitForSync(gl);
+    const pixelData = new Uint8Array(totalBytes);
 
-    async function writeHistory() {
-      const pixelData = new Uint8Array(totalBytes);
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-      // gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, pixelData); // 바로 다 읽기
+    // 한 줄씩 읽어서 처리
+    const rowsPerChunk = Math.floor(chunkPixels / width); // 한 번에 읽을 수 있는 줄 수 (9999 / 1000 = 9줄)
 
-      for (let offset = 0; offset < totalBytes; offset += chunkBytes) {
-        await waitForSync(gl);
-        //await waitForSync(gl);
-        const size = Math.min(chunkBytes, totalBytes - offset);
-        const subArray = new Uint8Array(pixelData.buffer, offset, size); // 얕은 복사
+    for (let rowOffset = 0; rowOffset < height; rowOffset += rowsPerChunk) {
+      let chunk = () => {
+        const remainingRows = height - rowOffset;
+        const rowsToRead = Math.min(rowsPerChunk, remainingRows);
 
-        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, offset, subArray);
-        console.log("read!");
-        await new Promise((r) => setTimeout(r, 0));
-      }
+        const subArray = new Uint8Array(
+          pixelData.buffer,
+          rowOffset * width * bytesPerPixel,
+          rowsToRead * width * bytesPerPixel,
+        );
 
-      console.log("getBufferSubData 완료!");
+        // 한 줄씩 읽기
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(
+          gl.READ_FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          texture,
+          0,
+        );
+        gl.readPixels(
+          0,
+          rowOffset,
+          width,
+          rowsToRead,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          subArray,
+        );
+        //console.log("read!", rowOffset, now);
+      };
+
+      pendingHistoryQueue.push(chunk);
+    }
+
+    let finish = () => {
+      console.log("getBufferSubData 완료!", now);
 
       const newHistory = {
         layerId,
@@ -120,14 +188,13 @@ function createHistoryManager(canvas, gl) {
       historyStack.push(currentHistory);
       currentHistory = newHistory;
 
-      // 6. 정리
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-      gl.deleteBuffer(pbo);
-    }
+      gl.deleteTexture(texture); // 텍스처 삭제
+    };
 
-    pendingHistoryQueue.push(writeHistory);
+    pendingHistoryQueue.push(finish);
+    console.log("큐에 다넣음!", now);
 
-    runPendingHistoryQueue();
+    runPendingHistoryQueue(gl);
   }
 
   function undo() {
