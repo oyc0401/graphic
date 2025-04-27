@@ -163,7 +163,7 @@ function createHistoryManager(canvas, gl) {
       gl.TEXTURE_2D,
       0, // level
       history.x, // x 좌표
-      paintOptions.height - history.y - history.height, // y 좌표
+      history.y, // y 좌표
       history.width, // width
       history.height, // height
       gl.RGBA, // format

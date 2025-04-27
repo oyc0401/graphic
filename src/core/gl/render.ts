@@ -113,7 +113,7 @@ function makeRenderingManager(canvas, gl) {
       vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
       
       // 3. 2D UI 기준 (왼쪽 상단 기준)인 캔버스 영역을 스케일된 좌표계로 변환  
-      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - canvasSize.y - u_pos.y);
+      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
       vec2 minCanvPos = canvasPos;
       vec2 maxCanvPos = canvasPos + canvasSize;
       
@@ -128,9 +128,9 @@ function makeRenderingManager(canvas, gl) {
       // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력  
       vec3 rgb = vec3(0.0, 0.0, 0.0);
       float alpha = 0.04;
-      outColor = vec4(rgb * alpha, alpha);
+      //outColor = vec4(rgb * alpha, alpha);
        
-      //outColor = vec4(1.0, 1.0, 1.0, 1.0);
+      outColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
   `;
 
@@ -194,7 +194,7 @@ function makeRenderingManager(canvas, gl) {
       vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
      
       // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - canvasSize.y - u_pos.y);
+      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
       vec2 minCanvPos = canvasPos;
       vec2 maxCanvPos = canvasPos + canvasSize;
     
@@ -280,7 +280,7 @@ function makeRenderingManager(canvas, gl) {
       vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
 
       // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - canvasSize.y - u_pos.y);
+      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
       vec2 minCanvPos = canvasPos;
       vec2 maxCanvPos = canvasPos + canvasSize;
 
@@ -389,7 +389,7 @@ function makeRenderingManager(canvas, gl) {
       
       
       // 3. 선택요소(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 selectionPos = vec2(u_pos.x + u_selectionPos.x, scaledScreenSize.y - u_pos.y - u_selectionSize.y - u_selectionPos.y);
+      vec2 selectionPos = vec2(u_pos.x + u_selectionPos.x, u_pos.y + u_selectionPos.y);
       vec2 minSelPos = selectionPos;
       vec2 maxSelPos = selectionPos + u_selectionSize;
     
@@ -402,7 +402,7 @@ function makeRenderingManager(canvas, gl) {
       }
 
       // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, scaledScreenSize.y - canvasSize.y - u_pos.y);
+      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
       vec2 minCanvPos = canvasPos;
       vec2 maxCanvPos = canvasPos + canvasSize;
       bool isOut = false;
@@ -508,7 +508,6 @@ function makeRenderingManager(canvas, gl) {
   }
 
   function renderNow() {
-
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     if (paintOptions.selectionAntialias) {
@@ -570,12 +569,12 @@ function makeRenderingManager(canvas, gl) {
   let scheduled = false;
 
   function render() {
-   // if (!scheduled) {
-     // scheduled = true;
-     // requestAnimationFrame(() => {
-      //  scheduled = false;
-        renderNow();
-     // });
+    // if (!scheduled) {
+    // scheduled = true;
+    // requestAnimationFrame(() => {
+    //  scheduled = false;
+    renderNow();
+    // });
     //}
   }
   return {
@@ -737,16 +736,15 @@ function createResizeManager(canvas, gl) {
       0,
     );
 
-    const diffHeight = newHeight - oldHeight;
     gl.blitFramebuffer(
       0,
       0,
       oldWidth,
       oldHeight,
       0,
-      diffHeight,
+      0,
       oldWidth,
-      oldHeight + diffHeight,
+      oldHeight,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
@@ -770,11 +768,12 @@ function createResizeManager(canvas, gl) {
     // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 activeTexture에 바인딩된 텍스처에 복사
     gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
     // 마지막으로 바인딩된건 함수 밖에 있음.
-    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, -y, newWidth, newHeight);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, y, newWidth, newHeight);
   }
 
   function resizeAll(
-    x,y,
+    x,
+    y,
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
@@ -796,7 +795,7 @@ function createResizeManager(canvas, gl) {
     );
 
     for (let layerTex of layerManager.layerArray) {
-      resize(x,y,oldWidth, oldHeight, newWidth, newHeight, layerTex);
+      resize(x, y, oldWidth, oldHeight, newWidth, newHeight, layerTex);
     }
 
     layerManager.bindCurrentLayer();

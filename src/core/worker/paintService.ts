@@ -114,6 +114,7 @@ export class PaintService {
     return this.tools[this.toolId];
   }
   start(pointer: Pointer) {
+  
     this.getTool().start(pointer);
     this.lastPointer = pointer;
   }
@@ -208,8 +209,8 @@ export class PaintService {
       [pixels.buffer],
     );
   }
-  undo(){
-    let historyManager = getHistoryManager(this.canvas,this.gl);
+  undo() {
+    let historyManager = getHistoryManager(this.canvas, this.gl);
     historyManager.undo();
   }
 }

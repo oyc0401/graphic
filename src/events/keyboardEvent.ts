@@ -21,7 +21,7 @@ function addWheelListener() {
     window.addEventListener(
       "wheel",
       (event) => {
-        console.log("wheel", event);
+        //console.log("wheel", event);
 
         if (event.ctrlKey || event.metaKey) {
           event.preventDefault();

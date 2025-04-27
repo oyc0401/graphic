@@ -336,20 +336,18 @@ async function makeLiquifyManager(canvas, gl) {
     const u_endLoc = gl.getUniformLocation(liquifyPushProgram, "u_end");
 
     function push(start, end) {
-        let height = paintOptions.height;
-
         gl.useProgram(liquifyPushProgram);
         // 유나폼 변수 설정
         gl.uniform1f(u_radiusLoc, paintOptions.radius);
         gl.uniform1f(u_strengthLoc, paintOptions.alpha);
-        gl.uniform2f(u_startLoc, start.x, height - start.y);
-        gl.uniform2f(u_endLoc, end.x, height - end.y);
+        gl.uniform2f(u_startLoc, start.x, start.y);
+        gl.uniform2f(u_endLoc, end.x, end.y);
 
         let ceiledRadius = Math.ceil(paintOptions.radius);
         let minX = Math.min(start.x, end.x);
         let maxX = Math.max(start.x, end.x);
-        let minY = Math.min(height - start.y, height - end.y);
-        let maxY = Math.max(height - start.y, height - end.y);
+        let minY = Math.min(start.y, end.y);
+        let maxY = Math.max(start.y, end.y);
 
         let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
 

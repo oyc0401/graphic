@@ -1,4 +1,3 @@
-import { getLayerManager } from "../gl/layer";
 import { paintOptions } from "../gl/texture";
 import { PaintService } from "./paintService";
 
@@ -12,17 +11,29 @@ export const workerApi = {
     dpr: number,
     width: number,
     height: number,
-    x: number,
-    y: number,
+    px: number,
+    py: number,
     scale: number,
   ) {
+    let { x, y } = toWebglCoord3(
+      px,
+      py,
+      width,
+      height,
+      screenWidth,
+      screenHeight,
+      scale,
+    );
+
     paintOptions.screenWidth = screenWidth;
     paintOptions.screenHeight = screenHeight;
     paintOptions.dpr = dpr;
     paintOptions.width = width;
     paintOptions.height = height;
+
     paintOptions.x = x;
     paintOptions.y = y;
+
     paintOptions.magnification = scale;
 
     main_canvas.width = screenWidth;
@@ -33,11 +44,33 @@ export const workerApi = {
   setLayerId(layerId) {
     paint.setLayerId(layerId);
   },
-  setCamaraPosition(x, y, magnification) {
+  setCamaraPosition(px, py, magnification) {
+    let { x, y } = toWebglCoord3(
+      px,
+      py,
+      paintOptions.width,
+      paintOptions.height,
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+      magnification,
+    );
+
     paint.setCameraPosition(x, y, magnification);
   },
-  resizeLayer(x, y, width, height) {
-    paint.resizeLayer(x, y, width, height);
+  resizeLayer(px, py, width, height) {
+    console.log("controller", px, py, width, height);
+
+    const diffH = paintOptions.height - height;
+    let newY;
+
+    if (py !== 0) {
+      newY = 0;
+    } else {
+      newY = py + diffH;
+    }
+
+    console.log("after", px, newY, width, height);
+    paint.resizeLayer(px, newY, width, height);
   },
   resizeScreenSize(screenWidth, screenHeight) {
     paint.resizeScreen(screenWidth, screenHeight);
@@ -57,10 +90,12 @@ export const workerApi = {
   setTool(toolId) {
     paint.setTool(toolId);
   },
-  start(pointer: Pointer) {
+  start(p: Pointer) {
+    let pointer = toWebglCoord(p);
     paint.start(pointer);
   },
-  strokeTo(pointer: Pointer) {
+  strokeTo(p: Pointer) {
+    let pointer = toWebglCoord(p);
     paint.strokeTo(pointer);
   },
   end() {
@@ -69,16 +104,19 @@ export const workerApi = {
   cancel() {
     paint.cancel();
   },
-  select(x, y, w, h) {
+  select(px, py, w, h) {
+    let { x, y } = toWebglCoord2(px, py, w, h);
     paint.select(x, y, w, h);
   },
-  moveSelection(x, y, width, height) {
+  moveSelection(px, py, width, height) {
+    let { x, y } = toWebglCoord2(px, py, width, height);
     paint.moveSelection(x, y, width, height);
   },
   applySelection() {
     paint.applySelection();
   },
-  paste(x, y, width, height, imageBitmap) {
+  paste(px, py, width, height, imageBitmap) {
+    let { x, y } = toWebglCoord2(px, py, width, height);
     paint.paste(x, y, width, height, imageBitmap);
   },
   copy() {
@@ -99,12 +137,37 @@ export const workerApi = {
   downloadImage() {
     paint.downloadImage();
   },
-  undo(){
-     paint.undo();
-  }
+  undo() {
+    paint.undo();
+  },
 };
 
 interface Pointer {
   x: number;
   y: number;
+}
+
+function toWebglCoord(pointer) {
+  let { x, y } = pointer;
+  return {
+    x,
+    y: paintOptions.height - y,
+  };
+}
+
+function toWebglCoord2(x, y, w, h) {
+  return {
+    x,
+    y: paintOptions.height - y - h,
+    w,
+    h,
+  };
+}
+
+function toWebglCoord3(x, y, width, height, screenWidth, screenHeight, scale) {
+  let newY = -y + screenHeight / scale - height;
+  return {
+    x,
+    y: newY,
+  };
 }

@@ -411,16 +411,16 @@ function makeBrushManager(canvas, gl) {
     console.log(
       "blit",
       pathDirty.x,
-      paintOptions.height - pathDirty.ey - 1,
+      pathDirty.y,
       pathDirty.ex + 1,
-      paintOptions.height - pathDirty.y,
+      pathDirty.ey + 1,
     );
     // blit 좌표계는 0,0,1,1이 1칸임.
     gl.blitFramebuffer(
       pathDirty.x,
-      paintOptions.height - pathDirty.ey - 1,
+      pathDirty.y,
       pathDirty.ex + 1,
-      paintOptions.height - pathDirty.y,
+      pathDirty.ey + 1,
       0,
       0,
       pathDirty.width,
@@ -459,8 +459,6 @@ function makeBrushManager(canvas, gl) {
       pathDirty.reset(pointer, paintOptions.radius);
     },
     stroke(start, end) {
-      let height = paintOptions.height;
-
       gl.useProgram(strokeProgram);
 
       gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
@@ -479,13 +477,9 @@ function makeBrushManager(canvas, gl) {
       gl.uniform2f(
         gl.getUniformLocation(strokeProgram, "u_start"),
         start.x,
-        height - start.y,
+        start.y,
       );
-      gl.uniform2f(
-        gl.getUniformLocation(strokeProgram, "u_end"),
-        end.x,
-        height - end.y,
-      );
+      gl.uniform2f(gl.getUniformLocation(strokeProgram, "u_end"), end.x, end.y);
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
       // 프레임버퍼에 쓰기 텍스처 넣기
@@ -501,8 +495,8 @@ function makeBrushManager(canvas, gl) {
       let ceiledRadius = Math.ceil(paintOptions.radius);
       let minX = Math.min(start.x, end.x);
       let maxX = Math.max(start.x, end.x);
-      let minY = Math.min(height - start.y, height - end.y);
-      let maxY = Math.max(height - start.y, height - end.y);
+      let minY = Math.min(start.y, end.y);
+      let maxY = Math.max(start.y, end.y);
 
       dirtyRect.x = minX - ceiledRadius;
       dirtyRect.y = minY - ceiledRadius;

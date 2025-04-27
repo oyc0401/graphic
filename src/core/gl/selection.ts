@@ -81,7 +81,7 @@ function createSelectionManager(canvas, gl) {
       vec2 size = u_selectionSize;
 
       // 3. 선택요소(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 selectionPos = vec2(u_selectionPos.x, scaledScreenSize.y - size.y  - u_selectionPos.y);
+      vec2 selectionPos = vec2(u_selectionPos.x, u_selectionPos.y);
       vec2 minPos = selectionPos;
       vec2 maxPos = selectionPos + size;
 
@@ -200,8 +200,6 @@ function createSelectionManager(canvas, gl) {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
 
-    const readY = paintOptions.height - (y + originalHeight);
-
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, selectionTex);
     gl.texImage2D(
@@ -222,14 +220,14 @@ function createSelectionManager(canvas, gl) {
       0, // dstX
       0, // dstY
       x, // srcX
-      readY, // srcY
+      y, // srcY
       originalWidth,
       originalHeight,
     );
 
     // 2) 선택된 영역을 완전히 투명으로 지우기
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(x, readY, originalWidth, originalHeight);
+    gl.scissor(x, y, originalWidth, originalHeight);
 
     gl.clearColor(0, 0, 0, 0); // RGBA 모두 0
     gl.clear(gl.COLOR_BUFFER_BIT);

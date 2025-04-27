@@ -130,9 +130,11 @@ export function setDefaultPosition() {
   let y = (position.bouncingRect.height - height / dpr) / 2;
 
 
-  width = 4096;
-  height = 4096;
-  scale = 4
+  // width = 200;
+  // height = 200;
+  // scale = 4;
+  // x=0;
+  // y=0;
 
   position.setScale(scale);
   position.setWidth(Math.floor(width));
