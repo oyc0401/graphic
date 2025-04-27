@@ -7,6 +7,8 @@ import {
 } from "../texture";
 import { getLayerManager } from "../layer";
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
+import { getHistoryManager, setQueueDrawingFlag } from "./history";
+import { clamp } from "../../../utils/math";
 
 interface BrushManager {
   enter(): void;
@@ -297,6 +299,7 @@ function makeBrushManager(canvas, gl) {
 
   //////////////////////
   let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+  let pathDirty = new DirtyRectSaver();
 
   ///////////
 
@@ -366,6 +369,7 @@ function makeBrushManager(canvas, gl) {
   setSize();
 
   let layerManager = getLayerManager(canvas, gl);
+  let sourceManager = getSourceTextureManager(canvas, gl);
 
   let renderingManager = getRenderingManager(canvas, gl);
   function clearMap() {
@@ -373,12 +377,86 @@ function makeBrushManager(canvas, gl) {
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
 
+  const fbo = gl.createFramebuffer();
+  let historyManager = getHistoryManager(canvas, gl);
+
+  function makeHistory() {
+    const historyTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, historyTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      pathDirty.width,
+      pathDirty.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    ); // 빈 텍스처 생성
+
+    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceManager.sourceFBO);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      historyTex,
+      0,
+    );
+
+    console.log(
+      "blit",
+      pathDirty.x,
+      paintOptions.height - pathDirty.ey - 1,
+      pathDirty.ex + 1,
+      paintOptions.height - pathDirty.y,
+    );
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      pathDirty.x,
+      paintOptions.height - pathDirty.ey - 1,
+      pathDirty.ex + 1,
+      paintOptions.height - pathDirty.y,
+      0,
+      0,
+      pathDirty.width,
+      pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
+    );
+
+    console.log(
+      "pathDirty",
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.ex,
+      pathDirty.ey,
+      pathDirty.width,
+      pathDirty.height,
+    );
+
+    historyManager.addUndo(
+      "brush",
+      historyTex,
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.width,
+      pathDirty.height,
+    );
+    setQueueDrawingFlag(false);
+  }
+
   let brushManager = {
     enter() {
       console.log("enter!");
     },
-    start(p) {
+    start(pointer) {
       console.log("start!");
+      pathDirty.reset(pointer, paintOptions.radius);
     },
     stroke(start, end) {
       let height = paintOptions.height;
@@ -432,6 +510,9 @@ function makeBrushManager(canvas, gl) {
       dirtyRect.ey = maxY + ceiledRadius + 1;
       dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
       dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
+
+      pathDirty.updatePathDirtyRect(start, paintOptions.radius);
+      pathDirty.updatePathDirtyRect(end, paintOptions.radius);
 
       // SCISSOR TEST로 일부만 렌더링
       gl.enable(gl.SCISSOR_TEST);
@@ -500,6 +581,8 @@ function makeBrushManager(canvas, gl) {
       renderingManager.render();
     },
     end() {
+      makeHistory();
+
       sourceTextureManager.uploadCurrent();
       clearMap();
     },
@@ -513,4 +596,59 @@ function makeBrushManager(canvas, gl) {
   };
 
   return brushManager;
+}
+
+export class DirtyRectSaver {
+  pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+
+  constructor() {
+    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+  }
+
+  get x() {
+    return clamp(this.pathDirtyRect.x, 0, paintOptions.width - 1);
+  }
+
+  get y() {
+    return clamp(this.pathDirtyRect.y, 0, paintOptions.height - 1);
+  }
+
+  get ex() {
+    return clamp(this.pathDirtyRect.ex, 0, paintOptions.width - 1);
+  }
+
+  get ey() {
+    return clamp(this.pathDirtyRect.ey, 0, paintOptions.height - 1);
+  }
+
+  get width() {
+    return this.ex - this.x + 1;
+  }
+
+  get height() {
+    return this.ey - this.y + 1;
+  }
+
+  updatePathDirtyRect(pointer, radius) {
+    let minX = Math.min(this.pathDirtyRect.x, Math.floor(pointer.x - radius));
+    let maxX = Math.max(this.pathDirtyRect.ex, Math.floor(pointer.x + radius));
+    let minY = Math.min(this.pathDirtyRect.y, Math.floor(pointer.y - radius));
+    let maxY = Math.max(this.pathDirtyRect.ey, Math.floor(pointer.y + radius));
+
+    this.pathDirtyRect.x = minX;
+    this.pathDirtyRect.y = minY;
+    this.pathDirtyRect.ex = maxX;
+    this.pathDirtyRect.ey = maxY;
+  }
+
+  reset(pointer, radius) {
+    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+    console.log("시작!");
+
+    this.pathDirtyRect.x = Math.floor(pointer.x - radius);
+    this.pathDirtyRect.y = Math.floor(pointer.y - radius);
+    this.pathDirtyRect.ex = Math.floor(pointer.x + radius);
+    this.pathDirtyRect.ey = Math.floor(pointer.y + radius);
+    console.log(pointer, radius, this.pathDirtyRect);
+  }
 }

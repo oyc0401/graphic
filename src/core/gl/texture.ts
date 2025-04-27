@@ -74,6 +74,16 @@ function makeSourceTextureManager(canvas, gl) {
   let layerManager = getLayerManager(canvas, gl);
   uploadCurrent();
 
+  let sourceFBO = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, sourceFBO);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    sourceTexture,
+    0,
+  );
+
   // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
@@ -148,6 +158,7 @@ function makeSourceTextureManager(canvas, gl) {
     texture: sourceTexture,
     uploadCurrent,
     restore,
+    sourceFBO,
   };
 
   return sourceTextureManager;

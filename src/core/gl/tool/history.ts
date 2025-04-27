@@ -11,13 +11,13 @@ import { getManager } from "../utils/cachedManager";
 interface HistoryItem {
   layerId: number;
   tool: string;
+  x: number;
+  y: number;
   width: number;
   height: number;
   pixelData: Uint8Array; // pixelData는 보통 readPixels 결과라서 Uint8Array로 추정
 }
 let historyStack: HistoryItem[] = [];
-
-let currentHistory;
 
 let pendingHistoryQueue = [];
 let runQueue = false;
@@ -30,13 +30,13 @@ async function runPendingHistoryQueue(gl) {
   runQueue = true;
   while (pendingHistoryQueue.length > 0) {
     // 읽고 나서 다음 작업으로 넘어가기 전에 잠시 대기
-   
+
     if (!drawing) {
       await waitForSync(gl);
       const task = pendingHistoryQueue.shift();
       await task();
-    }else{
-       await new Promise((r) => setTimeout(r, 32));
+    } else {
+      await new Promise((r) => setTimeout(r, 32));
     }
   }
   runQueue = false;
@@ -69,24 +69,16 @@ function createHistoryManager(canvas, gl) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
 
-  console.log("ALREADY_SIGNALED:", gl.ALREADY_SIGNALED);
-  console.log("CONDITION_SATISFIED:", gl.CONDITION_SATISFIED);
-  console.log("TIMEOUT_EXPIRED :", gl.TIMEOUT_EXPIRED);
-
-  currentHistory = {
-    layerId: paintOptions.layerId,
-    tool: "brush",
-    width: paintOptions.width,
-    height: paintOptions.height,
-    pixelData: null,
-  };
+  // console.log("ALREADY_SIGNALED:", gl.ALREADY_SIGNALED);
+  // console.log("CONDITION_SATISFIED:", gl.CONDITION_SATISFIED);
+  // console.log("TIMEOUT_EXPIRED :", gl.TIMEOUT_EXPIRED);
 
   // 2. FBO 설정
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-  async function addUndo() {
-    const { width, height, layerId } = paintOptions;
+  async function addUndo(historyType, historyTex, x, y, width, height) {
+    const { layerId } = paintOptions;
     const totalPixels = width * height;
     const bytesPerPixel = 4;
     const chunkPixels = 2000_000;
@@ -94,46 +86,6 @@ function createHistoryManager(canvas, gl) {
 
     let now = performance.now();
     console.log("addUndo readPixels", width, height);
-    console.log("undoStart!", now);
-
-    const texture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    ); // 빈 텍스처 생성
-    
-    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
-
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-    gl.blitFramebuffer(
-      0,
-      0,
-      width,
-      height, // 읽기 버퍼의 영역 (화면 영역)
-      0,
-      0,
-      width,
-      height, // 쓰기 버퍼의 영역 (텍스처 크기)
-      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
-    );
 
     const pixelData = new Uint8Array(totalBytes);
 
@@ -157,7 +109,7 @@ function createHistoryManager(canvas, gl) {
           gl.READ_FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
           gl.TEXTURE_2D,
-          texture,
+          historyTex,
           0,
         );
         gl.readPixels(
@@ -180,15 +132,16 @@ function createHistoryManager(canvas, gl) {
 
       const newHistory = {
         layerId,
-        tool: "brush",
+        tool: historyType,
+        x,
+        y,
         width,
         height,
         pixelData,
       };
-      historyStack.push(currentHistory);
-      currentHistory = newHistory;
+      historyStack.push(newHistory);
 
-      gl.deleteTexture(texture); // 텍스처 삭제
+      gl.deleteTexture(historyTex); // 텍스처 삭제
     };
 
     pendingHistoryQueue.push(finish);
@@ -201,22 +154,21 @@ function createHistoryManager(canvas, gl) {
     if (historyStack.length == 0) return;
 
     let history = historyStack[historyStack.length - 1];
-    currentHistory = history;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
     // pixelData를 texture에 다시 업로드
-    gl.texImage2D(
+    gl.texSubImage2D(
       gl.TEXTURE_2D,
       0, // level
-      gl.RGBA, // internalFormat
-      history.width,
-      history.height,
-      0, // border
+      history.x, // x 좌표
+      paintOptions.height - history.y - history.height, // y 좌표
+      history.width, // width
+      history.height, // height
       gl.RGBA, // format
-      gl.UNSIGNED_BYTE,
-      history.pixelData,
+      gl.UNSIGNED_BYTE, // type
+      history.pixelData, // 데이터
     );
 
     console.log("undo 성공!");

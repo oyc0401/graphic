@@ -8,10 +8,10 @@ import { zoomRect } from "./zoomState";
 
 export function bindView() {
   bindCursorUI();
- // bindSelectionUI();
- // bindCursorPositionUI();
- // bindTitleUI();
- //bindZoomAreaUI();
+ bindSelectionUI();
+ bindCursorPositionUI();
+ bindTitleUI();
+ bindZoomAreaUI();
 }
 
 function bindCursorUI() {

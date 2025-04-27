@@ -22,21 +22,18 @@ export async function installTools(canvas, gl) {
   console.log("Tool Installed");
 }
 
-let drawId = 0;
 export class BrushTool implements Tool {
   drawManager;
-  historyManager;
+
 
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
-    this.historyManager = getHistoryManager(canvas, gl);
   }
   enter() {
     console.log("brush enter");
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
-    drawId++;
     setQueueDrawingFlag(true);
     this.drawManager.start(pointer);
   }
@@ -48,15 +45,6 @@ export class BrushTool implements Tool {
     console.log("brush end");
     this.drawManager.end();
 
-    this.historyManager.addUndo();
-
-    let nowDrawId = drawId;
-     setQueueDrawingFlag(false);
-    // setTimeout(() => {
-    //   if (drawId == nowDrawId) {
-       
-    //   }
-    // }, 200);
   }
   cancel() {
     this.drawManager.cancel();

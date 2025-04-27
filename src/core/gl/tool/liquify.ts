@@ -19,6 +19,7 @@ import {
 } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
+import { DirtyRectSaver } from "./brushTool";
 
 interface liquifyManager {
     enter(): void;
@@ -235,10 +236,7 @@ async function makeLiquifyManager(canvas, gl) {
     enable_a_position(gl, renderProgram);
 
     ////////////////
-
-    // 변경된 부분만 캔슬, 소스텍스쳐 이전 하기 위해서
-    let pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
-
+    let pathDirty = new DirtyRectSaver();
     /////////////////////////////
 
     // 취소 구현...
@@ -322,32 +320,10 @@ async function makeLiquifyManager(canvas, gl) {
     let layerManager = getLayerManager(canvas, gl);
     let renderingManager = getRenderingManager(canvas, gl);
     function start(pointer) {
-        pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 }; // pointer에 맞는 범위 지정
-
-        let ceiledRadius = Math.ceil(paintOptions.radius);
-
         console.log("시작!");
-        pathDirtyRect.x = pointer.x - ceiledRadius;
-        pathDirtyRect.y = pointer.y - ceiledRadius;
-        pathDirtyRect.ex = pointer.x + ceiledRadius;
-        pathDirtyRect.ey = pointer.y + ceiledRadius;
-        pathDirtyRect.width = 2 * ceiledRadius + 1;
-        pathDirtyRect.height = 2 * ceiledRadius + 1;
-    }
 
-    function updatePathDirtyRect(pointer) {
         let ceiledRadius = Math.ceil(paintOptions.radius);
-        let minX = Math.min(pathDirtyRect.x, pointer.x - ceiledRadius);
-        let maxX = Math.max(pathDirtyRect.ex, pointer.x + ceiledRadius);
-        let minY = Math.min(pathDirtyRect.y, pointer.y - ceiledRadius);
-        let maxY = Math.max(pathDirtyRect.ey, pointer.y + ceiledRadius);
-
-        pathDirtyRect.x = minX;
-        pathDirtyRect.y = minY;
-        pathDirtyRect.ex = maxX;
-        pathDirtyRect.ey = maxY;
-
-        //console.log(pathDirtyRect);
+        pathDirty.reset(pointer, ceiledRadius);
     }
 
     // init 시에 한 번만 호출 (ex. setSize()나 초기화 구간)
@@ -384,8 +360,8 @@ async function makeLiquifyManager(canvas, gl) {
         dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
         dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
 
-        updatePathDirtyRect(start);
-        updatePathDirtyRect(end);
+        pathDirty.updatePathDirtyRect(start, ceiledRadius);
+        pathDirty.updatePathDirtyRect(end, ceiledRadius);
 
         // 프레임버퍼에 output 텍스처 넣기
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -474,14 +450,14 @@ async function makeLiquifyManager(canvas, gl) {
         );
 
         gl.blitFramebuffer(
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 소스
-            pathDirtyRect.x,
-            height - pathDirtyRect.y,
-            pathDirtyRect.ex,
-            height - pathDirtyRect.ey, // 대상
+            pathDirty.x,
+            height - pathDirty.y,
+            pathDirty.ex,
+            height - pathDirty.ey, // 소스
+            pathDirty.x,
+            height - pathDirty.y,
+            pathDirty.ex,
+            height - pathDirty.ey, // 대상
             gl.COLOR_BUFFER_BIT,
             gl.NEAREST,
         );

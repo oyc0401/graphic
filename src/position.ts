@@ -132,7 +132,7 @@ export function setDefaultPosition() {
 
   width = 4096;
   height = 4096;
-  scale = 0.25
+  scale = 4
 
   position.setScale(scale);
   position.setWidth(Math.floor(width));
