@@ -19,7 +19,7 @@ import {
 } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
-import { DirtyRectSaver } from "./brushTool";
+import { DirtyRect } from "../utils/dirtyRect";
 
 interface liquifyManager {
     enter(): void;
@@ -236,7 +236,7 @@ async function makeLiquifyManager(canvas, gl) {
     enable_a_position(gl, renderProgram);
 
     ////////////////
-    let pathDirty = new DirtyRectSaver();
+    let pathDirty = new DirtyRect();
     /////////////////////////////
 
     // 취소 구현...

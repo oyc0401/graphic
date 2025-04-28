@@ -11,7 +11,7 @@ import { getRenderingManager, resizeLayer, resizeScreen } from "../gl/render";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
-import { getHistoryManager } from "../gl/tool/history";
+import { getHistoryManager } from "../gl/history";
 interface Pointer {
   x: number;
   y: number;

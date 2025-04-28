@@ -605,6 +605,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
   paintOptions.width = width;
   paintOptions.height = height;
 
+  sourceTextureManager.setSize();
   sourceTextureManager.uploadCurrent();
 
   if (!drawManager || !liquifyManager) {

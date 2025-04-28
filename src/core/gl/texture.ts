@@ -78,6 +78,17 @@ function makeSourceTextureManager(canvas, gl) {
   const sourceTexture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
   gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    paintOptions.width,
+    paintOptions.height,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -109,35 +120,8 @@ function makeSourceTextureManager(canvas, gl) {
       height: paintOptions.height,
     },
   ) {
-    if (w != paintOptions.width || h != paintOptions.height) {
-      console.warn("source 크기 조정");
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-      gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        paintOptions.width,
-        paintOptions.height,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        null,
-      );
-      w = paintOptions.width;
-      h = paintOptions.height;
-      // 크기 조정 뒤에는 텍스쳐가 비어있으니 무조건 dirtyRect를 꽉 채워서 넘겨야함.
-      if (
-        pathDirty.width != paintOptions.width ||
-        pathDirty.height != paintOptions.height
-      ) {
-        console.error("source tex가 비어있음. dirtyRect를 가득 채우세요");
-      }
-    }
-
     if (undoable) {
-      console.warn('uploadCurrent: 히스토리 제작')
+      console.warn("uploadCurrent: 히스토리 제작");
       makeHistory(pathDirty);
     }
 
@@ -162,6 +146,23 @@ function makeSourceTextureManager(canvas, gl) {
       pathDirty.ey + 1,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
+    );
+  }
+
+  function setSize() {
+    console.warn("source 크기 조정");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
     );
   }
 
@@ -260,6 +261,7 @@ function makeSourceTextureManager(canvas, gl) {
     );
   }
 
+  setSize();
   uploadCurrent(false);
 
   let sourceTextureManager = {
@@ -268,6 +270,7 @@ function makeSourceTextureManager(canvas, gl) {
     restore,
     sourceFBO,
     undoTask,
+    setSize,
   };
 
   return sourceTextureManager;
