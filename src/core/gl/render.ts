@@ -714,7 +714,7 @@ function createResizeManager(canvas, gl) {
     oldHeight: number,
     newWidth: number,
     newHeight: number,
-    texture,
+    layerTex,
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
     // 3. 기존 layerFBO → 임시 텍스처로 복사
@@ -723,7 +723,7 @@ function createResizeManager(canvas, gl) {
       gl.READ_FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
-      texture,
+      layerTex,
       0,
     );
 
@@ -751,7 +751,7 @@ function createResizeManager(canvas, gl) {
 
     // 대상 텍스쳐 늘리기
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindTexture(gl.TEXTURE_2D, layerTex);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
@@ -767,6 +767,13 @@ function createResizeManager(canvas, gl) {
     // 4. 임시 텍스처 → 레이어 텍스처로 복사
     // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 activeTexture에 바인딩된 텍스처에 복사
     gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      tempTex,
+      0,
+    );
     // 마지막으로 바인딩된건 함수 밖에 있음.
     gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, y, newWidth, newHeight);
   }
@@ -786,8 +793,8 @@ function createResizeManager(canvas, gl) {
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      newWidth,
-      newHeight,
+      oldWidth,
+      oldHeight,
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
