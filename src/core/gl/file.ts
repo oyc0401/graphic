@@ -1,5 +1,6 @@
 import { getLayerManager } from "./layer";
-import { getRenderingManager, resizeLayer } from "./render";
+import { getRenderingManager } from "./render";
+import { resizeLayer } from "./resize";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "./utils/cachedManager";
 import { decodePremultAndFlip } from "./utils/flipPixel";

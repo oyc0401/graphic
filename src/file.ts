@@ -166,6 +166,11 @@ export function addClipboardEvent() {
 function uploadImage(bitmap: ImageBitmap) {
   let dpr = getPixelRatio();
 
+  applySelection();
+  selection.setVisible(false);
+  selection.setShowHint(false);
+  selection.setShowHandle(false);
+
   console.log("uploadImage", position.bouncingRect.width, bitmap.width);
   let val = 1.125 / dpr;
   let xScale = position.bouncingRect.width / (bitmap.width * val);
@@ -180,16 +185,11 @@ function uploadImage(bitmap: ImageBitmap) {
   position.setY(y);
   position.setWidth(bitmap.width);
   position.setHeight(bitmap.height);
-  setCameraPosition();
-
-  applySelection();
-  selection.setVisible(false);
-  selection.setShowHint(false);
-  selection.setShowHandle(false);
-
 
   const worker = getLayerWorker();
   worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
+
+  renderChangedPosition();
 }
 
 export async function copyPixelsToClipboard(
