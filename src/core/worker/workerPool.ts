@@ -31,8 +31,9 @@ function getWorkerObject() {
         downloadPixels(pixelData, width, height);
       }
     };
-    const api = Comlink.wrap<WorkerApi>(worker);
-
+    //const api = Comlink.wrap<WorkerApi>(worker);
+    const api = workerApi;
+    
     workerPool["layer"] = { worker, workerApi: api };
   }
   return workerPool["layer"];

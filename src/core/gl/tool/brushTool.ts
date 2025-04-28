@@ -7,37 +7,15 @@ import {
 } from "../texture";
 import { getLayerManager } from "../layer";
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
-import { getHistoryManager, setQueueDrawingFlag } from "./history";
+import { getHistoryManager, setQueueDrawingFlag } from "../history";
 import { clamp } from "../../../utils/math";
-
-interface BrushManager {
-  enter(): void;
-  start(p: any): void;
-  stroke(start: any, end: any): void;
-  brush(): void;
-  eraser(): void;
-  end(): void;
-  cancel(): void;
-  exit(): void;
-  setSize: () => void;
-}
-/**
- * 싱글톤, 처음 시작할 때만 glsl 컴파일 함.
- */
-const drawManagers = new Map<any, BrushManager>();
-
-export async function installBrushManager(canvas, gl) {
-  let brushManager = makeBrushManager(canvas, gl);
-  drawManagers.set(gl, brushManager);
-}
+import { getManager } from "../utils/cachedManager";
 
 export function getBrushManager(canvas, gl) {
-  let brushManager = drawManagers.get(gl);
-  if (!brushManager) {
-    console.error("Not Installed LiquifyManager!");
-  }
-
-  return brushManager;
+  const manager = getManager(gl, "brushManager", () =>
+    makeBrushManager(canvas, gl),
+  );
+  return manager;
 }
 
 function makeBrushManager(canvas, gl) {
@@ -369,87 +347,13 @@ function makeBrushManager(canvas, gl) {
   setSize();
 
   let layerManager = getLayerManager(canvas, gl);
-  let sourceManager = getSourceTextureManager(canvas, gl);
-
+  
   let renderingManager = getRenderingManager(canvas, gl);
   function clearMap() {
     let glHelper = getGlHelper(gl);
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
-
-  const fbo = gl.createFramebuffer();
-  let historyManager = getHistoryManager(canvas, gl);
-
-  function makeHistory() {
-    const historyTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, historyTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      pathDirty.width,
-      pathDirty.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    ); // 빈 텍스처 생성
-
-    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceManager.sourceFBO);
-
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      historyTex,
-      0,
-    );
-
-    console.log(
-      "blit",
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-    );
-    // blit 좌표계는 0,0,1,1이 1칸임.
-    gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-      0,
-      0,
-      pathDirty.width,
-      pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
-      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
-    );
-
-    console.log(
-      "pathDirty",
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex,
-      pathDirty.ey,
-      pathDirty.width,
-      pathDirty.height,
-    );
-
-    historyManager.addUndo(
-      "brush",
-      historyTex,
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.width,
-      pathDirty.height,
-    );
-    setQueueDrawingFlag(false);
-  }
-
+ 
   let brushManager = {
     enter() {
       console.log("enter!");
@@ -575,9 +479,9 @@ function makeBrushManager(canvas, gl) {
       renderingManager.render();
     },
     end() {
-      makeHistory();
+     // makeHistory();
 
-      sourceTextureManager.uploadCurrent();
+      sourceTextureManager.uploadCurrent(true,pathDirty);
       clearMap();
     },
     cancel() {

@@ -58,6 +58,7 @@ export class BrushTool {
     }
 
     worker.end();
+    
     paintState.changed = true;
   }
 

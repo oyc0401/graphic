@@ -1,13 +1,6 @@
-import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
-import { getRenderingManager } from "../render";
-import {
-  TEXTURE_UNIT,
-  getSourceTextureManager,
-  paintOptions,
-} from "../texture";
-import { getLayerManager } from "../layer";
-import { enable_a_position, getFullQuadShader } from "../vertexShader";
-import { getManager } from "../utils/cachedManager";
+import { getSourceTextureManager, paintOptions } from "./texture";
+import { getManager } from "./utils/cachedManager";
+import { getBrushManager } from "./tool/brushTool";
 interface HistoryItem {
   layerId: number;
   tool: string;
@@ -25,6 +18,23 @@ let drawing = false;
 export function setQueueDrawingFlag(value) {
   drawing = value;
 }
+
+async function waitForSync(gl) {
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+  gl.flush();
+
+  while (true) {
+    const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
+    // console.log("while:", status);
+    if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
+      break;
+    }
+    // GPU가 아직 안 끝났으면, CPU는 양보
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  gl.deleteSync(sync);
+}
+
 async function runPendingHistoryQueue(gl) {
   if (runQueue) return;
   runQueue = true;
@@ -48,31 +58,11 @@ export function getHistoryManager(canvas, gl) {
   );
   return manager;
 }
-async function waitForSync(gl) {
-  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-  gl.flush();
 
-  while (true) {
-    const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
-    // console.log("while:", status);
-    if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
-      break;
-    }
-    // GPU가 아직 안 끝났으면, CPU는 양보
-    await new Promise((r) => setTimeout(r, 0));
-  }
-  gl.deleteSync(sync);
-}
+const bytesPerPixel = 4;
+const chunkPixels = 2000_000;
 
 function createHistoryManager(canvas, gl) {
-  let layerManager = getLayerManager(canvas, gl);
-  const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const renderingManager = getRenderingManager(canvas, gl);
-
-  // console.log("ALREADY_SIGNALED:", gl.ALREADY_SIGNALED);
-  // console.log("CONDITION_SATISFIED:", gl.CONDITION_SATISFIED);
-  // console.log("TIMEOUT_EXPIRED :", gl.TIMEOUT_EXPIRED);
-
   // 2. FBO 설정
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -80,8 +70,6 @@ function createHistoryManager(canvas, gl) {
   async function addUndo(historyType, historyTex, x, y, width, height) {
     const { layerId } = paintOptions;
     const totalPixels = width * height;
-    const bytesPerPixel = 4;
-    const chunkPixels = 2000_000;
     const totalBytes = totalPixels * bytesPerPixel;
 
     let now = performance.now();
@@ -140,6 +128,7 @@ function createHistoryManager(canvas, gl) {
         pixelData,
       };
       historyStack.push(newHistory);
+       console.log('추가 undo:', historyStack.length)
 
       gl.deleteTexture(historyTex); // 텍스처 삭제
     };
@@ -154,27 +143,14 @@ function createHistoryManager(canvas, gl) {
     if (historyStack.length == 0) return;
 
     let history = historyStack[historyStack.length - 1];
+    if (history.tool == "source") {
+      let sourceManager = getSourceTextureManager(canvas, gl);
+      sourceManager.undoTask(history);
+    }
 
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
-
-    // pixelData를 texture에 다시 업로드
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      history.x, // x 좌표
-      history.y, // y 좌표
-      history.width, // width
-      history.height, // height
-      gl.RGBA, // format
-      gl.UNSIGNED_BYTE, // type
-      history.pixelData, // 데이터
-    );
-
-    console.log("undo 성공!");
-    sourceTextureManager.uploadCurrent();
-    renderingManager.render();
     historyStack.pop();
+
+    console.log('남은 undo:', historyStack.length)
   }
 
   return {

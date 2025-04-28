@@ -164,15 +164,15 @@ export class ResizeTool {
         clamp(
           x,
           beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min
-        )
+          beforeSelectionPos.x + beforeSelectionPos.width - min,
+        ),
       );
       selection.setY(
         clamp(
           y,
           beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min
-        )
+          beforeSelectionPos.y + beforeSelectionPos.height - min,
+        ),
       );
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
@@ -180,7 +180,8 @@ export class ResizeTool {
   }
 
   up() {
-    if (
+    if (!this.activeHandle) {
+    } else if (
       pointers.size == 0 &&
       (this.activeHandle == "OUTSIDE" || this.activeHandle == "INSIDE")
     ) {

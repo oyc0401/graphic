@@ -2,6 +2,8 @@ import { createShader, createProgram } from "./utils/glHelper";
 import { enable_a_position, getFullQuadShader } from "./vertexShader";
 import { getLayerManager } from "./layer";
 import { getManager } from "./utils/cachedManager";
+import { getRenderingManager } from "./render";
+import { getHistoryManager, setQueueDrawingFlag } from "./history";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -15,6 +17,13 @@ export const TEXTURE_UNIT = {
   RENDERED_SELECTION: 10, // 선택창 확대/축소, copy시 그릴 버퍼
   OFFSCREEN: 11, // 렌더링 전 미리 그릴 버퍼
 };
+
+// 일반 브러시는 pointerup하면 소스 텍스쳐에 반영 전에 히스토리 스택에 소스 텍스쳐를 업로드 한다.
+// 픽셀유동화는 pointerup 하면 SOURCE_DISPLACEMENT에 반영 전에 히스토리 스택에 SOURCE_DISPLACEMENT를 업로드 한다.
+
+// 픽셀유동화를 나가는것도 스택에 넣는데, 이땐 displace 전체와 source 전체를 업로드 한다. (유동화 생명주기 전체에서 dirtyRect도 구하기)
+
+// 일반 브러시를 나가는것도 스택에....
 
 export let paintOptions = {
   width: 100,
@@ -62,7 +71,11 @@ export function getSourceTextureManager(canvas, gl) {
 }
 
 function makeSourceTextureManager(canvas, gl) {
-  let sourceTexture = gl.createTexture();
+  const renderingManager = getRenderingManager(canvas, gl);
+  const layerManager = getLayerManager(canvas, gl);
+  const historyManager = getHistoryManager(canvas, gl);
+
+  const sourceTexture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
   gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
@@ -70,9 +83,6 @@ function makeSourceTextureManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  let layerManager = getLayerManager(canvas, gl);
-  uploadCurrent();
 
   let sourceFBO = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, sourceFBO);
@@ -84,81 +94,180 @@ function makeSourceTextureManager(canvas, gl) {
     0,
   );
 
+  let w = 0;
+  let h = 0;
+
   // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
-  function uploadCurrent() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+  function uploadCurrent(
+    undoable = false,
+    pathDirty = {
+      x: 0,
+      y: 0,
+      ex: paintOptions.width - 1,
+      ey: paintOptions.height - 1,
+      width: paintOptions.width,
+      height: paintOptions.height,
+    },
+  ) {
+    if (w != paintOptions.width || h != paintOptions.height) {
+      console.warn("source 크기 조정");
+      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+      gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
 
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        paintOptions.width,
+        paintOptions.height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
+      w = paintOptions.width;
+      h = paintOptions.height;
+      // 크기 조정 뒤에는 텍스쳐가 비어있으니 무조건 dirtyRect를 꽉 채워서 넘겨야함.
+      if (
+        pathDirty.width != paintOptions.width ||
+        pathDirty.height != paintOptions.height
+      ) {
+        console.error("source tex가 비어있음. dirtyRect를 가득 채우세요");
+      }
+    }
 
+    if (undoable) {
+      console.warn('uploadCurrent: 히스토리 제작')
+      makeHistory(pathDirty);
+    }
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
+
+    console.log(
+      "source upload blit",
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.ex + 1,
+      pathDirty.ey + 1,
+    );
+    gl.blitFramebuffer(
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.ex + 1,
+      pathDirty.ey + 1,
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.ex + 1,
+      pathDirty.ey + 1,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
+  }
+
+  const fbo = gl.createFramebuffer();
+  function makeHistory(pathDirty) {
+    const historyTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, historyTex);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      paintOptions.width,
-      paintOptions.height,
+      pathDirty.width,
+      pathDirty.height,
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
       null,
+    ); // 빈 텍스처 생성
+
+    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      historyTex,
+      0,
     );
 
-    gl.copyTexSubImage2D(
-      gl.TEXTURE_2D, // 타겟 텍스처
-      0, // 레벨
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.ex + 1,
+      pathDirty.ey + 1,
       0,
-      0, // 텍스처 내에서 복사할 시작 좌표
       0,
-      0, // 프레임버퍼에서 복사할 시작 좌표
-      paintOptions.width,
-      paintOptions.height, // 복사할 크기
+      pathDirty.width,
+      pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
     );
+
+    historyManager.addUndo(
+      "source",
+      historyTex,
+      pathDirty.x,
+      pathDirty.y,
+      pathDirty.width,
+      pathDirty.height,
+    );
+    setQueueDrawingFlag(false);
   }
 
-  const fullQuadVertexShader = getFullQuadShader(gl);
+  function undoTask(history) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
-  let cancelShaderSource = `#version 300 es
-      precision highp float;
+    // pixelData를 texture에 다시 업로드
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      history.x, // x 좌표
+      history.y, // y 좌표
+      history.width, // width
+      history.height, // height
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      history.pixelData, // 데이터
+    );
 
-      uniform sampler2D u_source;  // 원본 텍스처
-
-      in vec2 v_texCoord;
-      out vec4 outColor;
-
-      void main() {
-        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
-
-        outColor = vec4(imageColor.rgb, imageColor.a);
-      }
-      `;
-
-  let cancelShader = createShader(gl, gl.FRAGMENT_SHADER, cancelShaderSource);
-  let cancelProgram = createProgram(gl, fullQuadVertexShader, cancelShader);
-  gl.useProgram(cancelProgram);
-
-  gl.uniform1i(
-    gl.getUniformLocation(cancelProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE,
-  );
-
-  enable_a_position(gl, cancelProgram);
+    console.log("undo 성공!");
+    sourceTextureManager.uploadCurrent(false);
+    renderingManager.render();
+  }
 
   // 캔버스를 소스 텍스쳐로 돌려놓기
   function restore() {
-    gl.disable(gl.SCISSOR_TEST);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, layerManager.layerFBO);
 
-    gl.useProgram(cancelProgram);
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.blitFramebuffer(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
   }
+
+  uploadCurrent(false);
 
   let sourceTextureManager = {
     texture: sourceTexture,
     uploadCurrent,
     restore,
     sourceFBO,
+    undoTask,
   };
 
   return sourceTextureManager;

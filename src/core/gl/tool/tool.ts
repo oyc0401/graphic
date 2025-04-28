@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
-import { getBrushManager, installBrushManager } from "./brushTool";
-import { getHistoryManager, setQueueDrawingFlag } from "./history";
+import { getBrushManager } from "./brushTool";
+import { setQueueDrawingFlag } from "../history";
 
 interface Pointer {
   x: number;
@@ -17,14 +17,12 @@ interface Tool {
 }
 
 export async function installTools(canvas, gl) {
-  await installBrushManager(canvas, gl);
   await installLiquifyManager(canvas, gl);
   console.log("Tool Installed");
 }
 
 export class BrushTool implements Tool {
   drawManager;
-
 
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);

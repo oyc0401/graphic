@@ -486,7 +486,7 @@ async function makeLiquifyManager(canvas, gl) {
         },
         exit() {
             clearMap();
-            sourceTextureManager.uploadCurrent();
+            sourceTextureManager.uploadCurrent(true, pathDirty);
         },
         setSize,
     };
