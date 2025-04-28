@@ -10,7 +10,7 @@ import { enable_a_position, getFullQuadShader } from "../vertexShader";
 import { getHistoryManager, setQueueDrawingFlag } from "../history";
 import { clamp } from "../../../utils/math";
 import { getManager } from "../utils/cachedManager";
-import { DirtyRect} from "../utils/dirtyRect";
+import { DirtyRect } from "../utils/dirtyRect";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -277,7 +277,7 @@ function makeBrushManager(canvas, gl) {
   enable_a_position(gl, eraserProgram);
 
   //////////////////////
-  let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+
   let pathDirty = new DirtyRect();
 
   ///////////
@@ -348,19 +348,20 @@ function makeBrushManager(canvas, gl) {
   setSize();
 
   let layerManager = getLayerManager(canvas, gl);
-  
+
   let renderingManager = getRenderingManager(canvas, gl);
   function clearMap() {
     let glHelper = getGlHelper(gl);
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
- 
+
   let brushManager = {
     enter() {
       console.log("enter!");
     },
     start(pointer) {
       console.log("start!");
+
       pathDirty.reset(pointer, paintOptions.radius);
     },
     stroke(start, end) {
@@ -396,26 +397,22 @@ function makeBrushManager(canvas, gl) {
         pathTexOut,
         0,
       );
+      
+      let scissorDirty = new DirtyRect();
+      scissorDirty.updatePointer(start, paintOptions.radius);
+      scissorDirty.updatePointer(end, paintOptions.radius);
 
-      let ceiledRadius = Math.ceil(paintOptions.radius);
-      let minX = Math.min(start.x, end.x);
-      let maxX = Math.max(start.x, end.x);
-      let minY = Math.min(start.y, end.y);
-      let maxY = Math.max(start.y, end.y);
-
-      dirtyRect.x = minX - ceiledRadius;
-      dirtyRect.y = minY - ceiledRadius;
-      dirtyRect.ex = maxX + ceiledRadius + 1;
-      dirtyRect.ey = maxY + ceiledRadius + 1;
-      dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
-      dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
-
-      pathDirty.updatePathDirtyRect(start, paintOptions.radius);
-      pathDirty.updatePathDirtyRect(end, paintOptions.radius);
+      pathDirty.updatePointer(start, paintOptions.radius);
+      pathDirty.updatePointer(end, paintOptions.radius);
 
       // SCISSOR TEST로 일부만 렌더링
       gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+      gl.scissor(
+        scissorDirty.x,
+        scissorDirty.y,
+        scissorDirty.width,
+        scissorDirty.height,
+      );
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -440,14 +437,14 @@ function makeBrushManager(canvas, gl) {
       );
 
       gl.blitFramebuffer(
-        dirtyRect.x,
-        dirtyRect.y,
-        dirtyRect.ex,
-        dirtyRect.ey, // 소스
-        dirtyRect.x,
-        dirtyRect.y,
-        dirtyRect.ex,
-        dirtyRect.ey, // 대상
+        scissorDirty.x,
+        scissorDirty.y,
+        scissorDirty.ex + 1,
+        scissorDirty.ey + 1, // 소스
+        scissorDirty.x,
+        scissorDirty.y,
+        scissorDirty.ex + 1,
+        scissorDirty.ey + 1, // 대상
         gl.COLOR_BUFFER_BIT,
         gl.NEAREST,
       );
@@ -480,9 +477,10 @@ function makeBrushManager(canvas, gl) {
       renderingManager.render();
     },
     end() {
-     // makeHistory();
+      // makeHistory();
 
-      sourceTextureManager.uploadCurrent(true,pathDirty);
+      console.log(pathDirty)
+      sourceTextureManager.uploadCurrent(true, pathDirty);
       clearMap();
     },
     cancel() {
@@ -496,4 +494,3 @@ function makeBrushManager(canvas, gl) {
 
   return brushManager;
 }
-

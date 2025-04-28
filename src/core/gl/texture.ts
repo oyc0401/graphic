@@ -128,6 +128,7 @@ function makeSourceTextureManager(canvas, gl) {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
 
+    console.warn("undo dirty", pathDirty);
     console.log(
       "source upload blit",
       pathDirty.x,
@@ -228,17 +229,17 @@ function makeSourceTextureManager(canvas, gl) {
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0, // level
-      history.x, // x 좌표
-      history.y, // y 좌표
-      history.width, // width
-      history.height, // height
+      history.rect.x, // x 좌표
+      history.rect.y, // y 좌표
+      history.rect.width, // width
+      history.rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
       history.pixelData, // 데이터
     );
 
     console.log("undo 성공!");
-    sourceTextureManager.uploadCurrent(false);
+    sourceTextureManager.uploadCurrent(false, history.rect);
     renderingManager.render();
   }
 

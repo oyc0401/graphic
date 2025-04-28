@@ -1,13 +1,17 @@
 import { getSourceTextureManager, paintOptions } from "./texture";
 import { getManager } from "./utils/cachedManager";
 import { getBrushManager } from "./tool/brushTool";
+import { DirtyRect } from "./utils/dirtyRect";
 interface HistoryItem {
   layerId: number;
   tool: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+
   pixelData: Uint8Array; // pixelData는 보통 readPixels 결과라서 Uint8Array로 추정
 }
 let historyStack: HistoryItem[] = [];
@@ -114,21 +118,17 @@ function createHistoryManager(canvas, gl) {
 
       pendingHistoryQueue.push(chunk);
     }
-
+    
     let finish = () => {
       console.log("getBufferSubData 완료!", now);
-
       const newHistory = {
         layerId,
         tool: historyType,
-        x,
-        y,
-        width,
-        height,
+        rect: { x, y, width, height, ex: width + x - 1, ey: height + y - 1 },
         pixelData,
       };
       historyStack.push(newHistory);
-       console.log('추가 undo:', historyStack.length)
+      console.log("추가 undo:", historyStack.length);
 
       gl.deleteTexture(historyTex); // 텍스처 삭제
     };
@@ -150,7 +150,7 @@ function createHistoryManager(canvas, gl) {
 
     historyStack.pop();
 
-    console.log('남은 undo:', historyStack.length)
+    console.log("남은 undo:", historyStack.length);
   }
 
   return {

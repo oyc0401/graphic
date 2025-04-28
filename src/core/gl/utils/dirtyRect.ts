@@ -2,10 +2,10 @@ import { clamp } from "../../../utils/math";
 import { paintOptions } from "../texture";
 
 export class DirtyRect {
-  pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+  pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
 
   constructor() {
-    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
   }
 
   get x() {
@@ -32,7 +32,7 @@ export class DirtyRect {
     return this.ey - this.y + 1;
   }
 
-  updatePathDirtyRect(pointer, radius) {
+  updatePointer(pointer, radius) {
     let minX = Math.min(this.pathDirtyRect.x, Math.floor(pointer.x - radius));
     let maxX = Math.max(this.pathDirtyRect.ex, Math.floor(pointer.x + radius));
     let minY = Math.min(this.pathDirtyRect.y, Math.floor(pointer.y - radius));
@@ -44,14 +44,19 @@ export class DirtyRect {
     this.pathDirtyRect.ey = maxY;
   }
 
-  reset(pointer, radius) {
-    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
+  reset(pointer: Pointer, radius) {
+    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0};
     console.log("시작!");
 
     this.pathDirtyRect.x = Math.floor(pointer.x - radius);
     this.pathDirtyRect.y = Math.floor(pointer.y - radius);
     this.pathDirtyRect.ex = Math.floor(pointer.x + radius);
     this.pathDirtyRect.ey = Math.floor(pointer.y + radius);
+
     console.log(pointer, radius, this.pathDirtyRect);
   }
+}
+interface Pointer {
+  x: number;
+  y: number;
 }

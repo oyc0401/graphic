@@ -20,6 +20,7 @@ import {
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
 import { DirtyRect } from "../utils/dirtyRect";
+import { pointers } from "../../../events/gestures";
 
 interface liquifyManager {
     enter(): void;
@@ -237,6 +238,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     ////////////////
     let pathDirty = new DirtyRect();
+    let imageDirty = new DirtyRect();
     /////////////////////////////
 
     // 취소 구현...
@@ -324,6 +326,14 @@ async function makeLiquifyManager(canvas, gl) {
 
         let ceiledRadius = Math.ceil(paintOptions.radius);
         pathDirty.reset(pointer, ceiledRadius);
+        if (enterFlag) {
+            console.log('liq dirty reset!!!')
+            imageDirty.reset(pointer, ceiledRadius);
+            enterFlag = false;
+        } else {
+             console.log('liq dirty updatePointer...')
+            imageDirty.updatePointer(pointer, ceiledRadius);
+        }
     }
 
     // init 시에 한 번만 호출 (ex. setSize()나 초기화 구간)
@@ -343,23 +353,14 @@ async function makeLiquifyManager(canvas, gl) {
         gl.uniform2f(u_startLoc, start.x, start.y);
         gl.uniform2f(u_endLoc, end.x, end.y);
 
-        let ceiledRadius = Math.ceil(paintOptions.radius);
-        let minX = Math.min(start.x, end.x);
-        let maxX = Math.max(start.x, end.x);
-        let minY = Math.min(start.y, end.y);
-        let maxY = Math.max(start.y, end.y);
+        let scissorDirty = new DirtyRect();
+        scissorDirty.updatePointer(start, paintOptions.radius);
+        scissorDirty.updatePointer(end, paintOptions.radius);
 
-        let dirtyRect = { x: 0, y: 0, ex: 0, ey: 0, width: 0, height: 0 };
-
-        dirtyRect.x = minX - ceiledRadius;
-        dirtyRect.y = minY - ceiledRadius;
-        dirtyRect.ex = maxX + ceiledRadius;
-        dirtyRect.ey = maxY + ceiledRadius;
-        dirtyRect.width = maxX - minX + 1 + 2 * ceiledRadius;
-        dirtyRect.height = maxY - minY + 1 + 2 * ceiledRadius;
-
-        pathDirty.updatePathDirtyRect(start, ceiledRadius);
-        pathDirty.updatePathDirtyRect(end, ceiledRadius);
+        pathDirty.updatePointer(start, paintOptions.radius);
+        pathDirty.updatePointer(end, paintOptions.radius);
+        imageDirty.updatePointer(start, paintOptions.radius);
+        imageDirty.updatePointer(end, paintOptions.radius);
 
         // 프레임버퍼에 output 텍스처 넣기
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -373,7 +374,12 @@ async function makeLiquifyManager(canvas, gl) {
 
         // SCISSOR TEST로 일부만 렌더링
         gl.enable(gl.SCISSOR_TEST);
-        gl.scissor(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height);
+        gl.scissor(
+            scissorDirty.x,
+            scissorDirty.y,
+            scissorDirty.width,
+            scissorDirty.height,
+        );
         gl.viewport(0, 0, paintOptions.width, paintOptions.height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -398,14 +404,14 @@ async function makeLiquifyManager(canvas, gl) {
         );
 
         gl.blitFramebuffer(
-            dirtyRect.x,
-            dirtyRect.y,
-            dirtyRect.ex,
-            dirtyRect.ey, // 소스
-            dirtyRect.x,
-            dirtyRect.y,
-            dirtyRect.ex,
-            dirtyRect.ey, // 대상
+            scissorDirty.x,
+            scissorDirty.y,
+            scissorDirty.ex + 1,
+            scissorDirty.ey + 1, // 소스
+            scissorDirty.x,
+            scissorDirty.y,
+            scissorDirty.ex + 1,
+            scissorDirty.ey + 1, // 대상
             gl.COLOR_BUFFER_BIT,
             gl.NEAREST,
         );
@@ -424,10 +430,7 @@ async function makeLiquifyManager(canvas, gl) {
     }
 
     function transfer(aTex, bTex) {
-        let height = paintOptions.height;
-
         // sourceDisplacementTex -> displacementTex
-
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
 
@@ -449,13 +452,13 @@ async function makeLiquifyManager(canvas, gl) {
 
         gl.blitFramebuffer(
             pathDirty.x,
-            height - pathDirty.y,
-            pathDirty.ex,
-            height - pathDirty.ey, // 소스
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1, // 소스
             pathDirty.x,
-            height - pathDirty.y,
-            pathDirty.ex,
-            height - pathDirty.ey, // 대상
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1, // 대상
             gl.COLOR_BUFFER_BIT,
             gl.NEAREST,
         );
@@ -470,8 +473,13 @@ async function makeLiquifyManager(canvas, gl) {
         glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
     }
 
+    let enterFlag = false;
+
     let Liquify = {
-        enter() {},
+        enter() {
+            console.log('liq enter')
+            enterFlag = true;
+        },
         start,
         push,
         render,
@@ -486,7 +494,7 @@ async function makeLiquifyManager(canvas, gl) {
         },
         exit() {
             clearMap();
-            sourceTextureManager.uploadCurrent(true, pathDirty);
+            sourceTextureManager.uploadCurrent(true, imageDirty);
         },
         setSize,
     };
