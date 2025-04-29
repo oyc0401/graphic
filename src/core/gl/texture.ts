@@ -1,12 +1,9 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "./utils/cachedManager";
 import { getRenderingManager } from "./render";
-import {
-  getHistoryManager,
-  HistoryItem,
-} from "./history/history";
+import { getHistoryManager, HistoryItem } from "./history/history";
 import { DirtyRect } from "./utils/dirtyRect";
-import { setQueueDrawingFlag } from "./history/pixelReadQueue";
+import { setDrawingFlag } from "./history/pixelReadProcessor";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -111,11 +108,11 @@ function makeSourceTextureManager(canvas, gl) {
   // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent(
     undoable = false,
-    pathDirty = new DirtyRect(
+    pathDirty = DirtyRect.fromWidth(
       0,
       0,
-      paintOptions.width - 1,
-      paintOptions.height - 1,
+      paintOptions.width,
+      paintOptions.height,
     ),
   ) {
     if (undoable) {
@@ -132,7 +129,7 @@ function makeSourceTextureManager(canvas, gl) {
         pathDirty.height,
       );
 
-      setQueueDrawingFlag(false);
+      setDrawingFlag(false);
     }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);

@@ -1,7 +1,7 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
-import { pixelReadManager } from "./pixelReadQueue";
+import { PixelReadProcessor } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 
 export interface HistoryItem {
@@ -25,7 +25,7 @@ function createHistoryManager(canvas, gl) {
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-  const readPixelQueue = new pixelReadManager(gl);
+  const readPixelQueue = new PixelReadProcessor(gl);
   async function addUndo(
     historyType,
     historyTex,
@@ -41,7 +41,7 @@ function createHistoryManager(canvas, gl) {
     const newHistory = {
       layerId,
       tool: historyType,
-      rect: new DirtyRect(x, y, width + x - 1, height + y - 1),
+      rect: DirtyRect.fromWidth(x, y, width, height),
       pixelReader,
     };
     undoStack.push(newHistory);
@@ -62,7 +62,6 @@ function createHistoryManager(canvas, gl) {
   async function addRedo(historyType, historyTex, x, y, width, height) {
     const { layerId } = paintOptions;
 
-    let now = performance.now();
     console.log("addRedo readPixels", width, height);
 
     let pixelReader = new PixelReader(gl, width, height, historyTex);
@@ -70,7 +69,7 @@ function createHistoryManager(canvas, gl) {
     const newHistory = {
       layerId,
       tool: historyType,
-      rect: new DirtyRect(x, y, width + x - 1, height + y - 1),
+      rect: DirtyRect.fromWidth(x, y, width, height),
       pixelReader,
     };
     redoStack.push(newHistory);
@@ -91,10 +90,11 @@ function createHistoryManager(canvas, gl) {
 
     undoStack.pop();
 
-    console.log("undo 실행");
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
     let { x, y, width, height } = history.rect;
     addRedo(history.tool, redoTex, x, y, width, height);
+
+    console.log("undo 실행");
+    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
   function redo() {
@@ -108,11 +108,11 @@ function createHistoryManager(canvas, gl) {
     }
 
     redoStack.pop();
-    console.log("redo 실행");
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
-
     let { x, y, width, height } = history.rect;
     addUndo(history.tool, undoTex, x, y, width, height, false);
+
+    console.log("redo 실행");
+    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
   return {
     addUndo,

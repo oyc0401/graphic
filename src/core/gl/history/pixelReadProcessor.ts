@@ -1,11 +1,11 @@
 import { PixelReader } from "./PixelReader";
 
 let drawing = false;
-export function setQueueDrawingFlag(value) {
+export function setDrawingFlag(value) {
   drawing = value;
 }
 
-export class pixelReadManager {
+export class PixelReadProcessor {
   gl: WebGL2RenderingContext;
   readPixelStack: PixelReader[] = []; // 최신 변경사항을 접근할 일이 많으니 LIFO로
 

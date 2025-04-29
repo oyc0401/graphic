@@ -7,6 +7,9 @@ export class DirtyRect {
   constructor(x = 0, y = 0, ex = 0, ey = 0) {
     this.pathDirtyRect = { x, y, ex, ey };
   }
+  static fromWidth(x, y, width, height) {
+    return new DirtyRect(x, y, width + x - 1, height + y - 1);
+  }
 
   get x() {
     return clamp(this.pathDirtyRect.x, 0, paintOptions.width - 1);

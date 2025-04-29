@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager } from "./brushTool";
-import { setQueueDrawingFlag } from "../history/pixelReadQueue";
+import { setDrawingFlag } from "../history/pixelReadProcessor";
 
 interface Pointer {
   x: number;
@@ -32,7 +32,7 @@ export class BrushTool implements Tool {
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
-    setQueueDrawingFlag(true);
+    setDrawingFlag(true);
     this.drawManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {

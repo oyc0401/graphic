@@ -6,8 +6,8 @@ export class PixelReader {
   gl: WebGL2RenderingContext;
   width: number;
   height: number;
-  texture;
-  static fbo;
+  texture: WebGLTexture;
+  static fbo: WebGLFramebuffer;
   workQueue: Function[] = [];
 
   constructor(gl, width, height, texture) {
