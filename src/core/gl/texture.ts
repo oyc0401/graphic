@@ -105,9 +105,6 @@ function makeSourceTextureManager(canvas, gl) {
     0,
   );
 
-  let w = 0;
-  let h = 0;
-
   // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent(
     undoable = false,
@@ -122,13 +119,24 @@ function makeSourceTextureManager(canvas, gl) {
   ) {
     if (undoable) {
       console.warn("uploadCurrent: 히스토리 제작");
-      makeHistory(pathDirty);
+      // layerTex를 sourceTex에 blit하기 전에 백업본 생성
+      const historyTex = makeDirtyTexture(pathDirty);
+
+      historyManager.addUndo(
+        "source",
+        historyTex,
+        pathDirty.x,
+        pathDirty.y,
+        pathDirty.width,
+        pathDirty.height,
+      );
+
+      setQueueDrawingFlag(false);
     }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
 
-    console.warn("undo dirty", pathDirty);
     console.log(
       "source upload blit",
       pathDirty.x,
@@ -168,7 +176,8 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   const fbo = gl.createFramebuffer();
-  function makeHistory(pathDirty) {
+
+  function makeDirtyTexture(pathDirty) {
     const historyTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, historyTex);
@@ -210,18 +219,14 @@ function makeSourceTextureManager(canvas, gl) {
       gl.NEAREST, // 필터링 옵션
     );
 
-    historyManager.addUndo(
-      "source",
-      historyTex,
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.width,
-      pathDirty.height,
-    );
-    setQueueDrawingFlag(false);
+    return historyTex;
   }
+  
 
-  function undoTask(history) {
+  function applyHistory(history) {
+    // history pixelData를 sourceTex에 texSubImage2D하기 전에 백업본 생성
+    const beforeTex = makeDirtyTexture(history.rect);
+
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
@@ -238,9 +243,11 @@ function makeSourceTextureManager(canvas, gl) {
       history.pixelData, // 데이터
     );
 
-    console.log("undo 성공!");
+    console.log("히스토러 적용 성공!");
     sourceTextureManager.uploadCurrent(false, history.rect);
     renderingManager.render();
+
+    return beforeTex;
   }
 
   // 캔버스를 소스 텍스쳐로 돌려놓기
@@ -270,7 +277,7 @@ function makeSourceTextureManager(canvas, gl) {
     uploadCurrent,
     restore,
     sourceFBO,
-    undoTask,
+    applyHistory,
     setSize,
   };
 

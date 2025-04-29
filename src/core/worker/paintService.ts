@@ -213,4 +213,8 @@ export class PaintService {
     let historyManager = getHistoryManager(this.canvas, this.gl);
     historyManager.undo();
   }
+  redo() {
+    let historyManager = getHistoryManager(this.canvas, this.gl);
+    historyManager.redo();
+  }
 }

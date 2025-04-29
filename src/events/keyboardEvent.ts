@@ -137,11 +137,25 @@ export function addKeyboardEvent() {
 
         canvasSelect(0, 0, position.width, position.height);
       }
-      if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.code === "KeyZ" &&
+        !event.shiftKey
+      ) {
         event.preventDefault();
-        console.log('undo!')
+        console.log("undo!");
         let worker = getLayerWorker();
         worker.undo();
+      }
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.code === "KeyZ" &&
+        event.shiftKey
+      ) {
+        event.preventDefault();
+        console.log("redo!");
+        let worker = getLayerWorker();
+        worker.redo();
       }
       if (event.code === "KeyB") {
         toolManager.setBrushTool();

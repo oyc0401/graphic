@@ -140,6 +140,9 @@ export const workerApi = {
   undo() {
     paint.undo();
   },
+  redo() {
+    paint.redo();
+  },
 };
 
 interface Pointer {
