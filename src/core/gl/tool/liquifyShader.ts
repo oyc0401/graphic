@@ -366,14 +366,19 @@ void main() {
     pixel.x < minCoord.x || pixel.x > maxCoord.x ||
     pixel.y < minCoord.y || pixel.y > maxCoord.y
   ) {
-    discard;
+    outDisplacement = value;
+    return;
   }
 
   // liquify 그리드 계산 (CPU 코드와 동일한 방식)
   vec2 d = u_end - u_start;
   float len = length(d);
   if (len == 0.0) {
-    discard;
+    // 이거 discard로 바꾸면 cancel에 오류남!
+    // discard 꼭 하려면 cancel할 때 outTex에 dirty blit을 해야하는데
+    // 둘중에 성능이 뭐가 더 잘 나올지 생각해 보셈
+    outDisplacement = value;
+    return;
   }
 
   vec2 unit = d / len;

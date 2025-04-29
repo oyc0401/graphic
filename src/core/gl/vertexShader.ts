@@ -27,8 +27,35 @@ function makeFullQuadVertexShader(gl) {
   return vertexShader;
 }
 
-export function enable_a_position(gl, program) {
-  let posLoc = gl.getAttribLocation(program, "a_position");
-  gl.enableVertexAttribArray(posLoc);
-  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+export function getBufferManager(canvas, gl) {
+  const manager = getManager(gl, "bufferManager", () => makeBufferManager(gl));
+  return manager;
+}
+
+function makeBufferManager(gl) {
+  const quadBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+    gl.STATIC_DRAW,
+  );
+
+  function createFullQuadVAO(program) {
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    gl.useProgram(program);
+    const posLoc = gl.getAttribLocation(program, "a_position");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+    return vao;
+  }
+
+  return {
+    createFullQuadVAO,
+  };
 }

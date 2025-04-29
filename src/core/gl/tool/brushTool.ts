@@ -6,7 +6,10 @@ import {
   paintOptions,
 } from "../texture";
 import { getLayerManager } from "../layer";
-import { enable_a_position, getFullQuadShader } from "../vertexShader";
+import {
+  getBufferManager,
+  getFullQuadShader,
+} from "../vertexShader";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
 
@@ -34,6 +37,7 @@ function makeBrushManager(canvas, gl) {
   // 원본 이미지 텍스처 생성
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const fullQuadVertexShader = getFullQuadShader(gl);
+  const bufferManager = getBufferManager(canvas, gl);
 
   let strokeShaderSource = `#version 300 es
     precision mediump float;
@@ -187,8 +191,8 @@ function makeBrushManager(canvas, gl) {
     new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
     gl.STATIC_DRAW,
   );
+  bufferManager.createFullQuadVAO(strokeProgram);
 
-  enable_a_position(gl, strokeProgram);
   //////////////////////////
 
   //////////////////////////
@@ -236,7 +240,7 @@ function makeBrushManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
-  enable_a_position(gl, brushProgram);
+  bufferManager.createFullQuadVAO(brushProgram);
 
   ///////////////////////////////////////
   let eraserShaderSource = `#version 300 es
@@ -272,7 +276,7 @@ function makeBrushManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
-  enable_a_position(gl, eraserProgram);
+  bufferManager.createFullQuadVAO(eraserProgram);
 
   //////////////////////
 
@@ -395,7 +399,7 @@ function makeBrushManager(canvas, gl) {
         pathTexOut,
         0,
       );
-      
+
       let scissorDirty = new DirtyRect();
       scissorDirty.updatePointer(start, paintOptions.radius);
       scissorDirty.updatePointer(end, paintOptions.radius);

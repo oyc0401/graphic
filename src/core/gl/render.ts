@@ -1,12 +1,10 @@
-import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
+import { TEXTURE_UNIT, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
-import { getLiquifyManager } from "./tool/liquify";
 
 import { getSelectionManager } from "./selection";
-import { getBrushManager } from "./tool/brushTool";
 
 import { createShader, createProgram } from "./utils/glHelper";
-import { enable_a_position, getFullQuadShader } from "./vertexShader";
+import { getBufferManager, getFullQuadShader } from "./vertexShader";
 import { getManager } from "./utils/cachedManager";
 
 export function getRenderingManager(canvas, gl) {
@@ -58,7 +56,8 @@ function makeRenderingManager(canvas, gl) {
   let displayProgram = createProgram(gl, fullQuadVertexShader, displayShader);
   gl.useProgram(displayProgram);
 
-  enable_a_position(gl, displayProgram);
+  const bufferManager = getBufferManager(canvas, gl);
+  bufferManager.createFullQuadVAO(displayProgram);
 
   function renderDisplay() {
     gl.useProgram(displayProgram);
@@ -141,8 +140,7 @@ function makeRenderingManager(canvas, gl) {
     backgroundShader,
   );
   gl.useProgram(backgroundProgram);
-
-  enable_a_position(gl, backgroundProgram);
+  bufferManager.createFullQuadVAO(backgroundProgram);
 
   function renderBackground() {
     gl.useProgram(backgroundProgram);
@@ -223,8 +221,7 @@ function makeRenderingManager(canvas, gl) {
     gl.getUniformLocation(renderProgram, "u_source"),
     TEXTURE_UNIT.LAYER,
   );
-
-  enable_a_position(gl, renderProgram);
+  bufferManager.createFullQuadVAO(renderProgram);
 
   function renderTexture() {
     gl.useProgram(renderProgram);
@@ -325,9 +322,8 @@ function makeRenderingManager(canvas, gl) {
   let gridShader = createShader(gl, gl.FRAGMENT_SHADER, gridShaderSource);
   let gridProgram = createProgram(gl, fullQuadVertexShader, gridShader);
   gl.useProgram(gridProgram);
-
-  enable_a_position(gl, gridProgram);
-
+  bufferManager.createFullQuadVAO(gridProgram);
+  
   function renderGrid() {
     gl.useProgram(gridProgram);
 
@@ -463,8 +459,7 @@ function makeRenderingManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE_SELECTION,
   );
   // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
-
-  enable_a_position(gl, selectionProgram);
+  bufferManager.createFullQuadVAO(selectionProgram);
 
   function renderSelection() {
     let selectionManager = getSelectionManager(canvas, gl);

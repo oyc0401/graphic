@@ -4,7 +4,7 @@ import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "./utils/cachedManager";
 import { decodePremultAndFlip } from "./utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
-import { enable_a_position, getFullQuadShader } from "./vertexShader";
+import { getBufferManager, getFullQuadShader } from "./vertexShader";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>
@@ -142,7 +142,8 @@ function createSelectionManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   );
 
-  enable_a_position(gl, selectionProgram);
+  const bufferManager = getBufferManager(canvas, gl);
+  bufferManager.createFullQuadVAO(selectionProgram);
 
   const selectionFBO = gl.createFramebuffer();
   gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);

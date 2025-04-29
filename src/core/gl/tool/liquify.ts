@@ -4,7 +4,10 @@ import {
     paintOptions,
 } from "../texture";
 import { getLayerManager } from "../layer";
-import { enable_a_position, getFullQuadShader } from "../vertexShader";
+import {
+    getBufferManager,
+    getFullQuadShader,
+} from "../vertexShader";
 
 import {
     getIntegralEaseInOut,
@@ -14,13 +17,12 @@ import {
 import {
     createShader,
     createProgram,
-    loadShader,
     getGlHelper,
 } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
 import { DirtyRect } from "../utils/dirtyRect";
-import { pointers } from "../../../events/gestures";
+import { getManager } from "../utils/cachedManager";
 
 interface liquifyManager {
     enter(): void;
@@ -156,21 +158,20 @@ async function makeLiquifyManager(canvas, gl) {
     );
 
     // 프레임버퍼 생성 및 바인딩
-    let framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    let displaceInFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, displaceInFBO);
     gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        displacementTexOutput,
+        displacementTexInput,
         0,
     );
 
     // 쓰여진 결과를 기본 변위맵에 업로드 하기 위해서
-    let readFrameBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, readFrameBuffer);
+    let displaceOutFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, displaceOutFBO);
     gl.framebufferTexture2D(
-        // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
@@ -185,8 +186,8 @@ async function makeLiquifyManager(canvas, gl) {
         new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
         gl.STATIC_DRAW,
     );
-
-    enable_a_position(gl, liquifyPushProgram);
+    const bufferManager = getBufferManager(canvas, gl);
+    bufferManager.createFullQuadVAO(liquifyPushProgram);
 
     let colorShaderSource = `#version 300 es
       precision mediump float;
@@ -234,22 +235,14 @@ async function makeLiquifyManager(canvas, gl) {
         TEXTURE_UNIT.SOURCE,
     ); // 텍스처 유닛 1에 할당
 
-    enable_a_position(gl, renderProgram);
+    bufferManager.createFullQuadVAO(renderProgram);
 
     ////////////////
     let pathDirty = new DirtyRect();
     let imageDirty = new DirtyRect();
     /////////////////////////////
 
-    // 취소 구현...
-    let sourceDisplacementTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
 
     function setSize() {
         const width = paintOptions.width;
@@ -301,19 +294,7 @@ async function makeLiquifyManager(canvas, gl) {
             null,
         );
 
-        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-        gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.RG16F,
-            width,
-            height,
-            0,
-            gl.RG,
-            gl.HALF_FLOAT,
-            null,
-        );
+        sourceDisplaceMapManager.setSize(width, height);
 
         clearMap();
     }
@@ -327,11 +308,11 @@ async function makeLiquifyManager(canvas, gl) {
         let ceiledRadius = Math.ceil(paintOptions.radius);
         pathDirty.reset(pointer, ceiledRadius);
         if (enterFlag) {
-            console.log('liq dirty reset!!!')
+            console.log("liq dirty reset!!!");
             imageDirty.reset(pointer, ceiledRadius);
             enterFlag = false;
         } else {
-             console.log('liq dirty updatePointer...')
+            console.log("liq dirty updatePointer...");
             imageDirty.updatePointer(pointer, ceiledRadius);
         }
     }
@@ -362,15 +343,8 @@ async function makeLiquifyManager(canvas, gl) {
         imageDirty.updatePointer(start, paintOptions.radius);
         imageDirty.updatePointer(end, paintOptions.radius);
 
-        // 프레임버퍼에 output 텍스처 넣기
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTexOutput,
-            0,
-        );
+        // 렌더 대상: output
+        gl.bindFramebuffer(gl.FRAMEBUFFER, displaceOutFBO);
 
         // SCISSOR TEST로 일부만 렌더링
         gl.enable(gl.SCISSOR_TEST);
@@ -384,24 +358,8 @@ async function makeLiquifyManager(canvas, gl) {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         // output 텍스처를 input 텍스쳐에도 옮기기
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-        gl.framebufferTexture2D(
-            gl.READ_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTexOutput,
-            0,
-        );
-
-        gl.framebufferTexture2D(
-            gl.DRAW_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            displacementTexInput,
-            0,
-        );
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, displaceOutFBO);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, displaceInFBO);
 
         gl.blitFramebuffer(
             scissorDirty.x,
@@ -429,40 +387,6 @@ async function makeLiquifyManager(canvas, gl) {
         renderingManager.render();
     }
 
-    function transfer(aTex, bTex) {
-        // sourceDisplacementTex -> displacementTex
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-        gl.framebufferTexture2D(
-            gl.READ_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            aTex,
-            0,
-        );
-
-        gl.framebufferTexture2D(
-            gl.DRAW_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            bTex,
-            0,
-        );
-
-        gl.blitFramebuffer(
-            pathDirty.x,
-            pathDirty.y,
-            pathDirty.ex + 1,
-            pathDirty.ey + 1, // 소스
-            pathDirty.x,
-            pathDirty.y,
-            pathDirty.ex + 1,
-            pathDirty.ey + 1, // 대상
-            gl.COLOR_BUFFER_BIT,
-            gl.NEAREST,
-        );
-    }
     function clearMap() {
         let width = paintOptions.width;
         let height = paintOptions.height;
@@ -470,26 +394,30 @@ async function makeLiquifyManager(canvas, gl) {
         let glHelper = getGlHelper(gl);
         glHelper.clearTextureVec2(displacementTexInput, width, height, [0, 0]);
         glHelper.clearTextureVec2(displacementTexOutput, width, height, [0, 0]);
-        glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
+        glHelper.clearTextureVec2(
+            sourceDisplaceMapManager.sourceDisplacementTex,
+            width,
+            height,
+            [0, 0],
+        );
     }
 
     let enterFlag = false;
 
     let Liquify = {
         enter() {
-            console.log('liq enter')
+            console.log("liq enter");
             enterFlag = true;
         },
         start,
         push,
         render,
         end() {
-            // displacementTex -> sourceDisplacementTex
-            transfer(displacementTexInput, sourceDisplacementTex);
+            sourceDisplaceMapManager.upload(displaceInFBO, pathDirty);
         },
         cancel() {
-            // sourceDisplacementTex -> displacementTex
-            transfer(sourceDisplacementTex, displacementTexInput);
+            sourceDisplaceMapManager.restore(displaceInFBO, pathDirty);
+
             render();
         },
         exit() {
@@ -500,4 +428,92 @@ async function makeLiquifyManager(canvas, gl) {
     };
 
     return Liquify;
+}
+
+function getSourceDisplaceMapManager(canvas, gl) {
+    const manager = getManager(gl, "sourceDisplaceMap", () =>
+        makeSourceDisplaceMapManager(canvas, gl),
+    );
+    return manager;
+}
+
+function makeSourceDisplaceMapManager(canvas, gl) {
+    let sourceDisplacementTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    let sourceDisplacementFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, sourceDisplacementFBO);
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        sourceDisplacementTex,
+        0,
+    );
+
+    function upload(fbo, pathDirty) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
+
+        gl.blitFramebuffer(
+            pathDirty.x,
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1,
+            pathDirty.x,
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1,
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+        );
+    }
+
+    function restore(fbo, pathDirty) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+
+        gl.blitFramebuffer(
+            pathDirty.x,
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1,
+            pathDirty.x,
+            pathDirty.y,
+            pathDirty.ex + 1,
+            pathDirty.ey + 1,
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+        );
+    }
+
+    function setSize(width, height) {
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+        gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RG16F,
+            width,
+            height,
+            0,
+            gl.RG,
+            gl.HALF_FLOAT,
+            null,
+        );
+    }
+
+    return {
+        setSize,
+        upload,
+        restore,
+        sourceDisplacementTex,
+        sourceDisplacementFBO,
+    };
 }

@@ -5,7 +5,7 @@ import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "./utils/cachedManager";
 import { decodePremultAndFlip } from "./utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
-import { enable_a_position, getFullQuadShader } from "./vertexShader";
+import { getBufferManager, getFullQuadShader } from "./vertexShader";
 
 export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
@@ -94,7 +94,9 @@ function canvasPixelManager(canvas, gl) {
 
   let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderSource);
   let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
-  enable_a_position(gl, renderProgram);
+
+  const bufferManager = getBufferManager(canvas, gl);
+  bufferManager.createFullQuadVAO(renderProgram);
 
   function renderTexture() {
     gl.useProgram(renderProgram);
