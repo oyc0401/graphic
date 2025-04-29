@@ -49,14 +49,11 @@ export class DirtyRect {
 
   reset(pointer: Pointer, radius) {
     this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
-    console.log("시작!");
 
     this.pathDirtyRect.x = Math.floor(pointer.x - radius);
     this.pathDirtyRect.y = Math.floor(pointer.y - radius);
     this.pathDirtyRect.ex = Math.floor(pointer.x + radius);
     this.pathDirtyRect.ey = Math.floor(pointer.y + radius);
-
-    console.log(pointer, radius, this.pathDirtyRect);
   }
 }
 interface Pointer {

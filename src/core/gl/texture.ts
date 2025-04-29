@@ -116,7 +116,6 @@ function makeSourceTextureManager(canvas, gl) {
     ),
   ) {
     if (undoable) {
-      console.warn("uploadCurrent: 히스토리 제작");
       // layerTex를 sourceTex에 blit하기 전에 백업본 생성
       const historyTex = makeDirtyTexture(pathDirty);
 
@@ -135,13 +134,13 @@ function makeSourceTextureManager(canvas, gl) {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
 
-    console.log(
-      "source upload blit",
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-    );
+    // console.log(
+    //   "source upload blit",
+    //   pathDirty.x,
+    //   pathDirty.y,
+    //   pathDirty.ex + 1,
+    //   pathDirty.ey + 1,
+    // );
     gl.blitFramebuffer(
       pathDirty.x,
       pathDirty.y,
@@ -223,7 +222,6 @@ function makeSourceTextureManager(canvas, gl) {
       history.pixelReader.getPixelData(), // 데이터
     );
 
-    console.log("히스토러 적용 성공!");
     sourceTextureManager.uploadCurrent(false, history.rect);
     renderingManager.render();
 

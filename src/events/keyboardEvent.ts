@@ -95,6 +95,29 @@ export function addKeyboardEvent() {
       if (isInput) return; // 인풋창이면 기본 이벤트 허용
 
       if (
+        (event.ctrlKey || event.metaKey) &&
+        event.code === "KeyZ" &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        console.log("undo!");
+        let worker = getLayerWorker();
+        worker.undo();
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.code === "KeyZ" &&
+        event.shiftKey
+      ) {
+        event.preventDefault();
+        console.log("redo!");
+        let worker = getLayerWorker();
+        worker.redo();
+        return;
+      }
+
+      if (
         event.code === "Space" ||
         event.code === "Tab" ||
         event.code == "Enter"
@@ -111,7 +134,6 @@ export function addKeyboardEvent() {
       if (event.code == "KeyZ") {
         event.preventDefault();
         pressedKeys.setKeyZ(true);
-        // 이때 마우스가 클릭되어있는 상태면 바로 팬이 작동되게 하고, 확대 축소는 또 한번 클릭해야지 되는걸로 하자.
       }
 
       //console.log("키다운");
@@ -137,26 +159,7 @@ export function addKeyboardEvent() {
 
         canvasSelect(0, 0, position.width, position.height);
       }
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.code === "KeyZ" &&
-        !event.shiftKey
-      ) {
-        event.preventDefault();
-        console.log("undo!");
-        let worker = getLayerWorker();
-        worker.undo();
-      }
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.code === "KeyZ" &&
-        event.shiftKey
-      ) {
-        event.preventDefault();
-        console.log("redo!");
-        let worker = getLayerWorker();
-        worker.redo();
-      }
+
       if (event.code === "KeyB") {
         toolManager.setBrushTool();
       }

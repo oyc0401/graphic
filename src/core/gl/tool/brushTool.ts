@@ -7,8 +7,6 @@ import {
 } from "../texture";
 import { getLayerManager } from "../layer";
 import { enable_a_position, getFullQuadShader } from "../vertexShader";
-import { getHistoryManager, setQueueDrawingFlag } from "../history";
-import { clamp } from "../../../utils/math";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
 
@@ -477,9 +475,6 @@ function makeBrushManager(canvas, gl) {
       renderingManager.render();
     },
     end() {
-      // makeHistory();
-
-      console.log(pathDirty)
       sourceTextureManager.uploadCurrent(true, pathDirty);
       clearMap();
     },

@@ -54,7 +54,6 @@ function createHistoryManager(canvas, gl) {
       // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
       // 객체 안에서 readPixel하게!
       redoStack = [];
-      console.log("redo 초기화");
       console.log("undo:", undoStack.length, "redo:", redoStack.length);
     }
   }
@@ -93,7 +92,6 @@ function createHistoryManager(canvas, gl) {
     let { x, y, width, height } = history.rect;
     addRedo(history.tool, redoTex, x, y, width, height);
 
-    console.log("undo 실행");
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
@@ -111,7 +109,6 @@ function createHistoryManager(canvas, gl) {
     let { x, y, width, height } = history.rect;
     addUndo(history.tool, undoTex, x, y, width, height, false);
 
-    console.log("redo 실행");
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
   return {

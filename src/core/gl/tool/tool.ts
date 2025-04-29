@@ -28,7 +28,7 @@ export class BrushTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   enter() {
-    console.log("brush enter");
+   // console.log("brush enter");
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
@@ -40,7 +40,7 @@ export class BrushTool implements Tool {
     this.drawManager.brush();
   }
   end() {
-    console.log("brush end");
+    //console.log("brush end");
     this.drawManager.end();
 
   }
@@ -48,7 +48,7 @@ export class BrushTool implements Tool {
     this.drawManager.cancel();
   }
   exit() {
-    console.log("brush exit");
+   // console.log("brush exit");
   }
 }
 
@@ -82,11 +82,11 @@ export class LiquifyTool implements Tool {
     this.liquifyManager = getLiquifyManager(canvas, gl);
   }
   enter() {
-    console.log("liquify enter");
+    //console.log("liquify enter");
     this.liquifyManager.enter();
   }
   start(pointer: Pointer) {
-    console.log("liquify start");
+   // console.log("liquify start");
     this.liquifyManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
@@ -94,14 +94,14 @@ export class LiquifyTool implements Tool {
     this.liquifyManager.render();
   }
   end() {
-    console.log("liquify end");
+    //console.log("liquify end");
     this.liquifyManager.end();
   }
   cancel() {
     this.liquifyManager.cancel();
   }
   exit() {
-    console.log("liquify exit");
+    //console.log("liquify exit");
     this.liquifyManager.exit();
   }
 }
