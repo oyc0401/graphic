@@ -3,6 +3,7 @@ import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
 import { PixelReadProcessor } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
+import { mainThread } from "../../worker/mainPool";
 
 export interface HistoryItem {
   layerId: number;
@@ -26,7 +27,7 @@ function createHistoryManager(canvas, gl) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
   const readPixelQueue = new PixelReadProcessor(gl);
-  async function addUndo(
+  function addUndo(
     historyType,
     historyTex,
     x,
@@ -58,17 +59,12 @@ function createHistoryManager(canvas, gl) {
       redoStack = [];
     }
 
-    self.postMessage({
-      type: "historyCount",
-      payload: {
-        undoCount: undoStack.length,
-        redoCount: redoStack.length,
-      },
-    });
+    mainThread.historyCount(undoStack.length, redoStack.length);
+
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
-  async function addRedo(historyType, historyTex, x, y, width, height) {
+  function addRedo(historyType, historyTex, x, y, width, height) {
     const { layerId } = paintOptions;
 
     console.log("addRedo readPixels", width, height);
@@ -86,13 +82,7 @@ function createHistoryManager(canvas, gl) {
     readPixelQueue.push(pixelReader);
     readPixelQueue.excute();
 
-    self.postMessage({
-      type: "historyCount",
-      payload: {
-        undoCount: undoStack.length,
-        redoCount: redoStack.length,
-      },
-    });
+    mainThread.historyCount(undoStack.length, redoStack.length);
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 

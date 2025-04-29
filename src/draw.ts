@@ -6,7 +6,7 @@ import { dispatch } from "./events/pointerEvents";
 import { position } from "./position";
 
 export const toolManager = {
-  setBrushTool() {
+  async setBrushTool() {
     if (paintState.pointerdown) return;
     paintState.setToolId("brush");
     paintState.setBrushId("brush");

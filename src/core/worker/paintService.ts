@@ -14,6 +14,7 @@ import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../gl/history/history";
 import { mainThread } from "./mainPool";
+import { Callink } from "./Callink";
 
 interface Pointer {
   x: number;
@@ -153,7 +154,7 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     let { pixels, width, height } = selectionManager.getPixelData();
 
-    mainThread.copy({ pixels, width, height }, [pixels.buffer]);
+    mainThread.copy(Callink.transfer(pixels, [pixels.buffer]), width, height);
   }
   cut() {
     // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
@@ -161,7 +162,7 @@ export class PaintService {
     let { pixels, width, height } = selectionManager.getPixelData();
 
     selectionManager.afterCut();
-    mainThread.copy({ pixels, width, height }, [pixels.buffer]);
+    mainThread.copy(Callink.transfer(pixels, [pixels.buffer]), width, height);
   }
   selectionDelete() {
     paintOptions.showSelection = false;
@@ -174,22 +175,16 @@ export class PaintService {
   resetImage(width, height) {
     resetImage(this.canvas, this.gl, width, height);
   }
-  downloadImage() {
+  async downloadImage() {
     let manager = getCanvasPixelManager(this.canvas, this.gl);
     let { pixels, width, height } = manager.getCanvasPixelData();
-
-    self.postMessage(
-      {
-        type: "download",
-        payload: {
-          pixels,
-          width,
-          height,
-        },
-      },
-      [pixels.buffer],
+    await mainThread.download(
+      Callink.transfer(pixels, [pixels.buffer]),
+      width,
+      height,
     );
   }
+
   undo() {
     let historyManager = getHistoryManager(this.canvas, this.gl);
     historyManager.undo();
