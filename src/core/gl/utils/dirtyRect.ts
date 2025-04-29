@@ -4,8 +4,8 @@ import { paintOptions } from "../texture";
 export class DirtyRect {
   pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
 
-  constructor() {
-    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
+  constructor(x = 0, y = 0, ex = 0, ey = 0) {
+    this.pathDirtyRect = { x, y, ex, ey };
   }
 
   get x() {
@@ -45,7 +45,7 @@ export class DirtyRect {
   }
 
   reset(pointer: Pointer, radius) {
-    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0};
+    this.pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };
     console.log("시작!");
 
     this.pathDirtyRect.x = Math.floor(pointer.x - radius);

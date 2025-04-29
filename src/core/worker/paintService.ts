@@ -12,7 +12,7 @@ import { resizeLayer, resizeScreen } from "../gl/resize";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
-import { getHistoryManager } from "../gl/history";
+import { getHistoryManager } from "../gl/history/history";
 interface Pointer {
   x: number;
   y: number;

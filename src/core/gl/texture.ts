@@ -1,9 +1,12 @@
-import { createShader, createProgram } from "./utils/glHelper";
-import { enable_a_position, getFullQuadShader } from "./vertexShader";
 import { getLayerManager } from "./layer";
 import { getManager } from "./utils/cachedManager";
 import { getRenderingManager } from "./render";
-import { getHistoryManager, setQueueDrawingFlag } from "./history";
+import {
+  getHistoryManager,
+  HistoryItem,
+} from "./history/history";
+import { DirtyRect } from "./utils/dirtyRect";
+import { setQueueDrawingFlag } from "./history/pixelReadQueue";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -108,14 +111,12 @@ function makeSourceTextureManager(canvas, gl) {
   // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
   function uploadCurrent(
     undoable = false,
-    pathDirty = {
-      x: 0,
-      y: 0,
-      ex: paintOptions.width - 1,
-      ey: paintOptions.height - 1,
-      width: paintOptions.width,
-      height: paintOptions.height,
-    },
+    pathDirty = new DirtyRect(
+      0,
+      0,
+      paintOptions.width - 1,
+      paintOptions.height - 1,
+    ),
   ) {
     if (undoable) {
       console.warn("uploadCurrent: 히스토리 제작");
@@ -155,23 +156,6 @@ function makeSourceTextureManager(canvas, gl) {
       pathDirty.ey + 1,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
-    );
-  }
-
-  function setSize() {
-    console.warn("source 크기 조정");
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      paintOptions.width,
-      paintOptions.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
     );
   }
 
@@ -221,9 +205,8 @@ function makeSourceTextureManager(canvas, gl) {
 
     return historyTex;
   }
-  
 
-  function applyHistory(history) {
+  function applyHistory(history: HistoryItem) {
     // history pixelData를 sourceTex에 texSubImage2D하기 전에 백업본 생성
     const beforeTex = makeDirtyTexture(history.rect);
 
@@ -240,7 +223,7 @@ function makeSourceTextureManager(canvas, gl) {
       history.rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      history.pixelData, // 데이터
+      history.pixelReader.getPixelData(), // 데이터
     );
 
     console.log("히스토러 적용 성공!");
@@ -248,6 +231,23 @@ function makeSourceTextureManager(canvas, gl) {
     renderingManager.render();
 
     return beforeTex;
+  }
+
+  function setSize() {
+    console.warn("source 크기 조정");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
   }
 
   // 캔버스를 소스 텍스쳐로 돌려놓기

@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager } from "./brushTool";
-import { setQueueDrawingFlag } from "../history";
+import { setQueueDrawingFlag } from "../history/pixelReadQueue";
 
 interface Pointer {
   x: number;
