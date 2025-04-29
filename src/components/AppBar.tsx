@@ -6,7 +6,9 @@ import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
 
 import UndoIcon from "../assets/undo.svg?react";
-import RedoIcon from "../assets/redo_disabled.svg?react";
+import RedoIcon from "../assets/redo.svg?react";
+import UndoOffIcon from "../assets/undo_disabled.svg?react";
+import RedoOffIcon from "../assets/redo_disabled.svg?react";
 
 import BrushIcon from "../assets/brush.svg?react";
 import EraserIcon from "../assets/eraser.svg?react";
@@ -15,6 +17,7 @@ import SelectionIcon from "../assets/select_rectangle.svg?react";
 
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
+import { historyState, redo, undo } from "../history";
 
 const hexColors = [
   "#000000",
@@ -42,13 +45,7 @@ export default function AppBar() {
         <MainMenuToggleButton />
 
         <div style={{ flex: 1 }} />
-
-        <button id="undo-button" className="header-button">
-          <UndoIcon />
-        </button>
-        <button id="redo-button" className="header-button">
-          <RedoIcon />
-        </button>
+        <HistoryButtons />
       </div>
 
       {/* ===== 툴바 ===== */}
@@ -104,6 +101,19 @@ export default function AppBar() {
     </div>
   );
 }
+
+const HistoryButtons = observer(() => {
+  return (
+    <>
+      <button aria-label="undo-button" className="header-button" onClick={undo}>
+        {historyState.getUndoCount() === 0 ? <UndoOffIcon /> : <UndoIcon />}
+      </button>
+      <button aria-label="redo-button" className="header-button" onClick={redo}>
+        {historyState.getRedoCount() === 0 ? <RedoOffIcon /> : <RedoIcon />}
+      </button>
+    </>
+  );
+});
 
 const SelectionToolButton = observer(() => {
   const isSelected =

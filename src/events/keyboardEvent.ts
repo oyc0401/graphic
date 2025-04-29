@@ -12,6 +12,7 @@ import {
 } from "../position";
 import { clamp } from "../utils/math";
 import { getLayerWorker } from "../core/worker/workerPool";
+import { redo, undo } from "../history";
 
 function addWheelListener() {
   /**
@@ -22,8 +23,9 @@ function addWheelListener() {
       "wheel",
       (event) => {
         //console.log("wheel", event);
+        let ctrlKey = event.ctrlKey || event.metaKey;
 
-        if (event.ctrlKey || event.metaKey) {
+        if (ctrlKey) {
           event.preventDefault();
 
           const clampedDelta = clamp(event.deltaY, -12, 12);
@@ -94,26 +96,16 @@ export function addKeyboardEvent() {
       // console.log(target);
       if (isInput) return; // 인풋창이면 기본 이벤트 허용
 
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.code === "KeyZ" &&
-        !event.shiftKey
-      ) {
+      let ctrlKey = event.ctrlKey || event.metaKey;
+
+      if (ctrlKey && event.code === "KeyZ" && !event.shiftKey) {
         event.preventDefault();
-        console.log("undo!");
-        let worker = getLayerWorker();
-        worker.undo();
+        undo();
         return;
       }
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.code === "KeyZ" &&
-        event.shiftKey
-      ) {
+      if (ctrlKey && event.code === "KeyZ" && event.shiftKey) {
         event.preventDefault();
-        console.log("redo!");
-        let worker = getLayerWorker();
-        worker.redo();
+        redo();
         return;
       }
 

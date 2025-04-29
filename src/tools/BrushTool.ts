@@ -2,6 +2,7 @@ import { paintState } from "../paintState";
 import { getLayerWorker } from "../core/worker/workerPool";
 import { position, to_canvas_coord } from "../position";
 import { colorState } from "../colorState";
+import { historyState } from "../history";
 
 export class BrushTool {
   private active = false;
@@ -58,7 +59,7 @@ export class BrushTool {
     }
 
     worker.end();
-    
+
     paintState.changed = true;
   }
 

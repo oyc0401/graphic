@@ -9,28 +9,35 @@ function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
   throw new Error(`No element found with id "${elementId}"`);
 }
 
-export let els = {
-  canvas: $id<HTMLCanvasElement>("canvas")!,
-  container: $id("container"),
-  brushCursor: $id("brush-cursor"),
-  zoomArea: $id("zoom-area"),
+type Elements = ReturnType<typeof elements>;
 
-  selectionArea: $id("selection-area"),
-  handleLT: $id("handle-lt"),
-  handleRT: $id("handle-rt"),
-  handleRB: $id("handle-rb"),
-  handleLB: $id("handle-lb"),
+export let els: Elements = elements();
 
-  selectionSizeBox: $id("selection-size"),
-  selectionText: $id("selection-text"),
+function elements() {
+  return {
+    canvas: $id<HTMLCanvasElement>("canvas")!,
+    container: $id("container"),
+    brushCursor: $id("brush-cursor"),
+    zoomArea: $id("zoom-area"),
 
-  positionBox: $id("cursor-position"),
-  positionText: $id("cursor-position-text"),
+    selectionArea: $id("selection-area"),
+    handleLT: $id("handle-lt"),
+    handleRT: $id("handle-rt"),
+    handleRB: $id("handle-rb"),
+    handleLB: $id("handle-lb"),
 
-  titleArea: $id("title-area"),
-  canvasTitle: $id("canvas-title"),
-};
+    selectionSizeBox: $id("selection-size"),
+    selectionText: $id("selection-text"),
+
+    positionBox: $id("cursor-position"),
+    positionText: $id("cursor-position-text"),
+
+    titleArea: $id("title-area"),
+    canvasTitle: $id("canvas-title"),
+  };
+}
 
 export function getElements() {
+  els = elements();
   $id("cursor-icon").innerHTML = CursorSvg;
 }

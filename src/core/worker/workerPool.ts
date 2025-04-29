@@ -1,7 +1,9 @@
+// 메인스레드 임포트 영역
 import * as Comlink from "comlink";
 import { workerApi } from "./paintController";
-import { copyPixelsToClipboard, downloadPixels } from "../../file";
 import WorkerModule from "./worker?worker";
+import { mainApi } from "./mainController";
+import { Callink } from "./Callink";
 
 type WorkerApi = typeof workerApi;
 
@@ -17,23 +19,15 @@ function getWorkerObject() {
   if (!workerPool["layer"]) {
     const worker = new WorkerModule();
 
-    // 워커가 postMessage 한 거 수신
-    worker.onmessage = (e) => {
-      const { type, payload } = e.data;
-      if (type === "copy") {
-        let { pixels, width, height } = payload;
-        let pixelData: Uint8ClampedArray = pixels;
-        copyPixelsToClipboard(pixelData, width, height);
-      }
-      if (type === "download") {
-        let { pixels, width, height } = payload;
-        let pixelData: Uint8ClampedArray = pixels;
-        downloadPixels(pixelData, width, height);
-      }
-    };
-    //const api = Comlink.wrap<WorkerApi>(worker);
-    const api = workerApi;
-    
+    // 워커 수신
+    Callink.expose(worker, mainApi);
+
+    // worker 사용
+    const api = Comlink.wrap<WorkerApi>(worker);
+
+    // main 쓰레드 사용
+    // const api = workerApi;
+
     workerPool["layer"] = { worker, workerApi: api };
   }
   return workerPool["layer"];

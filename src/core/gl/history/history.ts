@@ -37,6 +37,8 @@ function createHistoryManager(canvas, gl) {
   ) {
     const { layerId } = paintOptions;
 
+    console.log("addUndo readPixels", width, height);
+
     let pixelReader = new PixelReader(gl, width, height, historyTex);
     const newHistory = {
       layerId,
@@ -54,8 +56,16 @@ function createHistoryManager(canvas, gl) {
       // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
       // 객체 안에서 readPixel하게!
       redoStack = [];
-      console.log("undo:", undoStack.length, "redo:", redoStack.length);
     }
+
+    self.postMessage({
+      type: "historyCount",
+      payload: {
+        undoCount: undoStack.length,
+        redoCount: redoStack.length,
+      },
+    });
+    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
   async function addRedo(historyType, historyTex, x, y, width, height) {
@@ -75,6 +85,15 @@ function createHistoryManager(canvas, gl) {
 
     readPixelQueue.push(pixelReader);
     readPixelQueue.excute();
+
+    self.postMessage({
+      type: "historyCount",
+      payload: {
+        undoCount: undoStack.length,
+        redoCount: redoStack.length,
+      },
+    });
+    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
   function undo() {
@@ -91,8 +110,6 @@ function createHistoryManager(canvas, gl) {
 
     let { x, y, width, height } = history.rect;
     addRedo(history.tool, redoTex, x, y, width, height);
-
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
   function redo() {
@@ -108,8 +125,6 @@ function createHistoryManager(canvas, gl) {
     redoStack.pop();
     let { x, y, width, height } = history.rect;
     addUndo(history.tool, undoTex, x, y, width, height, false);
-
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
   return {
     addUndo,

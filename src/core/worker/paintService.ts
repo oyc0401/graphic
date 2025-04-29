@@ -13,6 +13,8 @@ import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../gl/history/history";
+import { mainThread } from "./mainPool";
+
 interface Pointer {
   x: number;
   y: number;
@@ -151,17 +153,7 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     let { pixels, width, height } = selectionManager.getPixelData();
 
-    self.postMessage(
-      {
-        type: "copy",
-        payload: {
-          pixels,
-          width,
-          height,
-        },
-      },
-      [pixels.buffer],
-    );
+    mainThread.copy({ pixels, width, height }, [pixels.buffer]);
   }
   cut() {
     // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
@@ -169,18 +161,7 @@ export class PaintService {
     let { pixels, width, height } = selectionManager.getPixelData();
 
     selectionManager.afterCut();
-
-    self.postMessage(
-      {
-        type: "copy",
-        payload: {
-          pixels,
-          width,
-          height,
-        },
-      },
-      [pixels.buffer],
-    );
+    mainThread.copy({ pixels, width, height }, [pixels.buffer]);
   }
   selectionDelete() {
     paintOptions.showSelection = false;
