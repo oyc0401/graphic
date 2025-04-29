@@ -5,9 +5,9 @@ export function setQueueDrawingFlag(value) {
   drawing = value;
 }
 
-export class PixelReadQueueManager {
+export class pixelReadManager {
   gl: WebGL2RenderingContext;
-  readPixelQueue: PixelReader[] = [];
+  readPixelStack: PixelReader[] = []; // 최신 변경사항을 접근할 일이 많으니 LIFO로
 
   running = false;
   constructor(gl) {
@@ -15,22 +15,22 @@ export class PixelReadQueueManager {
   }
 
   push(pixelReader: PixelReader) {
-    this.readPixelQueue.push(pixelReader);
+    this.readPixelStack.push(pixelReader);
   }
 
   async excute() {
     if (this.running) return;
     this.running = true;
-    while (this.readPixelQueue.length > 0) {
-      // 읽고 나서 다음 작업으로 넘어가기 전에 잠시 대기
 
+    while (this.readPixelStack.length > 0) {
       if (!drawing) {
-        const pixelReader = this.readPixelQueue.shift();
+        const pixelReader = this.readPixelStack.pop();
+
         while (!pixelReader.isEmpty()) {
           await waitForSync(this.gl);
-          if (pixelReader.isEmpty()) return;
+          if (pixelReader.isEmpty()) break;
 
-          let fn = pixelReader.front();
+          const fn = pixelReader.front();
           fn();
           pixelReader.pop();
         }
@@ -38,6 +38,7 @@ export class PixelReadQueueManager {
         await new Promise((r) => setTimeout(r, 32));
       }
     }
+
     this.running = false;
   }
 }

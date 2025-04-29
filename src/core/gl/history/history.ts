@@ -1,7 +1,7 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
-import { PixelReadQueueManager } from "./pixelReadQueue";
+import { pixelReadManager } from "./pixelReadQueue";
 import { PixelReader } from "./PixelReader";
 
 export interface HistoryItem {
@@ -25,7 +25,7 @@ function createHistoryManager(canvas, gl) {
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-  const readPixelQueue = new PixelReadQueueManager(gl);
+  const readPixelQueue = new pixelReadManager(gl);
   async function addUndo(
     historyType,
     historyTex,
