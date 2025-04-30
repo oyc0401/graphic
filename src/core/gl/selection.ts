@@ -240,7 +240,7 @@ function createSelectionManager(canvas, gl) {
     }
 
     // 레이어를 수정했으니 업로드
-    sourceTextureManager.uploadCurrent();
+    sourceTextureManager.uploadCurrent(true);
 
     renderingManager.render();
   }
@@ -299,7 +299,7 @@ function createSelectionManager(canvas, gl) {
 
     renderingManager.render();
 
-    sourceTextureManager.uploadCurrent();
+    sourceTextureManager.uploadCurrent(true);
   }
 
   function getPixelData() {

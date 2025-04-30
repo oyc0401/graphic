@@ -178,14 +178,7 @@ async function makeLiquifyManager(canvas, gl) {
         displacementTexOutput,
         0,
     );
-
-    let positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1]),
-        gl.STATIC_DRAW,
-    );
+    
     const bufferManager = getBufferManager(canvas, gl);
     bufferManager.createFullQuadVAO(liquifyPushProgram);
 
