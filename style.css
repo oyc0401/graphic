@@ -97,6 +97,7 @@ canvas {
   /* top:300px; */
   /* background-color: green;  */
   z-index: 1;
+  transform-origin: top left;
 }
 
 #draw-canvas {

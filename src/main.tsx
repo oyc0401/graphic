@@ -77,7 +77,7 @@ function debugSetting() {
     debounce(async () => {
       console.log("debounce");
       updateBouncingRect();
-      resizeScreen(); // worker에 있는 webgl에 드로우콜 날림
+      resizeScreen();
       render();
       setCanvasCSSSize();
     }, 100);
@@ -101,10 +101,7 @@ function debugSetting() {
 }
 function setCanvasCSSSize() {
   let dpr = getPixelRatio();
-  if (dpr != 1) {
-    els.canvas.style.width = `${position.bouncingRect.width}px`;
-    els.canvas.style.height = `${position.bouncingRect.height}px`;
-  }
+  els.canvas.style.transform = `scale(${1/dpr})`;
 }
 
 let timer;
