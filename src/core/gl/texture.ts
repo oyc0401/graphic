@@ -152,7 +152,7 @@ function makeSourceTextureManager(canvas, gl) {
     return historyTex;
   }
 
-  function makeHistory(x, y, width, height) {
+  function makeHistory(x, y, width, height): HistoryItem {
     let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
     const historyTex = makeDirtyTexture(dirtyRect);
 
@@ -164,12 +164,13 @@ function makeSourceTextureManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    const newHistory = {
+    const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
       tool: "source",
       rect: dirtyRect,
       pixelReader,
       skipHistory: false,
+      applyHistory: applyHistory,
     };
 
     return newHistory;
@@ -234,6 +235,8 @@ function makeSourceTextureManager(canvas, gl) {
     );
 
     let newHistory = uploadCurrent(history.rect);
+    newHistory.skipHistory = history.skipHistory;
+
     renderingManager.render();
 
     return newHistory;

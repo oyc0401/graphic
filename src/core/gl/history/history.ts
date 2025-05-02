@@ -4,10 +4,6 @@ import { DirtyRect } from "../utils/dirtyRect";
 import { PixelReadProcessor, setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
-import {
-  getLiquifyManager,
-  getSourceDisplaceMapManager,
-} from "../tool/liquify";
 
 export interface HistoryItem {
   layerId: number;
@@ -15,6 +11,7 @@ export interface HistoryItem {
   rect: DirtyRect;
   pixelReader: PixelReader;
   skipHistory: boolean;
+  applyHistory(HistoryItem): HistoryItem;
 }
 let undoStack: HistoryItem[] = [];
 let redoStack: HistoryItem[] = [];
@@ -79,17 +76,9 @@ function createHistoryManager(canvas, gl) {
     let history = undoStack[undoStack.length - 1];
     undoStack.pop();
 
-    if (history.tool == "source") {
-      let sourceManager = getSourceTextureManager(canvas, gl);
-      let newHistory = sourceManager.applyHistory(history);
-      newHistory.skipHistory = history.skipHistory;
-      addRedo(newHistory);
-    } else if (history.tool == "displace") {
-      let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
-      let newHistory = sourceDisplaceMapManager.applyHistory(history);
-      newHistory.skipHistory = history.skipHistory;
-      addRedo(newHistory);
-    }
+    let newHistory = history.applyHistory(history);
+
+    addRedo(newHistory);
 
     if (history.skipHistory) {
       undo();
@@ -102,17 +91,9 @@ function createHistoryManager(canvas, gl) {
     let history = redoStack[redoStack.length - 1];
     redoStack.pop();
 
-    if (history.tool == "source") {
-      let sourceManager = getSourceTextureManager(canvas, gl);
-      let newHistory = sourceManager.applyHistory(history);
-      newHistory.skipHistory = history.skipHistory;
-      addUndo(newHistory, { resetRedo: false });
-    } else if (history.tool == "displace") {
-      let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
-      let newHistory = sourceDisplaceMapManager.applyHistory(history);
-      newHistory.skipHistory = history.skipHistory;
-      addUndo(newHistory, { resetRedo: false });
-    }
+    let newHistory = history.applyHistory(history);
+
+    addUndo(newHistory, { resetRedo: false });
 
     if (history.skipHistory) {
       redo();

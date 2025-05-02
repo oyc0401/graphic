@@ -529,12 +529,13 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       gl.RG,
       gl.HALF_FLOAT
     );
-    const newHistory = {
+    const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
       tool: "displace",
       rect: dirtyRect,
       pixelReader,
       skipHistory: false,
+      applyHistory,
     };
 
     return newHistory;
@@ -603,6 +604,8 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     );
 
     let newHistory = upload(history.rect);
+    newHistory.skipHistory = history.skipHistory;
+
     liquifyManager.render();
 
     return newHistory;
