@@ -409,7 +409,7 @@ async function makeLiquifyManager(canvas, gl) {
     push,
     render,
     end() {
-      sourceDisplaceMapManager.upload(pathDirty, true);
+      sourceDisplaceMapManager.upload(true, pathDirty);
     },
     cancel() {
       sourceDisplaceMapManager.restore(pathDirty);
@@ -417,8 +417,12 @@ async function makeLiquifyManager(canvas, gl) {
       render();
     },
     exit() {
-      clearMap();
-      sourceTextureManager.uploadCurrent(true, imageDirty);
+      let historyManager = getHistoryManager(canvas, gl);
+      historyManager.skip(() => {
+        sourceDisplaceMapManager.upload(true);
+        clearMap();
+        sourceTextureManager.uploadCurrent(true, imageDirty);
+      });
     },
     setSize,
     displacementTex: displacementTexInput,
@@ -503,7 +507,15 @@ function makeSourceDisplaceMapManager(canvas, gl) {
   }
   const historyManager = getHistoryManager(canvas, gl);
 
-  function upload(pathDirty, undoable = false) {
+  function upload(
+    undoable = false,
+    pathDirty = DirtyRect.fromWidth(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height
+    )
+  ) {
     console.log("liquify upload");
     let liquifyManager = getLiquifyManager(canvas, gl);
 
@@ -565,7 +577,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       history.pixelReader.getPixelData() // 데이터
     );
 
-    upload(history.rect, false);
+    upload(false, history.rect);
     liquifyManager.render();
 
     return beforeTex;

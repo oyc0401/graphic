@@ -14,6 +14,7 @@ export interface HistoryItem {
   tool: string;
   rect: DirtyRect;
   pixelReader: PixelReader;
+  skipHistory: boolean;
 }
 let undoStack: HistoryItem[] = [];
 let redoStack: HistoryItem[] = [];
@@ -30,6 +31,8 @@ function createHistoryManager(canvas, gl) {
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
+  let skipHistory = false;
+
   const readPixelQueue = new PixelReadProcessor(gl);
   function addUndo(
     historyType,
@@ -40,8 +43,10 @@ function createHistoryManager(canvas, gl) {
     height,
     dataFormat,
     dataType,
-
-    resetRedo = true
+    options = {
+      resetRedo: true,
+      skipHistoryFlag: false,
+    }
   ) {
     const { layerId } = paintOptions;
 
@@ -60,13 +65,14 @@ function createHistoryManager(canvas, gl) {
       tool: historyType,
       rect: DirtyRect.fromWidth(x, y, width, height),
       pixelReader,
+      skipHistory: skipHistory || options.skipHistoryFlag,
     };
     undoStack.push(newHistory);
 
     readPixelQueue.push(pixelReader);
     readPixelQueue.excute();
 
-    if (resetRedo && redoStack.length != 0) {
+    if (options.resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
       // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
       // 객체 안에서 readPixel하게!
@@ -86,7 +92,10 @@ function createHistoryManager(canvas, gl) {
     width,
     height,
     dataFormat,
-    dataType
+    dataType,
+    options = {
+      skipHistoryFlag: false,
+    }
   ) {
     const { layerId } = paintOptions;
 
@@ -106,6 +115,7 @@ function createHistoryManager(canvas, gl) {
       tool: historyType,
       rect: DirtyRect.fromWidth(x, y, width, height),
       pixelReader,
+      skipHistory: skipHistory || options.skipHistoryFlag,
     };
     redoStack.push(newHistory);
 
@@ -133,16 +143,30 @@ function createHistoryManager(canvas, gl) {
         width,
         height,
         gl.RGBA,
-        gl.UNSIGNED_BYTE
+        gl.UNSIGNED_BYTE,
+        { skipHistoryFlag: history.skipHistory }
       );
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
       redoTex = sourceDisplaceMapManager.applyHistory(history);
       let { x, y, width, height } = history.rect;
-      addRedo(history.tool, redoTex, x, y, width, height, gl.RG, gl.HALF_FLOAT);
+      addRedo(
+        history.tool,
+        redoTex,
+        x,
+        y,
+        width,
+        height,
+        gl.RG,
+        gl.HALF_FLOAT,
+        { skipHistoryFlag: history.skipHistory }
+      );
     }
-
     undoStack.pop();
+
+    if (history.skipHistory) {
+      undo();
+    }
   }
 
   function redo() {
@@ -165,7 +189,7 @@ function createHistoryManager(canvas, gl) {
         height,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
-        false
+        { resetRedo: false, skipHistoryFlag: history.skipHistory }
       );
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
@@ -180,13 +204,24 @@ function createHistoryManager(canvas, gl) {
         height,
         gl.RG,
         gl.HALF_FLOAT,
-        false
+        { resetRedo: false, skipHistoryFlag: history.skipHistory }
       );
     }
+
+    if (history.skipHistory) {
+      redo();
+    }
+  }
+
+  function skip(callback) {
+    skipHistory = true;
+    callback();
+    skipHistory = false;
   }
   return {
     addUndo,
     undo,
     redo,
+    skip,
   };
 }
