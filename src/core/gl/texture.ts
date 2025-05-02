@@ -153,9 +153,8 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function makeHistory(x, y, width, height) {
-    const historyTex = makeDirtyTexture(
-      DirtyRect.fromWidth(x, y, width, height)
-    );
+    let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
+    const historyTex = makeDirtyTexture(dirtyRect);
 
     let pixelReader = new PixelReader(
       gl,
@@ -168,7 +167,7 @@ function makeSourceTextureManager(canvas, gl) {
     const newHistory = {
       layerId: paintOptions.layerId,
       tool: "source",
-      rect: DirtyRect.fromWidth(x, y, width, height),
+      rect: dirtyRect,
       pixelReader,
       skipHistory: false,
     };

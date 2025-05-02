@@ -516,10 +516,10 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     return historyTex;
   }
 
-  function makeHistory(x, y, width, height) {
-    const historyTex = makeDirtyTexture(
-      DirtyRect.fromWidth(x, y, width, height)
-    );
+  function makeHistory(x, y, width, height): HistoryItem {
+    let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
+
+    const historyTex = makeDirtyTexture(dirtyRect);
 
     let pixelReader = new PixelReader(
       gl,
@@ -532,7 +532,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     const newHistory = {
       layerId: paintOptions.layerId,
       tool: "displace",
-      rect: DirtyRect.fromWidth(x, y, width, height),
+      rect: dirtyRect,
       pixelReader,
       skipHistory: false,
     };
