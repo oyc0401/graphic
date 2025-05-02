@@ -10,6 +10,11 @@ declare module "*.svg?raw" {
   export default content;
 }
 
+declare module "*.glsl?raw" {
+  const content: string;
+  export default content;
+}
+
 declare module "*?worker" {
   const workerConstructor: {
     new (): Worker;
