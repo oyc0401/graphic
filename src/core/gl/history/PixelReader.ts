@@ -8,14 +8,16 @@ export class PixelReader {
   texture: WebGLTexture;
   static fbo: WebGLFramebuffer;
   workQueue: Function[] = [];
-  format;
-  type;
+  format; // RGBA, RG
+  type; // UNSIGNED_BYTE, HALF_FLOAT
 
   constructor(gl, width, height, texture, format, type) {
     let bytesPerPixel = 4;
-
     if (format == gl.RG) {
       bytesPerPixel = 2;
+    }
+
+    if (type == gl.HALF_FLOAT) {
       this.pixelData = new Uint16Array(width * height * bytesPerPixel);
     } else {
       this.pixelData = new Uint8Array(width * height * bytesPerPixel);
@@ -43,9 +45,15 @@ export class PixelReader {
     const height = this.height;
     const historyTex = this.texture;
     const fbo = PixelReader.fbo;
+
     let bytesPerPixel = 4;
     if (this.format == gl.RG) {
       bytesPerPixel = 2;
+    }
+
+    let pixelConstructor: any = Uint8Array;
+    if (this.type == gl.HALF_FLOAT) {
+      pixelConstructor = Uint16Array;
     }
 
     // 한 줄씩 읽어서 처리
@@ -56,21 +64,11 @@ export class PixelReader {
         const remainingRows = height - rowOffset;
         const rowsToRead = Math.min(rowsPerChunk, remainingRows);
 
-        let subArray;
-        if (this.format == gl.RG) {
-          bytesPerPixel = 2;
-          subArray = new Uint16Array(
-            this.pixelData.buffer,
-            rowOffset * width * bytesPerPixel,
-            rowsToRead * width * bytesPerPixel
-          );
-        } else {
-          subArray = new Uint8Array(
-            this.pixelData.buffer,
-            rowOffset * width * bytesPerPixel,
-            rowsToRead * width * bytesPerPixel
-          );
-        }
+        let subArray = new pixelConstructor(
+          this.pixelData.buffer,
+          rowOffset * width * bytesPerPixel,
+          rowsToRead * width * bytesPerPixel
+        );
 
         // 한 줄씩 읽기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
