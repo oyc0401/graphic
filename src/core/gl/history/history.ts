@@ -36,13 +36,11 @@ function createHistoryManager(canvas, gl) {
     newHistory,
     options: {
       resetRedo?: boolean;
-      skipHistory?: boolean;
     } = {}
   ) {
-    const { resetRedo = true, skipHistory = false } = options;
+    const { resetRedo = true } = options;
 
-    console.log("addUndo readPixels");
-    newHistory.skipHistory = skipHistory;
+    console.log("addUndo", newHistory);
 
     undoStack.push(newHistory);
 
@@ -62,17 +60,9 @@ function createHistoryManager(canvas, gl) {
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
-  function addRedo(
-    newHistory,
-    options: {
-      skipHistory?: boolean;
-    } = {}
-  ) {
-    const { skipHistory = false } = options;
+  function addRedo(newHistory) {
+    console.log("addRedo", newHistory);
 
-    console.log("addRedo readPixels", newHistory);
-
-    newHistory.skipHistory = skipHistory;
     redoStack.push(newHistory);
 
     setDrawingFlag(false);
@@ -92,11 +82,11 @@ function createHistoryManager(canvas, gl) {
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       let newHistory = sourceManager.applyHistory(history);
-      addRedo(newHistory, { skipHistory: history.skipHistory });
+      addRedo(newHistory);
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
       let newHistory = sourceDisplaceMapManager.applyHistory(history);
-      addRedo(newHistory, { skipHistory: history.skipHistory });
+      addRedo(newHistory);
     }
 
     if (history.skipHistory) {
@@ -113,17 +103,11 @@ function createHistoryManager(canvas, gl) {
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       let newHistory = sourceManager.applyHistory(history);
-      addUndo(newHistory, {
-        resetRedo: false,
-        skipHistory: history.skipHistory,
-      });
+      addUndo(newHistory, { resetRedo: false });
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
       let newHistory = sourceDisplaceMapManager.applyHistory(history);
-      addUndo(newHistory, {
-        resetRedo: false,
-        skipHistory: history.skipHistory,
-      });
+      addUndo(newHistory, { resetRedo: false });
     }
 
     if (history.skipHistory) {

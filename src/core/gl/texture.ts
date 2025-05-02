@@ -74,7 +74,6 @@ export function getSourceTextureManager(canvas, gl) {
 function makeSourceTextureManager(canvas, gl) {
   const renderingManager = getRenderingManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
-  const historyManager = getHistoryManager(canvas, gl);
 
   const sourceTexture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
@@ -105,6 +104,8 @@ function makeSourceTextureManager(canvas, gl) {
     sourceTexture,
     0
   );
+
+  const fbo = gl.createFramebuffer();
 
   function makeDirtyTexture(pathDirty) {
     const historyTex = gl.createTexture();
@@ -216,8 +217,6 @@ function makeSourceTextureManager(canvas, gl) {
     return history;
   }
 
-  const fbo = gl.createFramebuffer();
-
   function applyHistory(history: HistoryItem): HistoryItem {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
@@ -241,23 +240,6 @@ function makeSourceTextureManager(canvas, gl) {
     return newHistory;
   }
 
-  function setSize() {
-    console.warn("source 크기 조정");
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
-    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      paintOptions.width,
-      paintOptions.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-  }
-
   // 캔버스를 소스 텍스쳐로 돌려놓기
   function restore() {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
@@ -274,6 +256,23 @@ function makeSourceTextureManager(canvas, gl) {
       paintOptions.height,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST
+    );
+  }
+
+  function setSize() {
+    console.warn("source 크기 조정");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+    gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
     );
   }
 

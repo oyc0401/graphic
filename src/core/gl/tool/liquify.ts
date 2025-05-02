@@ -426,11 +426,13 @@ async function makeLiquifyManager(canvas, gl) {
       let displaceHistory = sourceDisplaceMapManager.upload(
         DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height)
       );
-      historyManager.addUndo(displaceHistory, { skipHistory: true });
+      displaceHistory.skipHistory = true;
+      historyManager.addUndo(displaceHistory);
 
       clearMap();
       let sourceHistory = sourceTextureManager.uploadCurrent(imageDirty);
-      historyManager.addUndo(sourceHistory, { skipHistory: true });
+      sourceHistory.skipHistory = true;
+      historyManager.addUndo(sourceHistory);
     },
     setSize,
     displacementTex: displacementTexInput,
@@ -537,7 +539,6 @@ function makeSourceDisplaceMapManager(canvas, gl) {
 
     return newHistory;
   }
-  const historyManager = getHistoryManager(canvas, gl);
 
   function upload(pathDirty?: DirtyRect): HistoryItem {
     console.log("liquify upload");
@@ -561,8 +562,6 @@ function makeSourceDisplaceMapManager(canvas, gl) {
         paintOptions.height
       );
     }
-
-    console.log("fbo:", fbo);
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
