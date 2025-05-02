@@ -89,19 +89,10 @@ function debugSetting() {
     applySelection();
     worker.setLayerId(layerId);
   };
-
-  els.container.addEventListener(
-    "touchstart",
-    function (event) {
-      // text Loupe disable
-      event.preventDefault();
-    },
-    false
-  );
 }
 function setCanvasCSSSize() {
   let dpr = getPixelRatio();
-  els.canvas.style.transform = `scale(${1/dpr})`;
+  els.canvas.style.transform = `scale(${1 / dpr})`;
 }
 
 let timer;
