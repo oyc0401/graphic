@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // 1. npm run dev 먼저 실행
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Run Vite Dev Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      // 2. 그 다음 Chrome 디버깅용 설정
+      "type": "chrome",
+      "request": "launch",
+      "name": "Open Chrome on Vite",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Dev + Chrome",
+      "configurations": ["Run Vite Dev Server", "Open Chrome on Vite"]
+    }
+  ]
+}

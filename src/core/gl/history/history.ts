@@ -4,6 +4,10 @@ import { DirtyRect } from "../utils/dirtyRect";
 import { PixelReadProcessor } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
+import {
+  getLiquifyManager,
+  getSourceDisplaceMapManager,
+} from "../tool/liquify";
 
 export interface HistoryItem {
   layerId: number;
@@ -16,7 +20,7 @@ let redoStack: HistoryItem[] = [];
 
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
-    createHistoryManager(canvas, gl),
+    createHistoryManager(canvas, gl)
   );
   return manager;
 }
@@ -34,13 +38,23 @@ function createHistoryManager(canvas, gl) {
     y,
     width,
     height,
-    resetRedo = true,
+    dataFormat,
+    dataType,
+
+    resetRedo = true
   ) {
     const { layerId } = paintOptions;
 
     console.log("addUndo readPixels", width, height);
 
-    let pixelReader = new PixelReader(gl, width, height, historyTex);
+    let pixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      historyTex,
+      dataFormat,
+      dataType
+    );
     const newHistory = {
       layerId,
       tool: historyType,
@@ -64,12 +78,28 @@ function createHistoryManager(canvas, gl) {
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
   }
 
-  function addRedo(historyType, historyTex, x, y, width, height) {
+  function addRedo(
+    historyType,
+    historyTex,
+    x,
+    y,
+    width,
+    height,
+    dataFormat,
+    dataType
+  ) {
     const { layerId } = paintOptions;
 
     console.log("addRedo readPixels", width, height);
 
-    let pixelReader = new PixelReader(gl, width, height, historyTex);
+    let pixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      historyTex,
+      dataFormat,
+      dataType
+    );
 
     const newHistory = {
       layerId,
@@ -94,27 +124,65 @@ function createHistoryManager(canvas, gl) {
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       redoTex = sourceManager.applyHistory(history);
+      let { x, y, width, height } = history.rect;
+      addRedo(
+        history.tool,
+        redoTex,
+        x,
+        y,
+        width,
+        height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE
+      );
+    } else if (history.tool == "displace") {
+      let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
+      redoTex = sourceDisplaceMapManager.applyHistory(history);
+      let { x, y, width, height } = history.rect;
+      addRedo(history.tool, redoTex, x, y, width, height, gl.RG, gl.HALF_FLOAT);
     }
 
     undoStack.pop();
-
-    let { x, y, width, height } = history.rect;
-    addRedo(history.tool, redoTex, x, y, width, height);
   }
 
   function redo() {
     if (redoStack.length == 0) return;
 
     let history = redoStack[redoStack.length - 1];
+    redoStack.pop();
+
     let undoTex;
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       undoTex = sourceManager.applyHistory(history);
+      let { x, y, width, height } = history.rect;
+      addUndo(
+        history.tool,
+        undoTex,
+        x,
+        y,
+        width,
+        height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        false
+      );
+    } else if (history.tool == "displace") {
+      let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
+      undoTex = sourceDisplaceMapManager.applyHistory(history);
+      let { x, y, width, height } = history.rect;
+      addUndo(
+        history.tool,
+        undoTex,
+        x,
+        y,
+        width,
+        height,
+        gl.RG,
+        gl.HALF_FLOAT,
+        false
+      );
     }
-
-    redoStack.pop();
-    let { x, y, width, height } = history.rect;
-    addUndo(history.tool, undoTex, x, y, width, height, false);
   }
   return {
     addUndo,

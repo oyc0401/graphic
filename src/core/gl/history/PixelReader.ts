@@ -1,21 +1,34 @@
-const bytesPerPixel = 4;
 const chunkPixels = 2000_000;
 
 export class PixelReader {
-  pixelData: Uint8Array;
+  pixelData;
   gl: WebGL2RenderingContext;
   width: number;
   height: number;
   texture: WebGLTexture;
   static fbo: WebGLFramebuffer;
   workQueue: Function[] = [];
+  format;
+  type;
 
-  constructor(gl, width, height, texture) {
+  constructor(gl, width, height, texture, format, type) {
+    let bytesPerPixel = 4;
+
+    if (format == gl.RG) {
+      bytesPerPixel = 2;
+      this.pixelData = new Uint16Array(width * height * bytesPerPixel);
+    } else {
+      this.pixelData = new Uint8Array(width * height * bytesPerPixel);
+    }
+
     this.gl = gl;
     this.width = width;
     this.height = height;
     this.texture = texture;
-    this.pixelData = new Uint8Array(width * height * bytesPerPixel);
+
+    this.format = format;
+    this.type = type;
+
     if (!PixelReader.fbo) {
       PixelReader.fbo = gl.createFramebuffer();
       gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
@@ -30,6 +43,10 @@ export class PixelReader {
     const height = this.height;
     const historyTex = this.texture;
     const fbo = PixelReader.fbo;
+    let bytesPerPixel = 4;
+    if (this.format == gl.RG) {
+      bytesPerPixel = 2;
+    }
 
     // 한 줄씩 읽어서 처리
     const rowsPerChunk = Math.floor(chunkPixels / width); // 한 번에 읽을 수 있는 줄 수 (9999 / 1000 = 9줄)
@@ -39,11 +56,21 @@ export class PixelReader {
         const remainingRows = height - rowOffset;
         const rowsToRead = Math.min(rowsPerChunk, remainingRows);
 
-        const subArray = new Uint8Array(
-          this.pixelData.buffer,
-          rowOffset * width * bytesPerPixel,
-          rowsToRead * width * bytesPerPixel,
-        );
+        let subArray;
+        if (this.format == gl.RG) {
+          bytesPerPixel = 2;
+          subArray = new Uint16Array(
+            this.pixelData.buffer,
+            rowOffset * width * bytesPerPixel,
+            rowsToRead * width * bytesPerPixel
+          );
+        } else {
+          subArray = new Uint8Array(
+            this.pixelData.buffer,
+            rowOffset * width * bytesPerPixel,
+            rowsToRead * width * bytesPerPixel
+          );
+        }
 
         // 한 줄씩 읽기
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
@@ -52,16 +79,16 @@ export class PixelReader {
           gl.COLOR_ATTACHMENT0,
           gl.TEXTURE_2D,
           historyTex,
-          0,
+          0
         );
         gl.readPixels(
           0,
           rowOffset,
           width,
           rowsToRead,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          subArray,
+          this.format, // gl.RGBA,
+          this.type, //gl.UNSIGNED_BYTE,
+          subArray
         );
         console.log("read!");
       };
