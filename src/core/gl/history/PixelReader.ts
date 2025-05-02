@@ -1,4 +1,4 @@
-const chunkPixels = 2000_000;
+const CHUNK_BYTES = 8_000_000; // 한 번에 읽을 최대 바이트 수
 
 export class PixelReader {
   pixelData;
@@ -12,17 +12,6 @@ export class PixelReader {
   type; // UNSIGNED_BYTE, HALF_FLOAT
 
   constructor(gl, width, height, texture, format, type) {
-    let bytesPerPixel = 4;
-    if (format == gl.RG) {
-      bytesPerPixel = 2;
-    }
-
-    if (type == gl.HALF_FLOAT) {
-      this.pixelData = new Uint16Array(width * height * bytesPerPixel);
-    } else {
-      this.pixelData = new Uint8Array(width * height * bytesPerPixel);
-    }
-
     this.gl = gl;
     this.width = width;
     this.height = height;
@@ -30,6 +19,11 @@ export class PixelReader {
 
     this.format = format;
     this.type = type;
+
+    const info = getPixelFormatInfo(gl, this.format, this.type);
+    const { components, bytesPerComponent, TypedArray } = info;
+
+    this.pixelData = new TypedArray(width * height * components);
 
     if (!PixelReader.fbo) {
       PixelReader.fbo = gl.createFramebuffer();
@@ -46,28 +40,24 @@ export class PixelReader {
     const historyTex = this.texture;
     const fbo = PixelReader.fbo;
 
-    let bytesPerPixel = 4;
-    if (this.format == gl.RG) {
-      bytesPerPixel = 2;
-    }
-
-    let pixelConstructor: any = Uint8Array;
-    if (this.type == gl.HALF_FLOAT) {
-      pixelConstructor = Uint16Array;
-    }
+    const info = getPixelFormatInfo(gl, this.format, this.type);
+    const { components, bytesPerComponent, bytesPerPixel, TypedArray } = info;
 
     // 한 줄씩 읽어서 처리
-    const rowsPerChunk = Math.floor(chunkPixels / width); // 한 번에 읽을 수 있는 줄 수 (9999 / 1000 = 9줄)
+    const rowsPerChunk = Math.floor(CHUNK_BYTES / (width * bytesPerPixel));
+    // => 1바이트 RGBA(4 comp): chunkBytes/4픽셀
+    //    2바이트 RG (2 comp): chunkBytes/4픽셀
+    //    2바이트 RGBA (4 comp): chunkBytes/8픽셀
 
     for (let rowOffset = 0; rowOffset < height; rowOffset += rowsPerChunk) {
       let chunk = () => {
         const remainingRows = height - rowOffset;
         const rowsToRead = Math.min(rowsPerChunk, remainingRows);
 
-        let subArray = new pixelConstructor(
+        const subArray = new TypedArray(
           this.pixelData.buffer,
-          rowOffset * width * bytesPerPixel,
-          rowsToRead * width * bytesPerPixel
+          rowOffset * width * components * bytesPerComponent, // byteOffset
+          rowsToRead * width * components // elementCount
         );
 
         // 한 줄씩 읽기
@@ -121,4 +111,59 @@ export class PixelReader {
     }
     return this.pixelData;
   }
+}
+
+// WebGL pixel format/type 헬퍼
+function getPixelFormatInfo(
+  gl: WebGL2RenderingContext,
+  format: number,
+  type: number
+) {
+  let components = 4; // default: RGBA
+  switch (format) {
+    case gl.RED:
+      components = 1;
+      break;
+    case gl.RG:
+      components = 2;
+      break;
+    case gl.RGB:
+      components = 3;
+      break;
+    case gl.RGBA:
+      components = 4;
+      break;
+    default:
+      console.warn("Unknown format, defaulting components to 4 (RGBA)");
+  }
+
+  let bytesPerComponent = 1;
+  let TypedArray: typeof Uint8Array | typeof Uint16Array | typeof Float32Array =
+    Uint8Array;
+
+  switch (type) {
+    case gl.UNSIGNED_BYTE:
+      bytesPerComponent = 1;
+      TypedArray = Uint8Array;
+      break;
+    case gl.HALF_FLOAT:
+      bytesPerComponent = 2;
+      TypedArray = Uint16Array;
+      break;
+    case gl.FLOAT:
+      bytesPerComponent = 4;
+      TypedArray = Float32Array;
+      break;
+    default:
+      console.warn("Unknown type, defaulting to UNSIGNED_BYTE");
+  }
+
+  const bytesPerPixel = components * bytesPerComponent;
+
+  return {
+    components,
+    bytesPerComponent,
+    bytesPerPixel,
+    TypedArray,
+  };
 }

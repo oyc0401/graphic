@@ -588,6 +588,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
 
+    console.log("liquify size:", history.rect.width * history.rect.height);
     // pixelData를 texture에 다시 업로드
     gl.texSubImage2D(
       gl.TEXTURE_2D,

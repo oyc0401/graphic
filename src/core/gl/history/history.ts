@@ -82,10 +82,12 @@ function createHistoryManager(canvas, gl) {
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       let newHistory = sourceManager.applyHistory(history);
+      newHistory.skipHistory = history.skipHistory;
       addRedo(newHistory);
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
       let newHistory = sourceDisplaceMapManager.applyHistory(history);
+      newHistory.skipHistory = history.skipHistory;
       addRedo(newHistory);
     }
 
@@ -103,10 +105,12 @@ function createHistoryManager(canvas, gl) {
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
       let newHistory = sourceManager.applyHistory(history);
+      newHistory.skipHistory = history.skipHistory;
       addUndo(newHistory, { resetRedo: false });
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
       let newHistory = sourceDisplaceMapManager.applyHistory(history);
+      newHistory.skipHistory = history.skipHistory;
       addUndo(newHistory, { resetRedo: false });
     }
 
