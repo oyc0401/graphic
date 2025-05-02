@@ -18,6 +18,7 @@ import { DirtyRect } from "../utils/dirtyRect";
 import { getManager } from "../utils/cachedManager";
 import { getHistoryManager, HistoryItem } from "../history/history";
 import { setDrawingFlag } from "../history/pixelReadProcessor";
+import { PixelReader } from "../history/PixelReader";
 
 interface liquifyManager {
   enter(): void;
@@ -409,7 +410,10 @@ async function makeLiquifyManager(canvas, gl) {
     push,
     render,
     end() {
-      sourceDisplaceMapManager.upload(true, pathDirty);
+      let history = sourceDisplaceMapManager.upload(pathDirty);
+
+      let historyManager = getHistoryManager(canvas, gl);
+      historyManager.addUndo(history);
     },
     cancel() {
       sourceDisplaceMapManager.restore(pathDirty);
@@ -418,11 +422,15 @@ async function makeLiquifyManager(canvas, gl) {
     },
     exit() {
       let historyManager = getHistoryManager(canvas, gl);
-      historyManager.skip(() => {
-        sourceDisplaceMapManager.upload(true);
-        clearMap();
-        sourceTextureManager.uploadCurrent(true, imageDirty);
-      });
+
+      let displaceHistory = sourceDisplaceMapManager.upload(
+        DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height)
+      );
+      historyManager.addUndo(displaceHistory, { skipHistory: true });
+
+      clearMap();
+      let sourceHistory = sourceTextureManager.uploadCurrent(imageDirty);
+      historyManager.addUndo(sourceHistory, { skipHistory: true });
     },
     setSize,
     displacementTex: displacementTexInput,
@@ -505,36 +513,53 @@ function makeSourceDisplaceMapManager(canvas, gl) {
 
     return historyTex;
   }
+
+  function makeHistory(x, y, width, height) {
+    const historyTex = makeDirtyTexture(
+      DirtyRect.fromWidth(x, y, width, height)
+    );
+
+    let pixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      historyTex,
+      gl.RG,
+      gl.HALF_FLOAT
+    );
+    const newHistory = {
+      layerId: paintOptions.layerId,
+      tool: "displace",
+      rect: DirtyRect.fromWidth(x, y, width, height),
+      pixelReader,
+      skipHistory: false,
+    };
+
+    return newHistory;
+  }
   const historyManager = getHistoryManager(canvas, gl);
 
-  function upload(
-    undoable = false,
-    pathDirty = DirtyRect.fromWidth(
-      0,
-      0,
-      paintOptions.width,
-      paintOptions.height
-    )
-  ) {
+  function upload(pathDirty?: DirtyRect): HistoryItem {
     console.log("liquify upload");
     let liquifyManager = getLiquifyManager(canvas, gl);
 
-    if (undoable) {
-      // layerTex를 sourceTex에 blit하기 전에 백업본 생성
-      const historyTex = makeDirtyTexture(pathDirty);
-
-      historyManager.addUndo(
-        "displace",
-        historyTex,
+    let newHistory;
+    if (pathDirty) {
+      newHistory = makeHistory(
         pathDirty.x,
         pathDirty.y,
         pathDirty.width,
-        pathDirty.height,
-        gl.RG,
-        gl.HALF_FLOAT
+        pathDirty.height
       );
+    }
 
-      setDrawingFlag(false);
+    if (!pathDirty) {
+      pathDirty = DirtyRect.fromWidth(
+        0,
+        0,
+        paintOptions.width,
+        paintOptions.height
+      );
     }
 
     console.log("fbo:", fbo);
@@ -554,12 +579,12 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST
     );
+
+    return newHistory;
   }
 
-  function applyHistory(history: HistoryItem) {
+  function applyHistory(history: HistoryItem): HistoryItem {
     let liquifyManager = getLiquifyManager(canvas, gl);
-    // history pixelData를 sourceTex에 texSubImage2D하기 전에 백업본 생성
-    const beforeTex = makeDirtyTexture(history.rect);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
@@ -577,10 +602,10 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       history.pixelReader.getPixelData() // 데이터
     );
 
-    upload(false, history.rect);
+    let newHistory = upload(history.rect);
     liquifyManager.render();
 
-    return beforeTex;
+    return newHistory;
   }
 
   function restore(pathDirty) {

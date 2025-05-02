@@ -1,7 +1,7 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
-import { PixelReadProcessor } from "./pixelReadProcessor";
+import { PixelReadProcessor, setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
 import {
@@ -31,48 +31,26 @@ function createHistoryManager(canvas, gl) {
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-  let skipHistory = false;
-
   const readPixelQueue = new PixelReadProcessor(gl);
   function addUndo(
-    historyType,
-    historyTex,
-    x,
-    y,
-    width,
-    height,
-    dataFormat,
-    dataType,
-    options = {
-      resetRedo: true,
-      skipHistoryFlag: false,
-    }
+    newHistory,
+    options: {
+      resetRedo?: boolean;
+      skipHistory?: boolean;
+    } = {}
   ) {
-    const { layerId } = paintOptions;
+    const { resetRedo = true, skipHistory = false } = options;
 
-    console.log("addUndo readPixels", width, height);
+    console.log("addUndo readPixels");
+    newHistory.skipHistory = skipHistory;
 
-    let pixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      historyTex,
-      dataFormat,
-      dataType
-    );
-    const newHistory = {
-      layerId,
-      tool: historyType,
-      rect: DirtyRect.fromWidth(x, y, width, height),
-      pixelReader,
-      skipHistory: skipHistory || options.skipHistoryFlag,
-    };
     undoStack.push(newHistory);
 
-    readPixelQueue.push(pixelReader);
+    setDrawingFlag(false);
+    readPixelQueue.push(newHistory.pixelReader);
     readPixelQueue.excute();
 
-    if (options.resetRedo && redoStack.length != 0) {
+    if (resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
       // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
       // 객체 안에서 readPixel하게!
@@ -85,41 +63,20 @@ function createHistoryManager(canvas, gl) {
   }
 
   function addRedo(
-    historyType,
-    historyTex,
-    x,
-    y,
-    width,
-    height,
-    dataFormat,
-    dataType,
-    options = {
-      skipHistoryFlag: false,
-    }
+    newHistory,
+    options: {
+      skipHistory?: boolean;
+    } = {}
   ) {
-    const { layerId } = paintOptions;
+    const { skipHistory = false } = options;
 
-    console.log("addRedo readPixels", width, height);
+    console.log("addRedo readPixels", newHistory);
 
-    let pixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      historyTex,
-      dataFormat,
-      dataType
-    );
-
-    const newHistory = {
-      layerId,
-      tool: historyType,
-      rect: DirtyRect.fromWidth(x, y, width, height),
-      pixelReader,
-      skipHistory: skipHistory || options.skipHistoryFlag,
-    };
+    newHistory.skipHistory = skipHistory;
     redoStack.push(newHistory);
 
-    readPixelQueue.push(pixelReader);
+    setDrawingFlag(false);
+    readPixelQueue.push(newHistory.pixelReader);
     readPixelQueue.excute();
 
     mainThread.historyCount(undoStack.length, redoStack.length);
@@ -130,39 +87,17 @@ function createHistoryManager(canvas, gl) {
     if (undoStack.length == 0) return;
 
     let history = undoStack[undoStack.length - 1];
-    let redoTex;
+    undoStack.pop();
+
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
-      redoTex = sourceManager.applyHistory(history);
-      let { x, y, width, height } = history.rect;
-      addRedo(
-        history.tool,
-        redoTex,
-        x,
-        y,
-        width,
-        height,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        { skipHistoryFlag: history.skipHistory }
-      );
+      let newHistory = sourceManager.applyHistory(history);
+      addRedo(newHistory, { skipHistory: history.skipHistory });
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
-      redoTex = sourceDisplaceMapManager.applyHistory(history);
-      let { x, y, width, height } = history.rect;
-      addRedo(
-        history.tool,
-        redoTex,
-        x,
-        y,
-        width,
-        height,
-        gl.RG,
-        gl.HALF_FLOAT,
-        { skipHistoryFlag: history.skipHistory }
-      );
+      let newHistory = sourceDisplaceMapManager.applyHistory(history);
+      addRedo(newHistory, { skipHistory: history.skipHistory });
     }
-    undoStack.pop();
 
     if (history.skipHistory) {
       undo();
@@ -175,37 +110,20 @@ function createHistoryManager(canvas, gl) {
     let history = redoStack[redoStack.length - 1];
     redoStack.pop();
 
-    let undoTex;
     if (history.tool == "source") {
       let sourceManager = getSourceTextureManager(canvas, gl);
-      undoTex = sourceManager.applyHistory(history);
-      let { x, y, width, height } = history.rect;
-      addUndo(
-        history.tool,
-        undoTex,
-        x,
-        y,
-        width,
-        height,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        { resetRedo: false, skipHistoryFlag: history.skipHistory }
-      );
+      let newHistory = sourceManager.applyHistory(history);
+      addUndo(newHistory, {
+        resetRedo: false,
+        skipHistory: history.skipHistory,
+      });
     } else if (history.tool == "displace") {
       let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
-      undoTex = sourceDisplaceMapManager.applyHistory(history);
-      let { x, y, width, height } = history.rect;
-      addUndo(
-        history.tool,
-        undoTex,
-        x,
-        y,
-        width,
-        height,
-        gl.RG,
-        gl.HALF_FLOAT,
-        { resetRedo: false, skipHistoryFlag: history.skipHistory }
-      );
+      let newHistory = sourceDisplaceMapManager.applyHistory(history);
+      addUndo(newHistory, {
+        resetRedo: false,
+        skipHistory: history.skipHistory,
+      });
     }
 
     if (history.skipHistory) {
@@ -214,9 +132,7 @@ function createHistoryManager(canvas, gl) {
   }
 
   function skip(callback) {
-    skipHistory = true;
     callback();
-    skipHistory = false;
   }
   return {
     addUndo,
