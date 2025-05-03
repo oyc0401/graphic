@@ -73,7 +73,7 @@ function createResizeManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
   const tempFBO = gl.createFramebuffer();
-  const readFBO = gl.createFramebuffer();
+  const mainFBO = gl.createFramebuffer();
 
   function resize(
     x,
@@ -85,24 +85,28 @@ function createResizeManager(canvas, gl) {
     layerTex,
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
-    // 3. 기존 layerFBO → 임시 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFBO);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mainFBO);
     gl.framebufferTexture2D(
-      gl.READ_FRAMEBUFFER,
+      gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       layerTex,
       0,
     );
 
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
     gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
+      gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       tempTex,
       0,
     );
+
+    // temp에 임시 저장
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, mainFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, tempFBO);
 
     gl.blitFramebuffer(
       0,
@@ -132,18 +136,22 @@ function createResizeManager(canvas, gl) {
       null,
     );
 
-    // 4. 임시 텍스처 → 레이어 텍스처로 복사
-    // 현재 바인딩된 FRAMEBUFFER로부터 픽셀 데이터를 현재 activeTexture에 바인딩된 텍스처에 복사
-    gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      tempTex,
+    // 임시 텍스처 → 레이어 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, tempFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, mainFBO);
+
+    gl.blitFramebuffer(
+      x,
+      y,
+      x + newWidth,
+      y + newHeight, // 원본 영역
       0,
+      0,
+      newWidth,
+      newHeight,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
     );
-    // 마지막으로 바인딩된건 함수 밖에 있음.
-    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, y, newWidth, newHeight);
   }
 
   function resizeAll(

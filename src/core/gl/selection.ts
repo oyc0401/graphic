@@ -10,7 +10,7 @@ import { getBufferManager, getFullQuadShader } from "./vertexShader";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>
-    createSelectionManager(canvas, gl)
+    createSelectionManager(canvas, gl),
   );
   return manager;
 }
@@ -52,7 +52,7 @@ function createSelectionManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null
+    null,
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -122,26 +122,26 @@ function createSelectionManager(canvas, gl) {
   let selectionShader = createShader(
     gl,
     gl.FRAGMENT_SHADER,
-    selectionShaderSource
+    selectionShaderSource,
   );
   let selectionProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    selectionShader
+    selectionShader,
   );
   gl.useProgram(selectionProgram);
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection_source"),
-    TEXTURE_UNIT.SOURCE_SELECTION
+    TEXTURE_UNIT.SOURCE_SELECTION,
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.RENDERED_SELECTION
+    TEXTURE_UNIT.RENDERED_SELECTION,
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE
+    TEXTURE_UNIT.SOURCE,
   );
 
   const bufferManager = getBufferManager(canvas, gl);
@@ -154,7 +154,7 @@ function createSelectionManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     selectionTex,
-    0
+    0,
   );
 
   const renderedSelectionFBO = gl.createFramebuffer();
@@ -164,7 +164,7 @@ function createSelectionManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     renderedSelectionTex,
-    0
+    0,
   );
 
   // 늘린 텍스쳐에 늘려서 복사하기
@@ -185,7 +185,7 @@ function createSelectionManager(canvas, gl) {
       width,
       height, // 목표 영역 (크기 조정됨)
       gl.COLOR_BUFFER_BIT,
-      paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST
+      paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST,
     );
   }
 
@@ -193,7 +193,6 @@ function createSelectionManager(canvas, gl) {
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = false;
 
-    // selection텍스쳐의 크기를 저 크기로 맞추고. layer텍스쳐의 일정 부분을 selection텍스쳐에 복사한다.
     x = sx;
     y = sy;
     width = swidth;
@@ -201,8 +200,7 @@ function createSelectionManager(canvas, gl) {
     originalWidth = swidth;
     originalHeight = sheight;
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
-
+    // 1) select texture 크기 조절
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, selectionTex);
     gl.texImage2D(
@@ -214,21 +212,29 @@ function createSelectionManager(canvas, gl) {
       0, // border
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      null
-    );
-    // 5) 실제 복사: copyTexSubImage2D
-    gl.copyTexSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      0, // dstX
-      0, // dstY
-      x, // srcX
-      y, // srcY
-      originalWidth,
-      originalHeight
+      null,
     );
 
-    // 2) 선택된 영역을 완전히 투명으로 지우기
+    // 2) selection Tex에 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, selectionFBO);
+
+    gl.blitFramebuffer(
+      x,
+      y,
+      x + originalWidth,
+      y + originalHeight, // src 영역
+      0,
+      0,
+      originalWidth,
+      originalHeight, // dst 영역
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼 (컬러 버퍼)
+      gl.NEAREST, // 필터링 모드 (스케일링 없이 복사)
+    );
+
+    // 3) 선택된 영역을 완전히 투명으로 지우기
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(x, y, originalWidth, originalHeight);
 
@@ -241,9 +247,9 @@ function createSelectionManager(canvas, gl) {
       uploadRenderedTex();
     }
 
-    // 레이어를 수정했으니 업로드
+    // 4) 레이어를 수정했으니 sourceTexture에 업로드
     let history = sourceTextureManager.uploadCurrent(
-      DirtyRect.fromWidth(sx, sy, swidth, sheight)
+      DirtyRect.fromWidth(sx, sy, swidth, sheight),
     );
     let historyManager = getHistoryManager(canvas, gl);
     historyManager.addUndo(history);
@@ -262,7 +268,7 @@ function createSelectionManager(canvas, gl) {
       gl.RGBA, // internal format
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      bitmap // ✅ 직접 전달 가능
+      bitmap, // ✅ 직접 전달 가능
     );
 
     x = newx;
@@ -286,17 +292,17 @@ function createSelectionManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height
+      paintOptions.height,
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionPos"),
       x,
-      y
+      y,
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionSize"),
       width,
-      height
+      height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
@@ -306,7 +312,7 @@ function createSelectionManager(canvas, gl) {
     renderingManager.render();
 
     let history = sourceTextureManager.uploadCurrent(
-      DirtyRect.fromWidth(x, y, width, height)
+      DirtyRect.fromWidth(x, y, width, height),
     );
     let historyManager = getHistoryManager(canvas, gl);
     historyManager.addUndo(history);

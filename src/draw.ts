@@ -41,7 +41,7 @@ export const toolManager = {
     paintState.setToolId("select");
 
     const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    worker.setTool("select");
   },
   setResizeTool() {
     if (paintState.pointerdown) return;
