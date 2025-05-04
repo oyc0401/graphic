@@ -43,6 +43,13 @@ export const toolManager = {
     const worker = getLayerWorker();
     worker.setTool("select");
   },
+  setSelection() {
+    if (paintState.pointerdown) return;
+    paintState.setToolId("selection");
+
+    const worker = getLayerWorker();
+    worker.setTool("selection");
+  },
   setResizeTool() {
     if (paintState.pointerdown) return;
     applySelection();

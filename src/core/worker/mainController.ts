@@ -3,6 +3,7 @@ import { historyState } from "../../history";
 import { paintState } from "../../paintState";
 import { position } from "../../position";
 import { selection } from "../../selection";
+import { getLayerWorker } from "./workerPool";
 
 export const mainApi = {
   historyCount(undoCount, redoCount) {
@@ -26,11 +27,14 @@ export const mainApi = {
     selection.setShowHandle(showSelection);
     selection.setShowHint(showSelection);
     selection.setVisible(showSelection);
+    let worker = getLayerWorker();
 
     if (showSelection) {
       paintState.setToolId("selection");
+      worker.setTool("selection");
     } else {
       paintState.setToolId("brush");
+      worker.setTool(paintState.brushId);
     }
   },
 };

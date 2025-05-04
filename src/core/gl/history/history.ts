@@ -30,6 +30,7 @@ function createHistoryManager(canvas, gl) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
   const readPixelQueue = new PixelReadProcessor(gl);
+
   function addUndo(
     newHistory,
     options: {
@@ -57,7 +58,7 @@ function createHistoryManager(canvas, gl) {
 
     mainThread.historyCount(undoStack.length, redoStack.length);
 
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
+    logCurrent();
   }
 
   function addRedo(newHistory) {
@@ -72,7 +73,7 @@ function createHistoryManager(canvas, gl) {
     }
 
     mainThread.historyCount(undoStack.length, redoStack.length);
-    console.log("undo:", undoStack.length, "redo:", redoStack.length);
+    logCurrent();
   }
 
   function undo() {
@@ -108,7 +109,6 @@ function createHistoryManager(canvas, gl) {
     let newHistory = history.applyHistory(history);
 
     addUndo(newHistory, { resetRedo: false });
-    console.log(redoStack);
 
     if (
       redoStack.length != 0 &&
@@ -126,6 +126,20 @@ function createHistoryManager(canvas, gl) {
 
   function skip(callback) {
     callback();
+  }
+
+  function logCurrent() {
+    console.log(
+      "undo:",
+      undoStack.length,
+      "redo:",
+      redoStack.length,
+      "\n",
+      "undoStack:",
+      undoStack,
+      "redoStack:",
+      redoStack,
+    );
   }
   return {
     addUndo,

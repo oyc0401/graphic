@@ -43,12 +43,15 @@ export class SelectionTool {
         y: point.y - selection.y,
       };
       selection.active = true;
-      const worker = getLayerWorker();
-      worker.startMove();
     } else if (handle === "OUTSIDE") {
       this.startTime = performance.now();
     } else {
       selection.active = true;
+    }
+
+    if (handle != "OUTSIDE") {
+      const worker = getLayerWorker();
+      worker.startMove();
     }
   }
 
@@ -201,9 +204,6 @@ export class SelectionTool {
       beforeSelectionPos.width = selection.width;
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
-
-      const worker = getLayerWorker();
-      worker.endMove();
     }
     if (pointers.size == 0 && this.activeHandle == "OUTSIDE") {
       let now = performance.now();

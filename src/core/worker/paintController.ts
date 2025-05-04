@@ -111,9 +111,6 @@ export const workerApi = {
   startMove() {
     paint.startMove();
   },
-  endMove() {
-    paint.endMove();
-  },
   moveSelection(px, py, width, height) {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.moveSelection(x, y, width, height);
