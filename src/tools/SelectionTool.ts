@@ -43,6 +43,8 @@ export class SelectionTool {
         y: point.y - selection.y,
       };
       selection.active = true;
+      const worker = getLayerWorker();
+      worker.startMove();
     } else if (handle === "OUTSIDE") {
       this.startTime = performance.now();
     } else {
@@ -103,7 +105,7 @@ export class SelectionTool {
         selection.x,
         selection.y,
         selection.width,
-        selection.height
+        selection.height,
       );
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
@@ -170,15 +172,15 @@ export class SelectionTool {
         clamp(
           x,
           beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min
-        )
+          beforeSelectionPos.x + beforeSelectionPos.width - min,
+        ),
       );
       selection.setY(
         clamp(
           y,
           beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min
-        )
+          beforeSelectionPos.y + beforeSelectionPos.height - min,
+        ),
       );
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
@@ -187,7 +189,7 @@ export class SelectionTool {
         selection.x,
         selection.y,
         selection.width,
-        selection.height
+        selection.height,
       );
     }
   }
@@ -199,6 +201,9 @@ export class SelectionTool {
       beforeSelectionPos.width = selection.width;
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
+
+      const worker = getLayerWorker();
+      worker.endMove();
     }
     if (pointers.size == 0 && this.activeHandle == "OUTSIDE") {
       let now = performance.now();

@@ -66,7 +66,7 @@ export let paintOptions = {
 
 export function getSourceTextureManager(canvas, gl) {
   const manager = getManager(gl, "sourceTexture", () =>
-    makeSourceTextureManager(canvas, gl)
+    makeSourceTextureManager(canvas, gl),
   );
   return manager;
 }
@@ -87,7 +87,7 @@ function makeSourceTextureManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null
+    null,
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -102,7 +102,7 @@ function makeSourceTextureManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     sourceTexture,
-    0
+    0,
   );
 
   const fbo = gl.createFramebuffer();
@@ -120,7 +120,7 @@ function makeSourceTextureManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     ); // 빈 텍스처 생성
 
     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
@@ -132,7 +132,7 @@ function makeSourceTextureManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       historyTex,
-      0
+      0,
     );
 
     // blit 좌표계는 0,0,1,1이 1칸임.
@@ -146,7 +146,7 @@ function makeSourceTextureManager(canvas, gl) {
       pathDirty.width,
       pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
+      gl.NEAREST, // 필터링 옵션
     );
 
     return historyTex;
@@ -162,7 +162,7 @@ function makeSourceTextureManager(canvas, gl) {
       height,
       historyTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE
+      gl.UNSIGNED_BYTE,
     );
     const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
@@ -185,7 +185,7 @@ function makeSourceTextureManager(canvas, gl) {
         pathDirty.x,
         pathDirty.y,
         pathDirty.width,
-        pathDirty.height
+        pathDirty.height,
       );
     }
 
@@ -194,7 +194,7 @@ function makeSourceTextureManager(canvas, gl) {
         0,
         0,
         paintOptions.width,
-        paintOptions.height
+        paintOptions.height,
       );
     }
 
@@ -211,13 +211,14 @@ function makeSourceTextureManager(canvas, gl) {
       pathDirty.ex + 1,
       pathDirty.ey + 1,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
 
     return history;
   }
 
   function applyHistory(history: HistoryItem): HistoryItem {
+    console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
@@ -231,13 +232,15 @@ function makeSourceTextureManager(canvas, gl) {
       history.rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      history.pixelReader.getPixelData() // 데이터
+      history.pixelReader.getPixelData(), // 데이터
     );
 
     let newHistory = uploadCurrent(history.rect);
     newHistory.skipHistory = history.skipHistory;
 
     renderingManager.render();
+
+    newHistory.id = history.id;
 
     return newHistory;
   }
@@ -257,7 +260,7 @@ function makeSourceTextureManager(canvas, gl) {
       paintOptions.width,
       paintOptions.height,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
   }
 
@@ -274,7 +277,7 @@ function makeSourceTextureManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
   }
 

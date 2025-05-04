@@ -1,4 +1,6 @@
-import { getHistoryManager } from "./history/history";
+import { mainThread } from "../worker/mainPool";
+import { getHistoryManager, HistoryItem } from "./history/history";
+import { PixelReader } from "./history/PixelReader";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
@@ -189,6 +191,144 @@ function createSelectionManager(canvas, gl) {
     );
   }
 
+  const fbo = gl.createFramebuffer();
+
+  function makeDirtyTexture(dirtyRect) {
+    const historyTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, historyTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      dirtyRect.width,
+      dirtyRect.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    ); // 빈 텍스처 생성
+
+    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      historyTex,
+      0,
+    );
+
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      dirtyRect.x,
+      dirtyRect.y,
+      dirtyRect.ex + 1,
+      dirtyRect.ey + 1,
+      0,
+      0,
+      dirtyRect.width,
+      dirtyRect.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
+    );
+
+    return historyTex;
+  }
+
+  function makeHistory(showSelection = null): HistoryItem {
+    let dirtyRect = DirtyRect.fromWidth(0, 0, width, height);
+    const historyTex = makeDirtyTexture(dirtyRect);
+
+    let pixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      historyTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+    );
+    let val;
+    if (showSelection == null) {
+      // 선택창이 아무런 변화가 없음
+      val = null;
+    } else if (showSelection == true) {
+      // 선택창이 방금 생김
+      val = false; // 생기는 작업을 돌리려면 꺼져야함.
+    } else if (showSelection == false) {
+      // 선택창이 방금 사라짐
+      val = true;
+    }
+    const newHistory: HistoryItem = {
+      layerId: paintOptions.layerId,
+      tool: "select",
+      rect: dirtyRect,
+      pixelReader,
+      skipHistory: false,
+      applyHistory: applyHistory,
+      showSelection: val,
+      selectionX: x,
+      selectionY: y,
+    };
+
+    return newHistory;
+  }
+
+  function applyHistory(history: HistoryItem): HistoryItem {
+    if (history.showSelection == true) {
+      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+      gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+
+      // pixelData를 texture에 다시 업로드
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0, // level
+        history.rect.x, // x 좌표
+        history.rect.y, // y 좌표
+        history.rect.width, // width
+        history.rect.height, // height
+        gl.RGBA, // format
+        gl.UNSIGNED_BYTE, // type
+        history.pixelReader.getPixelData(), // 데이터
+      );
+      paintOptions.showSelection = true;
+
+      history.showSelection = false; // 생기는 작업을 돌리려면 꺼져야함
+
+      setSize(history.selectionX, history.selectionY, width, height);
+    } else if (history.showSelection == false) {
+      paintOptions.showSelection = false;
+
+      history.showSelection = true;
+    } else if (history.tool == "moveSelection") {
+      setSize(
+        history.rect.x,
+        history.rect.y,
+        history.rect.width,
+        history.rect.height,
+      );
+    }
+
+    mainThread.setSelectionPosition(
+      paintOptions.showSelection,
+      x,
+      y,
+      width,
+      height,
+    );
+    console.log(history);
+    //history.id = "applySelection";
+
+    //let newHistory = uploadCurrent(history.rect);
+    //newHistory.skipHistory = history.skipHistory;
+
+    renderingManager.render();
+
+    return history;
+  }
+
   function select(sx, sy, swidth, sheight) {
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = false;
@@ -247,16 +387,24 @@ function createSelectionManager(canvas, gl) {
       uploadRenderedTex();
     }
 
+    let historyManager = getHistoryManager(canvas, gl);
+
+    let selectionHistory = makeHistory(true);
+    selectionHistory.id = "select";
+    historyManager.addUndo(selectionHistory);
+
     // 4) 레이어를 수정했으니 sourceTexture에 업로드
     let history = sourceTextureManager.uploadCurrent(
       DirtyRect.fromWidth(sx, sy, swidth, sheight),
     );
-    let historyManager = getHistoryManager(canvas, gl);
+    history.id = "select";
+
     historyManager.addUndo(history);
 
     renderingManager.render();
   }
 
+  // makeSelection, clearLayer -> drawLayer -> applySelection
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = true;
@@ -311,10 +459,16 @@ function createSelectionManager(canvas, gl) {
 
     renderingManager.render();
 
+    let historyManager = getHistoryManager(canvas, gl);
+
+    let selectionHistory = makeHistory(false);
+    selectionHistory.id = "applySelection";
+    historyManager.addUndo(selectionHistory);
+
     let history = sourceTextureManager.uploadCurrent(
       DirtyRect.fromWidth(x, y, width, height),
     );
-    let historyManager = getHistoryManager(canvas, gl);
+    history.id = "applySelection";
     historyManager.addUndo(history);
   }
 
@@ -340,6 +494,35 @@ function createSelectionManager(canvas, gl) {
   function afterCut() {
     paintOptions.showSelection = false;
     renderingManager.render();
+  }
+
+  function startMove() {
+    let historyManager = getHistoryManager(canvas, gl);
+    const newHistory: HistoryItem = {
+      layerId: paintOptions.layerId,
+      tool: "moveSelection",
+      rect: DirtyRect.fromWidth(x, y, width, height),
+      pixelReader: null,
+      skipHistory: false,
+      applyHistory: applyHistory,
+    };
+    console.log(x, y, width, height);
+    newHistory.id = "moveSelection";
+    historyManager.addUndo(newHistory);
+  }
+  function endMove() {
+    let historyManager = getHistoryManager(canvas, gl);
+    const newHistory: HistoryItem = {
+      layerId: paintOptions.layerId,
+      tool: "moveSelection",
+      rect: DirtyRect.fromWidth(x, y, width, height),
+      pixelReader: null,
+      skipHistory: false,
+      applyHistory: applyHistory,
+    };
+    console.log(x, y, width, height);
+    newHistory.id = "moveSelection";
+    historyManager.addUndo(newHistory);
   }
 
   function setSize(newX, newY, newWidth, newHeight) {
@@ -384,5 +567,7 @@ function createSelectionManager(canvas, gl) {
     paste,
     getPixelData,
     afterCut,
+    startMove,
+    endMove,
   };
 }

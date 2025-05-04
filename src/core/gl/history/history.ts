@@ -6,6 +6,7 @@ import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
 
 export interface HistoryItem {
+  id?: string;
   layerId: number;
   tool: string;
   rect: DirtyRect;
@@ -18,7 +19,7 @@ let redoStack: HistoryItem[] = [];
 
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
-    createHistoryManager(canvas, gl)
+    createHistoryManager(canvas, gl),
   );
   return manager;
 }
@@ -33,17 +34,19 @@ function createHistoryManager(canvas, gl) {
     newHistory,
     options: {
       resetRedo?: boolean;
-    } = {}
+    } = {},
   ) {
     const { resetRedo = true } = options;
 
-    console.log("addUndo", newHistory);
+    console.log("addUndo:", newHistory.tool);
 
     undoStack.push(newHistory);
 
-    setDrawingFlag(false);
-    readPixelQueue.push(newHistory.pixelReader);
-    readPixelQueue.excute();
+    if (newHistory.pixelReader) {
+      setDrawingFlag(false);
+      readPixelQueue.push(newHistory.pixelReader);
+      readPixelQueue.excute();
+    }
 
     if (resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
@@ -58,13 +61,15 @@ function createHistoryManager(canvas, gl) {
   }
 
   function addRedo(newHistory) {
-    console.log("addRedo", newHistory);
+    console.log("addRedo:", newHistory.tool);
 
     redoStack.push(newHistory);
 
-    setDrawingFlag(false);
-    readPixelQueue.push(newHistory.pixelReader);
-    readPixelQueue.excute();
+    if (newHistory.pixelReader) {
+      setDrawingFlag(false);
+      readPixelQueue.push(newHistory.pixelReader);
+      readPixelQueue.excute();
+    }
 
     mainThread.historyCount(undoStack.length, redoStack.length);
     console.log("undo:", undoStack.length, "redo:", redoStack.length);
@@ -80,6 +85,15 @@ function createHistoryManager(canvas, gl) {
 
     addRedo(newHistory);
 
+    if (
+      undoStack.length != 0 &&
+      history.id &&
+      history.id == undoStack[undoStack.length - 1].id
+    ) {
+      undo();
+      return;
+    }
+
     if (history.skipHistory) {
       undo();
     }
@@ -94,6 +108,16 @@ function createHistoryManager(canvas, gl) {
     let newHistory = history.applyHistory(history);
 
     addUndo(newHistory, { resetRedo: false });
+    console.log(redoStack);
+
+    if (
+      redoStack.length != 0 &&
+      history.id &&
+      history.id == redoStack[redoStack.length - 1].id
+    ) {
+      redo();
+      return;
+    }
 
     if (history.skipHistory) {
       redo();
