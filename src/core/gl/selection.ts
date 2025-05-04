@@ -253,7 +253,7 @@ function createSelectionManager(canvas, gl) {
 
     const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
-      tool: "select",
+      tool: "selection",
       rect: dirtyRect,
       pixelReader,
       skipHistory: false,
@@ -269,22 +269,25 @@ function createSelectionManager(canvas, gl) {
     let newHistory;
     if (history.showSelection == true) {
       console.warn("선택창 보여주기!");
+
+      // pixelData를 texture에 다시 업로드
+      originalWidth = history.rect.width;
+      originalHeight = history.rect.height;
+
       gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
       gl.bindTexture(gl.TEXTURE_2D, selectionTex);
-
-      console.log("선택창 보여주기!", history);
-      // pixelData를 texture에 다시 업로드
-      gl.texSubImage2D(
+      gl.texImage2D(
         gl.TEXTURE_2D,
         0, // level
-        history.rect.x, // x 좌표
-        history.rect.y, // y 좌표
-        history.rect.width, // width
-        history.rect.height, // height
+        gl.RGBA, // internalFormat
+        originalWidth, // 텍스처 폭
+        originalHeight, // 텍스처 높이
+        0, // border
         gl.RGBA, // format
         gl.UNSIGNED_BYTE, // type
-        history.pixelReader.getPixelData(), // 데이터
+        history.pixelReader.getPixelData(),
       );
+
       paintOptions.showSelection = true;
 
       // 숨기는 히스토리 넣기
@@ -295,10 +298,8 @@ function createSelectionManager(canvas, gl) {
         applyHistory: applyHistory,
         showSelection: false,
       };
-      newHistory.id = "select";
+      newHistory.group = "select";
 
-      originalWidth = history.rect.width;
-      originalHeight = history.rect.height;
       setSize(
         history.selectionRect.x,
         history.selectionRect.y,
@@ -311,7 +312,7 @@ function createSelectionManager(canvas, gl) {
       // 보여주는 히스토리 넣기
       paintOptions.showSelection = false;
       newHistory = makeHistory();
-      newHistory.id = "applySelection";
+      newHistory.group = "applySelection";
     }
 
     mainThread.setSelectionPosition(
@@ -322,7 +323,7 @@ function createSelectionManager(canvas, gl) {
       height,
     );
     console.log("적용:", history);
-    newHistory.id = history.id;
+    newHistory.group = history.group;
 
     renderingManager.render();
 
@@ -389,6 +390,7 @@ function createSelectionManager(canvas, gl) {
 
     let historyManager = getHistoryManager(canvas, gl);
 
+    // selection history
     const selectionHistory: HistoryItem = {
       layerId: paintOptions.layerId,
       tool: "select",
@@ -396,16 +398,15 @@ function createSelectionManager(canvas, gl) {
       applyHistory: applyHistory,
       showSelection: false,
     };
-    selectionHistory.id = "select";
-
+    selectionHistory.group = "select";
     historyManager.addUndo(selectionHistory);
 
-    // 4) 레이어를 수정했으니 sourceTexture에 업로드
+    // layer history
     let history = sourceTextureManager.uploadCurrent(
       DirtyRect.fromWidth(sx, sy, swidth, sheight),
     );
-    history.id = "select";
-
+    history.tool = "select";
+    history.group = "select";
     historyManager.addUndo(history);
 
     renderingManager.render();
@@ -436,6 +437,18 @@ function createSelectionManager(canvas, gl) {
     if (width <= 2048.0 && height <= 2048.0) {
       uploadRenderedTex();
     }
+
+    let historyManager = getHistoryManager(canvas, gl);
+
+    // selection history
+    const selectionHistory: HistoryItem = {
+      layerId: paintOptions.layerId,
+      tool: "paste",
+      skipHistory: false,
+      applyHistory: applyHistory,
+      showSelection: false,
+    };
+    historyManager.addUndo(selectionHistory);
 
     renderingManager.render();
   }
@@ -469,13 +482,15 @@ function createSelectionManager(canvas, gl) {
     let historyManager = getHistoryManager(canvas, gl);
 
     let selectionHistory = makeHistory();
-    selectionHistory.id = "applySelection";
+    selectionHistory.tool = "selection";
+    selectionHistory.group = "applySelection";
     historyManager.addUndo(selectionHistory);
 
     let history = sourceTextureManager.uploadCurrent(
       DirtyRect.fromWidth(x, y, width, height),
     );
-    history.id = "applySelection";
+    history.tool = "selection";
+    history.group = "applySelection";
 
     historyManager.addUndo(history);
   }
@@ -529,19 +544,19 @@ function createSelectionManager(canvas, gl) {
     let historyManager = getHistoryManager(canvas, gl);
     const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
-      tool: "moveSelection",
+      tool: "selection",
       selectionRect: Rect.fromWidth(x, y, width, height),
       pixelReader: null,
       skipHistory: false,
       applyHistory: applyMoveHistory,
     };
-    newHistory.id = "moveSelection";
     if (undoable) {
       historyManager.addUndo(newHistory);
     }
 
     return newHistory;
   }
+
   function setSize(newX, newY, newWidth, newHeight) {
     x = newX;
     y = newY;
@@ -586,12 +601,3 @@ function createSelectionManager(canvas, gl) {
     startMove,
   };
 }
-
-export function getSelectionTextureManager(canvas, gl) {
-  const manager = getManager(gl, "selectionTexture", () =>
-    makeSelectionTextureManager(canvas, gl),
-  );
-  return manager;
-}
-
-function makeSelectionTextureManager(canvas, gl) {}

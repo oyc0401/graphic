@@ -1,18 +1,20 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
 import { getManager } from "../utils/cachedManager";
-import { DirtyRect } from "../utils/dirtyRect";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { PixelReadProcessor, setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
 
 export interface HistoryItem {
-  id?: string;
+  group?: string;
   layerId: number;
   tool: string;
-  rect: DirtyRect;
-  pixelReader: PixelReader;
+  rect?: DirtyRect;
+  pixelReader?: PixelReader;
   skipHistory: boolean;
   applyHistory(HistoryItem): HistoryItem;
+  showSelection?: boolean;
+  selectionRect?: Rect;
 }
 let undoStack: HistoryItem[] = [];
 let redoStack: HistoryItem[] = [];
@@ -88,16 +90,17 @@ function createHistoryManager(canvas, gl) {
 
     if (
       undoStack.length != 0 &&
-      history.id &&
-      history.id == undoStack[undoStack.length - 1].id
+      history.group &&
+      history.group == undoStack[undoStack.length - 1].group
     ) {
-      undo();
-      return;
+      return undo();
     }
 
     if (history.skipHistory) {
-      undo();
+      return undo();
     }
+
+    return history.tool;
   }
 
   function redo() {
@@ -112,20 +115,17 @@ function createHistoryManager(canvas, gl) {
 
     if (
       redoStack.length != 0 &&
-      history.id &&
-      history.id == redoStack[redoStack.length - 1].id
+      history.group &&
+      history.group == redoStack[redoStack.length - 1].group
     ) {
-      redo();
-      return;
+      return redo();
     }
 
     if (history.skipHistory) {
-      redo();
+      return redo();
     }
-  }
 
-  function skip(callback) {
-    callback();
+    return history.tool;
   }
 
   function logCurrent() {
@@ -134,17 +134,16 @@ function createHistoryManager(canvas, gl) {
       undoStack.length,
       "redo:",
       redoStack.length,
-      "\n",
-      "undoStack:",
-      undoStack,
-      "redoStack:",
-      redoStack,
+      // "\n",
+      // "undoStack:",
+      // undoStack,
+      // "redoStack:",
+      // redoStack,
     );
   }
   return {
     addUndo,
     undo,
     redo,
-    skip,
   };
 }

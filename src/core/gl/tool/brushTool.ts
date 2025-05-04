@@ -13,7 +13,7 @@ import { getHistoryManager } from "../history/history";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
-    makeBrushManager(canvas, gl)
+    makeBrushManager(canvas, gl),
   );
   return manager;
 }
@@ -28,7 +28,7 @@ function makeBrushManager(canvas, gl) {
     gl.getExtension("EXT_texture_filter_float");
   if (!extFloatLinear) {
     console.error(
-      "This device does not support linear filtering for float textures."
+      "This device does not support linear filtering for float textures.",
     );
   }
 
@@ -146,7 +146,7 @@ function makeBrushManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(strokeProgram, "u_pathMap"),
-    TEXTURE_UNIT.PATHMAP
+    TEXTURE_UNIT.PATHMAP,
   );
 
   // 출력용 텍스처 생성
@@ -167,7 +167,7 @@ function makeBrushManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     pathTexOut,
-    0
+    0,
   );
 
   // 쓰여진 결과를 blit으로 기본 변위맵에 업로드 하기 위해서
@@ -179,7 +179,7 @@ function makeBrushManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     pathTexOut,
-    0
+    0,
   );
 
   bufferManager.createFullQuadVAO(strokeProgram);
@@ -223,12 +223,12 @@ function makeBrushManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_pathMap"),
-    TEXTURE_UNIT.PATHMAP
+    TEXTURE_UNIT.PATHMAP,
   );
 
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE
+    TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
   bufferManager.createFullQuadVAO(brushProgram);
@@ -259,12 +259,12 @@ function makeBrushManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_pathMap"),
-    TEXTURE_UNIT.PATHMAP
+    TEXTURE_UNIT.PATHMAP,
   );
 
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE
+    TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
   bufferManager.createFullQuadVAO(eraserProgram);
@@ -287,20 +287,20 @@ function makeBrushManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(strokeProgram, "u_resolution"),
       width,
-      height
+      height,
     );
 
     gl.useProgram(brushProgram);
     gl.uniform2f(
       gl.getUniformLocation(brushProgram, "u_resolution"),
       width,
-      height
+      height,
     );
     gl.useProgram(eraserProgram);
     gl.uniform2f(
       gl.getUniformLocation(eraserProgram, "u_resolution"),
       width,
-      height
+      height,
     );
 
     // 알파맵 텍스처 데이터 업로드
@@ -317,7 +317,7 @@ function makeBrushManager(canvas, gl) {
       0,
       gl.RED,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
 
     // 출력용 텍스처
@@ -332,7 +332,7 @@ function makeBrushManager(canvas, gl) {
       0,
       gl.RED,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
 
     clearMap();
@@ -366,17 +366,17 @@ function makeBrushManager(canvas, gl) {
       // 유나폼 변수 설정
       gl.uniform1f(
         gl.getUniformLocation(strokeProgram, "u_radius"),
-        paintOptions.radius
+        paintOptions.radius,
       );
       gl.uniform1f(
         gl.getUniformLocation(strokeProgram, "u_alpha"),
-        paintOptions.alpha
+        paintOptions.alpha,
       );
 
       gl.uniform2f(
         gl.getUniformLocation(strokeProgram, "u_start"),
         start.x,
-        start.y
+        start.y,
       );
       gl.uniform2f(gl.getUniformLocation(strokeProgram, "u_end"), end.x, end.y);
 
@@ -388,7 +388,7 @@ function makeBrushManager(canvas, gl) {
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
         pathTexOut,
-        0
+        0,
       );
 
       let scissorDirty = new DirtyRect();
@@ -404,7 +404,7 @@ function makeBrushManager(canvas, gl) {
         scissorDirty.x,
         scissorDirty.y,
         scissorDirty.width,
-        scissorDirty.height
+        scissorDirty.height,
       );
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -418,7 +418,7 @@ function makeBrushManager(canvas, gl) {
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
         pathTexOut,
-        0
+        0,
       );
 
       gl.framebufferTexture2D(
@@ -426,7 +426,7 @@ function makeBrushManager(canvas, gl) {
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
         pathTex,
-        0
+        0,
       );
 
       gl.blitFramebuffer(
@@ -439,7 +439,7 @@ function makeBrushManager(canvas, gl) {
         scissorDirty.ex + 1,
         scissorDirty.ey + 1, // 대상
         gl.COLOR_BUFFER_BIT,
-        gl.NEAREST
+        gl.NEAREST,
       );
     },
     brush() {
@@ -447,7 +447,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.uniform3fv(
         gl.getUniformLocation(brushProgram, "u_color"),
-        paintOptions.color
+        paintOptions.color,
       );
       // 쓰기 영역: 내 화면
       gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
@@ -471,6 +471,7 @@ function makeBrushManager(canvas, gl) {
     },
     end() {
       let history = sourceTextureManager.uploadCurrent(pathDirty);
+      history.tool = "brush";
       let historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(history);
       clearMap();

@@ -218,7 +218,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function applyHistory(history: HistoryItem): HistoryItem {
-    console.log(history)
+   // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
@@ -239,8 +239,8 @@ function makeSourceTextureManager(canvas, gl) {
     newHistory.skipHistory = history.skipHistory;
 
     renderingManager.render();
-
-    newHistory.id = history.id;
+    newHistory.tool = history.tool;
+    newHistory.group = history.group;
 
     return newHistory;
   }

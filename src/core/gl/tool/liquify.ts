@@ -68,7 +68,7 @@ async function makeLiquifyManager(canvas, gl) {
     gl.getExtension("EXT_texture_filter_float");
   if (!extFloatLinear) {
     console.error(
-      "This device does not support linear filtering for float textures."
+      "This device does not support linear filtering for float textures.",
     );
   }
 
@@ -79,12 +79,12 @@ async function makeLiquifyManager(canvas, gl) {
   let liquifyPushShader = createShader(
     gl,
     gl.FRAGMENT_SHADER,
-    getShaderSource()
+    getShaderSource(),
   );
   let liquifyPushProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    liquifyPushShader
+    liquifyPushShader,
   );
   gl.useProgram(liquifyPushProgram);
 
@@ -101,7 +101,7 @@ async function makeLiquifyManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.uniform1i(
     gl.getUniformLocation(liquifyPushProgram, "u_displacement"),
-    TEXTURE_UNIT.DISPLACEMENT
+    TEXTURE_UNIT.DISPLACEMENT,
   );
 
   // 출력용 텍스처 생성
@@ -126,7 +126,7 @@ async function makeLiquifyManager(canvas, gl) {
     0,
     gl.RED,
     gl.FLOAT,
-    integralData
+    integralData,
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -135,7 +135,7 @@ async function makeLiquifyManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.uniform1i(
     gl.getUniformLocation(liquifyPushProgram, "u_ease_integral"),
-    TEXTURE_UNIT.EASE_INTEGRAL
+    TEXTURE_UNIT.EASE_INTEGRAL,
   );
 
   const integralMirrorTex = gl.createTexture();
@@ -150,7 +150,7 @@ async function makeLiquifyManager(canvas, gl) {
     0,
     gl.RED,
     gl.FLOAT,
-    integralMirrorData
+    integralMirrorData,
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -159,7 +159,7 @@ async function makeLiquifyManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.uniform1i(
     gl.getUniformLocation(liquifyPushProgram, "u_ease_mirror"),
-    TEXTURE_UNIT.EASE_MIRROR
+    TEXTURE_UNIT.EASE_MIRROR,
   );
 
   // 프레임버퍼 생성 및 바인딩
@@ -170,7 +170,7 @@ async function makeLiquifyManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     displacementTexInput,
-    0
+    0,
   );
 
   // 쓰여진 결과를 기본 변위맵에 업로드 하기 위해서
@@ -181,7 +181,7 @@ async function makeLiquifyManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     displacementTexOutput,
-    0
+    0,
   );
 
   const bufferManager = getBufferManager(canvas, gl);
@@ -225,12 +225,12 @@ async function makeLiquifyManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(renderProgram, "u_displacement"),
-    TEXTURE_UNIT.DISPLACEMENT
+    TEXTURE_UNIT.DISPLACEMENT,
   );
 
   gl.uniform1i(
     gl.getUniformLocation(renderProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE
+    TEXTURE_UNIT.SOURCE,
   ); // 텍스처 유닛 1에 할당
 
   bufferManager.createFullQuadVAO(renderProgram);
@@ -254,14 +254,14 @@ async function makeLiquifyManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(liquifyPushProgram, "u_resolution"),
       width,
-      height
+      height,
     );
 
     gl.useProgram(renderProgram);
     gl.uniform2f(
       gl.getUniformLocation(renderProgram, "u_resolution"),
       width,
-      height
+      height,
     );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
@@ -275,7 +275,7 @@ async function makeLiquifyManager(canvas, gl) {
       0,
       gl.RG,
       gl.HALF_FLOAT,
-      null
+      null,
     );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
@@ -289,7 +289,7 @@ async function makeLiquifyManager(canvas, gl) {
       0,
       gl.RG,
       gl.HALF_FLOAT,
-      null
+      null,
     );
 
     sourceDisplaceMapManager.setSize(width, height);
@@ -349,7 +349,7 @@ async function makeLiquifyManager(canvas, gl) {
       scissorDirty.x,
       scissorDirty.y,
       scissorDirty.width,
-      scissorDirty.height
+      scissorDirty.height,
     );
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -368,7 +368,7 @@ async function makeLiquifyManager(canvas, gl) {
       scissorDirty.ex + 1,
       scissorDirty.ey + 1, // 대상
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
   }
 
@@ -395,7 +395,7 @@ async function makeLiquifyManager(canvas, gl) {
       sourceDisplaceMapManager.sourceDisplacementTex,
       width,
       height,
-      [0, 0]
+      [0, 0],
     );
   }
 
@@ -424,7 +424,7 @@ async function makeLiquifyManager(canvas, gl) {
       let historyManager = getHistoryManager(canvas, gl);
 
       let displaceHistory = sourceDisplaceMapManager.upload(
-        DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height)
+        DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height),
       );
       displaceHistory.skipHistory = true;
       historyManager.addUndo(displaceHistory);
@@ -444,7 +444,7 @@ async function makeLiquifyManager(canvas, gl) {
 
 export function getSourceDisplaceMapManager(canvas, gl) {
   const manager = getManager(gl, "sourceDisplaceMap", () =>
-    makeSourceDisplaceMapManager(canvas, gl)
+    makeSourceDisplaceMapManager(canvas, gl),
   );
   return manager;
 }
@@ -466,7 +466,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     sourceDisplacementTex,
-    0
+    0,
   );
 
   const fbo = gl.createFramebuffer();
@@ -484,7 +484,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       0,
       gl.RG,
       gl.HALF_FLOAT,
-      null
+      null,
     ); // 빈 텍스처 생성
 
     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
@@ -496,7 +496,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       historyTex,
-      0
+      0,
     );
 
     // blit 좌표계는 0,0,1,1이 1칸임.
@@ -510,7 +510,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       pathDirty.width,
       pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
+      gl.NEAREST, // 필터링 옵션
     );
 
     return historyTex;
@@ -527,11 +527,11 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       height,
       historyTex,
       gl.RG,
-      gl.HALF_FLOAT
+      gl.HALF_FLOAT,
     );
     const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
-      tool: "displace",
+      tool: "liquify",
       rect: dirtyRect,
       pixelReader,
       skipHistory: false,
@@ -551,7 +551,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
         pathDirty.x,
         pathDirty.y,
         pathDirty.width,
-        pathDirty.height
+        pathDirty.height,
       );
     }
 
@@ -560,7 +560,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
         0,
         0,
         paintOptions.width,
-        paintOptions.height
+        paintOptions.height,
       );
     }
 
@@ -577,7 +577,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       pathDirty.ex + 1,
       pathDirty.ey + 1,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
 
     return newHistory;
@@ -589,7 +589,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
 
-    console.log("liquify size:", history.rect.width * history.rect.height);
+    //console.log("liquify size:", history.rect.width * history.rect.height);
     // pixelData를 texture에 다시 업로드
     gl.texSubImage2D(
       gl.TEXTURE_2D,
@@ -600,7 +600,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       history.rect.height, // height
       gl.RG, // format
       gl.HALF_FLOAT, // type
-      history.pixelReader.getPixelData() // 데이터
+      history.pixelReader.getPixelData(), // 데이터
     );
 
     let newHistory = upload(history.rect);
@@ -626,7 +626,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       pathDirty.ex + 1,
       pathDirty.ey + 1,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
   }
 
@@ -642,7 +642,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       0,
       gl.RG,
       gl.HALF_FLOAT,
-      null
+      null,
     );
   }
 

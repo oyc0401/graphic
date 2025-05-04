@@ -33,8 +33,8 @@ export const mainApi = {
       paintState.setToolId("selection");
       worker.setTool("selection");
     } else {
-      paintState.setToolId("brush");
-      worker.setTool(paintState.brushId);
+      paintState.setToolId("select");
+      worker.setTool("select");
     }
   },
 };

@@ -191,10 +191,10 @@ export class PaintService {
 
   undo() {
     let historyManager = getHistoryManager(this.canvas, this.gl);
-    historyManager.undo();
+    return historyManager.undo();
   }
   redo() {
     let historyManager = getHistoryManager(this.canvas, this.gl);
-    historyManager.redo();
+    return historyManager.redo();
   }
 }

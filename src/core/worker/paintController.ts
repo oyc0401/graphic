@@ -141,10 +141,10 @@ export const workerApi = {
     paint.downloadImage();
   },
   undo() {
-    paint.undo();
+    return paint.undo();
   },
   redo() {
-    paint.redo();
+    return paint.redo();
   },
 };
 

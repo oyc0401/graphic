@@ -1,5 +1,8 @@
 import { makeAutoObservable } from "mobx";
 import { getLayerWorker } from "./core/worker/workerPool";
+import { toolManager } from "./draw";
+import { paintState } from "./paintState";
+import { selection } from "./selection";
 
 class HistoryState {
   undoCount = 0;
@@ -25,12 +28,56 @@ class HistoryState {
 
 export const historyState = new HistoryState();
 
-export function undo() {
+export async function undo() {
   let worker = getLayerWorker();
-  worker.undo();
+  let msg = await worker.undo();
+  if (!msg) return;
+  if (msg == "select") {
+    paintState.setToolId("select");
+    const worker = getLayerWorker();
+    worker.setTool("select");
+  } else if (msg == "selection") {
+    paintState.setToolId("selection");
+    selection.setVisible(true);
+    selection.setShowHint(true);
+    selection.setShowHandle(true);
+  } else if (msg == "brush") {
+    paintState.setToolId("brush");
+    const worker = getLayerWorker();
+    worker.setTool(paintState.brushId);
+  } else if (msg == "liquify") {
+    paintState.setToolId("brush");
+    paintState.setBrushId("liquify");
+    const worker = getLayerWorker();
+    worker.setTool(paintState.brushId);
+  } else {
+    console.warn("허용되지 않은 tool", msg);
+  }
 }
 
-export function redo() {
+export async function redo() {
   let worker = getLayerWorker();
-  worker.redo();
+  let msg = await worker.redo();
+  if (!msg) return;
+  if (msg == "select") {
+    paintState.setToolId("select");
+    const worker = getLayerWorker();
+    worker.setTool("select");
+  } else if (msg == "selection") {
+    paintState.setToolId("selection");
+    selection.setVisible(true);
+    selection.setShowHint(true);
+    selection.setShowHandle(true);
+  } else if (msg == "brush") {
+    paintState.setToolId("brush");
+    const worker = getLayerWorker();
+    worker.setTool(paintState.brushId);
+  } else if (msg == "liquify") {
+    paintState.setToolId("brush");
+    paintState.setBrushId("liquify");
+    const worker = getLayerWorker();
+    worker.setTool(paintState.brushId);
+  } else {
+    console.warn("허용되지 않은 tool", msg);
+  }
 }
