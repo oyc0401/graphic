@@ -32,10 +32,11 @@ export async function undo() {
   let worker = getLayerWorker();
   let msg = await worker.undo();
   if (!msg) return;
+  console.warn("change tool:", msg);
   if (msg == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
-    worker.setTool("select");
+    worker.setTool("select", false);
   } else if (msg == "selection") {
     paintState.setToolId("selection");
     selection.setVisible(true);
@@ -43,13 +44,16 @@ export async function undo() {
     selection.setShowHandle(true);
   } else if (msg == "brush") {
     paintState.setToolId("brush");
+    paintState.setBrushId("brush");
     const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    worker.setTool(paintState.brushId, false);
   } else if (msg == "liquify") {
+    // 이때 liquify -> brush로 가면 liquify의 exit안해도 됌.
+
     paintState.setToolId("brush");
     paintState.setBrushId("liquify");
     const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    worker.setTool(paintState.brushId, false);
   } else {
     console.warn("허용되지 않은 tool", msg);
   }
@@ -59,10 +63,11 @@ export async function redo() {
   let worker = getLayerWorker();
   let msg = await worker.redo();
   if (!msg) return;
+  console.warn("change tool:", msg);
   if (msg == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
-    worker.setTool("select");
+    worker.setTool("select",false);
   } else if (msg == "selection") {
     paintState.setToolId("selection");
     selection.setVisible(true);
@@ -70,13 +75,14 @@ export async function redo() {
     selection.setShowHandle(true);
   } else if (msg == "brush") {
     paintState.setToolId("brush");
+    paintState.setBrushId("brush");
     const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    worker.setTool(paintState.brushId, false);
   } else if (msg == "liquify") {
     paintState.setToolId("brush");
     paintState.setBrushId("liquify");
     const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    worker.setTool(paintState.brushId, false);
   } else {
     console.warn("허용되지 않은 tool", msg);
   }

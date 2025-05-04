@@ -482,14 +482,12 @@ function createSelectionManager(canvas, gl) {
     let historyManager = getHistoryManager(canvas, gl);
 
     let selectionHistory = makeHistory();
-    selectionHistory.tool = "selection";
     selectionHistory.group = "applySelection";
     historyManager.addUndo(selectionHistory);
 
     let history = sourceTextureManager.uploadCurrent(
       DirtyRect.fromWidth(x, y, width, height),
     );
-    history.tool = "selection";
     history.group = "applySelection";
 
     historyManager.addUndo(history);

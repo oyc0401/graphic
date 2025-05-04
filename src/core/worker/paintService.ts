@@ -25,7 +25,6 @@ export class PaintService {
   canvas: OffscreenCanvas;
   gl: WebGL2RenderingContext;
 
-  toolId: string;
   tools: any;
   lastPointer: Pointer;
 
@@ -43,7 +42,7 @@ export class PaintService {
       throw Error("Can't make webgl2 context");
     }
     this.gl = gl;
-    this.toolId = "brush";
+    paintOptions.toolId = "brush";
 
     this.init();
   }
@@ -106,16 +105,16 @@ export class PaintService {
   setAlpha(alpha) {
     paintOptions.setAlpha(alpha);
   }
-  setTool(toolId) {
-    if (this.toolId != toolId) {
+  setTool(toolId, doExit) {
+    if (paintOptions.toolId != toolId && doExit) {
       this.getTool()?.exit();
-      this.toolId = toolId;
+      paintOptions.toolId = toolId;
       this.getTool()?.enter();
     }
     if (toolId == "select") return;
   }
   getTool() {
-    return this.tools[this.toolId];
+    return this.tools[paintOptions.toolId];
   }
   start(pointer: Pointer) {
     this.getTool().start(pointer);

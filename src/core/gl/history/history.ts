@@ -41,7 +41,7 @@ function createHistoryManager(canvas, gl) {
   ) {
     const { resetRedo = true } = options;
 
-    console.log("addUndo:", newHistory.tool);
+    //console.log("addUndo:", newHistory.tool);
 
     undoStack.push(newHistory);
 
@@ -64,7 +64,7 @@ function createHistoryManager(canvas, gl) {
   }
 
   function addRedo(newHistory) {
-    console.log("addRedo:", newHistory.tool);
+    //console.log("addRedo:", newHistory.tool);
 
     redoStack.push(newHistory);
 
@@ -86,6 +86,7 @@ function createHistoryManager(canvas, gl) {
 
     let newHistory = history.applyHistory(history);
 
+    newHistory.tool = paintOptions.toolId;
     addRedo(newHistory);
 
     if (
@@ -111,6 +112,7 @@ function createHistoryManager(canvas, gl) {
 
     let newHistory = history.applyHistory(history);
 
+    newHistory.tool = paintOptions.toolId;
     addUndo(newHistory, { resetRedo: false });
 
     if (

@@ -45,6 +45,8 @@ export let paintOptions = {
   layerId: 0,
   selectionLayerId: 0,
 
+  toolId: "brush",
+
   setAlpha(newAlpha) {
     paintOptions.alpha = newAlpha;
   },
@@ -218,7 +220,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function applyHistory(history: HistoryItem): HistoryItem {
-   // console.log(history)
+    // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
 
