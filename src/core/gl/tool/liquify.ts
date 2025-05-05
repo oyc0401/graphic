@@ -426,12 +426,16 @@ async function makeLiquifyManager(canvas, gl) {
       let displaceHistory = sourceDisplaceMapManager.upload(
         DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height),
       );
-      displaceHistory.skipHistory = true;
+      // displaceHistory.skipHistory = true;
+      displaceHistory.tool = "liquify";
+      displaceHistory.group = "liquifyExit";
       historyManager.addUndo(displaceHistory);
 
       clearMap();
       let sourceHistory = sourceTextureManager.uploadCurrent(imageDirty);
-      sourceHistory.skipHistory = true;
+      //sourceHistory.skipHistory = true;
+      sourceHistory.tool = "liquify";
+      sourceHistory.group = "liquifyExit";
       historyManager.addUndo(sourceHistory);
     },
     setSize,
@@ -441,6 +445,149 @@ async function makeLiquifyManager(canvas, gl) {
 
   return Liquify;
 }
+
+
+// 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
+//       이미지 1 -> 이미지 2 ->  이미지 3
+// 드로우2 를 하기 전, start단에서 이미지 1 때의 imageDirty를 보관한다.
+// 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
+// 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
+
+class HistoryObject {
+  gl;
+  tool;
+  id;
+  skip;
+
+  undoPixelReader;
+  redoPixelReader;
+  undoImageDirty;
+  redoImageDirty;
+
+  rect;
+  constructor(gl, rect: DirtyRect) {
+    this.gl = gl;
+    this.rect = rect;
+    // redoPixels에 Rect2에 해당하는 이미지2 텍스쳐 픽셀리더, redoimageDirty 저장.
+    // 결과물을 올리느냐, 또는 pointers를 올리느냐. 그건 자기 입맛대로 하기
+  }
+
+  setUndoState(reader: PixelReader, dirty: DirtyRect) {
+    this.undoPixelReader = reader;
+    this.undoImageDirty = dirty;
+  }
+
+  setRedoState(reader: PixelReader, dirty: DirtyRect) {
+    this.redoPixelReader = reader;
+    this.redoImageDirty = dirty;
+  }
+
+  undo() {
+    // displaceMap에 Rect2부분에 이미지1 적용!
+    // displaceMap보고 layer에 드로우!
+    // 이미지1 때의 imagedirty 적용!
+
+    this.applyHistory(this.undoPixelReader, this.undoImageDirty);
+  }
+
+  redo() {
+    // displaceMap에 Rect2부분에 이미지2 적용!
+    // displaceMap보고 layer에 드로우!
+    // 이미지2 때의 imagedirty 적용!
+    this.applyHistory(this.redoPixelReader, this.redoImageDirty);
+  }
+
+  applyHistory(pixelReader, imageDirty) {
+    let gl = this.gl;
+
+    let liquifyManager = getLiquifyManager(null, this.gl);
+    let sourceDisplaceMapManager = getSourceDisplaceMapManager(null, this.gl);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
+
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      this.rect.x,
+      this.rect.y,
+      this.rect.width,
+      this.rect.height,
+      gl.RG,
+      gl.HALF_FLOAT,
+      pixelReader.getPixelData(),
+    );
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
+    gl.bindFramebuffer(
+      gl.DRAW_FRAMEBUFFER,
+      sourceDisplaceMapManager.sourceDisplacementFBO,
+    );
+
+    gl.blitFramebuffer(
+      this.rect.x,
+      this.rect.y,
+      this.rect.ex + 1,
+      this.rect.ey + 1,
+      this.rect.x,
+      this.rect.y,
+      this.rect.ex + 1,
+      this.rect.ey + 1,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
+
+    liquifyManager.setImageDirty(imageDirty);
+
+    liquifyManager.render();
+  }
+}
+
+// function makeHistory(x, y, width, height) {
+//   let liquifyManager = getLiquifyManager(canvas, gl);
+
+//   let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
+
+//   const newHistory = new HistoryObject(gl, dirtyRect);
+
+//   const beforeTex = makeDirtyTexture(dirtyRect);
+//   let beforePixelReader = new PixelReader(
+//     gl,
+//     width,
+//     height,
+//     beforeTex,
+//     gl.RG,
+//     gl.HALF_FLOAT,
+//   );
+//   newHistory.setUndoState(beforePixelReader, beforeRect);
+
+//   // sourceMap으로 업로드
+//   gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
+//   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
+//   gl.blitFramebuffer(
+//     dirtyRect.x,
+//     dirtyRect.y,
+//     dirtyRect.ex + 1,
+//     dirtyRect.ey + 1,
+//     dirtyRect.x,
+//     dirtyRect.y,
+//     dirtyRect.ex + 1,
+//     dirtyRect.ey + 1,
+//     gl.COLOR_BUFFER_BIT,
+//     gl.NEAREST,
+//   );
+
+//   const afterTex = makeDirtyTexture(dirtyRect);
+//   let afterPixelReader = new PixelReader(
+//     gl,
+//     width,
+//     height,
+//     afterTex,
+//     gl.RG,
+//     gl.HALF_FLOAT,
+//   );
+//   newHistory.setRedoState(afterPixelReader, liquifyManager.getImageDirty());
+// }
+
 
 export function getSourceDisplaceMapManager(canvas, gl) {
   const manager = getManager(gl, "sourceDisplaceMap", () =>

@@ -471,7 +471,8 @@ function makeBrushManager(canvas, gl) {
     },
     end() {
       let history = sourceTextureManager.uploadCurrent(pathDirty);
-      history.tool = "brush";
+      history.tool = paintOptions.toolId;
+
       let historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(history);
       clearMap();

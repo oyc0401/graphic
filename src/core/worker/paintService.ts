@@ -111,6 +111,7 @@ export class PaintService {
       paintOptions.toolId = toolId;
       this.getTool()?.enter();
     }
+    paintOptions.toolId = toolId;
     if (toolId == "select") return;
   }
   getTool() {
