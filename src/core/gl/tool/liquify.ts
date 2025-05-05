@@ -759,9 +759,10 @@ async function makeLiquifyManager(canvas, gl) {
 
 export interface Snapshot {
   layerId;
-  pixelReader;
+  pixelReader?;
   rect;
   apply;
+  selectionRect?;
 }
 
 export class HistoryObject {

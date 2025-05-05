@@ -1,9 +1,11 @@
 import { mainThread } from "../worker/mainPool";
 import { getHistoryManager, HistoryItem } from "./history/history";
 import { PixelReader } from "./history/PixelReader";
+import { pushReadPixelQueue } from "./history/pixelReadProcessor";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
+import { HistoryObject, Snapshot } from "./tool/liquify";
 import { getManager } from "./utils/cachedManager";
 import { DirtyRect, Rect } from "./utils/dirtyRect";
 import { decodePremultAndFlip } from "./utils/flipPixel";
@@ -22,10 +24,16 @@ function createSelectionManager(canvas, gl) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
 
-  let x = 0;
-  let y = 0;
-  let width = 10;
-  let height = 10;
+  let selectionPos = {
+    x: 0,
+    y: 0,
+    width: 9,
+    height: 9,
+  };
+  // let selectionPos.x = 0;
+  // let selectionPos.y = 0;
+  // let selectionPos.width = 10;
+  // let selectionPos.height = 10;
 
   let originalWidth;
   let originalHeight;
@@ -184,8 +192,8 @@ function createSelectionManager(canvas, gl) {
       originalHeight, // 원본 영역
       0,
       0,
-      width,
-      height, // 목표 영역 (크기 조정됨)
+      selectionPos.width,
+      selectionPos.height, // 목표 영역 (크기 조정됨)
       gl.COLOR_BUFFER_BIT,
       paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST,
     );
@@ -193,7 +201,7 @@ function createSelectionManager(canvas, gl) {
 
   const fbo = gl.createFramebuffer();
 
-  function makeDirtyTexture(dirtyRect) {
+  function makeDirtyTexture(width, height) {
     const historyTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, historyTex);
@@ -201,8 +209,8 @@ function createSelectionManager(canvas, gl) {
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      dirtyRect.width,
-      dirtyRect.height,
+      width,
+      height,
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
@@ -223,14 +231,14 @@ function createSelectionManager(canvas, gl) {
 
     // blit 좌표계는 0,0,1,1이 1칸임.
     gl.blitFramebuffer(
-      dirtyRect.x,
-      dirtyRect.y,
-      dirtyRect.ex + 1,
-      dirtyRect.ey + 1,
       0,
       0,
-      dirtyRect.width,
-      dirtyRect.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      width,
+      height,
+      0,
+      0,
+      width,
+      height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
       gl.NEAREST, // 필터링 옵션
     );
@@ -238,106 +246,16 @@ function createSelectionManager(canvas, gl) {
     return historyTex;
   }
 
-  function makeHistory(): HistoryItem {
-    let dirtyRect = DirtyRect.fromWidth(0, 0, originalWidth, originalHeight);
-    const historyTex = makeDirtyTexture(dirtyRect);
-
-    let pixelReader = new PixelReader(
-      gl,
-      originalWidth,
-      originalHeight,
-      historyTex,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-    );
-
-    const newHistory: HistoryItem = {
-      layerId: paintOptions.layerId,
-      tool: "selection",
-      rect: dirtyRect,
-      pixelReader,
-      skipHistory: false,
-      applyHistory: applyHistory,
-      showSelection: true,
-      selectionRect: Rect.fromWidth(x, y, width, height),
-    };
-
-    return newHistory;
-  }
-
-  function applyHistory(history: HistoryItem): HistoryItem {
-    let newHistory;
-    if (history.showSelection == true) {
-      console.warn("선택창 보여주기!");
-
-      // pixelData를 texture에 다시 업로드
-      originalWidth = history.rect.width;
-      originalHeight = history.rect.height;
-
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
-      gl.bindTexture(gl.TEXTURE_2D, selectionTex);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0, // level
-        gl.RGBA, // internalFormat
-        originalWidth, // 텍스처 폭
-        originalHeight, // 텍스처 높이
-        0, // border
-        gl.RGBA, // format
-        gl.UNSIGNED_BYTE, // type
-        history.pixelReader.getPixelData(),
-      );
-
-      paintOptions.showSelection = true;
-
-      // 숨기는 히스토리 넣기
-      newHistory = {
-        layerId: paintOptions.layerId,
-        tool: "select",
-        skipHistory: false,
-        applyHistory: applyHistory,
-        showSelection: false,
-      };
-      newHistory.group = "select";
-
-      setSize(
-        history.selectionRect.x,
-        history.selectionRect.y,
-        history.selectionRect.width,
-        history.selectionRect.height,
-      );
-    } else {
-      console.warn("선택창 닫기!");
-
-      // 보여주는 히스토리 넣기
-      paintOptions.showSelection = false;
-      newHistory = makeHistory();
-      newHistory.group = "applySelection";
-    }
-
-    mainThread.setSelectionPosition(
-      paintOptions.showSelection,
-      x,
-      y,
-      width,
-      height,
-    );
-    console.log("적용:", history);
-    newHistory.group = history.group;
-
-    renderingManager.render();
-
-    return newHistory;
-  }
-
-  function select(sx, sy, swidth, sheight) {
+  function makeSelectionFromLayer(sx, sy, swidth, sheight) {
+    const renderRect = DirtyRect.fromWidth(0, 0, swidth, sheight);
+    const selectionPosRect = DirtyRect.fromWidth(sx, sy, swidth, sheight);
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = false;
 
-    x = sx;
-    y = sy;
-    width = swidth;
-    height = sheight;
+    selectionPos.x = sx;
+    selectionPos.y = sy;
+    selectionPos.width = swidth;
+    selectionPos.height = sheight;
     originalWidth = swidth;
     originalHeight = sheight;
 
@@ -348,7 +266,7 @@ function createSelectionManager(canvas, gl) {
       gl.TEXTURE_2D,
       0, // level
       gl.RGBA, // internalFormat
-      originalWidth, // 텍스처 폭
+      originalWidth, // 텍= �처 폭
       originalHeight, // 텍스처 높이
       0, // border
       gl.RGBA, // format
@@ -361,10 +279,10 @@ function createSelectionManager(canvas, gl) {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, selectionFBO);
 
     gl.blitFramebuffer(
-      x,
-      y,
-      x + originalWidth,
-      y + originalHeight, // src 영역
+      selectionPos.x,
+      selectionPos.y,
+      selectionPos.x + originalWidth,
+      selectionPos.y + originalHeight, // src 영역
       0,
       0,
       originalWidth,
@@ -373,45 +291,123 @@ function createSelectionManager(canvas, gl) {
       gl.NEAREST, // 필터링 모드 (스케일링 없이 복사)
     );
 
+    let beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      rect: renderRect,
+      apply() {
+        // 선택창 제거
+        paintOptions.showSelection = false;
+      },
+    };
+
+    const historyTex = makeDirtyTexture(originalWidth, originalHeight);
+
+    let pixelReader = new PixelReader(
+      gl,
+      originalWidth,
+      originalHeight,
+      historyTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+    );
+    pushReadPixelQueue(gl, pixelReader);
+
+    let afterSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: pixelReader,
+      rect: renderRect,
+      selectionRect: selectionPosRect,
+      apply() {
+        selectionPos.x = this.selectionRect.x;
+        selectionPos.y = this.selectionRect.y;
+        selectionPos.width = this.selectionRect.width;
+        selectionPos.height = this.selectionRect.height;
+        originalWidth = this.rect.width;
+        originalHeight = this.rect.height;
+
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+        gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0, // level
+          gl.RGBA, // internalFormat
+          originalWidth, // 텍스처 폭
+          originalHeight, // 텍스처 높이
+          0, // border
+          gl.RGBA, // format
+          gl.UNSIGNED_BYTE, // type
+          this.pixelReader.getPixelData(),
+        );
+
+        paintOptions.showSelection = true;
+      },
+    };
+
+    return {
+      before: beforeSnapshot,
+      after: afterSnapshot,
+    };
+  }
+
+  function select(sx, sy, swidth, sheight) {
+    let { before, after } = makeSelectionFromLayer(sx, sy, swidth, sheight);
+
     // 3) 선택된 영역을 완전히 투명으로 지우기
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
 
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(x, y, originalWidth, originalHeight);
+    gl.scissor(sx, sy, swidth, sheight);
 
     gl.clearColor(0, 0, 0, 0); // RGBA 모두 0
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.disable(gl.SCISSOR_TEST);
 
-    if (width <= 2048.0 && height <= 2048.0) {
-      uploadRenderedTex();
-    }
+    let { before: beforeSource, after: afterSource } =
+      sourceTextureManager.upload(sx, sy, swidth, sheight);
+
+    const newHistory = new HistoryObject(gl, {
+      undo: () => {
+        before.apply();
+        beforeSource.apply();
+        renderingManager.render();
+        if (selectionPos.width <= 2048.0 && selectionPos.height <= 2048.0) {
+          uploadRenderedTex();
+        }
+        mainThread.setSelectionPosition(
+          paintOptions.showSelection,
+          selectionPos.x,
+          selectionPos.y,
+          selectionPos.width,
+          selectionPos.height,
+        );
+        return "select";
+      },
+      redo: () => {
+        after.apply();
+        afterSource.apply();
+        renderingManager.render();
+        if (selectionPos.width <= 2048.0 && selectionPos.height <= 2048.0) {
+          uploadRenderedTex();
+        }
+        mainThread.setSelectionPosition(
+          paintOptions.showSelection,
+          selectionPos.x,
+          selectionPos.y,
+          selectionPos.width,
+          selectionPos.height,
+        );
+        return "selection";
+      },
+    });
 
     let historyManager = getHistoryManager(canvas, gl);
+    historyManager.addUndo(newHistory);
 
-    // selection history
-    const selectionHistory: HistoryItem = {
-      layerId: paintOptions.layerId,
-      tool: "select",
-      skipHistory: false,
-      applyHistory: applyHistory,
-      showSelection: false,
-    };
-    selectionHistory.group = "select";
-    historyManager.addUndo(selectionHistory);
-
-    // layer history
-    let history = sourceTextureManager.uploadCurrent(
-      DirtyRect.fromWidth(sx, sy, swidth, sheight),
-    );
-    history.tool = "select";
-    history.group = "select";
-    historyManager.addUndo(history);
-
-    renderingManager.render();
+    if (selectionPos.width <= 2048.0 && selectionPos.height <= 2048.0) {
+      uploadRenderedTex();
+    }
   }
-
   // makeSelection, clearLayer -> drawLayer -> applySelection
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
     paintOptions.showSelection = true;
@@ -427,14 +423,14 @@ function createSelectionManager(canvas, gl) {
       bitmap, // ✅ 직접 전달 가능
     );
 
-    x = newx;
-    y = newy;
-    width = newwidth;
-    height = newheight;
+    selectionPos.x = newx;
+    selectionPos.y = newy;
+    selectionPos.width = newwidth;
+    selectionPos.height = newheight;
     originalWidth = newwidth;
     originalHeight = newheight;
 
-    if (width <= 2048.0 && height <= 2048.0) {
+    if (selectionPos.width <= 2048.0 && selectionPos.height <= 2048.0) {
       uploadRenderedTex();
     }
 
@@ -464,52 +460,87 @@ function createSelectionManager(canvas, gl) {
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionPos"),
-      x,
-      y,
+      selectionPos.x,
+      selectionPos.y,
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionSize"),
-      width,
-      height,
+      selectionPos.width,
+      selectionPos.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    renderingManager.render();
+    // renderingManager.render();
 
-    let historyManager = getHistoryManager(canvas, gl);
+    // let historyManager = getHistoryManager(canvas, gl);
 
-    let selectionHistory = makeHistory();
-    selectionHistory.group = "applySelection";
-    historyManager.addUndo(selectionHistory);
+    // let selectionHistory = makeHistory();
+    // selectionHistory.group = "applySelection";
+    // historyManager.addUndo(selectionHistory);
 
-    let history = sourceTextureManager.uploadCurrent(
-      DirtyRect.fromWidth(x, y, width, height),
-    );
-    history.group = "applySelection";
+    // let history = sourceTextureManager.uploadCurrent(
+    //   DirtyRect.fromWidth(x, y, width, height),
+    // );
+    // history.group = "applySelection";
 
-    historyManager.addUndo(history);
+    // historyManager.addUndo(history);
+
+    // {
+    //   originalWidth = history.rect.width;
+    //   originalHeight = history.rect.height;
+
+    //   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    //   gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+    //   gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0, // level
+    //     gl.RGBA, // internalFormat
+    //     originalWidth, // 텍스처 폭
+    //     originalHeight, // 텍스처 높이
+    //     0, // border
+    //     gl.RGBA, // format
+    //     gl.UNSIGNED_BYTE, // type
+    //     history.pixelReader.getPixelData(),
+    //   );
+
+    //   paintOptions.showSelection = true;
+    // }
   }
 
   function getPixelData() {
     // 픽셀 읽기 준비 (뒤집힌 픽셀)
-    const flippedPixel = new Uint8Array(width * height * 4);
+    const flippedPixel = new Uint8Array(
+      selectionPos.width * selectionPos.height * 4,
+    );
 
-    console.log("getPixelData", width, height);
-    if (width > 2048.0 || height > 2048.0) {
+    console.log("getPixelData", selectionPos.width, selectionPos.height);
+    if (selectionPos.width > 2048.0 || selectionPos.height > 2048.0) {
       uploadRenderedTex(); // 이게 readpixel하려면 어쨌든 텍스쳐에 써야함...
     }
 
     // 픽셀 읽기
     gl.bindFramebuffer(gl.FRAMEBUFFER, renderedSelectionFBO);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
+    gl.readPixels(
+      0,
+      0,
+      selectionPos.width,
+      selectionPos.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      flippedPixel,
+    );
 
     // 최종 픽셀 (논프멀, 위에서 아래로 플립됨)
-    const pixels = decodePremultAndFlip(flippedPixel, width, height);
+    const pixels = decodePremultAndFlip(
+      flippedPixel,
+      selectionPos.width,
+      selectionPos.height,
+    );
 
-    return { pixels, width, height };
+    return { pixels, width: selectionPos.width, height: selectionPos.height };
   }
 
   function afterCut() {
@@ -529,21 +560,28 @@ function createSelectionManager(canvas, gl) {
 
     mainThread.setSelectionPosition(
       paintOptions.showSelection,
-      x,
-      y,
-      width,
-      height,
+      selectionPos.x,
+      selectionPos.y,
+      selectionPos.width,
+      selectionPos.height,
     );
 
     return newHistory;
   }
 
   function startMove(undoable = true) {
+
+    
     let historyManager = getHistoryManager(canvas, gl);
     const newHistory: HistoryItem = {
       layerId: paintOptions.layerId,
       tool: "selection",
-      selectionRect: Rect.fromWidth(x, y, width, height),
+      selectionRect: Rect.fromWidth(
+        selectionPos.x,
+        selectionPos.y,
+        selectionPos.width,
+        selectionPos.height,
+      ),
       pixelReader: null,
       skipHistory: false,
       applyHistory: applyMoveHistory,
@@ -556,10 +594,10 @@ function createSelectionManager(canvas, gl) {
   }
 
   function setSize(newX, newY, newWidth, newHeight) {
-    x = newX;
-    y = newY;
+    selectionPos.x = newX;
+    selectionPos.y = newY;
 
-    if (width != newWidth || height != newHeight) {
+    if (selectionPos.width != newWidth || selectionPos.height != newHeight) {
       console.log("selection size:", newWidth, newHeight);
       // 텍스쳐 크기 재조정.
       // 텍스쳐는 선택 원본 텍스쳐, 선택 렌더링용 텍스쳐 두개를 분리해야하고.
@@ -567,8 +605,8 @@ function createSelectionManager(canvas, gl) {
       // 원본 선택 텍스는 오직 크기 변경시 렌더셀렉트를 구현하기 위해 존재한다.
       // 선택 이미지가 바뀌었을 때도 소스셀렉트를 먼저 그것으로 바꾸고, 렌더셀렉트를 렌더링 해야한다.
 
-      width = newWidth;
-      height = newHeight;
+      selectionPos.width = newWidth;
+      selectionPos.height = newHeight;
 
       if (newWidth <= 2048.0 && newHeight <= 2048.0) {
         uploadRenderedTex();
@@ -580,10 +618,10 @@ function createSelectionManager(canvas, gl) {
 
   function getPosition() {
     return {
-      x,
-      y,
-      width,
-      height,
+      x: selectionPos.x,
+      y: selectionPos.y,
+      width: selectionPos.width,
+      height: selectionPos.height,
     };
   }
 
