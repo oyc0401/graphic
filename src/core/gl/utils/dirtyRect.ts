@@ -10,6 +10,9 @@ export class DirtyRect {
   static fromWidth(x, y, width, height) {
     return new DirtyRect(x, y, width + x - 1, height + y - 1);
   }
+  static copy(rect) {
+    return DirtyRect.fromWidth(rect.x, rect.y, rect.width, rect.height);
+  }
 
   get x() {
     return clamp(this.pathDirtyRect.x, 0, paintOptions.width - 1);

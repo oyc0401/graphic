@@ -3,8 +3,12 @@ import { getManager } from "./utils/cachedManager";
 import { getRenderingManager } from "./render";
 import { getHistoryManager, HistoryItem } from "./history/history";
 import { DirtyRect } from "./utils/dirtyRect";
-import { setDrawingFlag } from "./history/pixelReadProcessor";
+import {
+  pushReadPixelQueue,
+  setDrawingFlag,
+} from "./history/pixelReadProcessor";
 import { PixelReader } from "./history/PixelReader";
+import { Snapshot } from "./tool/liquify";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -74,7 +78,6 @@ export function getSourceTextureManager(canvas, gl) {
 }
 
 function makeSourceTextureManager(canvas, gl) {
-  const renderingManager = getRenderingManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
 
   const sourceTexture = gl.createTexture();
@@ -106,6 +109,42 @@ function makeSourceTextureManager(canvas, gl) {
     sourceTexture,
     0,
   );
+
+  function applyHistory(layerId, pixelReader, rect) {
+    // console.log(history)
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
+
+    // pixelData를 texture에 다시 업로드
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      rect.x, // x 좌표
+      rect.y, // y 좌표
+      rect.width, // width
+      rect.height, // height
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      pixelReader.getPixelData(), // 데이터
+    );
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
+
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
+    );
+  }
 
   const fbo = gl.createFramebuffer();
 
@@ -154,97 +193,70 @@ function makeSourceTextureManager(canvas, gl) {
     return historyTex;
   }
 
-  function makeHistory(x, y, width, height): HistoryItem {
-    let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
-    const historyTex = makeDirtyTexture(dirtyRect);
+  function upload(x, y, width, height) {
+    const renderRect = DirtyRect.fromWidth(x, y, width, height);
 
-    let pixelReader = new PixelReader(
+    const beforeTex = makeDirtyTexture(renderRect);
+    const beforePixelReader = new PixelReader(
       gl,
       width,
       height,
-      historyTex,
+      beforeTex,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
     );
-    const newHistory: HistoryItem = {
+    pushReadPixelQueue(gl, beforePixelReader);
+
+    const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
-      tool: "source",
-      rect: dirtyRect,
-      pixelReader,
-      skipHistory: false,
-      applyHistory: applyHistory,
+      pixelReader: beforePixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.layerId, this.pixelReader, this.rect);
+      },
     };
 
-    return newHistory;
-  }
-
-  // 이미지는 layerFBO에 그려져 있다고 가정하므로, 캔버스 내용을 텍스처로 업로드
-  function uploadCurrent(pathDirty?: DirtyRect): HistoryItem {
-    let history;
-    if (pathDirty) {
-      // layerTex를 sourceTex에 blit하기 전에 백업본 생성
-      history = makeHistory(
-        pathDirty.x,
-        pathDirty.y,
-        pathDirty.width,
-        pathDirty.height,
-      );
-    }
-
-    if (!pathDirty) {
-      pathDirty = DirtyRect.fromWidth(
-        0,
-        0,
-        paintOptions.width,
-        paintOptions.height,
-      );
-    }
-
+    // sourceMap으로 업로드
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
 
     gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
+      renderRect.x,
+      renderRect.y,
+      renderRect.ex + 1,
+      renderRect.ey + 1,
+      renderRect.x,
+      renderRect.y,
+      renderRect.ex + 1,
+      renderRect.ey + 1,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
 
-    return history;
-  }
-
-  function applyHistory(history: HistoryItem): HistoryItem {
-    // console.log(history)
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(history.layerId));
-
-    // pixelData를 texture에 다시 업로드
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      history.rect.x, // x 좌표
-      history.rect.y, // y 좌표
-      history.rect.width, // width
-      history.rect.height, // height
-      gl.RGBA, // format
-      gl.UNSIGNED_BYTE, // type
-      history.pixelReader.getPixelData(), // 데이터
+    const afterTex = makeDirtyTexture(renderRect);
+    const afterPixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      afterTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
     );
+    pushReadPixelQueue(gl, afterPixelReader);
 
-    let newHistory = uploadCurrent(history.rect);
-    newHistory.skipHistory = history.skipHistory;
+    const afterSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: afterPixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.layerId, this.pixelReader, this.rect);
+      },
+    };
 
-    renderingManager.render();
-    newHistory.tool = history.tool;
-    newHistory.group = history.group;
-
-    return newHistory;
+    return {
+      before: beforeSnapshot,
+      after: afterSnapshot,
+    };
   }
 
   // 캔버스를 소스 텍스쳐로 돌려놓기
@@ -284,14 +296,13 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   setSize();
-  uploadCurrent();
+  upload(0, 0, paintOptions.width, paintOptions.height);
 
   let sourceTextureManager = {
     texture: sourceTexture,
-    uploadCurrent,
+    upload,
     restore,
     sourceFBO,
-    applyHistory,
     setSize,
   };
 

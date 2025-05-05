@@ -3,7 +3,7 @@ import { getLayerManager } from "./layer";
 import { getLiquifyManager } from "./tool/liquify";
 import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "./utils/cachedManager";
-import { getOffscreenManager } from "./render";
+import { getOffscreenManager, getRenderingManager } from "./render";
 
 /**
  * 도화지의 크기를 조절함
@@ -29,8 +29,10 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
   paintOptions.height = height;
 
   sourceTextureManager.setSize();
-  sourceTextureManager.uploadCurrent();
-
+  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+  const renderingManager = getRenderingManager(canvas, gl);
+  renderingManager.render();
+  
   if (!drawManager || !liquifyManager) {
     console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
   } else {

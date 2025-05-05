@@ -5,6 +5,16 @@ export function setDrawingFlag(value) {
   drawing = value;
 }
 
+let readPixelQueue: PixelReadProcessor;
+
+export function pushReadPixelQueue(gl, pixelReader: PixelReader) {
+  if (!readPixelQueue) {
+    readPixelQueue = new PixelReadProcessor(gl);
+  }
+
+  readPixelQueue.push(pixelReader);
+}
+
 export class PixelReadProcessor {
   gl: WebGL2RenderingContext;
   readPixelStack: PixelReader[] = []; // 최신 변경사항을 접근할 일이 많으니 LIFO로
@@ -15,7 +25,9 @@ export class PixelReadProcessor {
   }
 
   push(pixelReader: PixelReader) {
+    setDrawingFlag(false);
     this.readPixelStack.push(pixelReader);
+    this.excute();
   }
 
   async excute() {

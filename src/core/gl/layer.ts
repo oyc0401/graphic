@@ -1,5 +1,6 @@
 import { getManager } from "./utils/cachedManager";
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
+import { getRenderingManager } from "./render";
 
 export function getLayerManager(canvas, gl) {
   const manager = getManager(gl, "layer", () => makeLayerManager(canvas, gl));
@@ -87,7 +88,9 @@ function makeLayerManager(canvas, gl) {
     );
 
     const sourceTextureManager = getSourceTextureManager(canvas, gl);
-    sourceTextureManager.uploadCurrent();
+    sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+    const renderingManager = getRenderingManager(canvas, gl);
+    renderingManager.render();
   }
 
   function bindCurrentLayer() {

@@ -10,6 +10,7 @@ import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
 import { getHistoryManager } from "../history/history";
+import { HistoryObject } from "./liquify";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -470,11 +471,28 @@ function makeBrushManager(canvas, gl) {
       renderingManager.render();
     },
     end() {
-      let history = sourceTextureManager.uploadCurrent(pathDirty);
-      history.tool = paintOptions.toolId;
+      let { before, after } = sourceTextureManager.upload(
+        pathDirty.x,
+        pathDirty.y,
+        pathDirty.width,
+        pathDirty.height,
+      );
+
+      const newHistory = new HistoryObject(gl, {
+        undo: () => {
+          before.apply();
+          renderingManager.render();
+          return "brush";
+        },
+        redo: () => {
+          after.apply();
+          renderingManager.render();
+          return "brush";
+        },
+      });
 
       let historyManager = getHistoryManager(canvas, gl);
-      historyManager.addUndo(history);
+      historyManager.addUndo(newHistory);
       clearMap();
     },
     cancel() {

@@ -4,6 +4,7 @@ import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { PixelReadProcessor, setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
+import { HistoryObject } from "../tool/liquify";
 
 export interface HistoryItem {
   group?: string;
@@ -16,8 +17,8 @@ export interface HistoryItem {
   showSelection?: boolean;
   selectionRect?: Rect;
 }
-let undoStack: HistoryItem[] = [];
-let redoStack: HistoryItem[] = [];
+let undoStack: HistoryObject[] = [];
+let redoStack: HistoryObject[] = [];
 
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
@@ -31,10 +32,10 @@ function createHistoryManager(canvas, gl) {
   const fbo = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-  const readPixelQueue = new PixelReadProcessor(gl);
+  //const readPixelQueue = new PixelReadProcessor(gl);
 
   function addUndo(
-    newHistory,
+    newHistory: HistoryObject,
     options: {
       resetRedo?: boolean;
     } = {},
@@ -44,12 +45,6 @@ function createHistoryManager(canvas, gl) {
     //console.log("addUndo:", newHistory.tool);
 
     undoStack.push(newHistory);
-
-    if (newHistory.pixelReader) {
-      setDrawingFlag(false);
-      readPixelQueue.push(newHistory.pixelReader);
-      readPixelQueue.excute();
-    }
 
     if (resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
@@ -63,16 +58,10 @@ function createHistoryManager(canvas, gl) {
     logCurrent();
   }
 
-  function addRedo(newHistory) {
+  function addRedo(newHistory: HistoryObject) {
     //console.log("addRedo:", newHistory.tool);
 
     redoStack.push(newHistory);
-
-    if (newHistory.pixelReader) {
-      setDrawingFlag(false);
-      readPixelQueue.push(newHistory.pixelReader);
-      readPixelQueue.excute();
-    }
 
     mainThread.historyCount(undoStack.length, redoStack.length);
     logCurrent();
@@ -84,24 +73,10 @@ function createHistoryManager(canvas, gl) {
     let history = undoStack[undoStack.length - 1];
     undoStack.pop();
 
-    let newHistory = history.applyHistory(history);
-    newHistory.tool = history.tool;
+    let response = history.undo();
+    addRedo(history);
 
-    addRedo(newHistory);
-
-    if (
-      undoStack.length != 0 &&
-      history.group &&
-      history.group == undoStack[undoStack.length - 1].group
-    ) {
-      return undo();
-    }
-
-    if (history.skipHistory) {
-      return undo();
-    }
-
-    return history.tool;
+    return response;
   }
 
   function redo() {
@@ -110,23 +85,10 @@ function createHistoryManager(canvas, gl) {
     let history = redoStack[redoStack.length - 1];
     redoStack.pop();
 
-    let newHistory = history.applyHistory(history);
-    newHistory.tool = history.tool;
-    addUndo(newHistory, { resetRedo: false });
+    let response = history.redo();
+    addUndo(history, { resetRedo: false });
 
-    if (
-      redoStack.length != 0 &&
-      history.group &&
-      history.group == redoStack[redoStack.length - 1].group
-    ) {
-      return redo();
-    }
-
-    if (history.skipHistory) {
-      return redo();
-    }
-
-    return history.tool;
+    return response;
   }
 
   function logCurrent() {

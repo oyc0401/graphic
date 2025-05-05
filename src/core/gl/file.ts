@@ -32,7 +32,7 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
     bitmap, // ✅ 직접 전달 가능
   );
 
-  sourceTextureManager.uploadCurrent();
+  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
 
   renderingManager.render();
 }
@@ -58,7 +58,7 @@ export function resetImage(canvas, gl, width, height) {
     null, // → allocate only
   );
 
-  sourceTextureManager.uploadCurrent();
+  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
 
   renderingManager.render();
 }

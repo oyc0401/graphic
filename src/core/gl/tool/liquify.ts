@@ -17,7 +17,10 @@ import { getShaderSource } from "./liquifyShader";
 import { DirtyRect } from "../utils/dirtyRect";
 import { getManager } from "../utils/cachedManager";
 import { getHistoryManager, HistoryItem } from "../history/history";
-import { setDrawingFlag } from "../history/pixelReadProcessor";
+import {
+  pushReadPixelQueue,
+  setDrawingFlag,
+} from "../history/pixelReadProcessor";
 import { PixelReader } from "../history/PixelReader";
 
 interface liquifyManager {
@@ -237,10 +240,9 @@ async function makeLiquifyManager(canvas, gl) {
 
   ////////////////
   let pathDirty = new DirtyRect();
-  let imageDirty = new DirtyRect();
+  let imageDirty: DirtyRect | null = null;
+  let sourceImageDirty: DirtyRect | null = null;
   /////////////////////////////
-
-  let sourceDisplaceMapManager = getSourceDisplaceMapManager(canvas, gl);
 
   function setSize() {
     const width = paintOptions.width;
@@ -292,12 +294,22 @@ async function makeLiquifyManager(canvas, gl) {
       null,
     );
 
-    sourceDisplaceMapManager.setSize(width, height);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      width,
+      height,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
 
     clearMap();
   }
-
-  setSize();
 
   let layerManager = getLayerManager(canvas, gl);
   let renderingManager = getRenderingManager(canvas, gl);
@@ -307,13 +319,13 @@ async function makeLiquifyManager(canvas, gl) {
 
     let ceiledRadius = Math.ceil(paintOptions.radius);
     pathDirty.reset(pointer, ceiledRadius);
-    if (enterFlag) {
-      console.log("liq dirty reset!!!");
-      imageDirty.reset(pointer, ceiledRadius);
-      enterFlag = false;
-    } else {
+    if (imageDirty) {
       console.log("liq dirty updatePointer...");
       imageDirty.updatePointer(pointer, ceiledRadius);
+    } else {
+      imageDirty = new DirtyRect();
+      console.log("liq dirty reset!!!");
+      imageDirty.reset(pointer, ceiledRadius);
     }
   }
 
@@ -391,212 +403,9 @@ async function makeLiquifyManager(canvas, gl) {
     let glHelper = getGlHelper(gl);
     glHelper.clearTextureVec2(displacementTexInput, width, height, [0, 0]);
     glHelper.clearTextureVec2(displacementTexOutput, width, height, [0, 0]);
-    glHelper.clearTextureVec2(
-      sourceDisplaceMapManager.sourceDisplacementTex,
-      width,
-      height,
-      [0, 0],
-    );
+    glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
   }
 
-  let enterFlag = false;
-
-  let Liquify = {
-    enter() {
-      console.log("liq enter");
-      enterFlag = true;
-    },
-    start,
-    push,
-    render,
-    end() {
-      let history = sourceDisplaceMapManager.upload(pathDirty);
-
-      let historyManager = getHistoryManager(canvas, gl);
-      historyManager.addUndo(history);
-    },
-    cancel() {
-      sourceDisplaceMapManager.restore(pathDirty);
-
-      render();
-    },
-    exit() {
-      let historyManager = getHistoryManager(canvas, gl);
-
-      let displaceHistory = sourceDisplaceMapManager.upload(
-        DirtyRect.fromWidth(0, 0, paintOptions.width, paintOptions.height),
-      );
-      // displaceHistory.skipHistory = true;
-      displaceHistory.tool = "liquify";
-      displaceHistory.group = "liquifyExit";
-      historyManager.addUndo(displaceHistory);
-
-      clearMap();
-      let sourceHistory = sourceTextureManager.uploadCurrent(imageDirty);
-      //sourceHistory.skipHistory = true;
-      sourceHistory.tool = "liquify";
-      sourceHistory.group = "liquifyExit";
-      historyManager.addUndo(sourceHistory);
-    },
-    setSize,
-    displacementTex: displacementTexInput,
-    displaceFBO: displaceInFBO,
-  };
-
-  return Liquify;
-}
-
-
-// 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
-//       이미지 1 -> 이미지 2 ->  이미지 3
-// 드로우2 를 하기 전, start단에서 이미지 1 때의 imageDirty를 보관한다.
-// 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
-// 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
-
-class HistoryObject {
-  gl;
-  tool;
-  id;
-  skip;
-
-  undoPixelReader;
-  redoPixelReader;
-  undoImageDirty;
-  redoImageDirty;
-
-  rect;
-  constructor(gl, rect: DirtyRect) {
-    this.gl = gl;
-    this.rect = rect;
-    // redoPixels에 Rect2에 해당하는 이미지2 텍스쳐 픽셀리더, redoimageDirty 저장.
-    // 결과물을 올리느냐, 또는 pointers를 올리느냐. 그건 자기 입맛대로 하기
-  }
-
-  setUndoState(reader: PixelReader, dirty: DirtyRect) {
-    this.undoPixelReader = reader;
-    this.undoImageDirty = dirty;
-  }
-
-  setRedoState(reader: PixelReader, dirty: DirtyRect) {
-    this.redoPixelReader = reader;
-    this.redoImageDirty = dirty;
-  }
-
-  undo() {
-    // displaceMap에 Rect2부분에 이미지1 적용!
-    // displaceMap보고 layer에 드로우!
-    // 이미지1 때의 imagedirty 적용!
-
-    this.applyHistory(this.undoPixelReader, this.undoImageDirty);
-  }
-
-  redo() {
-    // displaceMap에 Rect2부분에 이미지2 적용!
-    // displaceMap보고 layer에 드로우!
-    // 이미지2 때의 imagedirty 적용!
-    this.applyHistory(this.redoPixelReader, this.redoImageDirty);
-  }
-
-  applyHistory(pixelReader, imageDirty) {
-    let gl = this.gl;
-
-    let liquifyManager = getLiquifyManager(null, this.gl);
-    let sourceDisplaceMapManager = getSourceDisplaceMapManager(null, this.gl);
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
-
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      this.rect.x,
-      this.rect.y,
-      this.rect.width,
-      this.rect.height,
-      gl.RG,
-      gl.HALF_FLOAT,
-      pixelReader.getPixelData(),
-    );
-
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
-    gl.bindFramebuffer(
-      gl.DRAW_FRAMEBUFFER,
-      sourceDisplaceMapManager.sourceDisplacementFBO,
-    );
-
-    gl.blitFramebuffer(
-      this.rect.x,
-      this.rect.y,
-      this.rect.ex + 1,
-      this.rect.ey + 1,
-      this.rect.x,
-      this.rect.y,
-      this.rect.ex + 1,
-      this.rect.ey + 1,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
-
-    liquifyManager.setImageDirty(imageDirty);
-
-    liquifyManager.render();
-  }
-}
-
-// function makeHistory(x, y, width, height) {
-//   let liquifyManager = getLiquifyManager(canvas, gl);
-
-//   let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
-
-//   const newHistory = new HistoryObject(gl, dirtyRect);
-
-//   const beforeTex = makeDirtyTexture(dirtyRect);
-//   let beforePixelReader = new PixelReader(
-//     gl,
-//     width,
-//     height,
-//     beforeTex,
-//     gl.RG,
-//     gl.HALF_FLOAT,
-//   );
-//   newHistory.setUndoState(beforePixelReader, beforeRect);
-
-//   // sourceMap으로 업로드
-//   gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
-//   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
-//   gl.blitFramebuffer(
-//     dirtyRect.x,
-//     dirtyRect.y,
-//     dirtyRect.ex + 1,
-//     dirtyRect.ey + 1,
-//     dirtyRect.x,
-//     dirtyRect.y,
-//     dirtyRect.ex + 1,
-//     dirtyRect.ey + 1,
-//     gl.COLOR_BUFFER_BIT,
-//     gl.NEAREST,
-//   );
-
-//   const afterTex = makeDirtyTexture(dirtyRect);
-//   let afterPixelReader = new PixelReader(
-//     gl,
-//     width,
-//     height,
-//     afterTex,
-//     gl.RG,
-//     gl.HALF_FLOAT,
-//   );
-//   newHistory.setRedoState(afterPixelReader, liquifyManager.getImageDirty());
-// }
-
-
-export function getSourceDisplaceMapManager(canvas, gl) {
-  const manager = getManager(gl, "sourceDisplaceMap", () =>
-    makeSourceDisplaceMapManager(canvas, gl),
-  );
-  return manager;
-}
-
-function makeSourceDisplaceMapManager(canvas, gl) {
   let sourceDisplacementTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
   gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
@@ -634,7 +443,7 @@ function makeSourceDisplaceMapManager(canvas, gl) {
       null,
     ); // 빈 텍스처 생성
 
-    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    // 4. blitFramebuffer를 사용하여  ��면을 텍스처로 복사
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
@@ -663,101 +472,173 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     return historyTex;
   }
 
-  function makeHistory(x, y, width, height): HistoryItem {
-    let dirtyRect = DirtyRect.fromWidth(x, y, width, height);
+  function applyHistory(pixelReader, rect) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
 
-    const historyTex = makeDirtyTexture(dirtyRect);
-
-    let pixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      historyTex,
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
       gl.RG,
       gl.HALF_FLOAT,
+      pixelReader.getPixelData(),
     );
-    const newHistory: HistoryItem = {
-      layerId: paintOptions.layerId,
-      tool: "liquify",
-      rect: dirtyRect,
-      pixelReader,
-      skipHistory: false,
-      applyHistory,
-    };
 
-    return newHistory;
-  }
-
-  function upload(pathDirty?: DirtyRect): HistoryItem {
-    console.log("liquify upload");
-    let liquifyManager = getLiquifyManager(canvas, gl);
-
-    let newHistory;
-    if (pathDirty) {
-      newHistory = makeHistory(
-        pathDirty.x,
-        pathDirty.y,
-        pathDirty.width,
-        pathDirty.height,
-      );
-    }
-
-    if (!pathDirty) {
-      pathDirty = DirtyRect.fromWidth(
-        0,
-        0,
-        paintOptions.width,
-        paintOptions.height,
-      );
-    }
-
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, liquifyManager.displaceFBO);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, displaceInFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
 
     gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
+    );
+  }
+
+  function uploadAndMakeHistory(x, y, width, height) {
+    let renderRect = DirtyRect.fromWidth(x, y, width, height);
+
+    const beforeTex = makeDirtyTexture(renderRect);
+    let beforePixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      beforeTex,
+      gl.RG,
+      gl.HALF_FLOAT,
+    );
+    pushReadPixelQueue(gl, beforePixelReader);
+
+    let beforeDirty: DirtyRect | null = null;
+    if (sourceImageDirty) {
+      beforeDirty = DirtyRect.copy(sourceImageDirty);
+    }
+
+    let beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.pixelReader, this.rect);
+        imageDirty = beforeDirty;
+      },
+    };
+
+    // sourceMap으로 업로드
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, displaceInFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceDisplacementFBO);
+    gl.blitFramebuffer(
+      renderRect.x,
+      renderRect.y,
+      renderRect.ex + 1,
+      renderRect.ey + 1,
+      renderRect.x,
+      renderRect.y,
+      renderRect.ex + 1,
+      renderRect.ey + 1,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
 
-    return newHistory;
-  }
-
-  function applyHistory(history: HistoryItem): HistoryItem {
-    let liquifyManager = getLiquifyManager(canvas, gl);
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, liquifyManager.displacementTex);
-
-    //console.log("liquify size:", history.rect.width * history.rect.height);
-    // pixelData를 texture에 다시 업로드
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      history.rect.x, // x 좌표
-      history.rect.y, // y 좌표
-      history.rect.width, // width
-      history.rect.height, // height
-      gl.RG, // format
-      gl.HALF_FLOAT, // type
-      history.pixelReader.getPixelData(), // 데이터
+    const afterTex = makeDirtyTexture(renderRect);
+    let afterPixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      afterTex,
+      gl.RG,
+      gl.HALF_FLOAT,
     );
+    pushReadPixelQueue(gl, afterPixelReader);
+    let afterDirty: DirtyRect | null = null;
+    if (imageDirty) {
+      afterDirty = DirtyRect.copy(imageDirty);
+    }
+    let afterSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: afterPixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.pixelReader, this.rect);
+        imageDirty = afterDirty;
+      },
+    };
 
-    let newHistory = upload(history.rect);
-    newHistory.skipHistory = history.skipHistory;
-
-    liquifyManager.render();
-
-    return newHistory;
+    return {
+      before: beforeSnapshot,
+      after: afterSnapshot,
+    };
   }
 
+  function clearAndMakeHistory(x, y, width, height) {
+    let renderRect = DirtyRect.fromWidth(x, y, width, height);
+
+    const beforeTex = makeDirtyTexture(renderRect);
+    let beforePixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      beforeTex,
+      gl.RG,
+      gl.HALF_FLOAT,
+    );
+    pushReadPixelQueue(gl, beforePixelReader);
+    let beforeDirty: DirtyRect | null = null;
+    if (sourceImageDirty) {
+      beforeDirty = DirtyRect.copy(sourceImageDirty);
+    }
+    const beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.pixelReader, this.rect);
+        imageDirty = beforeDirty;
+      },
+    };
+
+    // 클리어
+    clearMap();
+
+    const afterTex = makeDirtyTexture(renderRect);
+    let afterPixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      afterTex,
+      gl.RG,
+      gl.HALF_FLOAT,
+    );
+    pushReadPixelQueue(gl, afterPixelReader);
+    let afterDirty: DirtyRect | null = null;
+    if (imageDirty) {
+      afterDirty = DirtyRect.copy(imageDirty);
+    }
+    let afterSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: afterPixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.pixelReader, this.rect);
+        imageDirty = afterDirty;
+      },
+    };
+
+    return {
+      before: beforeSnapshot,
+      after: afterSnapshot,
+    };
+  }
   function restore(pathDirty) {
     let liquifyManager = getLiquifyManager(canvas, gl);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
@@ -777,28 +658,210 @@ function makeSourceDisplaceMapManager(canvas, gl) {
     );
   }
 
-  function setSize(width, height) {
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      width,
-      height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
+  setSize();
+
+  let Liquify = {
+    enter() {
+      const newHistory = new HistoryObject(gl, {
+        undo: () => {
+          return "brush";
+        },
+        redo: () => {
+          return "liquify";
+        },
+      });
+      let historyManager = getHistoryManager(canvas, gl);
+      historyManager.addUndo(newHistory);
+    },
+    start,
+    push,
+    render,
+    end() {
+      const { before, after } = uploadAndMakeHistory(
+        pathDirty.x,
+        pathDirty.y,
+        pathDirty.width,
+        pathDirty.height,
+      );
+      const newHistory = new HistoryObject(gl, {
+        undo: () => {
+          before.apply();
+          render();
+          return "liquify";
+        },
+        redo: () => {
+          after.apply();
+          render();
+          return "liquify";
+        },
+      });
+
+      let historyManager = getHistoryManager(canvas, gl);
+      historyManager.addUndo(newHistory);
+
+      sourceImageDirty = DirtyRect.copy(imageDirty);
+    },
+    cancel() {
+      restore(pathDirty);
+
+      render();
+    },
+    exit() {
+      imageDirty = null;
+
+      let historyManager = getHistoryManager(canvas, gl);
+      const { before, after } = clearAndMakeHistory(
+        sourceImageDirty.x,
+        sourceImageDirty.y,
+        sourceImageDirty.width,
+        sourceImageDirty.height,
+      );
+      let { before: beforeSource, after: afterSource } =
+        sourceTextureManager.upload(
+          sourceImageDirty.x,
+          sourceImageDirty.y,
+          sourceImageDirty.width,
+          sourceImageDirty.height,
+        );
+
+      const newHistory = new HistoryObject(gl, {
+        undo: () => {
+          before.apply();
+          beforeSource.apply();
+          render();
+          return "liquify";
+        },
+        redo: () => {
+          after.apply();
+          afterSource.apply();
+          render();
+          return "brush";
+        },
+      });
+
+      historyManager.addUndo(newHistory);
+
+      sourceImageDirty = null;
+    },
+    setSize,
+    displacementTex: displacementTexInput,
+    displaceFBO: displaceInFBO,
+  };
+
+  return Liquify;
+}
+
+// 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
+//       이미지 1 -> 이미지 2 ->  이미지 3
+// 드로우2 를 하기 전, start단에서 이미지 1 때의 imageDirty를 보관한다.
+// 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
+// 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
+
+export interface Snapshot {
+  layerId;
+  pixelReader;
+  rect;
+  apply;
+}
+
+export class HistoryObject {
+  gl;
+  tool;
+  id;
+  skip;
+
+  constructor(gl, { undo, redo }) {
+    this.gl = gl;
+    this.undo = undo;
+    this.redo = redo;
+
+    // redoPixels에 Rect2에 해당하는 이미지2 텍스쳐 픽셀리더, redoimageDirty 저장.
+    // 결과물을 올리느냐, 또는 pointers를 올리느냐. 그건 자기 입맛대로 하기
   }
 
-  return {
-    setSize,
-    upload,
-    restore,
-    applyHistory,
-    sourceDisplacementTex,
-    sourceDisplacementFBO,
-  };
+  undo: () => string;
+
+  redo: () => string;
 }
+
+// export function getSourceDisplaceMapManager(canvas, gl) {
+//   const manager = getManager(gl, "sourceDisplaceMap", () =>
+//     makeSourceDisplaceMapManager(canvas, gl),
+//   );
+//   return manager;
+// }
+
+// function makeSourceDisplaceMapManager(canvas, gl) {
+//   let sourceDisplacementTex = gl.createTexture();
+//   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+//   gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+//   let sourceDisplacementFBO = gl.createFramebuffer();
+//   gl.bindFramebuffer(gl.FRAMEBUFFER, sourceDisplacementFBO);
+//   gl.framebufferTexture2D(
+//     gl.FRAMEBUFFER,
+//     gl.COLOR_ATTACHMENT0,
+//     gl.TEXTURE_2D,
+//     sourceDisplacementTex,
+//     0,
+//   );
+
+//   const fbo = gl.createFramebuffer();
+
+//   function makeDirtyTexture(pathDirty) {
+//     const historyTex = gl.createTexture();
+//     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+//     gl.bindTexture(gl.TEXTURE_2D, historyTex);
+//     gl.texImage2D(
+//       gl.TEXTURE_2D,
+//       0,
+//       gl.RG16F,
+//       pathDirty.width,
+//       pathDirty.height,
+//       0,
+//       gl.RG,
+//       gl.HALF_FLOAT,
+//       null,
+//     ); // 빈 텍스처 생성
+
+//     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+//     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
+
+//     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+//     gl.framebufferTexture2D(
+//       gl.DRAW_FRAMEBUFFER,
+//       gl.COLOR_ATTACHMENT0,
+//       gl.TEXTURE_2D,
+//       historyTex,
+//       0,
+//     );
+
+//     // blit 좌표계는 0,0,1,1이 1칸임.
+//     gl.blitFramebuffer(
+//       pathDirty.x,
+//       pathDirty.y,
+//       pathDirty.ex + 1,
+//       pathDirty.ey + 1,
+//       0,
+//       0,
+//       pathDirty.width,
+//       pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+//       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+//       gl.NEAREST, // 필터링 옵션
+//     );
+
+//     return historyTex;
+//   }
+
+//   return {
+
+//     restore,
+//     sourceDisplacementTex,
+//     sourceDisplacementFBO,
+//   };
+// }
