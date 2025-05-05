@@ -48,11 +48,6 @@ export class SelectionTool {
     } else {
       selection.active = true;
     }
-
-    if (handle != "OUTSIDE") {
-      const worker = getLayerWorker();
-      worker.startMove();
-    }
   }
 
   move(e: PointerEvent) {
@@ -213,6 +208,11 @@ export class SelectionTool {
         applySelection();
         paintState.setToolId("select");
       }
+    }
+
+    if (this.activeHandle != "OUTSIDE") {
+      const worker = getLayerWorker();
+      worker.endMove();
     }
 
     selection.active = false;

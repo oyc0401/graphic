@@ -135,9 +135,9 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
   }
-  startMove() {
+  endMove() {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.startMove();
+    selectionManager.endMove();
   }
   moveSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
