@@ -29,6 +29,8 @@ class HistoryState {
 export const historyState = new HistoryState();
 
 export async function undo() {
+  if (paintState.pointerdown) return;
+
   if (paintState.toolId == "resize") {
     toolManager.setBrushTool();
   }
@@ -64,6 +66,8 @@ export async function undo() {
 }
 
 export async function redo() {
+  if (paintState.pointerdown) return;
+
   if (paintState.toolId == "resize") {
     toolManager.setBrushTool();
   }
