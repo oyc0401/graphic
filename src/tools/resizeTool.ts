@@ -195,11 +195,9 @@ export class ResizeTool {
         selection.setShowHandle(false);
       }
     } else {
-      position.setX(position.x + selection.x / getPixelRatio());
-      position.setY(position.y + selection.y / getPixelRatio());
-
       let x = selection.x;
       let y = selection.y;
+
       selection.setX(0);
       selection.setY(0);
       console.log("resize!!!");

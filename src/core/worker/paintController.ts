@@ -45,6 +45,7 @@ export const workerApi = {
     paint.setLayerId(layerId);
   },
   setCamaraPosition(px, py, magnification) {
+    console.warn("3:", px, py);
     let { x, y } = toWebglCoord3(
       px,
       py,
@@ -55,9 +56,10 @@ export const workerApi = {
       magnification,
     );
 
+    console.warn("4:", x, y);
     paint.setCameraPosition(x, y, magnification);
   },
-  resizeLayer(px, py, width, height) {
+  resizeLayer(px, py, width, height, beforePos, afterPos) {
     console.log("controller", px, py, width, height);
 
     const diffH = paintOptions.height - height;
@@ -69,8 +71,31 @@ export const workerApi = {
       newY = py + diffH;
     }
 
+    console.warn("1:", afterPos.x, afterPos.y);
+
+    let before = toWebglCoord3(
+      beforePos.x,
+      beforePos.y,
+      paintOptions.width,
+      paintOptions.height,
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+      paintOptions.magnification,
+    );
+
+    let after = toWebglCoord3(
+      afterPos.x,
+      afterPos.y,
+      width,
+      height,
+      paintOptions.screenWidth,
+      paintOptions.screenHeight,
+      paintOptions.magnification,
+    );
+    console.warn("2:", after.x, after.y);
+
     console.log("after", px, newY, width, height);
-    paint.resizeLayer(px, newY, width, height);
+    paint.resizeLayer(px, newY, width, height, before, after);
   },
   resizeScreenSize(screenWidth, screenHeight) {
     paint.resizeScreen(screenWidth, screenHeight);
@@ -87,8 +112,8 @@ export const workerApi = {
   setAlpha(alpha) {
     paint.setAlpha(alpha / 100);
   },
-  setTool(toolId,doExit=true) {
-    paint.setTool(toolId,doExit);
+  setTool(toolId, doExit = true) {
+    paint.setTool(toolId, doExit);
   },
   start(p: Pointer) {
     let pointer = toWebglCoord(p);
@@ -108,7 +133,7 @@ export const workerApi = {
     let { x, y } = toWebglCoord2(px, py, w, h);
     paint.select(x, y, w, h);
   },
-    endMove() {
+  endMove() {
     paint.endMove();
   },
   moveSelection(px, py, width, height) {

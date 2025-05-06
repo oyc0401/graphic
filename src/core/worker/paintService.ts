@@ -74,8 +74,8 @@ export class PaintService {
     paintOptions.y = y;
     paintOptions.magnification = magnification;
   }
-  resizeLayer(x, y, width, height) {
-    resizeLayer(this.canvas, this.gl, x, y, width, height);
+  resizeLayer(x, y, width, height, beforePos, afterPos) {
+    resizeLayer(this.canvas, this.gl, x, y, width, height, beforePos, afterPos);
   }
   resizeScreen(screenWidth, screenHeight) {
     resizeScreen(this.canvas, this.gl, screenWidth, screenHeight);

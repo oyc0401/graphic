@@ -112,7 +112,7 @@ export function setDefaultPosition() {
   let scaledDpr = dpr * percent;
   let width, height;
   let scale = 1;
-  
+
   if (position.bouncingRect.width > position.bouncingRect.height) {
     // 가로가 김
     width = position.bouncingRect.height * scaledDpr * 1.414;
@@ -128,7 +128,6 @@ export function setDefaultPosition() {
   // 초기 위치 설정
   let x = (position.bouncingRect.width - width / dpr) / 2;
   let y = (position.bouncingRect.height - height / dpr) / 2;
-
 
   // width = 200;
   // height = 200;
@@ -221,13 +220,24 @@ export function to_pixel_canvas_coord_round(x, y) {
 }
 
 export async function changeCanvasSize(x, y, newWidth, newHeight) {
+  let beforePos = {
+    x: position.x * getPixelRatio(),
+    y: position.y * getPixelRatio(),
+  };
+  let afterPos = {
+    x: (position.x + x / getPixelRatio()) * getPixelRatio(),
+    y: (position.y + y / getPixelRatio()) * getPixelRatio(),
+  };
+  position.setX(afterPos.x / getPixelRatio());
+  position.setY(afterPos.y / getPixelRatio());
+
   position.setWidth(newWidth);
   position.setHeight(newHeight);
 
   const worker = getLayerWorker();
 
-  await worker.resizeLayer(x, y, newWidth, newHeight);
-  renderChangedPosition();
+  worker.resizeLayer(x, y, newWidth, newHeight, beforePos, afterPos);
+  //renderChangedPosition();
 }
 
 let dpr;

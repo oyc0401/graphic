@@ -1,44 +1,110 @@
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
-import { getLiquifyManager } from "./tool/liquify";
+import { getLiquifyManager, HistoryObject, Snapshot } from "./tool/liquify";
 import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "./utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
+import { PixelReader } from "./history/PixelReader";
+import { pushReadPixelQueue } from "./history/pixelReadProcessor";
+import { DirtyRect } from "./utils/dirtyRect";
+import { getHistoryManager } from "./history/history";
 
 /**
  * 도화지의 크기를 조절함
  */
-export function resizeLayer(canvas, gl, x, y, width, height) {
+export function resizeLayer(
+  canvas,
+  gl,
+  x,
+  y,
+  width,
+  height,
+  beforePos,
+  afterPos,
+) {
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const drawManager = getBrushManager(canvas, gl);
   const liquifyManager = getLiquifyManager(canvas, gl);
   console.log("resizeLayer");
 
+  let oldWidth = paintOptions.width;
+  let oldHeight = paintOptions.height;
+  let newWidth = width;
+  let newHeight = height;
+
   // 현재 그림은 그대로 둔 상태로 크기만 바꾸기
-  resizeTexManager.preserveAndResize(
+  const snapshots = resizeTexManager.preserveAndResize(
     x,
     y,
-    paintOptions.width,
-    paintOptions.height,
+    oldWidth,
+    oldHeight,
     width,
     height,
   );
 
+  paintOptions.x = afterPos.x;
+  paintOptions.y = afterPos.y;
   paintOptions.width = width;
   paintOptions.height = height;
+  function setToolSize() {
+    sourceTextureManager.setSize();
+    if (!drawManager || !liquifyManager) {
+      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
+    } else {
+      drawManager.setSize();
+      liquifyManager.setSize();
+    }
+  }
 
-  sourceTextureManager.setSize();
-  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+  setToolSize();
+
+  let { before, after } = sourceTextureManager.upload(
+    0,
+    0,
+    paintOptions.width,
+    paintOptions.height,
+  );
   const renderingManager = getRenderingManager(canvas, gl);
   renderingManager.render();
-  
-  if (!drawManager || !liquifyManager) {
-    console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
-  } else {
-    drawManager.setSize();
-    liquifyManager.setSize();
-  }
+
+  const newHistory = new HistoryObject(gl, {
+    undo: () => {
+      paintOptions.x = beforePos.x;
+      paintOptions.y = beforePos.y;
+      paintOptions.width = oldWidth;
+      paintOptions.height = oldHeight;
+
+      setToolSize();
+
+      for (let snapshot of snapshots) {
+        snapshot.before.apply();
+      }
+      before.apply();
+
+      renderingManager.render();
+      return "brush";
+    },
+    redo: () => {
+      paintOptions.x = afterPos.x;
+      paintOptions.y = afterPos.y;
+      paintOptions.width = newWidth;
+      paintOptions.height = newHeight;
+
+      setToolSize();
+
+      for (let snapshot of snapshots) {
+        snapshot.after.apply();
+      }
+      after.apply();
+
+      renderingManager.render();
+      return "brush";
+    },
+  });
+
+  let historyManager = getHistoryManager(canvas, gl);
+  historyManager.addUndo(newHistory);
 }
 
 // 화면의 크기를 조절함
@@ -77,6 +143,61 @@ function createResizeManager(canvas, gl) {
   const tempFBO = gl.createFramebuffer();
   const mainFBO = gl.createFramebuffer();
 
+  const readfbo = gl.createFramebuffer();
+  const drawfbo = gl.createFramebuffer();
+
+  function copyTexture(layerTex, width, height) {
+    const historyTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, historyTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    ); // 빈 텍스처 생성
+
+    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readfbo);
+    gl.framebufferTexture2D(
+      gl.READ_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      layerTex,
+      0,
+    );
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, drawfbo);
+    gl.framebufferTexture2D(
+      gl.DRAW_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      historyTex,
+      0,
+    );
+
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      0,
+      0,
+      width,
+      height,
+      0,
+      0,
+      width,
+      height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST, // 필터링 옵션
+    );
+
+    return historyTex;
+  }
+
   function resize(
     x,
     y,
@@ -87,6 +208,8 @@ function createResizeManager(canvas, gl) {
     layerTex,
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
+
+    let beforeTex = copyTexture(layerTex, oldWidth, oldHeight);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, mainFBO);
     gl.framebufferTexture2D(
@@ -154,6 +277,77 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST,
     );
+
+    let afterTex = copyTexture(layerTex, newWidth, newHeight);
+
+    const beforePixelReader = new PixelReader(
+      gl,
+      oldWidth,
+      oldHeight,
+      beforeTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+    );
+    pushReadPixelQueue(gl, beforePixelReader);
+
+    const beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixelReader,
+      rect: DirtyRect.fromWidth(0, 0, oldWidth, oldHeight),
+      apply() {
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+        gl.bindTexture(gl.TEXTURE_2D, layerTex);
+
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0, // level
+          gl.RGBA, // internalFormat
+          this.rect.width,
+          this.rect.height,
+          0, // border
+          gl.RGBA, // format
+          gl.UNSIGNED_BYTE, // type
+          this.pixelReader.getPixelData(),
+        );
+      },
+    };
+
+    const afterPixelReader = new PixelReader(
+      gl,
+      newWidth,
+      newHeight,
+      afterTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+    );
+    pushReadPixelQueue(gl, afterPixelReader);
+
+    const afterSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: afterPixelReader,
+      rect: DirtyRect.fromWidth(0, 0, newWidth, newHeight),
+      apply() {
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+        gl.bindTexture(gl.TEXTURE_2D, layerTex);
+
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0, // level
+          gl.RGBA, // internalFormat
+          this.rect.width,
+          this.rect.height,
+          0, // border
+          gl.RGBA, // format
+          gl.UNSIGNED_BYTE, // type
+          this.pixelReader.getPixelData(),
+        );
+      },
+    };
+
+    return {
+      before: beforeSnapshot,
+      after: afterSnapshot,
+    };
   }
 
   function resizeAll(
@@ -179,11 +373,23 @@ function createResizeManager(canvas, gl) {
       null,
     );
 
+    let snapshots = [];
     for (let layerTex of layerManager.layerArray) {
-      resize(x, y, oldWidth, oldHeight, newWidth, newHeight, layerTex);
+      let snapshot = resize(
+        x,
+        y,
+        oldWidth,
+        oldHeight,
+        newWidth,
+        newHeight,
+        layerTex,
+      );
+      snapshots.push(snapshot);
     }
 
     layerManager.bindCurrentLayer();
+
+    return snapshots;
   }
 
   return {
