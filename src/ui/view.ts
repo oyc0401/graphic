@@ -170,8 +170,8 @@ function bindCursorPositionUI() {
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
 
-    // els.positionBox.style.visibility = visible ? "visible" : "hidden";
-    els.positionBox.style.visibility = "hidden";
+    els.positionBox.style.visibility = visible ? "visible" : "hidden";
+    //els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
   });
 }

@@ -13,8 +13,6 @@ export class PanTool {
 
     this.lastClientX = e.clientX;
     this.lastClientY = e.clientY;
-
-    console.log("PAN 시작");
   }
 
   move(e: PointerEvent) {
@@ -39,15 +37,12 @@ export class PanTool {
   up(_: PointerEvent) {
     // No-op for pan
     if (paintState.action !== "PAN") return;
-    console.log("PAN 종료");
-
     this.active = false;
   }
 
   cancel() {
     // 선택적으로 추가 가능
     this.active = false;
-    console.log("PAN 취소");
   }
 }
 

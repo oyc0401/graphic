@@ -83,21 +83,6 @@ export async function setCameraPosition() {
   position.setY(clampY);
 
   const worker = getLayerWorker();
-
-  console.log(
-    "webgl:",
-    "x:",
-    position.x,
-    "y:",
-    position.y,
-    "width:",
-    position.width,
-    "height:",
-    position.height,
-    "scale:",
-    position.scale,
-  );
-
   await worker.setCamaraPosition(position.x, position.y, position.scale);
 }
 

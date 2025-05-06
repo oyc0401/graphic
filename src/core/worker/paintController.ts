@@ -54,20 +54,6 @@ export const workerApi = {
       paintOptions.screenHeight,
       magnification,
     );
-
-    console.log(
-      "webgl:",
-      "x:",
-      x,
-      "y:",
-      y,
-      "width:",
-      paintOptions.width,
-      "height:",
-      paintOptions.height,
-      "scale:",
-      magnification,
-    );
     paint.setCameraPosition(x, y, magnification);
   },
   resizeLayer(px, py, width, height) {
@@ -79,8 +65,6 @@ export const workerApi = {
     } else {
       newY = py + diffH;
     }
-
-    console.log("p:", px, py);
     paint.resizeLayer(px, newY, width, height);
   },
   resizeScreenSize(screenWidth, screenHeight) {
