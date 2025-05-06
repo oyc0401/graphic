@@ -253,7 +253,7 @@ function createSelectionManager(canvas, gl) {
   }
 
   function selectionSnapshot() {
-    const renderRect = DirtyRect.fromWidth(0, 0, originalWidth, originalHeight);
+    const renderRect = Rect.fromWidth(0, 0, originalWidth, originalHeight);
 
     const selectionCopyTex = makeSelectionCopyTexture();
 
@@ -266,7 +266,7 @@ function createSelectionManager(canvas, gl) {
       gl.UNSIGNED_BYTE,
     );
     pushReadPixelQueue(gl, pixelReader);
-    const selectionPosRect = DirtyRect.fromWidth(
+    const selectionPosRect = Rect.fromWidth(
       selectionPos.x,
       selectionPos.y,
       selectionPos.width,
@@ -444,13 +444,10 @@ function createSelectionManager(canvas, gl) {
 
     let { show: before, hide: after } = selectionSnapshot();
 
+    // sourceTextureManager rect는 꼭 캔버스 내부 영역으로 제한
+    let dirty = DirtyRect.copy(selectionPos);
     let { before: beforeSource, after: afterSource } =
-      sourceTextureManager.upload(
-        selectionPos.x,
-        selectionPos.y,
-        selectionPos.width,
-        selectionPos.height,
-      );
+      sourceTextureManager.upload(dirty.x, dirty.y, dirty.width, dirty.height);
 
     const newHistory = new HistoryObject(gl, {
       undo: () => {

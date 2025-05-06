@@ -581,7 +581,7 @@ function makeRenderingManager(canvas, gl) {
 
   let scheduled = false;
 
-  function render(rect) {
+  function render(rect = undefined) {
     //console.log("rect:", rect);
     let newRect: Rect;
 

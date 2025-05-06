@@ -315,16 +315,16 @@ async function makeLiquifyManager(canvas, gl) {
   let renderingManager = getRenderingManager(canvas, gl);
 
   function start(pointer) {
-    console.log("시작!");
+    //console.log("시작!");
 
     let ceiledRadius = Math.ceil(paintOptions.radius);
     pathDirty.reset(pointer, ceiledRadius);
     if (imageDirty) {
-      console.log("liq dirty updatePointer...");
+      //console.log("liq dirty updatePointer...");
       imageDirty.updatePointer(pointer, ceiledRadius);
     } else {
       imageDirty = new DirtyRect();
-      console.log("liq dirty reset!!!");
+      //console.log("liq dirty reset!!!");
       imageDirty.reset(pointer, ceiledRadius);
     }
   }

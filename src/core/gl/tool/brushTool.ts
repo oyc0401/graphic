@@ -353,10 +353,10 @@ function makeBrushManager(canvas, gl) {
 
   let brushManager = {
     enter() {
-      console.log("enter!");
+     // console.log("enter!");
     },
     start(pointer) {
-      console.log("start!");
+     // console.log("start!");
 
       pathDirty.reset(pointer, paintOptions.radius);
     },
