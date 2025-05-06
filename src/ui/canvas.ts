@@ -4,7 +4,6 @@ import { getPixelRatio, position } from "../position";
 import { getLayerWorker } from "../core/worker/workerPool";
 import * as Comlink from "comlink";
 
-
 export async function tranferCanvas() {
     const worker = getLayerWorker();
     const offscreen = els.canvas.transferControlToOffscreen();
@@ -12,13 +11,13 @@ export async function tranferCanvas() {
     let dpr = getPixelRatio();
     await worker.makeLayer(
         Comlink.transfer(offscreen, [offscreen]),
-        position.bouncingRect.width * dpr,
-        position.bouncingRect.height * dpr,
+        position.screenWidth,
+        position.screenHeight,
         dpr,
         position.width,
         position.height,
-        position.x * dpr,
-        position.y * dpr,
+        position.x,
+        position.y,
         position.scale,
     );
 

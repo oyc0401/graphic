@@ -54,6 +54,14 @@ export class PositionState {
   setScale(scale: number) {
     this.scale = scale;
   }
+
+  get screenWidth() {
+    return this.bouncingRect.width * getPixelRatio();
+  }
+
+  get screenHeight() {
+    return this.bouncingRect.height * getPixelRatio();
+  }
 }
 
 export const position = new PositionState();
@@ -75,22 +83,27 @@ export async function setCameraPosition() {
   position.setY(clampY);
 
   const worker = getLayerWorker();
-  const pxRatio = getPixelRatio();
 
-  await worker.setCamaraPosition(
-    position.x * pxRatio,
-    position.y * pxRatio,
+  console.log(
+    "webgl:",
+    "x:",
+    position.x,
+    "y:",
+    position.y,
+    "width:",
+    position.width,
+    "height:",
+    position.height,
+    "scale:",
     position.scale,
   );
+
+  await worker.setCamaraPosition(position.x, position.y, position.scale);
 }
 
 export async function resizeScreen() {
   const worker = getLayerWorker();
-  const pxRatio = getPixelRatio();
-  await worker.resizeScreenSize(
-    position.bouncingRect.width * pxRatio,
-    position.bouncingRect.height * pxRatio,
-  );
+  await worker.resizeScreenSize(position.screenWidth, position.screenHeight);
 }
 
 export function render() {
@@ -109,25 +122,24 @@ export function setDefaultPosition() {
   // 초기 위치 설정
   let percent = 2 / 3;
   let dpr = getPixelRatio();
-  let scaledDpr = dpr * percent;
   let width, height;
   let scale = 1;
 
   if (position.bouncingRect.width > position.bouncingRect.height) {
     // 가로가 김
-    width = position.bouncingRect.height * scaledDpr * 1.414;
-    height = position.bouncingRect.height * scaledDpr;
+    width = position.screenHeight * percent * 1.414;
+    height = position.screenHeight * percent;
   } else {
     // 세로가 김
-    width = position.bouncingRect.width * scaledDpr;
-    height = position.bouncingRect.width * scaledDpr * 1.414;
+    width = position.screenWidth * percent;
+    height = position.screenWidth * percent * 1.414;
   }
   position.dpr = dpr;
   MAX_SCALE = 120 * dpr;
 
   // 초기 위치 설정
-  let x = (position.bouncingRect.width - width / dpr) / 2;
-  let y = (position.bouncingRect.height - height / dpr) / 2;
+  let x = (position.screenWidth - width) / 2;
+  let y = (position.screenHeight - height) / 2;
 
   // width = 200;
   // height = 200;
@@ -171,8 +183,8 @@ export function setMagification(new_scale, anchor_point) {
 // 캔버스 상의 좌표로 변환.
 export function to_canvas_coord(x, y) {
   let p = to_screen_coord(x, y);
-  let px = p.x * getPixelRatio();
-  let py = p.y * getPixelRatio();
+  let px = p.x;
+  let py = p.y;
 
   return { x: px, y: py };
 }
@@ -186,8 +198,8 @@ function to_world_coord(screenX, screenY) {
 }
 // 캔버스 픽셀 좌표 → 스크린 좌표로 역변환 함수
 function canvas_coord_to_screen_coord(canvasX, canvasY) {
-  let px = canvasX / getPixelRatio();
-  let py = canvasY / getPixelRatio();
+  let px = canvasX;
+  let py = canvasY;
   return { x: px, y: py };
 }
 
@@ -199,8 +211,12 @@ export function canvas_coord_to_css_coord({ x, y }) {
 
 // 스크롤시의 좌표로 변환.
 export function to_screen_coord(x, y) {
-  let px = (x - position.bouncingRect.x) / position.scale - position.x;
-  let py = (y - position.bouncingRect.y) / position.scale - position.y;
+  let px =
+    ((x - position.bouncingRect.x) / position.scale) * getPixelRatio() -
+    position.x;
+  let py =
+    ((y - position.bouncingRect.y) / position.scale) * getPixelRatio() -
+    position.y;
   return { x: px, y: py };
 }
 
@@ -220,17 +236,16 @@ export function to_pixel_canvas_coord_round(x, y) {
 }
 
 export async function changeCanvasSize(x, y, newWidth, newHeight) {
-  let dpr = getPixelRatio();
   let beforePos = {
-    x: position.x * dpr,
-    y: position.y * dpr,
+    x: position.x,
+    y: position.y,
   };
   let afterPos = {
-    x: (position.x + x / dpr) * dpr,
-    y: (position.y + y / dpr) * dpr,
+    x: position.x + x,
+    y: position.y + y,
   }; // 워커 전용
-  position.setX(afterPos.x / dpr);
-  position.setY(afterPos.y / dpr);
+  position.setX(afterPos.x);
+  position.setY(afterPos.y);
 
   position.setWidth(newWidth);
   position.setHeight(newHeight);

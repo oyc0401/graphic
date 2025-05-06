@@ -30,9 +30,9 @@ export function getSelectionHandleAtPoint(
 
   /** ───── ① canvas 좌표 → 화면 좌표 변환 */
   const toScreen = (canvasX: number, canvasY: number) => ({
-    x: (canvasX / dpr + position.x) * position.scale,
+    x: ((canvasX + position.x) * position.scale) / dpr,
     y:
-      (canvasY / dpr + position.y) * position.scale +
+      ((canvasY + position.y) * position.scale) / dpr +
       position.bouncingRect.y - // 상단 AppBar
       position.bottomNavHeight, // 하단 NavBar
   });

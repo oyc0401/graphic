@@ -112,8 +112,8 @@ function bindSelectionUI() {
     els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
 
     const dpr = getPixelRatio();
-    const scaledLeft = (selection.x / dpr + position.x) * position.scale;
-    const scaledTop = (selection.y / dpr + position.y) * position.scale;
+    const scaledLeft = ((selection.x + position.x) * position.scale) / dpr;
+    const scaledTop = ((selection.y + position.y) * position.scale) / dpr;
     const scaledWidth = (selection.width * position.scale) / dpr;
     const scaledHeight = (selection.height * position.scale) / dpr;
 
@@ -135,8 +135,8 @@ function bindSelectionUI() {
   autorun(() => {
     const visible = selection.showHandle;
     const dpr = getPixelRatio();
-    let sLeft = (selection.x / dpr + position.x) * position.scale;
-    let sTop = (selection.y / dpr + position.y) * position.scale;
+    let sLeft = ((selection.x + position.x) * position.scale) / dpr;
+    let sTop = ((selection.y + position.y) * position.scale) / dpr;
     let sWidth = (selection.width * position.scale) / dpr;
     let sHeight = (selection.height * position.scale) / dpr;
 
@@ -177,9 +177,10 @@ function bindCursorPositionUI() {
 }
 
 function bindTitleUI() {
+  const dpr = getPixelRatio();
   autorun(() => {
-    els.titleArea.style.left = `${position.x * position.scale}px`;
-    els.titleArea.style.top = `${position.y * position.scale}px`;
+    els.titleArea.style.left = `${(position.x / dpr) * position.scale}px`;
+    els.titleArea.style.top = `${(position.y / dpr) * position.scale}px`;
   });
 
   requestAnimationFrame(() => {

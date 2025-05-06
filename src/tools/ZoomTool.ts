@@ -47,7 +47,8 @@ export class ZoomTool {
     const cx = (sx + ex) / 2;
     const cy = (sy + ey) / 2;
 
-    let max_scale = MAX_SCALE * getPixelRatio();
+    let dpr = getPixelRatio();
+    let max_scale = MAX_SCALE * dpr;
 
     if (zoomW < 10 || zoomH < 10) {
       let newMag = position.scale;
@@ -63,13 +64,14 @@ export class ZoomTool {
       const zoomFactor = Math.min(px, py);
 
       const centerX = position.bouncingRect.width / 2;
-      const centerY = position.bouncingRect.height / 2 + position.bouncingRect.y;
+      const centerY =
+        position.bouncingRect.height / 2 + position.bouncingRect.y;
 
       const dx = cx - centerX;
       const dy = cy - centerY;
 
-      position.setX(position.x - dx / position.scale);
-      position.setY(position.y - dy / position.scale);
+      position.setX((position.x / dpr - dx / position.scale) * dpr);
+      position.setY((position.y / dpr - dy / position.scale) * dpr);
 
       const newMag = position.scale * zoomFactor;
       const clamped = Math.min(max_scale, Math.max(MIN_SCALE, newMag));

@@ -1,6 +1,6 @@
 // tools/PanTool.ts
 import { paintState } from "../paintState";
-import { position, renderChangedPosition } from "../position";
+import { getPixelRatio, position, renderChangedPosition } from "../position";
 
 export class PanTool {
   private lastClientX = 0;
@@ -21,8 +21,8 @@ export class PanTool {
     if (paintState.action !== "PAN" || !paintState.pointerdown || !this.active)
       return;
 
-    const dx = this.lastClientX - e.clientX;
-    const dy = this.lastClientY - e.clientY;
+    const dx = (this.lastClientX - e.clientX) * getPixelRatio();
+    const dy = (this.lastClientY - e.clientY) * getPixelRatio();
 
     const newX = position.x - dx / position.scale;
     const newY = position.y - dy / position.scale;
