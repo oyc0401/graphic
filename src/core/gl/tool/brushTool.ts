@@ -8,7 +8,7 @@ import {
 import { getLayerManager } from "../layer";
 import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../utils/cachedManager";
-import { DirtyRect } from "../utils/dirtyRect";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { getHistoryManager } from "../history/history";
 import { HistoryObject } from "./liquify";
 
@@ -349,6 +349,8 @@ function makeBrushManager(canvas, gl) {
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
 
+  let scissorDirty = new DirtyRect();
+
   let brushManager = {
     enter() {
       console.log("enter!");
@@ -392,7 +394,7 @@ function makeBrushManager(canvas, gl) {
         0,
       );
 
-      let scissorDirty = new DirtyRect();
+      scissorDirty.reset(start, paintOptions.radius);
       scissorDirty.updatePointer(start, paintOptions.radius);
       scissorDirty.updatePointer(end, paintOptions.radius);
 
@@ -457,7 +459,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render();
+      renderingManager.render(Rect.copy(scissorDirty));
     },
     eraser() {
       gl.useProgram(eraserProgram);
@@ -468,7 +470,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render();
+      renderingManager.render(Rect.copy(scissorDirty));
     },
     end() {
       let { before, after } = sourceTextureManager.upload(

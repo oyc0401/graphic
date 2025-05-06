@@ -41,23 +41,23 @@ function bindCursorUI() {
       paintState.toolId === "resize";
     container.classList.toggle(
       "nwse-resize",
-      isSelectionTool && selection.hover == "nwse-resize"
+      isSelectionTool && selection.hover == "nwse-resize",
     );
     container.classList.toggle(
       "nesw-resize",
-      isSelectionTool && selection.hover == "nesw-resize"
+      isSelectionTool && selection.hover == "nesw-resize",
     );
     container.classList.toggle(
       "ns-resize",
-      isSelectionTool && selection.hover == "ns-resize"
+      isSelectionTool && selection.hover == "ns-resize",
     );
     container.classList.toggle(
       "ew-resize",
-      isSelectionTool && selection.hover == "ew-resize"
+      isSelectionTool && selection.hover == "ew-resize",
     );
     container.classList.toggle(
       "move",
-      isSelectionTool && selection.hover == "move"
+      isSelectionTool && selection.hover == "move",
     );
   });
 
@@ -81,7 +81,7 @@ function bindCursorUI() {
     // ───────────── container 클래스
     container.classList.toggle(
       "largeBrush",
-      isValid && !showCircle && isBigSize
+      isValid && !showCircle && isBigSize,
     );
     container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
     container.classList.toggle("noCursor", isValid && showCircle);
@@ -170,7 +170,8 @@ function bindCursorPositionUI() {
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
 
-    els.positionBox.style.visibility = visible ? "visible" : "hidden";
+    // els.positionBox.style.visibility = visible ? "visible" : "hidden";
+    els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
   });
 }

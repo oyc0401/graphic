@@ -14,7 +14,7 @@ import {
 import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
-import { DirtyRect } from "../utils/dirtyRect";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { getManager } from "../utils/cachedManager";
 import { getHistoryManager, HistoryItem } from "../history/history";
 import {
@@ -328,13 +328,13 @@ async function makeLiquifyManager(canvas, gl) {
       imageDirty.reset(pointer, ceiledRadius);
     }
   }
-
   // init 시에 한 번만 호출 (ex. setSize()나 초기화 구간)
   const u_radiusLoc = gl.getUniformLocation(liquifyPushProgram, "u_radius");
   const u_strengthLoc = gl.getUniformLocation(liquifyPushProgram, "u_strength");
   const u_startLoc = gl.getUniformLocation(liquifyPushProgram, "u_start");
   const u_endLoc = gl.getUniformLocation(liquifyPushProgram, "u_end");
 
+  let scissorDirty = new DirtyRect();
   function push(start, end) {
     gl.useProgram(liquifyPushProgram);
     // 유나폼 변수 설정
@@ -343,7 +343,7 @@ async function makeLiquifyManager(canvas, gl) {
     gl.uniform2f(u_startLoc, start.x, start.y);
     gl.uniform2f(u_endLoc, end.x, end.y);
 
-    let scissorDirty = new DirtyRect();
+    scissorDirty.reset(start, paintOptions.radius);
     scissorDirty.updatePointer(start, paintOptions.radius);
     scissorDirty.updatePointer(end, paintOptions.radius);
 
@@ -393,7 +393,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
-    renderingManager.render();
+    renderingManager.render(Rect.copy(scissorDirty));
   }
 
   function clearMap() {

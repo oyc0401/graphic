@@ -214,7 +214,7 @@ canvas {
 }
 
 #container.largeBrush {
-  cursor: pointer;
+  cursor: crosshair;
 }
 
 #container.noCursor {

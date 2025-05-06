@@ -6,6 +6,7 @@ import { getSelectionManager } from "./selection";
 import { createShader, createProgram } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 import { getManager } from "./utils/cachedManager";
+import { Rect } from "./utils/dirtyRect";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>
@@ -323,7 +324,7 @@ function makeRenderingManager(canvas, gl) {
   let gridProgram = createProgram(gl, fullQuadVertexShader, gridShader);
   gl.useProgram(gridProgram);
   bufferManager.createFullQuadVAO(gridProgram);
-  
+
   function renderGrid() {
     gl.useProgram(gridProgram);
 
@@ -502,7 +503,7 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  function renderNow() {
+  function renderNow(rect: Rect) {
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     if (paintOptions.selectionAntialias) {
@@ -511,12 +512,15 @@ function makeRenderingManager(canvas, gl) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     }
 
+    gl.scissor(rect.x, rect.y, rect.width, rect.height);
+
     gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     renderDisplay();
 
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
     gl.enable(gl.BLEND);
 
     renderBackground();
@@ -537,6 +541,7 @@ function makeRenderingManager(canvas, gl) {
 
     renderGrid();
 
+    gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     gl.flush();
@@ -555,20 +560,53 @@ function makeRenderingManager(canvas, gl) {
       paintOptions.screenWidth,
       paintOptions.screenHeight, // dst rect
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
+      gl.LINEAR,
     );
+
+    // gl.blitFramebuffer(
+    //   rect.x,
+    //   rect.y,
+    //   rect.width,
+    //   rect.height,
+    //   rect.x,
+    //   rect.y,
+    //   rect.width,
+    //   rect.height,
+    //   gl.COLOR_BUFFER_BIT,
+    //   gl.NEAREST,
+    // );
 
     console.log("render complete!");
   }
 
   let scheduled = false;
 
-  function render() {
+  function render(rect) {
+    //console.log("rect:", rect);
+    let newRect: Rect;
+
+    if (rect) {
+      let calX = Math.floor(rect.x + paintOptions.x);
+      let calY = Math.floor(rect.y + paintOptions.y);
+      let calW = Math.ceil(rect.width * paintOptions.magnification);
+      let calH = Math.ceil(rect.height * paintOptions.magnification);
+      //console.log("x:", rect.x, paintOptions.magnification, paintOptions.x);
+      //console.log("calculated:", calX, calY, calW, calH);
+      newRect = Rect.fromWidth(calX, calY, calW, calH);
+    } else {
+      newRect = Rect.fromWidth(
+        0,
+        0,
+        paintOptions.screenWidth,
+        paintOptions.screenHeight,
+      );
+    }
+
     // if (!scheduled) {
     // scheduled = true;
     // requestAnimationFrame(() => {
     //  scheduled = false;
-    renderNow();
+    renderNow(newRect);
     // });
     //}
   }
