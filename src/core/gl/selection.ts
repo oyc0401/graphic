@@ -185,6 +185,8 @@ function createSelectionManager(canvas, gl) {
       return;
     }
 
+    // console.log("selection render!");
+
     // 원본 텍스처가 붙을 FBO
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
     // 크기 늘린 텍스처가 붙을 FBO
@@ -383,8 +385,9 @@ function createSelectionManager(canvas, gl) {
       undo: () => {
         before.apply();
         beforeSource.apply();
-        renderingManager.render();
         uploadRenderedTex();
+
+        renderingManager.render();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -398,8 +401,9 @@ function createSelectionManager(canvas, gl) {
       redo: () => {
         after.apply();
         afterSource.apply();
-        renderingManager.render();
         uploadRenderedTex();
+
+        renderingManager.render();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -453,9 +457,9 @@ function createSelectionManager(canvas, gl) {
       undo: () => {
         before.apply();
         beforeSource.apply();
-        renderingManager.render();
-
         uploadRenderedTex();
+
+        renderingManager.render();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -469,9 +473,9 @@ function createSelectionManager(canvas, gl) {
       redo: () => {
         after.apply();
         afterSource.apply();
-        renderingManager.render();
-
         uploadRenderedTex();
+
+        renderingManager.render();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -486,6 +490,8 @@ function createSelectionManager(canvas, gl) {
 
     let historyManager = getHistoryManager(canvas, gl);
     historyManager.addUndo(newHistory);
+
+    renderingManager.render();
   }
 
   // makeSelection, clearLayer -> drawLayer -> applySelection
@@ -518,9 +524,9 @@ function createSelectionManager(canvas, gl) {
     const newHistory = new HistoryObject(gl, {
       undo: () => {
         before.apply();
-        renderingManager.render();
-
         uploadRenderedTex();
+
+        renderingManager.render();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -533,10 +539,9 @@ function createSelectionManager(canvas, gl) {
       },
       redo: () => {
         after.apply();
+        uploadRenderedTex();
 
         renderingManager.render();
-
-        uploadRenderedTex();
 
         mainThread.setSelectionPosition(
           paintOptions.showSelection,
@@ -599,6 +604,7 @@ function createSelectionManager(canvas, gl) {
     let historyManager = getHistoryManager(canvas, gl);
     let beforePosition = structuredClone(beforePos);
     let afterPosition = structuredClone(selectionPos);
+
     const newHistory = new HistoryObject(gl, {
       undo: () => {
         setSize(

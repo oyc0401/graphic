@@ -4,9 +4,6 @@ import { toolManager } from "../draw";
 import { els } from "./elements";
 
 export function addClickEvent() {
-    els.titleArea.addEventListener("pointerup", () => {
-        toolManager.setResizeTool();
-    });
 
     // 커서 위치 이벤트
     window.addEventListener(

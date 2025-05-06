@@ -10,7 +10,6 @@ export function bindView() {
   bindCursorUI();
   bindSelectionUI();
   bindCursorPositionUI();
-  bindTitleUI();
   bindZoomAreaUI();
 }
 
@@ -173,18 +172,6 @@ function bindCursorPositionUI() {
     els.positionBox.style.visibility = visible ? "visible" : "hidden";
     //els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
-  });
-}
-
-function bindTitleUI() {
-  const dpr = getPixelRatio();
-  autorun(() => {
-    els.titleArea.style.left = `${(position.x / dpr) * position.scale}px`;
-    els.titleArea.style.top = `${(position.y / dpr) * position.scale}px`;
-  });
-
-  requestAnimationFrame(() => {
-    els.canvasTitle.innerText = "크기 조정";
   });
 }
 

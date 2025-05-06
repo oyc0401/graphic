@@ -142,12 +142,15 @@ export function canvasSelect(x, y, width, height) {
 
 // 선택창 적용
 export function applySelection() {
-    let worker = getLayerWorker();
+    if (selection.visible) {
+        let worker = getLayerWorker();
+        worker.applySelection();
+    }
 
     selection.setVisible(false);
     selection.setShowHint(false);
     selection.setShowHandle(false);
-    worker.applySelection();
+
     paintState.changed = true;
 }
 

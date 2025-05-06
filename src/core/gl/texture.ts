@@ -303,7 +303,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function setSize() {
-    console.warn("source 크기 조정");
+    //console.warn("source 크기 조정");
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
     gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
     gl.texImage2D(

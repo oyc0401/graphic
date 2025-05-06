@@ -31,9 +31,6 @@ function elements() {
 
     positionBox: $id("cursor-position"),
     positionText: $id("cursor-position-text"),
-
-    titleArea: $id("title-area"),
-    canvasTitle: $id("canvas-title"),
   };
 }
 

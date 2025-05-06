@@ -7,37 +7,38 @@ import { position } from "./position";
 
 export const toolManager = {
   async setBrushTool() {
+    applySelection();
     if (paintState.pointerdown) return;
     paintState.setToolId("brush");
     paintState.setBrushId("brush");
 
     const worker = getLayerWorker();
-    applySelection();
+
     worker.setTool(paintState.brushId);
 
     console.log("brush");
   },
   setEraserTool() {
+    applySelection();
     if (paintState.pointerdown) return;
     paintState.setToolId("brush");
     paintState.setBrushId("eraser");
 
     const worker = getLayerWorker();
-    applySelection();
     worker.setTool(paintState.brushId);
   },
   setLiquifyTool() {
+    applySelection();
     if (paintState.pointerdown) return;
     paintState.setToolId("brush");
     paintState.setBrushId("liquify");
 
     const worker = getLayerWorker();
-    applySelection();
     worker.setTool(paintState.brushId);
   },
   setSelectTool() {
-    if (paintState.pointerdown) return;
     applySelection();
+    if (paintState.pointerdown) return;
     paintState.setToolId("select");
 
     const worker = getLayerWorker();
@@ -51,6 +52,7 @@ export const toolManager = {
     worker.setTool("selection");
   },
   setResizeTool() {
+    applySelection();
     if (paintState.pointerdown) return;
 
     paintState.setToolId("brush");
@@ -58,7 +60,6 @@ export const toolManager = {
     const worker = getLayerWorker();
     worker.setTool(paintState.brushId);
 
-    applySelection();
     selection.setWidth(position.width);
     selection.setHeight(position.height);
     selection.setX(0);
