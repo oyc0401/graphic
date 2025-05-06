@@ -192,6 +192,30 @@ function makeSourceTextureManager(canvas, gl) {
 
     return historyTex;
   }
+  function getCurrentSnapshot(x, y, width, height) {
+    const renderRect = DirtyRect.fromWidth(x, y, width, height);
+
+    const beforeTex = makeDirtyTexture(renderRect);
+    const beforePixelReader = new PixelReader(
+      gl,
+      width,
+      height,
+      beforeTex,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+    );
+    pushReadPixelQueue(gl, beforePixelReader);
+
+    const beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixelReader,
+      rect: renderRect,
+      apply() {
+        applyHistory(this.layerId, this.pixelReader, this.rect);
+      },
+    };
+    return beforeSnapshot;
+  }
 
   function upload(x, y, width, height) {
     const renderRect = DirtyRect.fromWidth(x, y, width, height);
@@ -304,6 +328,7 @@ function makeSourceTextureManager(canvas, gl) {
     restore,
     sourceFBO,
     setSize,
+    getCurrentSnapshot,
   };
 
   return sourceTextureManager;

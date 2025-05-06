@@ -1,7 +1,7 @@
 import { copyPixelsToClipboard, downloadPixels } from "../../file";
 import { historyState } from "../../history";
 import { paintState } from "../../paintState";
-import { position } from "../../position";
+import { getPixelRatio, position } from "../../position";
 import { selection } from "../../selection";
 import { getLayerWorker } from "./workerPool";
 
@@ -37,4 +37,36 @@ export const mainApi = {
       worker.setTool("select");
     }
   },
+  setPosition(x, y, width, height) {
+    let newY =
+      (position.bouncingRect.height * getPixelRatio()) / position.scale -
+      height -
+      y;
+    console.log(
+      (position.bouncingRect.height * getPixelRatio()) / position.scale,
+      height,
+      y,
+    );
+    console.log("newY:", newY);
+    position.setX(x / getPixelRatio());
+    position.setY(newY / getPixelRatio());
+    position.setWidth(width);
+    position.setHeight(height);
+    console.log("send:", x, y, width, height);
+    console.log(
+      "afterpos:",
+      position.x,
+      position.y,
+      position.width,
+      position.height,
+    );
+  },
 };
+
+function toWindowCoord3(x, y, width, height, screenWidth, screenHeight, scale) {
+  let originalY = -(y - screenHeight / scale + height);
+  return {
+    x,
+    y: originalY,
+  };
+}

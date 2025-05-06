@@ -8,6 +8,7 @@ import { PixelReader } from "./history/PixelReader";
 import { pushReadPixelQueue } from "./history/pixelReadProcessor";
 import { DirtyRect } from "./utils/dirtyRect";
 import { getHistoryManager } from "./history/history";
+import { mainThread } from "../worker/mainPool";
 
 /**
  * 도화지의 크기를 조절함
@@ -43,10 +44,18 @@ export function resizeLayer(
     height,
   );
 
+  let before = sourceTextureManager.getCurrentSnapshot(
+    0,
+    0,
+    paintOptions.width,
+    paintOptions.height,
+  );
+
   paintOptions.x = afterPos.x;
   paintOptions.y = afterPos.y;
   paintOptions.width = width;
   paintOptions.height = height;
+
   function setToolSize() {
     sourceTextureManager.setSize();
     if (!drawManager || !liquifyManager) {
@@ -59,7 +68,7 @@ export function resizeLayer(
 
   setToolSize();
 
-  let { before, after } = sourceTextureManager.upload(
+  let { after } = sourceTextureManager.upload(
     0,
     0,
     paintOptions.width,
@@ -83,6 +92,13 @@ export function resizeLayer(
       before.apply();
 
       renderingManager.render();
+
+      mainThread.setPosition(
+        paintOptions.x,
+        paintOptions.y,
+        paintOptions.width,
+        paintOptions.height,
+      );
       return "brush";
     },
     redo: () => {
@@ -99,6 +115,13 @@ export function resizeLayer(
       after.apply();
 
       renderingManager.render();
+
+      mainThread.setPosition(
+        paintOptions.x,
+        paintOptions.y,
+        paintOptions.width,
+        paintOptions.height,
+      );
       return "brush";
     },
   });

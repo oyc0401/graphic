@@ -29,6 +29,10 @@ class HistoryState {
 export const historyState = new HistoryState();
 
 export async function undo() {
+  if (paintState.toolId == "resize") {
+    toolManager.setBrushTool();
+  }
+
   let worker = getLayerWorker();
   let msg = await worker.undo();
   if (!msg) return;
@@ -60,6 +64,9 @@ export async function undo() {
 }
 
 export async function redo() {
+  if (paintState.toolId == "resize") {
+    toolManager.setBrushTool();
+  }
   let worker = getLayerWorker();
   let msg = await worker.redo();
   if (!msg) return;
@@ -67,7 +74,7 @@ export async function redo() {
   if (msg == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
-    worker.setTool("select",false);
+    worker.setTool("select", false);
   } else if (msg == "selection") {
     paintState.setToolId("selection");
     selection.setVisible(true);

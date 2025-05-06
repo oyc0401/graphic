@@ -220,16 +220,17 @@ export function to_pixel_canvas_coord_round(x, y) {
 }
 
 export async function changeCanvasSize(x, y, newWidth, newHeight) {
+  let dpr = getPixelRatio();
   let beforePos = {
-    x: position.x * getPixelRatio(),
-    y: position.y * getPixelRatio(),
+    x: position.x * dpr,
+    y: position.y * dpr,
   };
   let afterPos = {
-    x: (position.x + x / getPixelRatio()) * getPixelRatio(),
-    y: (position.y + y / getPixelRatio()) * getPixelRatio(),
-  };
-  position.setX(afterPos.x / getPixelRatio());
-  position.setY(afterPos.y / getPixelRatio());
+    x: (position.x + x / dpr) * dpr,
+    y: (position.y + y / dpr) * dpr,
+  }; // 워커 전용
+  position.setX(afterPos.x / dpr);
+  position.setY(afterPos.y / dpr);
 
   position.setWidth(newWidth);
   position.setHeight(newHeight);
