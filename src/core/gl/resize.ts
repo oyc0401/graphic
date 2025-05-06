@@ -13,16 +13,7 @@ import { mainThread } from "../worker/mainPool";
 /**
  * 도화지의 크기를 조절함
  */
-export function resizeLayer(
-  canvas,
-  gl,
-  x,
-  y,
-  width,
-  height,
-  beforePos,
-  afterPos,
-) {
+export function resizeLayer(canvas, gl, x, y, width, height) {
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const drawManager = getBrushManager(canvas, gl);
@@ -51,8 +42,8 @@ export function resizeLayer(
     paintOptions.height,
   );
 
-  paintOptions.x = afterPos.x;
-  paintOptions.y = afterPos.y;
+  paintOptions.x += x;
+  paintOptions.y += y;
   paintOptions.width = width;
   paintOptions.height = height;
 
@@ -79,8 +70,8 @@ export function resizeLayer(
 
   const newHistory = new HistoryObject(gl, {
     undo: () => {
-      paintOptions.x = beforePos.x;
-      paintOptions.y = beforePos.y;
+      paintOptions.x -= x;
+      paintOptions.y -= y;
       paintOptions.width = oldWidth;
       paintOptions.height = oldHeight;
 
@@ -102,8 +93,8 @@ export function resizeLayer(
       return "brush";
     },
     redo: () => {
-      paintOptions.x = afterPos.x;
-      paintOptions.y = afterPos.y;
+      paintOptions.x += x;
+      paintOptions.y += y;
       paintOptions.width = newWidth;
       paintOptions.height = newHeight;
 

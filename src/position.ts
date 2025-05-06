@@ -236,23 +236,15 @@ export function to_pixel_canvas_coord_round(x, y) {
 }
 
 export async function changeCanvasSize(x, y, newWidth, newHeight) {
-  let beforePos = {
-    x: position.x,
-    y: position.y,
-  };
-  let afterPos = {
-    x: position.x + x,
-    y: position.y + y,
-  }; // 워커 전용
-  position.setX(afterPos.x);
-  position.setY(afterPos.y);
+  position.setX(position.x + x);
+  position.setY(position.y + y);
 
   position.setWidth(newWidth);
   position.setHeight(newHeight);
 
   const worker = getLayerWorker();
 
-  worker.resizeLayer(x, y, newWidth, newHeight, beforePos, afterPos);
+  worker.resizeLayer(x, y, newWidth, newHeight);
   //renderChangedPosition();
 }
 

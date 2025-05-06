@@ -70,7 +70,7 @@ export const workerApi = {
     );
     paint.setCameraPosition(x, y, magnification);
   },
-  resizeLayer(px, py, width, height, beforePos, afterPos) {
+  resizeLayer(px, py, width, height) {
     const diffH = paintOptions.height - height;
     let newY;
 
@@ -80,26 +80,8 @@ export const workerApi = {
       newY = py + diffH;
     }
 
-    let before = toWebglCoord3(
-      beforePos.x,
-      beforePos.y,
-      paintOptions.width,
-      paintOptions.height,
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-      paintOptions.magnification,
-    );
-
-    let after = toWebglCoord3(
-      afterPos.x,
-      afterPos.y,
-      width,
-      height,
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-      paintOptions.magnification,
-    );
-    paint.resizeLayer(px, newY, width, height, before, after);
+    console.log("p:", px, py);
+    paint.resizeLayer(px, newY, width, height);
   },
   resizeScreenSize(screenWidth, screenHeight) {
     paint.resizeScreen(screenWidth, screenHeight);
