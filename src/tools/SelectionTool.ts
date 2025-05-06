@@ -19,6 +19,7 @@ export class SelectionTool {
   down(e: PointerEvent) {
     if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
       return;
+    if (!paintState.pointerdown) return;
 
     const rect = {
       x: selection.x,
@@ -193,6 +194,7 @@ export class SelectionTool {
   }
 
   up() {
+    if (!this.activeHandle) return;
     if (this.activeHandle === "INSIDE") {
       beforeSelectionPos.x = selection.x;
       beforeSelectionPos.y = selection.y;
