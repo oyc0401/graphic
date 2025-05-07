@@ -8,6 +8,8 @@ export async function tranferCanvas() {
     const worker = getLayerWorker();
     const offscreen = els.canvas.transferControlToOffscreen();
 
+    console.log("screenHeight", position.screenHeight);
+
     let dpr = getPixelRatio();
     await worker.makeLayer(
         Comlink.transfer(offscreen, [offscreen]),

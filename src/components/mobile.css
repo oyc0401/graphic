@@ -1,0 +1,15 @@
+.tools-button {
+  height: 44px;
+  width: 50px;
+  cursor: pointer;
+  background: transparent;
+  font-size: 16px;
+  display: flex;
+  flex-direction: center;
+  align-items: center;
+}
+
+.tools-button>p {
+  width: 100%;
+  line-height: 19px;
+}

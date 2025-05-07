@@ -26,7 +26,9 @@ export const MainMenuToggleButton = observer(() => {
     }
   });
 
-  useDropdownPosition(buttonRef, menuRef, menuState.showMenu);
+  useDropdownPosition(buttonRef, menuRef, menuState.showMenu, {
+    padding: 0,
+  });
 
   const toggleMenu = () => {
     menuState.setShowMenu(!menuState.showMenu);
@@ -75,6 +77,7 @@ export const ColorIndicatorButton = observer(() => {
 
   useDropdownPosition(buttonRef, menuRef, menuState.showColorMenu, {
     offsetX: -15,
+    offsetY: 4,
   });
 
   const toggleMenu = () => {

@@ -1,5 +1,3 @@
-/** main.ts */
-import React from "react";
 import { createRoot } from "react-dom/client";
 import AppBar from "./components/AppBar";
 
@@ -8,6 +6,7 @@ import {
   position,
   render,
   resizeScreen,
+  setCameraPosition,
   setDefaultPosition,
   updateBouncingRect,
 } from "./position";
@@ -23,17 +22,45 @@ import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
+import { useEffect } from "react";
 
 const root = document.getElementById("appbar-root");
 if (root) {
-  createRoot(root).render(<AppBar />);
+  createRoot(root).render(
+    <>
+      <AppBar />
+      <Runner />
+    </>,
+  );
 } else {
   console.error("appbar-root not found!");
 }
 
+function Runner() {
+  useEffect(() => {
+    console.log("useEffect!");
+  }, []);
+
+  return <></>;
+}
+
 window.onload = () => {
   console.log("load");
-  main();
+  updateBouncingRect();
+  console.log("screenHeight0", position.screenHeight);
+  requestAnimationFrame(() => {
+    updateBouncingRect();
+    console.log("screenHeight1", position.screenHeight);
+    requestAnimationFrame(() => {
+      updateBouncingRect();
+      console.log("screenHeight2", position.screenHeight);
+      requestAnimationFrame(() => {
+        updateBouncingRect();
+        console.log("screenHeight3", position.screenHeight);
+        main();
+      });
+    });
+  });
 };
 
 async function main() {
@@ -56,16 +83,23 @@ async function main() {
   addKeyboardEvent();
 
   addClipboardEvent();
-
   // dpr이 1이 아니면, 캔버스 확대
   setCanvasCSSSize();
 
   // 캔버스 업로드
-  await tranferCanvas();
+  tranferCanvas();
 
   console.log("Complete App!");
 
   debugSetting();
+
+  updateBouncingRect();
+  console.log("screenHeightF", position.screenHeight);
+
+  requestAnimationFrame(() => {
+    updateBouncingRect();
+    console.log("screenHeightQ", position.screenHeight);
+  });
 }
 
 function debugSetting() {
@@ -74,13 +108,17 @@ function debugSetting() {
   globalThis.selection = selection;
 
   window.addEventListener("resize", async function () {
-    debounce(async () => {
-      console.log("debounce");
+    // debounce(async () => {
+    // console.log("debounce");
+    requestAnimationFrame(() => {
       updateBouncingRect();
       resizeScreen();
       render();
       setCanvasCSSSize();
-    }, 100);
+      setCameraPosition();
+      console.log("screenHeightR", position.screenHeight);
+    });
+    //}, 100);
   });
 
   globalThis.changeLayer = function (layerId = 1) {
