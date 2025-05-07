@@ -2,6 +2,7 @@ import { paintState } from "../paintState";
 import { cancel } from "../draw";
 import { dispatch } from "./pointerEvents";
 import {
+  getPixelRatio,
   position,
   renderChangedPosition,
   setMagification,
@@ -22,7 +23,6 @@ export function addGestureEvent() {
   let firstPointerTime = 0;
   let lastDoubleTouchTime = 0;
   let moveDistance = 0;
-  
 
   function averageTouches() {
     if (pointers.size < 2) throw new Error("포인터가 2개 미만"); // 포인터가 2개 미만이면 평균 계산 불가
@@ -120,8 +120,11 @@ export function addGestureEvent() {
       const dx = lastPinchCenterPos.x - pinchCenterPos.x;
       const dy = lastPinchCenterPos.y - pinchCenterPos.y;
 
-      position.setX(position.x - dx / position.scale);
-      position.setY(position.y - dy / position.scale);
+      let diffX = (dx / position.scale) * getPixelRatio();
+      let diffY = (dy / position.scale) * getPixelRatio();
+
+      position.setX(position.x - diffX);
+      position.setY(position.y - diffY);
       lastPinchCenterPos = pinchCenterPos;
 
       const points = Array.from(pointers.values());
