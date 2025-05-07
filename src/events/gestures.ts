@@ -8,10 +8,12 @@ import {
   setMagification,
   to_screen_coord,
 } from "../position";
+import { undo } from "../history";
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;
 const twoFingerTapInterval = 75; // 이중클릭 범위
 const doubleTapInterval = 250; // 더블클릭 범위
+const CLICK_INTERVAL = 100;
 
 export const pointers = new Map(); // pointerId -> {x, y} 저장
 
@@ -20,7 +22,7 @@ export function addGestureEvent() {
 
   let lastPinchDistance;
   let lastPinchCenterPos;
-  let firstPointerTime = 0;
+  let firstPointerdownTime = 0;
   let lastDoubleTouchTime = 0;
   let moveDistance = 0;
 
@@ -41,6 +43,7 @@ export function addGestureEvent() {
     };
   }
 
+  let twoPingerDown = 0;
   window.addEventListener(
     "pointerdown",
     (event) => {
@@ -61,16 +64,19 @@ export function addGestureEvent() {
       // 핀치 줌
       if (pointers.size === 1) {
         paintState.setPointerdown(true);
-        firstPointerTime = performance.now();
+        firstPointerdownTime = performance.now();
       }
 
       if (pointers.size === 2) {
-        const elapsed = performance.now() - firstPointerTime;
-        if (elapsed <= twoFingerTapInterval) {
+        let now = performance.now();
+        // 두 손가락이 거의 동시에 down
+        if (now - firstPointerdownTime <= twoFingerTapInterval) {
+          // twoFingerTapInterval 이내에 그려진 내용 취소
           cancel();
-          let now = performance.now();
+
+          twoPingerDown = now;
           if (now - lastDoubleTouchTime <= doubleTapInterval) {
-            alert(`더블터치! ${now - lastDoubleTouchTime}`);
+            //alert(`더블터치! ${now - lastDoubleTouchTime}`);
             lastDoubleTouchTime = 0;
           } else {
             lastDoubleTouchTime = now;
@@ -151,6 +157,13 @@ export function addGestureEvent() {
   window.addEventListener(
     "pointerup",
     (event) => {
+      let now = performance.now();
+
+      if (now - twoPingerDown < CLICK_INTERVAL) {
+        undo();
+        twoPingerDown = 0;
+      }
+
       paintState.setPointerdown(false);
       paintState.setDrawing(false);
 
