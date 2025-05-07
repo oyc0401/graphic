@@ -31,23 +31,25 @@ export const TEXTURE_UNIT = {
 // (in-out) = 2  // read용 draw용 총 두개가 있다는 뜻
 
 // 레이어 (1개): W * H * (RGBA) => 64MB
-// 레이어 총합: count * 64MB
 // SOURCE: W * H * (RGBA) => 64MB
 // PATHMAP: W * H * (RED) * (in‑out) => 32MB
-// DISPLACEMENT: W * H * (half‑float) * (in‑out) => 64MB
-// SOURCE_DISPLACEMENT: W * H * (half‑float) => 32MB
-// SOURCE_SELECTION: sW * sH * (RGBA) => 64MB
-// RENDERED_SELECTION: mW * mH * (RGBA) => 64MB
+// DISPLACEMENT: W * H * (half‑float) * (in‑out) => 64MB (dynamic)
+// SOURCE_DISPLACEMENT: W * H * (half‑float) => 32MB (dynamic)
+// SOURCE_SELECTION: sW * sH * (RGBA) => 64MB (dynamic)
+// RENDERED_SELECTION: mW * mH * (RGBA) => 64MB (dynamic)
 // OFFSCREEN: cW * cH * (RGBA) => 7.91MB ~ 64MB
 
-// 레이어 1개 기준: 448MB
-// cW 줄여도 392MB
+// dynamic 텍스쳐 설정하면 168 ~ 296
 
 // 레이어 한층: 64
 // SOURCE: 64
 // draw = 32
-// liquify: 64 + 32 = 96
-// selection: 64 + 64 = 128
+// liquify: 64 + 32 = 96 (dynamic)
+// selection: 64 + 64 = 128 (dynamic)
+
+// 각각 레이어 원본은 DRAM에 들고있다가 타겟 레이어가 변경되면
+// 그때 버퍼에 올리기로 하자.
+
 
 // 일반 브러시는 pointerup하면 소스 텍스쳐에 반영 전에 히스토리 스택에 소스 텍스쳐를 업로드 한다.
 // 픽셀유동화는 pointerup 하면 SOURCE_DISPLACEMENT에 반영 전에 히스토리 스택에 SOURCE_DISPLACEMENT를 업로드 한다.
