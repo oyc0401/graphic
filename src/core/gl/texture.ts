@@ -10,18 +10,44 @@ import {
 import { PixelReader } from "./history/PixelReader";
 import { Snapshot } from "./tool/liquify";
 export const TEXTURE_UNIT = {
-  TEMP: 0, // 다용도 (Blit용, FBO 전용, 셰이더에서 접근 X!)
+  TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
   SOURCE: 2, // 원본 이미지 (Source Image)
   PATHMAP: 3, // 브러시, 지우개 알파맵
   DISPLACEMENT: 5, // 변위맵 (Displacement Map)
   SOURCE_DISPLACEMENT: 6, // 변위맵 이전 상태 저장 용
-  EASE_INTEGRAL: 7, // Ease In-Out Cubic Integral
-  EASE_MIRROR: 8, // Ease In-Out Cubic Mirror
+
   SOURCE_SELECTION: 9, // 선택창 확대/축소시 대상으로 사용할 텍스쳐
   RENDERED_SELECTION: 10, // 선택창 확대/축소, copy시 그릴 버퍼
   OFFSCREEN: 11, // 렌더링 전 미리 그릴 버퍼
+
+  EASE_INTEGRAL: 17, // Ease In-Out Cubic Integral
+  EASE_MIRROR: 18, // Ease In-Out Cubic Mirror
 };
+
+// W, H, cW, cH, sW, sH, mW, mH
+
+// 최대값: W=H=cW=cH=sW=sH=mW=mH=4096
+// (in-out) = 2  // read용 draw용 총 두개가 있다는 뜻
+
+// 레이어 (1개): W * H * (RGBA) => 64MB
+// 레이어 총합: count * 64MB
+// SOURCE: W * H * (RGBA) => 64MB
+// PATHMAP: W * H * (RED) * (in‑out) => 32MB
+// DISPLACEMENT: W * H * (half‑float) * (in‑out) => 64MB
+// SOURCE_DISPLACEMENT: W * H * (half‑float) => 32MB
+// SOURCE_SELECTION: sW * sH * (RGBA) => 64MB
+// RENDERED_SELECTION: mW * mH * (RGBA) => 64MB
+// OFFSCREEN: cW * cH * (RGBA) => 7.91MB ~ 64MB
+
+// 레이어 1개 기준: 448MB
+// cW 줄여도 392MB
+
+// 레이어 한층: 64
+// SOURCE: 64
+// draw = 32
+// liquify: 64 + 32 = 96
+// selection: 64 + 64 = 128
 
 // 일반 브러시는 pointerup하면 소스 텍스쳐에 반영 전에 히스토리 스택에 소스 텍스쳐를 업로드 한다.
 // 픽셀유동화는 pointerup 하면 SOURCE_DISPLACEMENT에 반영 전에 히스토리 스택에 SOURCE_DISPLACEMENT를 업로드 한다.

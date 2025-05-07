@@ -265,50 +265,6 @@ async function makeLiquifyManager(canvas, gl) {
       width,
       height,
     );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      width,
-      height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTexOutput);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      width,
-      height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      width,
-      height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
-
-    clearMap();
   }
 
   let layerManager = getLayerManager(canvas, gl);
@@ -660,13 +616,106 @@ async function makeLiquifyManager(canvas, gl) {
 
   setSize();
 
+  function openTexture() {
+    //console.log("openTexture");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexOutput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+  }
+
+  function closeTexture() {
+    //console.log("closeTexture");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexInput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      1,
+      1,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, displacementTexOutput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      1,
+      1,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      1,
+      1,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+  }
+
   let Liquify = {
     enter() {
+      openTexture();
       const newHistory = new HistoryObject(gl, {
         undo: () => {
+          closeTexture();
           return "brush";
         },
         redo: () => {
+          openTexture();
           return "liquify";
         },
       });
@@ -726,6 +775,7 @@ async function makeLiquifyManager(canvas, gl) {
 
       const newHistory = new HistoryObject(gl, {
         undo: () => {
+          openTexture();
           before.apply();
           beforeSource.apply();
           render();
@@ -735,11 +785,14 @@ async function makeLiquifyManager(canvas, gl) {
           after.apply();
           afterSource.apply();
           render();
+          closeTexture();
           return "brush";
         },
       });
 
       historyManager.addUndo(newHistory);
+
+      closeTexture();
 
       sourceImageDirty = null;
     },
@@ -784,85 +837,3 @@ export class HistoryObject {
 
   redo: () => string;
 }
-
-// export function getSourceDisplaceMapManager(canvas, gl) {
-//   const manager = getManager(gl, "sourceDisplaceMap", () =>
-//     makeSourceDisplaceMapManager(canvas, gl),
-//   );
-//   return manager;
-// }
-
-// function makeSourceDisplaceMapManager(canvas, gl) {
-//   let sourceDisplacementTex = gl.createTexture();
-//   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-//   gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
-
-//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-//   let sourceDisplacementFBO = gl.createFramebuffer();
-//   gl.bindFramebuffer(gl.FRAMEBUFFER, sourceDisplacementFBO);
-//   gl.framebufferTexture2D(
-//     gl.FRAMEBUFFER,
-//     gl.COLOR_ATTACHMENT0,
-//     gl.TEXTURE_2D,
-//     sourceDisplacementTex,
-//     0,
-//   );
-
-//   const fbo = gl.createFramebuffer();
-
-//   function makeDirtyTexture(pathDirty) {
-//     const historyTex = gl.createTexture();
-//     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-//     gl.bindTexture(gl.TEXTURE_2D, historyTex);
-//     gl.texImage2D(
-//       gl.TEXTURE_2D,
-//       0,
-//       gl.RG16F,
-//       pathDirty.width,
-//       pathDirty.height,
-//       0,
-//       gl.RG,
-//       gl.HALF_FLOAT,
-//       null,
-//     ); // 빈 텍스처 생성
-
-//     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
-//     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
-
-//     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-//     gl.framebufferTexture2D(
-//       gl.DRAW_FRAMEBUFFER,
-//       gl.COLOR_ATTACHMENT0,
-//       gl.TEXTURE_2D,
-//       historyTex,
-//       0,
-//     );
-
-//     // blit 좌표계는 0,0,1,1이 1칸임.
-//     gl.blitFramebuffer(
-//       pathDirty.x,
-//       pathDirty.y,
-//       pathDirty.ex + 1,
-//       pathDirty.ey + 1,
-//       0,
-//       0,
-//       pathDirty.width,
-//       pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
-//       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-//       gl.NEAREST, // 필터링 옵션
-//     );
-
-//     return historyTex;
-//   }
-
-//   return {
-
-//     restore,
-//     sourceDisplacementTex,
-//     sourceDisplacementFBO,
-//   };
-// }

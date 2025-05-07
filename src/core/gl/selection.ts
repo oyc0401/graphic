@@ -52,19 +52,6 @@ function createSelectionManager(canvas, gl) {
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
   gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
 
-  // 선택창 크기 변경은 자주 일어나므로, 텍스쳐 크기를 매번 변경하기 힘들다. 그래서 미리 늘려놓는다.
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    4096,
-    4096,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
-  );
-
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -177,6 +164,56 @@ function createSelectionManager(canvas, gl) {
     0,
   );
 
+  function openTexture() {
+    //console.log("openTexture");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
+
+    // 선택창 크기 변경은 자주 일어나므로, 텍스쳐 크기를 매번 변경하기 힘들다. 그래서 미리 늘려놓는다.
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      4096,
+      4096,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+  }
+
+  function closeTexture() {
+    //console.log("closeTexture");
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, selectionTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      gl.RGBA, // internalFormat
+      1, // 텍스처 폭
+      1, // 텍스처 높이
+      0, // border
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      null,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, renderedSelectionTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
+  }
+
   // 늘린 텍스쳐에 늘려서 복사하기
   function uploadRenderedTex(force = false) {
     if (selectionPos.width <= 2048.0 && selectionPos.height <= 2048.0) {
@@ -281,6 +318,7 @@ function createSelectionManager(canvas, gl) {
       rect: renderRect,
       selectionRect: selectionPosRect,
       apply() {
+        openTexture();
         selectionPos.x = this.selectionRect.x;
         selectionPos.y = this.selectionRect.y;
         selectionPos.width = this.selectionRect.width;
@@ -312,6 +350,7 @@ function createSelectionManager(canvas, gl) {
       apply() {
         // 선택창 제거
         paintOptions.showSelection = false;
+        closeTexture();
       },
     };
 
@@ -322,6 +361,7 @@ function createSelectionManager(canvas, gl) {
   }
 
   function select(sx, sy, swidth, sheight) {
+    openTexture();
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = false;
 
@@ -491,11 +531,14 @@ function createSelectionManager(canvas, gl) {
     let historyManager = getHistoryManager(canvas, gl);
     historyManager.addUndo(newHistory);
 
+    closeTexture();
+
     renderingManager.render();
   }
 
   // makeSelection, clearLayer -> drawLayer -> applySelection
   function paste(newx, newy, newwidth, newheight, bitmap: ImageBitmap) {
+    openTexture();
     paintOptions.showSelection = true;
     paintOptions.selectionAntialias = true;
 
