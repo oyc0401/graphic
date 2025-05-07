@@ -14,7 +14,6 @@ import {
 
 import { clamp } from "../utils/math";
 import { dispatch } from "../events/pointerEvents";
-import { pointers } from "../events/gestures";
 
 export class ResizeTool {
   private activeHandle: HandleType | null = null;
@@ -182,7 +181,7 @@ export class ResizeTool {
   up() {
     if (!this.activeHandle) {
     } else if (
-      pointers.size == 0 &&
+      !paintState.pointerdown &&
       (this.activeHandle == "OUTSIDE" || this.activeHandle == "INSIDE")
     ) {
       // 이러면 롱 클릭할때만 현상유지임

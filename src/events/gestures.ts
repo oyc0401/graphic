@@ -15,7 +15,7 @@ const twoFingerTapInterval = 75; // 이중클릭 범위
 const doubleTapInterval = 250; // 더블클릭 범위
 const CLICK_INTERVAL = 100;
 
-export const pointers = new Map(); // pointerId -> {x, y} 저장
+const pointers = new Map(); // pointerId -> {x, y} 저장
 
 export function addGestureEvent() {
   let pointerIndex = 0;
