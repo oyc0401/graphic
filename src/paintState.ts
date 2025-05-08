@@ -10,7 +10,7 @@ class PaintState {
     brushId: BrushId = "brush";
     brushSize = { brush: 5, eraser: 10, liquify: 50 };
     brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
-    
+
     cursorX = 0;
     cursorY = 0;
 
@@ -69,6 +69,12 @@ class PaintState {
     getBrushAlpha() {
         return this.brushAlpha[this.targetId];
     }
+    moved = true;
+
+    setMoved(value) {
+        this.moved = value;
+    }
+    
 }
 
 export const paintState = new PaintState();

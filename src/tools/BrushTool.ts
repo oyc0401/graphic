@@ -24,7 +24,7 @@ export class BrushTool {
 
     this.start = point;
 
-     paintState.moved= false;
+    paintState.setMoved(false);
   }
 
   move(e: PointerEvent) {
@@ -35,7 +35,7 @@ export class BrushTool {
     )
       return;
 
-    paintState.moved = true;
+    paintState.setMoved(true);
 
     const worker = getLayerWorker();
     const brushSize = paintState.getBrushSize();
@@ -61,9 +61,9 @@ export class BrushTool {
     if (this.start.x == point.x && this.start.y == point.y) {
       worker.strokeTo(point);
     }
-    
+
     worker.end();
-    paintState.moved= false;
+    paintState.setMoved(false);
     paintState.changed = true;
   }
 

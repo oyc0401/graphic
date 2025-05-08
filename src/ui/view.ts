@@ -95,7 +95,7 @@ function bindCursorUI() {
       }
       if (!isDesktop && paintState.pointerdown && paintState.moved) {
         cursor.style.visibility =
-          (paintState.brushSize.brush * position.scale) / getPixelRatio() > 16
+          (paintState.getBrushSize() * position.scale) / getPixelRatio() > 16
             ? "visible"
             : "hidden";
       }
