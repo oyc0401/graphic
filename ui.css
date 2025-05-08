@@ -19,6 +19,7 @@
 
 #main-menu {
   position: absolute;
+  z-index: 500;
   width: 200px;
   background: #ffffff;
   display: flex;

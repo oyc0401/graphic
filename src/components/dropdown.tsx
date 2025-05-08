@@ -318,14 +318,14 @@ export const MobileColorIndicatorButton = observer(() => {
       colorState.setV(v);
     };
 
-    field.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    field.addEventListener("pointerdown", onMouseDown);
+    window.addEventListener("pointermove", onMouseMove);
+    window.addEventListener("pointerup", onMouseUp);
 
     return () => {
-      field.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      field.removeEventListener("pointerdown", onMouseDown);
+      window.removeEventListener("pointermove", onMouseMove);
+      window.removeEventListener("pointerup", onMouseUp);
     };
   }, []);
 
