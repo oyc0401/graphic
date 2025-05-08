@@ -4,7 +4,10 @@ class MenuState {
     showMenu = false;
     showColorMenu = false;
 
-    showTools = true; // 모바일
+    // 모바일
+    showSizeBar = false;
+    showTools = true;
+
     constructor() {
         makeAutoObservable(this);
     }
@@ -18,6 +21,10 @@ class MenuState {
     setShowTools(value) {
         this.showTools = value;
     }
+    setShowSizeBar(value) {
+        this.showSizeBar = value;
+    }
+
     closeAllMenu() {
         this.showMenu = false;
     }

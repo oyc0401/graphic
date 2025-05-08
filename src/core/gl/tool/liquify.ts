@@ -757,40 +757,57 @@ async function makeLiquifyManager(canvas, gl) {
     },
     exit() {
       imageDirty = null;
-
       let historyManager = getHistoryManager(canvas, gl);
-      const { before, after } = clearAndMakeHistory(
-        sourceImageDirty.x,
-        sourceImageDirty.y,
-        sourceImageDirty.width,
-        sourceImageDirty.height,
-      );
-      let { before: beforeSource, after: afterSource } =
-        sourceTextureManager.upload(
+
+      if (sourceImageDirty) {
+        const { before, after } = clearAndMakeHistory(
           sourceImageDirty.x,
           sourceImageDirty.y,
           sourceImageDirty.width,
           sourceImageDirty.height,
         );
+        let { before: beforeSource, after: afterSource } =
+          sourceTextureManager.upload(
+            sourceImageDirty.x,
+            sourceImageDirty.y,
+            sourceImageDirty.width,
+            sourceImageDirty.height,
+          );
 
-      const newHistory = new HistoryObject(gl, {
-        undo: () => {
-          openTexture();
-          before.apply();
-          beforeSource.apply();
-          render();
-          return "liquify";
-        },
-        redo: () => {
-          after.apply();
-          afterSource.apply();
-          render();
-          closeTexture();
-          return "brush";
-        },
-      });
+        const newHistory = new HistoryObject(gl, {
+          undo: () => {
+            openTexture();
+            before.apply();
+            beforeSource.apply();
+            render();
+            return "liquify";
+          },
+          redo: () => {
+            after.apply();
+            afterSource.apply();
+            render();
+            closeTexture();
+            return "brush";
+          },
+        });
 
-      historyManager.addUndo(newHistory);
+        historyManager.addUndo(newHistory);
+      } else {
+        const newHistory = new HistoryObject(gl, {
+          undo: () => {
+            openTexture();
+            render();
+            return "liquify";
+          },
+          redo: () => {
+            render();
+            closeTexture();
+            return "brush";
+          },
+        });
+
+        historyManager.addUndo(newHistory);
+      }
 
       closeTexture();
 

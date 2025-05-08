@@ -13,6 +13,7 @@ import BrushIcon from "../assets/brush.svg?react";
 import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
+import ResizeIcon from "../assets/resize.svg?react";
 
 import {
   ColorIndicatorButton,
@@ -60,6 +61,7 @@ export default function AppBarMobile() {
 
           <div style={{ flex: 1 }} />
 
+          <SizeToggleButton />
           <BrushToolButton />
           <EraserToolButton />
 
@@ -97,8 +99,49 @@ const ToolsToggleButton = observer(() => {
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <LiquifyToolButton />
+          <ResizeButton />
           <div style={{ flex: 1 }} />
           <HistoryButtons />
+        </div>
+      )}
+    </>
+  );
+});
+
+const SizeToggleButton = observer(() => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 바깥 클릭 시 메뉴 닫기
+  useClickOutside([menuRef, buttonRef], () => {
+    if (menuState.showSizeBar) {
+      menuState.setShowSizeBar(false);
+    }
+  });
+
+  useDropdownPosition(buttonRef, menuRef, menuState.showSizeBar, {
+    padding: 0,
+  });
+
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  return (
+    <>
+      <button
+        aria-label="size-button"
+        className="size-button"
+        onClick={toggleMenu}
+        ref={buttonRef}
+      >
+        <p>{`${fixedNumber(paintState.getBrushSize())}px`}</p>
+      </button>
+
+      {menuState.showSizeBar && (
+        <div className="size-bar" ref={menuRef}>
+          <BrushSizeSlider />
+          <BrushAlphaSlider />
         </div>
       )}
     </>
@@ -174,6 +217,21 @@ const LiquifyToolButton = observer(() => {
       onClick={() => toolManager.setLiquifyTool()}
     >
       <LiquifyIcon />
+    </button>
+  );
+});
+
+const ResizeButton = observer(() => {
+  const isSelected = paintState.toolId === "resize";
+
+  return (
+    <button
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      onClick={() => {
+        toolManager.setResizeTool();
+      }}
+    >
+      <ResizeIcon />
     </button>
   );
 });
