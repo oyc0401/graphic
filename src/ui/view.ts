@@ -87,11 +87,17 @@ function bindCursorUI() {
     container.classList.toggle("noCursor", isValid && showCircle);
 
     // ───────────── 브러시 커서 스타일
-    if (isValid && (isBigSize || showCircle)) {
+    if ((isValid && (isBigSize || showCircle)) || !isDesktop) {
       if (isDesktop || paintState.drawing) {
         cursor.style.visibility = "visible";
       } else {
         cursor.style.visibility = "hidden";
+      }
+      if (!isDesktop && paintState.pointerdown && paintState.moved) {
+        cursor.style.visibility =
+          (paintState.brushSize.brush * position.scale) / getPixelRatio() > 16
+            ? "visible"
+            : "hidden";
       }
       cursor.style.left = `${paintState.cursorX - scaled / 2 - 1}px`;
       cursor.style.top = `${paintState.cursorY - scaled / 2 - 1}px`;
@@ -170,8 +176,7 @@ function bindCursorPositionUI() {
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
 
-    els.positionBox.style.visibility =
-      visible ? "visible" : "hidden";
+    els.positionBox.style.visibility = visible ? "visible" : "hidden";
     //els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
   });
