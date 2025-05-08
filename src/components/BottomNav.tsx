@@ -50,7 +50,7 @@ export function BottomNav() {
 
   return (
     <>
-      <div style={{ height: 44, width: "100%" }}></div>
+      {/* <div style={{ height: 44, width: "100%" }}></div>
       <div id="navigation">
         <div className="mobile-navigation">
           <BrushToolButton />
@@ -58,7 +58,7 @@ export function BottomNav() {
           <div style={{ flex: 1 }} />
           <MobileColorIndicatorButton />
         </div>
-      </div>
+      </div> */}
     </>
   );
 }

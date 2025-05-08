@@ -171,7 +171,7 @@ function bindCursorPositionUI() {
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
 
     els.positionBox.style.visibility =
-      !isSmallSize() && visible ? "visible" : "hidden";
+      visible ? "visible" : "hidden";
     //els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
   });

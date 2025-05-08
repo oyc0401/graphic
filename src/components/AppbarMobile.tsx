@@ -14,7 +14,11 @@ import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
 
-import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
+import {
+  ColorIndicatorButton,
+  MainMenuToggleButton,
+  MobileColorIndicatorButton,
+} from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { useClickOutside, useDropdownPosition } from "./menu-hooks";
@@ -55,7 +59,11 @@ export default function AppBarMobile() {
           <ToolsToggleButton />
 
           <div style={{ flex: 1 }} />
-          <HistoryButtons />
+
+          <BrushToolButton />
+          <EraserToolButton />
+
+          <MobileColorIndicatorButton />
         </div>
       </div>
     </>
@@ -89,6 +97,8 @@ const ToolsToggleButton = observer(() => {
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <LiquifyToolButton />
+          <div style={{ flex: 1 }} />
+          <HistoryButtons />
         </div>
       )}
     </>
@@ -105,6 +115,36 @@ const HistoryButtons = observer(() => {
         {historyState.getRedoCount() === 0 ? <RedoOffIcon /> : <RedoIcon />}
       </button>
     </>
+  );
+});
+
+const BrushToolButton = observer(() => {
+  const isSelected =
+    paintState.toolId === "brush" && paintState.brushId === "brush";
+
+  return (
+    <button
+      id="select-brush"
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setBrushTool()}
+    >
+      <BrushIcon width={24} height={24} />
+    </button>
+  );
+});
+
+const EraserToolButton = observer(() => {
+  const isSelected =
+    paintState.toolId === "brush" && paintState.brushId === "eraser";
+
+  return (
+    <button
+      id="select-eraser"
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setEraserTool()}
+    >
+      <EraserIcon width={24} height={24} />
+    </button>
   );
 });
 

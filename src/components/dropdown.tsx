@@ -264,7 +264,6 @@ export const MobileColorIndicatorButton = observer(() => {
   });
 
   useDropdownPosition(buttonRef, menuRef, menuState.showColorMenu, {
-    invertY: true,
     padding: 0,
   });
 
