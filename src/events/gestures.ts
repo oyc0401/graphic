@@ -8,12 +8,13 @@ import {
   setMagification,
   to_screen_coord,
 } from "../position";
-import { undo } from "../history";
+import { redo, undo } from "../history";
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;
 const twoFingerTapInterval = 75; // 이중클릭 범위
 const doubleTapInterval = 250; // 더블클릭 범위
-const CLICK_INTERVAL = 100;
+const TWO_CLICK_INTERVAL = 150;
+const THREE_CLICK_INTERVAL = 200;
 
 const pointers = new Map(); // pointerId -> {x, y} 저장
 
@@ -44,6 +45,7 @@ export function addGestureEvent() {
   }
 
   let twoPingerDown = 0;
+  let threePingerDown = 0;
   window.addEventListener(
     "pointerdown",
     (event) => {
@@ -58,13 +60,16 @@ export function addGestureEvent() {
         });
         pointerIndex++;
       } else {
-        alert("포인터 아이디가 이미 있는데 또 pointerdown? 버그임");
+        alert(
+          "포인터 아이디가 이미 있는데 또 pointerdown? 버그임 근데 이문제 자꾸 나는데 꼭 해결해야함",
+        );
       }
 
       // 핀치 줌
       if (pointers.size === 1) {
         paintState.setPointerdown(true);
         firstPointerdownTime = performance.now();
+        moved = false;
       }
 
       if (pointers.size === 2) {
@@ -84,6 +89,7 @@ export function addGestureEvent() {
         } else {
           dispatch(event, "up");
         }
+
         paintState.setPointerdown(false);
         paintState.setDrawing(false);
 
@@ -97,14 +103,23 @@ export function addGestureEvent() {
           points[0].clientY - points[1].clientY,
         );
       }
+      if (pointers.size === 3) {
+        let now = performance.now();
+        // 세 손가락이 거의 동시에 down
+        if (now - firstPointerdownTime <= twoFingerTapInterval) {
+          threePingerDown = now;
+        }
+      }
     },
     true,
   );
 
+  let moved = false;
   window.addEventListener(
     "pointermove",
     (event) => {
       if (!pointers.has(event.pointerId)) return;
+
       if (pointers.size == 1) {
         let lastPointer = pointers.get(event.pointerId);
         let distance = Math.hypot(
@@ -128,6 +143,8 @@ export function addGestureEvent() {
 
       let diffX = (dx / position.scale) * getPixelRatio();
       let diffY = (dy / position.scale) * getPixelRatio();
+
+      moved = true;
 
       position.setX(position.x - diffX);
       position.setY(position.y - diffY);
@@ -159,7 +176,11 @@ export function addGestureEvent() {
     (event) => {
       let now = performance.now();
 
-      if (now - twoPingerDown < CLICK_INTERVAL) {
+      if (now - threePingerDown < THREE_CLICK_INTERVAL && !moved) {
+        redo();
+        twoPingerDown = 0;
+        threePingerDown = 0;
+      } else if (now - twoPingerDown < TWO_CLICK_INTERVAL && !moved) {
         undo();
         twoPingerDown = 0;
       }
@@ -177,6 +198,7 @@ export function addGestureEvent() {
 
       if (pointers.size == 0) {
         paintState.setAction("BRUSH");
+        moved = false;
       }
     },
     true,
