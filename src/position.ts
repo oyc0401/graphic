@@ -105,20 +105,34 @@ export function setDefaultPosition() {
   updateBouncingRect();
 
   // 초기 위치 설정
-  let percent = 2 / 3;
+  let percent = 7 / 8;
   let dpr = getPixelRatio();
   let width, height;
   let scale = 1;
 
-  if (position.bouncingRect.width > position.bouncingRect.height) {
-    // 가로가 김
-    width = position.screenHeight * percent * 1.414;
-    height = position.screenHeight * percent;
+  const RATIO = Math.SQRT2; // 1.414213562 …
+  const { screenWidth: W, screenHeight: H } = position;
+
+  if (W >= H) {
+    // ① 가로가 더 길거나 같을 때
+    height = H * percent; //   세로를 기준으로 먼저 잡고
+    width = height * RATIO; //   가로 길이를 계산
+    if (width > W) {
+      //   ➜ 가로가 화면을 넘치면?
+      width = W * percent; //   가로를 다시 기준으로
+      height = width / RATIO; //   세로를 재계산
+    }
   } else {
-    // 세로가 김
-    width = position.screenWidth * percent;
-    height = position.screenWidth * percent * 1.414;
+    // ② 세로가 더 길 때
+    width = W * percent; //   가로를 기준으로 먼저 잡고
+    height = width * RATIO; //   세로 길이를 계산
+    if (height > H) {
+      //   ➜ 세로가 화면을 넘치면?
+      height = H * percent; //   세로를 다시 기준으로
+      width = height / RATIO; //   가로를 재계산
+    }
   }
+
   position.dpr = dpr;
   MAX_SCALE = 120 * dpr;
 

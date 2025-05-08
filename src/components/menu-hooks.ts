@@ -25,46 +25,60 @@ export function useDropdownPosition(
     padding?: number;
     offsetX?: number;
     offsetY?: number;
+    /** true → 기본 위치를 버튼 위로, false → 버튼 아래로 */
+    invertY?: boolean;
   },
 ) {
-  const padding = options?.padding ?? 8;
-  const offsetX = options?.offsetX ?? 0;
-  const offsetY = options?.offsetY ?? 0;
+  const padding  = options?.padding  ?? 8;
+  const offsetX  = options?.offsetX  ?? 0;
+  const offsetY  = options?.offsetY  ?? 0;
+  const invertY  = options?.invertY ?? false;
 
   useLayoutEffect(() => {
     if (!show) return;
+
     const button = buttonRef.current;
-    const menu = menuRef.current;
+    const menu   = menuRef.current;
     if (!button || !menu) return;
 
-    const rect = button.getBoundingClientRect();
-    const menuWidth = menu.offsetWidth;
-    const menuHeight = menu.offsetHeight;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const rect            = button.getBoundingClientRect();
+    const menuWidth       = menu.offsetWidth;
+    const menuHeight      = menu.offsetHeight;
+    const viewportWidth   = window.innerWidth;
+    const viewportHeight  = window.innerHeight;
 
-    // 1️⃣ offset을 먼저 적용
+    /* ─────────────── X 좌표 계산 ─────────────── */
     let left = rect.left + offsetX;
-    let top = rect.bottom + offsetY;
 
-    // 2️⃣ offset 반영된 위치 기준으로 튐 방지 적용
+    // 오른쪽·왼쪽 경계 보정
     if (left + menuWidth + padding > viewportWidth) {
       left = viewportWidth - menuWidth - padding;
     }
-
     if (left < padding) {
-      left = padding; // 왼쪽도 화면 밖으로 나가면 보정
+      left = padding;
     }
 
+    /* ─────────────── Y 좌표 계산 ─────────────── */
+    // invertY가 true면 기본 위치를 위쪽으로, false면 아래쪽으로
+    const above = rect.top  - menuHeight - offsetY;
+    const below = rect.bottom + offsetY;
+    let top     = invertY ? above : below;
+
+    // 화면 밖으로 튀면 반대쪽으로 fallback
+    if (invertY) {
+      if (top < padding) top = below;
+    } else {
+      if (top + menuHeight + padding > viewportHeight) top = above;
+    }
+
+    // 최종 경계 체크
+    if (top < padding) top = padding;
     if (top + menuHeight + padding > viewportHeight) {
-      top = rect.top - menuHeight;
+      top = viewportHeight - menuHeight - padding;
     }
 
-    if (top < padding) {
-      top = padding;
-    }
-
+    /* ─────────────── 스타일 적용 ─────────────── */
     menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
-  }, [buttonRef, menuRef, show, padding, offsetX, offsetY]);
+    menu.style.top  = `${top}px`;
+  }, [buttonRef, menuRef, show, padding, offsetX, offsetY, invertY]);
 }

@@ -4,7 +4,7 @@ class MenuState {
     showMenu = false;
     showColorMenu = false;
 
-    showTools = false; // 모바일
+    showTools = true; // 모바일
     constructor() {
         makeAutoObservable(this);
     }

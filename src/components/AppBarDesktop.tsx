@@ -1,4 +1,3 @@
-/* src/components/AppBar.jsx */
 import { paintState } from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
@@ -132,7 +131,7 @@ const SelectionToolButton = observer(() => {
       className={`select-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setSelectTool()}
     >
-      <SelectionIcon />
+      <SelectionIcon width={32} height={32}/>
       <p>선택</p>
     </button>
   );
@@ -148,7 +147,7 @@ const BrushToolButton = observer(() => {
       className={`select-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setBrushTool()}
     >
-      <BrushIcon />
+      <BrushIcon width={32} height={32} />
       <p>브러시</p>
     </button>
   );
@@ -164,7 +163,7 @@ const EraserToolButton = observer(() => {
       className={`select-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setEraserTool()}
     >
-      <EraserIcon />
+      <EraserIcon width={32} height={32} />
       <p>지우개</p>
     </button>
   );
@@ -180,7 +179,7 @@ const LiquifyToolButton = observer(() => {
       className={`select-mini ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setLiquifyTool()}
     >
-      <LiquifyIcon />
+      <LiquifyIcon width={20} height={20} />
     </button>
   );
 });

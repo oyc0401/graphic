@@ -5,6 +5,7 @@ import { els } from "./elements";
 import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
+import { isSmallSize } from "../utils/screen";
 
 export function bindView() {
   bindCursorUI();
@@ -169,7 +170,8 @@ function bindCursorPositionUI() {
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
 
-    els.positionBox.style.visibility = visible ? "visible" : "hidden";
+    els.positionBox.style.visibility =
+      !isSmallSize() && visible ? "visible" : "hidden";
     //els.positionBox.style.visibility = "hidden";
     els.positionText.innerText = `${x} x ${y}`;
   });

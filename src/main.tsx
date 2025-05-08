@@ -22,43 +22,34 @@ import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
-import { useEffect } from "react";
+import { BottomNav } from "./components/BottomNav";
 
 const root = document.getElementById("appbar-root");
 if (root) {
-  createRoot(root).render(
-    <>
-      <AppBar />
-      <Runner />
-    </>,
-  );
+  createRoot(root).render(<AppBar />);
 } else {
   console.error("appbar-root not found!");
 }
 
-function Runner() {
-  useEffect(() => {
-    console.log("useEffect!");
-  }, []);
-
-  return <></>;
+const navroot = document.getElementById("nav-root");
+if (navroot) {
+  createRoot(navroot).render(<BottomNav />);
+} else {
+  console.error("nav-root not found!");
 }
 
 window.onload = () => {
   console.log("load");
   updateBouncingRect();
   console.log("screenHeight0", position.screenHeight);
+
   requestAnimationFrame(() => {
     updateBouncingRect();
     console.log("screenHeight1", position.screenHeight);
     requestAnimationFrame(() => {
       updateBouncingRect();
       console.log("screenHeight2", position.screenHeight);
-      requestAnimationFrame(() => {
-        updateBouncingRect();
-        console.log("screenHeight3", position.screenHeight);
-        main();
-      });
+      main();
     });
   });
 };
@@ -93,9 +84,6 @@ async function main() {
 
   debugSetting();
 
-  updateBouncingRect();
-  console.log("screenHeightF", position.screenHeight);
-
   requestAnimationFrame(() => {
     updateBouncingRect();
     console.log("screenHeightQ", position.screenHeight);
@@ -109,13 +97,29 @@ function debugSetting() {
 
   window.addEventListener("resize", async function () {
     // debounce(async () => {
-    // console.log("debounce");
     requestAnimationFrame(() => {
+      // 플리커링 일어나긴 하는데 걍 두고 나중에 고칩시다
+      let lastY = position.bouncingRect.y;
       updateBouncingRect();
+      // if (window.innerWidth < 800) {
+      //   position.bouncingRect.y = 44;
+      //   position.bouncingRect.height = window.innerHeight - 44;
+      // } else {
+      //   position.bouncingRect.y = 133;
+      //   position.bouncingRect.height = window.innerHeight - 133;
+      // }
+      // position.bouncingRect.width = window.innerWidth;
+
+      let diffY =
+        ((lastY - position.bouncingRect.y) / position.scale) * getPixelRatio();
+
+      position.setY(position.y + diffY);
+
       resizeScreen();
-      render();
+
       setCanvasCSSSize();
       setCameraPosition();
+      render();
       console.log("screenHeightR", position.screenHeight);
     });
     //}, 100);

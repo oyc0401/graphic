@@ -50,7 +50,7 @@ export default function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        <div id="header">
+        <div className="mobile-appbar">
           <MainMenuToggleButton />
           <ToolsToggleButton />
 
@@ -65,12 +65,6 @@ export default function AppBarMobile() {
 const ToolsToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside([menuRef, buttonRef], () => {
-    if (menuState.showTools) {
-      menuState.setShowTools(false);
-    }
-  });
 
   useDropdownPosition(buttonRef, menuRef, menuState.showTools, {
     padding: 0,
@@ -88,11 +82,11 @@ const ToolsToggleButton = observer(() => {
         onClick={toggleMenu}
         ref={buttonRef}
       >
-        <p>도구</p>
+        <p className={`${menuState.showTools ? "selected" : ""}`}>도구</p>
       </button>
 
       {menuState.showTools && (
-        <div id="main-menu" ref={menuRef}>
+        <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <LiquifyToolButton />
         </div>
@@ -121,43 +115,10 @@ const SelectionToolButton = observer(() => {
   return (
     <button
       id="select-selection"
-      className={`select-button ${isSelected ? "selected" : ""}`}
+      className={`header-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setSelectTool()}
     >
       <SelectionIcon />
-      <p>선택</p>
-    </button>
-  );
-});
-
-const BrushToolButton = observer(() => {
-  const isSelected =
-    paintState.toolId === "brush" && paintState.brushId === "brush";
-
-  return (
-    <button
-      id="select-brush"
-      className={`select-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setBrushTool()}
-    >
-      <BrushIcon />
-      <p>브러시</p>
-    </button>
-  );
-});
-
-const EraserToolButton = observer(() => {
-  const isSelected =
-    paintState.toolId === "brush" && paintState.brushId === "eraser";
-
-  return (
-    <button
-      id="select-eraser"
-      className={`select-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setEraserTool()}
-    >
-      <EraserIcon />
-      <p>지우개</p>
     </button>
   );
 });
@@ -169,7 +130,7 @@ const LiquifyToolButton = observer(() => {
   return (
     <button
       id="select-liquify"
-      className={`select-mini ${isSelected ? "selected" : ""}`}
+      className={`header-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setLiquifyTool()}
     >
       <LiquifyIcon />

@@ -52,6 +52,9 @@
   width: 44px;
   cursor: pointer;
   background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 
