@@ -164,21 +164,19 @@ export function addClipboardEvent() {
 }
 
 function uploadImage(bitmap: ImageBitmap) {
-  let dpr = getPixelRatio();
-
   applySelection();
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
 
   console.log("uploadImage", position.bouncingRect.width, bitmap.width);
-  let val = 1.125 / dpr;
-  let xScale = position.bouncingRect.width / (bitmap.width * val);
-  let yScale = position.bouncingRect.height / (bitmap.height * val);
+  let val = 1.125;
+  let xScale = position.screenWidth / (bitmap.width * val);
+  let yScale = position.screenHeight / (bitmap.height * val);
   let scale = Math.min(xScale, yScale);
 
-  let x = (position.bouncingRect.width - bitmap.width * scale) / 2 / scale;
-  let y = (position.bouncingRect.height - bitmap.height * scale) / 2 / scale;
+  let x = (position.screenWidth - bitmap.width * scale) / 2 / scale;
+  let y = (position.screenHeight - bitmap.height * scale) / 2 / scale;
 
   position.setScale(scale);
   position.setX(x);
