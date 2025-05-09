@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@jsquash/png": "^3.0.1",
+    "callink": "^1.0.1",
     "comlink": "^4.4.2",
     "mobx": "^6.13.7",
     "mobx-react-lite": "^4.1.0",

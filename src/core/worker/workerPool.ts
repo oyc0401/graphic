@@ -3,7 +3,7 @@ import * as Comlink from "comlink";
 import { workerApi } from "./paintController";
 import WorkerModule from "./worker?worker";
 import { mainApi } from "./mainController";
-import { Callink } from "./Callink";
+import { Callink } from "callink";
 
 type WorkerApi = typeof workerApi;
 
@@ -20,7 +20,7 @@ function getWorkerObject() {
     const worker = new WorkerModule();
 
     // 워커 수신
-    Callink.expose(worker, mainApi);
+    Callink.provide(worker, mainApi);
 
     // worker 사용
     const api = Comlink.wrap<WorkerApi>(worker);

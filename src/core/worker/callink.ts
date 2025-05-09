@@ -1,12 +1,6 @@
-/*-------------------------------------------------
-  callink.ts
-  ― Ultra-light RPC bridge between Worker ⇄ Main
---------------------------------------------------*/
-
-///////////////////////
-// 내부 심볼 & 헬퍼
-///////////////////////
 const TRANSFER = Symbol("callink.transfer");
+
+declare const self: DedicatedWorkerGlobalScope;
 
 type WithTransfer<T> = T & { [TRANSFER]?: Transferable[] };
 
@@ -19,7 +13,7 @@ export function transfer<T>(value: T, list: Transferable[]): WithTransfer<T> {
 ///////////////////////
 // Proxy → Worker 호출
 ///////////////////////
-export function wrap<T extends Record<string, any>>() {
+export function connect<T extends Record<string, any>>() {
   /* ---------- (1) 요청-응답 ID 테이블 ---------- */
   let seq = 0; // 메시지 ID
   const pending = new Map<number, (v: any) => void>();
@@ -89,7 +83,7 @@ export function wrap<T extends Record<string, any>>() {
   });
 }
 
-export function expose<T extends Record<string, any>>(worker: Worker, api: T) {
+export function provide<T extends Record<string, any>>(worker: Worker, api: T) {
   worker.onmessage = ({ data }) => {
     const { type, prop, args, id } = data;
 
@@ -100,10 +94,10 @@ export function expose<T extends Record<string, any>>(worker: Worker, api: T) {
         worker.postMessage({ type: "RET", id, value }),
       );
     } else if (type === "GET") {
-      const value = prop.split(".").reduce((o, k) => o?.[k], api);
+      const value = prop.split(".").reduce((o: any, k: string) => o?.[k], api);
       worker.postMessage({ type: "RET", id, value });
     }
   };
 }
 
-export const Callink = { wrap, expose, transfer } as const;
+export const Callink = { connect, provide, transfer } as const;

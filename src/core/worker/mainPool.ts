@@ -1,6 +1,6 @@
-import { Callink } from "./Callink";
+import { Callink } from "callink";
 import { mainApi } from "./mainController";
 
 type MainApi = typeof mainApi;
 
-export const mainThread = Callink.wrap<MainApi>();
+export const mainThread = Callink.connect<MainApi>();

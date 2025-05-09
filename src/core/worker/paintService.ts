@@ -14,7 +14,7 @@ import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../gl/history/history";
 import { mainThread } from "./mainPool";
-import { Callink } from "./Callink";
+import { Callink } from "callink";
 
 interface Pointer {
   x: number;
