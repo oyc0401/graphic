@@ -1,5 +1,5 @@
 import { makeAutoObservable } from "mobx";
-import { getLayerWorker } from "./core/worker/workerPool";
+import { getLayerWorker } from "./worker/workerPool";
 import { toolManager } from "./draw";
 import { paintState } from "./paintState";
 import { selection } from "./selection";

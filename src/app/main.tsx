@@ -16,7 +16,7 @@ import { applySelection, selection } from "./selection";
 import { addClipboardEvent } from "./file";
 
 import { bindView } from "./ui/view";
-import { getLayerWorker } from "./core/worker/workerPool";
+import { getLayerWorker } from "./worker/workerPool";
 import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./ui/canvas";
 import { addGestureEvent } from "./events/gestures";
@@ -38,21 +38,14 @@ if (navroot) {
   console.error("nav-root not found!");
 }
 
-window.onload = () => {
-  console.log("load");
-  updateBouncingRect();
-  console.log("screenHeight0", position.screenHeight);
 
+export function runApp(){
   requestAnimationFrame(() => {
-    // updateBouncingRect();
-    // console.log("screenHeight1", position.screenHeight);
     requestAnimationFrame(() => {
-      // updateBouncingRect();
-      // console.log("screenHeight2", position.screenHeight);
       main();
     });
   });
-};
+}
 
 async function main() {
   console.log("Start App!");
@@ -75,7 +68,7 @@ async function main() {
 
   addClipboardEvent();
   // dpr이 1이 아니면, 캔버스 확대
-  setCanvasCSSSize();
+  changeCanvasTransform();
 
   // 캔버스 업로드
   tranferCanvas();
@@ -117,7 +110,7 @@ function debugSetting() {
 
       resizeScreen();
 
-      setCanvasCSSSize();
+      changeCanvasTransform();
       setCameraPosition();
       render();
       console.log("screenHeightR", position.screenHeight);
@@ -132,7 +125,8 @@ function debugSetting() {
     worker.setLayerId(layerId);
   };
 }
-function setCanvasCSSSize() {
+
+function changeCanvasTransform() {
   let dpr = getPixelRatio();
   els.canvas.style.transform = `scale(${1 / dpr})`;
 }

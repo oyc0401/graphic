@@ -12,7 +12,6 @@ import {
   to_screen_coord,
 } from "../position";
 import { clamp } from "../utils/math";
-import { getLayerWorker } from "../core/worker/workerPool";
 import { redo, undo } from "../history";
 
 function addWheelListener() {

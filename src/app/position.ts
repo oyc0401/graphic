@@ -1,6 +1,6 @@
 /** position.ts */
 import { els } from "./ui/elements";
-import { getLayerWorker } from "./core/worker/workerPool";
+import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
 
 export const MIN_SCALE = 0.125;

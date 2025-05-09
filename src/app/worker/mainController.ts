@@ -1,8 +1,8 @@
-import { copyPixelsToClipboard, downloadPixels } from "../../file";
-import { historyState } from "../../history";
-import { paintState } from "../../paintState";
-import { getPixelRatio, position } from "../../position";
-import { selection } from "../../selection";
+import { copyPixelsToClipboard, downloadPixels } from "../file";
+import { historyState } from "../history";
+import { paintState } from "../paintState";
+import { getPixelRatio, position } from "../position";
+import { selection } from "../selection";
 import { getLayerWorker } from "./workerPool";
 
 export const mainApi = {

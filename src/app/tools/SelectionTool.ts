@@ -6,7 +6,7 @@ import {
   HandleType,
 } from "../utils/selectionHitTest";
 import { to_pixel_canvas_coord } from "../position";
-import { getLayerWorker } from "../core/worker/workerPool";
+import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils/math";
 
 export class SelectionTool {

@@ -1,5 +1,5 @@
 import { makeAutoObservable } from "mobx";
-import { getLayerWorker } from "./core/worker/workerPool";
+import { getLayerWorker } from "./worker/workerPool";
 
 type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
 type ToolId = "brush" | "select" | "selection" | "resize"; // 선택창 풀면 brush로 됌
