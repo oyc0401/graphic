@@ -44,11 +44,11 @@ window.onload = () => {
   console.log("screenHeight0", position.screenHeight);
 
   requestAnimationFrame(() => {
-    updateBouncingRect();
-    console.log("screenHeight1", position.screenHeight);
+    // updateBouncingRect();
+    // console.log("screenHeight1", position.screenHeight);
     requestAnimationFrame(() => {
-      updateBouncingRect();
-      console.log("screenHeight2", position.screenHeight);
+      // updateBouncingRect();
+      // console.log("screenHeight2", position.screenHeight);
       main();
     });
   });
@@ -84,10 +84,10 @@ async function main() {
 
   debugSetting();
 
-  requestAnimationFrame(() => {
-    updateBouncingRect();
-    console.log("screenHeightQ", position.screenHeight);
-  });
+  // requestAnimationFrame(() => {
+  //   updateBouncingRect();
+  //   console.log("screenHeightQ", position.screenHeight);
+  // });
 }
 
 function debugSetting() {

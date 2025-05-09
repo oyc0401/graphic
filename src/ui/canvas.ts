@@ -5,6 +5,16 @@ import { getLayerWorker } from "../core/worker/workerPool";
 import * as Comlink from "comlink";
 
 export async function tranferCanvas() {
+    els.canvas.addEventListener("webglcontextlost", (event) => {
+        //event.preventDefault(); // 자동 복구를 브라우저에 맡기지 않기 위해 필요
+        console.warn("WebGL context lost!");
+    });
+
+    els.canvas.addEventListener("webglcontextrestored", () => {
+        console.log("WebGL context restored!");
+        // 모든 리소스 재초기화 필요
+    });
+
     const worker = getLayerWorker();
     const offscreen = els.canvas.transferControlToOffscreen();
 
