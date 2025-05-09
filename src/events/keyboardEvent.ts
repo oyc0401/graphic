@@ -3,6 +3,7 @@ import { paintState } from "../paintState";
 import { cancel, toolManager } from "../draw";
 import { applySelection, canvasSelect, selectionDelete } from "../selection";
 import {
+  getPixelRatio,
   MAX_SCALE,
   MIN_SCALE,
   position,
@@ -49,12 +50,13 @@ function addWheelListener() {
           let newSize = Math.round(clamp(percent, 1, 3000));
           paintState.setBrushSize(newSize);
         } else {
+          let dpr = getPixelRatio();
           if (event.shiftKey && event.deltaX === 0) {
-            position.setX(position.x - event.deltaY / position.scale);
-            position.setY(position.y - event.deltaX / position.scale);
+            position.setX(position.x - (event.deltaY / position.scale) * dpr);
+            position.setY(position.y - (event.deltaX / position.scale) * dpr);
           } else {
-            position.setX(position.x - event.deltaX / position.scale);
-            position.setY(position.y - event.deltaY / position.scale);
+            position.setX(position.x - (event.deltaX / position.scale) * dpr);
+            position.setY(position.y - (event.deltaY / position.scale) * dpr);
           }
         }
 

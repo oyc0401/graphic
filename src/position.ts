@@ -72,11 +72,11 @@ export function updateBouncingRect() {
 }
 export async function setCameraPosition() {
   const minW = -position.width;
-  const maxW = position.bouncingRect.width / position.scale;
+  const maxW = position.screenWidth / position.scale;
   const clampX = Math.min(maxW, Math.max(minW, position.x));
 
   const minH = -position.height;
-  const maxH = position.bouncingRect.height / position.scale;
+  const maxH = position.screenHeight / position.scale;
   const clampY = Math.min(maxH, Math.max(minH, position.y));
 
   position.setX(clampX);
