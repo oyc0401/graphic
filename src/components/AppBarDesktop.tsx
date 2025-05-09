@@ -12,6 +12,7 @@ import BrushIcon from "../assets/brush.svg?react";
 import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
+import ResizeIcon from "../assets/resize.svg?react";
 
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
@@ -60,7 +61,7 @@ export default function AppBarDesktop() {
           <div className="div-bar"></div>
           <div className="mini-buttons">
             <LiquifyToolButton />
-            <button className="select-mini"></button>
+            <ResizeButton />
           </div>
           <div className="div-bar"></div>
 
@@ -95,13 +96,6 @@ export default function AppBarDesktop() {
             </div>
           </div>
           <ColorIndicatorButton />
-          <button
-            onClick={() => {
-              toolManager.setResizeTool();
-            }}
-          >
-            화면 크기 조절
-          </button>
         </div>
       </div>
     </>
@@ -131,7 +125,7 @@ const SelectionToolButton = observer(() => {
       className={`select-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setSelectTool()}
     >
-      <SelectionIcon width={32} height={32}/>
+      <SelectionIcon width={32} height={32} />
       <p>선택</p>
     </button>
   );
@@ -180,6 +174,21 @@ const LiquifyToolButton = observer(() => {
       onClick={() => toolManager.setLiquifyTool()}
     >
       <LiquifyIcon width={20} height={20} />
+    </button>
+  );
+});
+
+const ResizeButton = observer(() => {
+  const isSelected = paintState.toolId === "resize";
+
+  return (
+    <button
+      className={`select-mini ${isSelected ? "selected" : ""}`}
+      onClick={() => {
+        toolManager.setResizeTool();
+      }}
+    >
+      <ResizeIcon width={20} height={20} />
     </button>
   );
 });
