@@ -1,7 +1,7 @@
 // 메인스레드 임포트 영역
 import * as Comlink from "comlink";
-import { workerApi } from "../../core/worker/paintController";
-import WorkerModule from "../../core/worker/worker?worker";
+import { workerApi } from "@/core/worker/paintController";
+import WorkerModule from "@/core/worker/worker?worker";
 import { mainApi } from "./mainController";
 import { Callink } from "callink";
 

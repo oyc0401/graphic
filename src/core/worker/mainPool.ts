@@ -1,5 +1,5 @@
 import { Callink } from "callink";
-import { mainApi } from "../../app/worker/mainController";
+import { mainApi } from "@/app/worker/mainController";
 
 type MainApi = typeof mainApi;
 
