@@ -292,30 +292,28 @@ function makeRenderingManager(canvas, gl) {
 
       vec2 screenPx = v_texCoord * u_screenSize;
 
-      if(u_magnification > 20.0){
-        float pixelStep   = u_magnification * u_dpr;  // device‑pixel 단위
-     
-        // 현재 프래그먼트의 캔버스 내 위치를 *스크린 픽셀* 단위로 환산
-        // scaledFragCoord는 (스크린픽셀 / u_magnification) 단위이므로
-        // 다시 u_magnification·u_dpr을 곱해주면 실제 스크린‑픽셀 좌표가 된다.
-        vec2 canvasPx = (scaledFragCoord - minCanvPos) * u_magnification * u_dpr;
-  
-        float gridX = fract(canvasPx.x / pixelStep + 0.005);
-        float gridY = fract(canvasPx.y / pixelStep + 0.005);
-        
-        // 임계값: 선 두께가 전체 격자 간격에서 차지하는 비율
-        float threshold = 1.0 / u_magnification;
-        
-        bool isGridLine = gridX <= threshold || gridY <= threshold;
-  
-        // 격자 색상(시안)으로 덮어쓰기
-        if (isGridLine) {
-          vec3 rgb = vec3(1.0,1.0,1.0);
-          float alpha = 0.2;
-          outColor = vec4(rgb * alpha, alpha);
-        }
-      }
+      
+      float pixelStep   = u_magnification * u_dpr;  // device‑pixel 단위
+   
+      // 현재 프래그먼트의 캔버스 내 위치를 *스크린 픽셀* 단위로 환산
+      // scaledFragCoord는 (스크린픽셀 / u_magnification) 단위이므로
+      // 다시 u_magnification·u_dpr을 곱해주면 실제 스크린‑픽셀 좌표가 된다.
+      vec2 canvasPx = (scaledFragCoord - minCanvPos) * u_magnification * u_dpr;
 
+      float gridX = fract(canvasPx.x / pixelStep + 0.005);
+      float gridY = fract(canvasPx.y / pixelStep + 0.005);
+      
+      // 임계값: 선 두께가 전체 격자 간격에서 차지하는 비율
+      float threshold = 1.0 / u_magnification;
+      
+      bool isGridLine = gridX <= threshold || gridY <= threshold;
+
+      // 격자 색상(시안)으로 덮어쓰기
+      if (isGridLine) {
+        vec3 rgb = vec3(1.0,1.0,1.0);
+        float alpha = 0.2;
+        outColor = vec4(rgb * alpha, alpha);
+      }
       
     }
   `;
@@ -326,33 +324,38 @@ function makeRenderingManager(canvas, gl) {
   bufferManager.createFullQuadVAO(gridProgram);
 
   function renderGrid() {
-    gl.useProgram(gridProgram);
+    if (paintOptions.magnification / paintOptions.dpr > 20) {
+      gl.useProgram(gridProgram);
 
-    gl.uniform2f(
-      gl.getUniformLocation(gridProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(gridProgram, "u_pos"),
-      paintOptions.x,
-      paintOptions.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(gridProgram, "u_screenSize"),
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(gridProgram, "u_magnification"),
-      paintOptions.magnification,
-    );
-    gl.uniform1f(gl.getUniformLocation(gridProgram, "u_dpr"), paintOptions.dpr);
+      gl.uniform2f(
+        gl.getUniformLocation(gridProgram, "u_resolution"),
+        paintOptions.width,
+        paintOptions.height,
+      );
+      gl.uniform2f(
+        gl.getUniformLocation(gridProgram, "u_pos"),
+        paintOptions.x,
+        paintOptions.y,
+      );
+      gl.uniform2f(
+        gl.getUniformLocation(gridProgram, "u_screenSize"),
+        paintOptions.screenWidth,
+        paintOptions.screenHeight,
+      );
+      gl.uniform1f(
+        gl.getUniformLocation(gridProgram, "u_magnification"),
+        paintOptions.magnification,
+      );
+      gl.uniform1f(
+        gl.getUniformLocation(gridProgram, "u_dpr"),
+        paintOptions.dpr,
+      );
 
-    // 쓰기 영역: 캔버스
-    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
-    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      // 쓰기 영역: 캔버스
+      gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
+      gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
   }
 
   /**
