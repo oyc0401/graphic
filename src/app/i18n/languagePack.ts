@@ -14,6 +14,8 @@ const en_pack = {
   save: "Save",
   undo: "Undo",
   redo: "Redo",
+  you_can_translation:
+    "Would you like to switch to the English version of the site?",
 };
 
 const ko_pack: typeof en_pack = {
@@ -32,6 +34,7 @@ const ko_pack: typeof en_pack = {
   save: "저장",
   undo: "뒤로 가기",
   redo: "앞으로 가기",
+  you_can_translation: "한국어 페이지로 이동하시겠습니까?",
 };
 
 export const languagePack = {
