@@ -1,7 +1,10 @@
+import { resetHisory } from "./history/history";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { resizeLayer } from "./resize";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
+import { getBrushManager } from "./tool/brushTool";
+import { getLiquifyManager } from "./tool/liquify";
 import { getManager } from "./utils/cachedManager";
 import { decodePremultAndFlip } from "./utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
@@ -21,6 +24,7 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
     bitmap.height,
   );
 
+  resetHisory();
   layerManager.bindCurrentLayer();
 
   gl.texImage2D(
@@ -32,7 +36,17 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
     bitmap, // ✅ 직접 전달 가능
   );
 
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+  gl.bindTexture(gl.TEXTURE_2D, sourceTextureManager.texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+
   sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+
+  // 알파맵, 변위맵, 선택창 초기화하기!
+
+  if (paintOptions.toolId != "brush") {
+    console.error("브러시일때만 새로운 파일 열기!");
+  }
 
   renderingManager.render();
 }
@@ -44,6 +58,7 @@ export function resetImage(canvas, gl, width, height) {
 
   resizeLayer(canvas, gl, paintOptions.x, paintOptions.y, width, height);
 
+  resetHisory();
   layerManager.bindCurrentLayer();
 
   gl.texImage2D(
@@ -58,7 +73,19 @@ export function resetImage(canvas, gl, width, height) {
     null, // → allocate only
   );
 
-  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+  gl.bindTexture(gl.TEXTURE_2D, sourceTextureManager.texture);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0, // mip level
+    gl.RGBA, // internal format
+    width, // ✅ 반드시 필요
+    height, // ✅ 반드시 필요
+    0, // border (항상 0)
+    gl.RGBA, // format
+    gl.UNSIGNED_BYTE, // type
+    null, // → allocate only
+  );
 
   renderingManager.render();
 }

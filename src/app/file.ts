@@ -18,6 +18,7 @@ import {
   setDefaultPosition,
 } from "./position";
 import { paintState } from "./paintState";
+import { toolManager } from "./draw";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -164,10 +165,7 @@ export function addClipboardEvent() {
 }
 
 function uploadImage(bitmap: ImageBitmap) {
-  applySelection();
-  selection.setVisible(false);
-  selection.setShowHint(false);
-  selection.setShowHandle(false);
+  toolManager.setBrushTool();
 
   console.log("uploadImage", position.bouncingRect.width, bitmap.width);
   let val = 1.125;
@@ -267,7 +265,8 @@ export async function openFile() {
 }
 
 export function resetImage() {
-  applySelection();
+  toolManager.setBrushTool();
+
   setDefaultPosition();
   const worker = getLayerWorker();
   worker.resetImage(position.width, position.height);

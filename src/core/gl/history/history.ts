@@ -20,6 +20,12 @@ export interface HistoryItem {
 let undoStack: HistoryObject[] = [];
 let redoStack: HistoryObject[] = [];
 
+export function resetHisory() {
+  undoStack = [];
+  redoStack = [];
+  mainThread.historyCount(undoStack.length, redoStack.length);
+}
+
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
     createHistoryManager(canvas, gl),
