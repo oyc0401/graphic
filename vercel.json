@@ -2,12 +2,12 @@
   "redirects": [
     {
       "source": "/en",
-      "destination": "/locales/en",
+      "destination": "/locales/en/",
       "statusCode": 200
     },
     {
       "source": "/ko",
-      "destination": "/locales/ko",
+      "destination": "/locales/ko/",
       "statusCode": 200
     }
   ]
