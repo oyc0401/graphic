@@ -16,7 +16,7 @@ const en_pack = {
   redo: "Redo",
 };
 
-const kr_pack: typeof en_pack = {
+const ko_pack: typeof en_pack = {
   current_language: "한국어",
   paint: "그림판",
   tools: "도구",
@@ -36,7 +36,7 @@ const kr_pack: typeof en_pack = {
 
 export const languagePack = {
   en: en_pack,
-  kr: kr_pack,
+  ko: ko_pack,
 };
 
 export type Letter = keyof typeof en_pack;

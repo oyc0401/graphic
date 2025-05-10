@@ -1,14 +1,14 @@
 import { languagePack, Letter } from "./languagePack";
 
-export function setLanguage(id) {
-  if (languagePack[id]) {
-    currentPack = languagePack[id];
+export function setLanguage(lang) {
+  if (languagePack[lang]) {
+    currentPack = languagePack[lang];
   } else {
     currentPack = languagePack.en;
   }
 }
 
-let currentPack = languagePack.en;
+let currentPack = languagePack[window.lang] ?? languagePack.en;
 export function getLetter(key: Letter) {
   return currentPack[key];
 }
