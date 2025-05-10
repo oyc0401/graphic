@@ -1,14 +1,6 @@
 {
-  "redirects": [
-    {
-      "source": "/en",
-      "destination": "/locales/en/",
-      "statusCode": 200
-    },
-    {
-      "source": "/ko",
-      "destination": "/locales/ko/",
-      "statusCode": 200
-    }
+  "rewrites": [
+    { "source": "/en", "destination": "/locales/en/index.html" },
+    { "source": "/ko", "destination": "/locales/ko/index.html" }
   ]
 }
