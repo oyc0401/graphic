@@ -1,123 +1,113 @@
-const CHUNK_BYTES = 8_000_000; // 한 번에 읽을 최대 바이트 수
+/* ---------- 상수 ---------- */
+const TILE_SIZE = 512*2;          // 한 타일의 폭·높이(px)
+const PACK_ALIGNMENT = 1;       // 행 정렬을 1바이트로 맞춰 안전 확보
 
+/* ---------- PixelReader ---------- */
 export class PixelReader {
-  pixelData;
-  gl: WebGL2RenderingContext;
-  width: number;
-  height: number;
-  texture: WebGLTexture;
-  static fbo: WebGLFramebuffer;
-  workQueue: Function[] = [];
-  format; // RGBA, RG
-  type; // UNSIGNED_BYTE, HALF_FLOAT
+  pixelData: Uint8Array | Uint16Array | Float32Array;
+  private static fbo: WebGLFramebuffer;
+  private workQueue: (() => void)[] = [];
 
-  constructor(gl, width, height, texture, format, type) {
-    this.gl = gl;
-    this.width = width;
-    this.height = height;
-    this.texture = texture;
-
-    this.format = format;
-    this.type = type;
-
-    const info = getPixelFormatInfo(gl, this.format, this.type);
-    const { components, bytesPerComponent, TypedArray } = info;
-
+  constructor(
+    private gl: WebGL2RenderingContext,
+    private width: number,
+    private height: number,
+    private texture: WebGLTexture,
+    private format: number,       // gl.RGBA 등
+    private type: number          // gl.UNSIGNED_BYTE 등
+  ) {
+    /* 1) 대상 버퍼 준비 ---------------------------------------------------- */
+    const { components, TypedArray } = getPixelFormatInfo(gl, format, type);
     this.pixelData = new TypedArray(width * height * components);
 
+    /* 2) FBO(재사용) 준비 -------------------------------------------------- */
     if (!PixelReader.fbo) {
-      PixelReader.fbo = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
+      PixelReader.fbo = gl.createFramebuffer()!;
     }
-    this.workQueue = [];
-    this.enqueue();
+
+    /* 3) 타일 단위 작업 생성 ---------------------------------------------- */
+    this.enqueueTiles();
   }
 
-  private enqueue() {
-    const gl = this.gl;
-    const width = this.width;
-    const height = this.height;
-    const historyTex = this.texture;
+  /* 타일별 readPixels 작업을 큐에 적재 */
+  private enqueueTiles() {
+    const { gl, width, height, texture, format, type } = this;
     const fbo = PixelReader.fbo;
 
-    const info = getPixelFormatInfo(gl, this.format, this.type);
-    const { components, bytesPerComponent, bytesPerPixel, TypedArray } = info;
+    /* 가로·세로 타일 개수(끝 타일은 자투리) */
+    const tilesX = Math.ceil(width  / TILE_SIZE);
+    const tilesY = Math.ceil(height / TILE_SIZE);
 
-    // 한 줄씩 읽어서 처리
-    const rowsPerChunk = Math.floor(CHUNK_BYTES / (width * bytesPerPixel));
-    // => 1바이트 RGBA(4 comp): chunkBytes/4픽셀
-    //    2바이트 RG (2 comp): chunkBytes/4픽셀
-    //    2바이트 RGBA (4 comp): chunkBytes/8픽셀
+    for (let ty = 0; ty < tilesY; ty++) {
+      for (let tx = 0; tx < tilesX; tx++) {
 
-    for (let rowOffset = 0; rowOffset < height; rowOffset += rowsPerChunk) {
-      let chunk = () => {
-        const remainingRows = height - rowOffset;
-        const rowsToRead = Math.min(rowsPerChunk, remainingRows);
+        /* 타일 위치·크기 계산 --------------------------------------------- */
+        const tileX = tx * TILE_SIZE;
+        const tileY = ty * TILE_SIZE;
+        const tileW = Math.min(TILE_SIZE, width  - tileX);
+        const tileH = Math.min(TILE_SIZE, height - tileY);
 
-        const subArray = new TypedArray(
-          this.pixelData.buffer,
-          rowOffset * width * components * bytesPerComponent, // byteOffset
-          rowsToRead * width * components // elementCount
-        );
+        /* 실제 readPixels 호출 람다 -------------------------------------- */
+        this.workQueue.push(() => {
+           const start = performance.now();
+          
+          /* FBO 바인딩 후 대상 텍스처 연결 */
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+          gl.framebufferTexture2D(
+            gl.READ_FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            texture,
+            0
+          );
 
-        // 한 줄씩 읽기
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-        gl.framebufferTexture2D(
-          gl.READ_FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          historyTex,
-          0
-        );
-        gl.readPixels(
-          0,
-          rowOffset,
-          width,
-          rowsToRead,
-          this.format, // gl.RGBA,
-          this.type, //gl.UNSIGNED_BYTE,
-          subArray
-        );
-        console.log("read!");
-      };
+          /* --- PACK 스토어 설정 (타일 → 전체 버퍼 정확 위치) ------------- */
+          gl.pixelStorei(gl.PACK_ALIGNMENT,  PACK_ALIGNMENT); // 1바이트 정렬
+          gl.pixelStorei(gl.PACK_ROW_LENGTH, width);          // 한 행 전체 픽셀 수
+          gl.pixelStorei(gl.PACK_SKIP_ROWS,  tileY);          // 행 오프셋
+          gl.pixelStorei(gl.PACK_SKIP_PIXELS,tileX);          // 열 오프셋
 
-      this.workQueue.push(chunk);
+          /* 타일 읽기 – 결과는 pixelData의 정확 위치로 직행 -------------- */
+          gl.readPixels(tileX, tileY, tileW, tileH, format, type, this.pixelData);
+
+          /* 상태 복원 (다른 코드에 영향 방지) ----------------------------- */
+          gl.pixelStorei(gl.PACK_ROW_LENGTH, 0);
+          gl.pixelStorei(gl.PACK_SKIP_ROWS,  0);
+          gl.pixelStorei(gl.PACK_SKIP_PIXELS,0);
+
+          const end = performance.now();
+          //console.log(`read tile (${tx},${ty}) size ${tileW}×${tileH}`);
+          //console.log("read!", end - start);
+        });
+      }
     }
 
-    let finish = () => {
-      gl.deleteTexture(historyTex); // 텍스처 삭제
-    };
-
-    this.workQueue.push(finish);
+    /* 마지막에 정리 작업 */
+    this.workQueue.push(() => {
+      gl.deleteTexture(texture);
+    });
   }
 
-  isEmpty() {
-    return this.workQueue.length == 0;
-  }
+  /* ---------- 퍼블릭 API ---------- */
+  isEmpty()        { return this.workQueue.length === 0; }
+  private front()  { return this.workQueue[0]; }
+  private pop()    { this.workQueue.shift(); }
 
-  front() {
-    return this.workQueue[0];
-  }
-
-  pop() {
-    this.workQueue.shift();
-  }
-
+  /** 큐의 모든 readPixels를 순차 실행 후 픽셀 버퍼 반환 */
   getPixelData() {
     while (!this.isEmpty()) {
-      let fn = this.front();
-      fn();
-      this.pop();
+      const job = this.front(); job(); this.pop();
     }
     return this.pixelData;
   }
 }
 
+
 // WebGL pixel format/type 헬퍼
 function getPixelFormatInfo(
   gl: WebGL2RenderingContext,
   format: number,
-  type: number
+  type: number,
 ) {
   let components = 4; // default: RGBA
   switch (format) {

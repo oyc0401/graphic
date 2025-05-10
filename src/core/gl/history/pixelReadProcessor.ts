@@ -44,6 +44,7 @@ export class PixelReadProcessor {
 
           const fn = pixelReader.front();
           fn();
+          
           pixelReader.pop();
         }
       } else {

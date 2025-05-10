@@ -10,11 +10,14 @@ import MenuIcon from "../assets/menu.svg?react";
 import NewIcon from "../assets/new.svg?react";
 import OpenIcon from "../assets/open.svg?react";
 import SaveIcon from "../assets/save.svg?react";
+import TranslateIcon from "../assets/translate.svg?react";
+
 import { useRef, useEffect } from "react";
 import "./color-box.css";
 import { makeAutoObservable } from "mobx";
 import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { colorState, HsvToCss, rgbToCss } from "../colorState";
+import { getLetter } from "../i18n/language";
 
 export const MainMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -48,14 +51,18 @@ export const MainMenuToggleButton = observer(() => {
       {menuState.showMenu && (
         <div id="main-menu" ref={menuRef}>
           <button id="new-button" onClick={resetImage}>
-            <NewIcon /> <p>새로 만들기</p>
+            <NewIcon /> <p>{getLetter("new")}</p>
           </button>
           <button id="open-button" onClick={openFile}>
-            <OpenIcon /> <p>열기</p>
+            <OpenIcon /> <p>{getLetter("open")}</p>
           </button>
           <button id="save-button" onClick={downloadImage}>
             <SaveIcon />
-            <p>저장</p>
+            <p>{getLetter("save")}</p>
+          </button>
+          <button id="language-button">
+            <TranslateIcon />
+            <p>Language</p>
           </button>
         </div>
       )}
@@ -148,7 +155,7 @@ export const ColorIndicatorButton = observer(() => {
           className="button-icon"
           style={{ background: colorHex }}
         />
-        <p>색</p>
+        <p>{getLetter("color")}</p>
       </button>
 
       <div
@@ -157,7 +164,7 @@ export const ColorIndicatorButton = observer(() => {
         ref={menuRef}
       >
         <div id={"color-title-box"}>
-          <p id={"color-title"}>색 선택</p>
+          <p id={"color-title"}>{getLetter("choose_color")}</p>
         </div>
 
         <div
@@ -340,7 +347,7 @@ export const MobileColorIndicatorButton = observer(() => {
         ref={menuRef}
       >
         <div id={"color-title-box"}>
-          <p id={"color-title"}>색 선택</p>
+          <p id={"color-title"}>{getLetter("choose_color")}</p>
         </div>
 
         <div

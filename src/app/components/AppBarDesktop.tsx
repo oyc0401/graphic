@@ -17,6 +17,7 @@ import ResizeIcon from "../assets/resize.svg?react";
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
+import { getLetter } from "../i18n/language";
 
 const hexColors = [
   "#000000",
@@ -126,7 +127,7 @@ const SelectionToolButton = observer(() => {
       onClick={() => toolManager.setSelectTool()}
     >
       <SelectionIcon width={32} height={32} />
-      <p>선택</p>
+      <p>{getLetter("select")}</p>
     </button>
   );
 });
@@ -142,7 +143,7 @@ const BrushToolButton = observer(() => {
       onClick={() => toolManager.setBrushTool()}
     >
       <BrushIcon width={32} height={32} />
-      <p>브러시</p>
+      <p>{getLetter("brush")}</p>
     </button>
   );
 });
@@ -158,7 +159,7 @@ const EraserToolButton = observer(() => {
       onClick={() => toolManager.setEraserTool()}
     >
       <EraserIcon width={32} height={32} />
-      <p>지우개</p>
+      <p>{getLetter("eraser")}</p>
     </button>
   );
 });
@@ -206,7 +207,7 @@ const BrushSizeSlider = observer(() => {
 
   return (
     <label className="brush-control">
-      <p className="label">크기</p>
+      <p className="label">{getLetter("size")}</p>
       <p className="value">{`${fixedNumber(paintState.getBrushSize())}px`}</p>
       <div className="slider-area">
         <input
@@ -228,7 +229,7 @@ const BrushSizeSlider = observer(() => {
 const BrushAlphaSlider = observer(() => {
   return (
     <label className="brush-control">
-      <p className="label">투명도</p>
+      <p className="label">{getLetter("opacity")}</p>
       <p className="value">{paintState.getBrushAlpha()}%</p>
       <div className="slider-area">
         <input

@@ -25,6 +25,7 @@ import { historyState, redo, undo } from "../history";
 import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef } from "react";
+import { getLetter } from "../i18n/language";
 
 const hexColors = [
   "#000000",
@@ -92,7 +93,7 @@ const ToolsToggleButton = observer(() => {
         onClick={toggleMenu}
         ref={buttonRef}
       >
-        <p className={`${menuState.showTools ? "selected" : ""}`}>도구</p>
+        <p className={`${menuState.showTools ? "selected" : ""}`}>{getLetter("tools")}</p>
       </button>
 
       {menuState.showTools && (
@@ -249,7 +250,7 @@ const BrushSizeSlider = observer(() => {
 
   return (
     <label className="brush-control">
-      <p className="label">크기</p>
+      <p className="label">{getLetter("size")}</p>
       <p className="value">{`${fixedNumber(paintState.getBrushSize())}px`}</p>
       <div className="slider-area">
         <input
@@ -271,7 +272,7 @@ const BrushSizeSlider = observer(() => {
 const BrushAlphaSlider = observer(() => {
   return (
     <label className="brush-control">
-      <p className="label">투명도</p>
+      <p className="label">{getLetter("opacity")}</p>
       <p className="value">{paintState.getBrushAlpha()}%</p>
       <div className="slider-area">
         <input
