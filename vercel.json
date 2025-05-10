@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/en",
+      "destination": "/locales/en/index.html",
+      "statusCode": 200
+    },
+    {
+      "source": "/ko",
+      "destination": "/locales/ko/index.html",
+      "statusCode": 200
+    }
+  ]
+}

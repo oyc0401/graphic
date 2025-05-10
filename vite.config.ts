@@ -27,8 +27,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
-        en: resolve(__dirname, "path/en/index.html"),
-        ko: resolve(__dirname, "path/ko/index.html"),
+        en: resolve(__dirname, "locales/en/index.html"),
+        ko: resolve(__dirname, "locales/ko/index.html"),
       },
     },
   },
