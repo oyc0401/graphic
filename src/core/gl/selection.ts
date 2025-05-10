@@ -1,3 +1,4 @@
+import { paintConfig } from "@/paint.config";
 import { mainThread } from "../worker/mainPool";
 import { getHistoryManager, HistoryItem } from "./history/history";
 import { PixelReader } from "./history/PixelReader";
@@ -100,7 +101,7 @@ function createSelectionManager(canvas, gl) {
         // 화면이 엄청 크면 걍 근사로
         selectionColor = texture(u_selection_source, local);    // 프리
       } else {
-        vec2 newLocal = local * size / 4096.0;
+        vec2 newLocal = local * size / ${paintConfig.maxSize}.0;
         selectionColor = texture(u_selection, newLocal);    // 프리
       }
       
@@ -174,8 +175,8 @@ function createSelectionManager(canvas, gl) {
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      4096,
-      4096,
+      paintConfig.maxSize,
+      paintConfig.maxSize,
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,

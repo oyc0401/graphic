@@ -8,6 +8,7 @@ import {
 import { to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils/math";
+import { paintConfig } from "@/paint.config";
 
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
@@ -165,7 +166,7 @@ export class SelectionTool {
       }
 
       const min = 1,
-        max = 4096;
+        max = paintConfig.maxSize;
       selection.setX(
         clamp(
           x,

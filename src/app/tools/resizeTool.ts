@@ -14,6 +14,7 @@ import {
 
 import { clamp } from "../utils/math";
 import { dispatch } from "../events/pointerEvents";
+import { paintConfig } from "@/paint.config";
 
 export class ResizeTool {
   private activeHandle: HandleType | null = null;
@@ -158,7 +159,7 @@ export class ResizeTool {
       }
 
       const min = 1,
-        max = 4096;
+        max = paintConfig.maxSize;
       selection.setX(
         clamp(
           x,

@@ -7,6 +7,7 @@ import { createShader, createProgram } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 import { getManager } from "./utils/cachedManager";
 import { Rect } from "./utils/dirtyRect";
+import { paintConfig } from "@/paint.config";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>
@@ -431,7 +432,7 @@ function makeRenderingManager(canvas, gl) {
       } 
 
       // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 8192텍스쳐 기준으로 잡으면
-      vec2 newLocal = local * u_selectionSize / 4096.0;
+      vec2 newLocal = local * u_selectionSize / ${paintConfig.maxSize}.0;
       vec4 imageColor = texture(u_selection, newLocal);
       if (isOut){
         float alpha = 0.25;
