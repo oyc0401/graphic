@@ -23,13 +23,5 @@ export default defineConfig({
       "@": resolve(__dirname, "src"),
     },
   },
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, "index.html"),
-        en: resolve(__dirname, "locales/en/index.html"),
-        ko: resolve(__dirname, "locales/ko/index.html"),
-      },
-    },
-  },
+
 });
