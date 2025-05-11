@@ -1,6 +1,12 @@
 {
   "rewrites": [
     { "source": "/en", "destination": "/locales/en/index.html" },
-    { "source": "/ko", "destination": "/locales/ko/index.html" }
+    { "source": "/ko", "destination": "/locales/ko/index.html" },
+    { "source": "/ja", "destination": "/locales/ja/index.html" },
+    { "source": "/es", "destination": "/locales/es/index.html" },
+    { "source": "/fr", "destination": "/locales/fr/index.html" },
+    { "source": "/de", "destination": "/locales/de/index.html" },
+    { "source": "/zh", "destination": "/locales/zh/index.html" },
+    { "source": "/ru", "destination": "/locales/ru/index.html" }
   ]
 }

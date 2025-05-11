@@ -100,28 +100,31 @@ export const LanguageMenuToggleButton = observer(() => {
 
       {open && (
         <div className="sub-menu" ref={menuRef}>
-          <button
-            onClick={() => {
-              if (process.env.NODE_ENV === "production") {
-                window.location.href = "/en";
-              } else {
-                window.location.href = "/locales/en/index.html";
-              }
-            }}
-          >
-            <p>English</p>
-          </button>
-          <button
-            onClick={() => {
-              if (process.env.NODE_ENV === "production") {
-                window.location.href = "/ko";
-              } else {
-                window.location.href = "/locales/ko/index.html";
-              }
-            }}
-          >
-            <p>한국어</p>
-          </button>
+          {["en", "ko", "ja", "es", "fr", "de", "zh", "ru"].map((lang) => (
+            <button
+              key={lang}
+              onClick={() => {
+                const path =
+                  process.env.NODE_ENV === "production"
+                    ? `/${lang}`
+                    : `/locales/${lang}/index.html`;
+                window.location.href = path;
+              }}
+            >
+              <p>
+                {{
+                  en: "English",
+                  ko: "한국어",
+                  ja: "日本語",
+                  es: "Español",
+                  fr: "Français",
+                  de: "Deutsch",
+                  zh: "中文",
+                  ru: "Русский"
+                }[lang]}
+              </p>
+            </button>
+          ))}
         </div>
       )}
     </>

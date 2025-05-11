@@ -14,8 +14,7 @@ const en_pack = {
   save: "Save",
   undo: "Undo",
   redo: "Redo",
-  you_can_translation:
-    "Would you like to switch to the English version of the site?",
+  you_can_translation: "Would you like to switch to the English version of the site?",
 };
 
 const ko_pack: typeof en_pack = {
@@ -37,9 +36,129 @@ const ko_pack: typeof en_pack = {
   you_can_translation: "한국어 페이지로 이동하시겠습니까?",
 };
 
+const ja_pack: typeof en_pack = {
+  current_language: "日本語",
+  paint: "ペイント",
+  tools: "ツール",
+  select: "選択",
+  brush: "ブラシ",
+  eraser: "消しゴム",
+  size: "サイズ",
+  opacity: "透明度",
+  color: "色",
+  choose_color: "色を選択",
+  new: "新規作成",
+  open: "開く",
+  save: "保存",
+  undo: "元に戻す",
+  redo: "やり直し",
+  you_can_translation: "日本語のページに切り替えますか？",
+};
+
+const es_pack: typeof en_pack = {
+  current_language: "Español",
+  paint: "pintar",
+  tools: "Herramientas",
+  select: "Seleccionar",
+  brush: "Pincel",
+  eraser: "Borrador",
+  size: "Tamaño",
+  opacity: "Opacidad",
+  color: "Color",
+  choose_color: "Elegir color",
+  new: "Nuevo",
+  open: "Abrir",
+  save: "Guardar",
+  undo: "Deshacer",
+  redo: "Rehacer",
+  you_can_translation: "¿Quieres cambiar a la versión en español del sitio?",
+};
+
+const fr_pack: typeof en_pack = {
+  current_language: "Français",
+  paint: "peindre",
+  tools: "Outils",
+  select: "Sélectionner",
+  brush: "Pinceau",
+  eraser: "Gomme",
+  size: "Taille",
+  opacity: "Opacité",
+  color: "Couleur",
+  choose_color: "Choisir la couleur",
+  new: "Nouveau",
+  open: "Ouvrir",
+  save: "Enregistrer",
+  undo: "Annuler",
+  redo: "Rétablir",
+  you_can_translation: "Souhaitez-vous passer à la version française du site ?",
+};
+
+const de_pack: typeof en_pack = {
+  current_language: "Deutsch",
+  paint: "malen",
+  tools: "Werkzeuge",
+  select: "Auswählen",
+  brush: "Pinsel",
+  eraser: "Radiergummi",
+  size: "Größe",
+  opacity: "Deckkraft",
+  color: "Farbe",
+  choose_color: "Farbe wählen",
+  new: "Neu",
+  open: "Öffnen",
+  save: "Speichern",
+  undo: "Rückgängig",
+  redo: "Wiederholen",
+  you_can_translation: "Möchten Sie zur deutschen Version der Website wechseln?",
+};
+
+const zh_pack: typeof en_pack = {
+  current_language: "中文",
+  paint: "绘图",
+  tools: "工具",
+  select: "选择",
+  brush: "画笔",
+  eraser: "橡皮擦",
+  size: "大小",
+  opacity: "透明度",
+  color: "颜色",
+  choose_color: "选择颜色",
+  new: "新建",
+  open: "打开",
+  save: "保存",
+  undo: "撤销",
+  redo: "重做",
+  you_can_translation: "您想切换到中文页面吗？",
+};
+
+const ru_pack: typeof en_pack = {
+  current_language: "Русский",
+  paint: "рисовать",
+  tools: "Инструменты",
+  select: "Выбрать",
+  brush: "Кисть",
+  eraser: "Ластик",
+  size: "Размер",
+  opacity: "Прозрачность",
+  color: "Цвет",
+  choose_color: "Выбрать цвет",
+  new: "Новый",
+  open: "Открыть",
+  save: "Сохранить",
+  undo: "Отменить",
+  redo: "Повторить",
+  you_can_translation: "Хотите перейти на русскую версию сайта?",
+};
+
 export const languagePack = {
   en: en_pack,
   ko: ko_pack,
+  ja: ja_pack,
+  es: es_pack,
+  fr: fr_pack,
+  de: de_pack,
+  zh: zh_pack,
+  ru: ru_pack,
 };
 
 export type Letter = keyof typeof en_pack;

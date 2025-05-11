@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>Paint Online</title>
+    <meta
+      name="description"
+      content="A simple and intuitive web-based drawing application. Offers various drawing tools and selection features."
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+    <link href="/ui.css" rel="stylesheet" />
+    <link href="/style.css" rel="stylesheet" />
+  </head>
+  <body class="body">
+    <!-- React.js -->
+    <div id="appbar-root"></div>
+    <!-- React.js -->
+
+    <!-- Vanila js -->
+    <div id="container">
+      <div id="layer-area">
+        <canvas id="canvas"></canvas>
+      </div>
+      <div id="selections">
+        <div id="selection-area"></div>
+        <div id="handle-rt" class="handle">
+          <div class="handleGrab"></div>
+        </div>
+        <div id="handle-lb" class="handle">
+          <div class="handleGrab"></div>
+        </div>
+        <div id="handle-lt" class="handle">
+          <div class="handleGrab"></div>
+        </div>
+        <div id="handle-rb" class="handle">
+          <div class="handleGrab"></div>
+        </div>
+        <div id="selection-size"><p id="selection-text"></p></div>
+      </div>
+    </div>
+
+    <div id="nav-root"></div>
+
+    <div id="zoom-area"></div>
+    <div id="brush-cursor"></div>
+    <div id="cursor-position" style="visibility: hidden">
+      <div id="cursor-icon"></div>
+      <p id="cursor-position-text"></p>
+    </div>
+    <!-- Vanila js -->
+
+    <script>
+      window.lang = "fr";
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+      //eruda.init();
+    </script>
+  </body>
+</html>
