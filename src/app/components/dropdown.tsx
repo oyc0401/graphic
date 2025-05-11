@@ -114,9 +114,9 @@ export const LanguageMenuToggleButton = observer(() => {
           <button
             onClick={() => {
               if (process.env.NODE_ENV === "production") {
-                window.location.href = "/kr";
+                window.location.href = "/ko";
               } else {
-                window.location.href = "/locales/kr/index.html";
+                window.location.href = "/locales/ko/index.html";
               }
             }}
           >
