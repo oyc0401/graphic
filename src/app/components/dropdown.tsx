@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { paintState } from "../paintState";
 import { menuState } from "../ui/menuState";
 import { hexToRgb, rgbToHex } from "../utils/color";
@@ -15,7 +15,11 @@ import TranslateIcon from "../assets/translate.svg?react";
 import { useRef, useEffect } from "react";
 import "./color-box.css";
 import { makeAutoObservable } from "mobx";
-import { useClickOutside, useDropdownPosition } from "./menu-hooks";
+import {
+  useClickOutside,
+  useDropdownPosition,
+  useDropdownPosition2,
+} from "./menu-hooks";
 import { colorState, HsvToCss, rgbToCss } from "../colorState";
 import { getLetter } from "../i18n/language";
 
@@ -60,9 +64,63 @@ export const MainMenuToggleButton = observer(() => {
             <SaveIcon />
             <p>{getLetter("save")}</p>
           </button>
-          <button id="language-button">
-            <TranslateIcon />
-            <p>Language</p>
+          <LanguageMenuToggleButton />
+        </div>
+      )}
+    </>
+  );
+});
+
+export const LanguageMenuToggleButton = observer(() => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const [open, setOpen] = useState(false);
+  useClickOutside([menuRef, buttonRef], () => {
+    if (open) {
+      setOpen(false);
+    }
+  });
+
+  useDropdownPosition2(buttonRef, menuRef, open, {
+    padding: 0,
+    direction: "right",
+  });
+
+  const toggleMenu = () => {
+    setOpen(!open);
+  };
+
+  return (
+    <>
+      <button id="language-button" onClick={toggleMenu} ref={buttonRef}>
+        <TranslateIcon />
+        <p>Language</p>
+      </button>
+
+      {open && (
+        <div className="sub-menu" ref={menuRef}>
+          <button
+            onClick={() => {
+              if (process.env.NODE_ENV === "production") {
+                window.location.href = "/en";
+              } else {
+                window.location.href = "/locales/en/index.html";
+              }
+            }}
+          >
+            <p>English</p>
+          </button>
+          <button
+            onClick={() => {
+              if (process.env.NODE_ENV === "production") {
+                window.location.href = "/kr";
+              } else {
+                window.location.href = "/locales/kr/index.html";
+              }
+            }}
+          >
+            <p>한국어</p>
           </button>
         </div>
       )}
