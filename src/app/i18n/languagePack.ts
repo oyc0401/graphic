@@ -1,5 +1,8 @@
 const en_pack = {
   current_language: "English",
+  appTitle: "Paint Online",
+  appDesription:
+    "A simple and intuitive web-based drawing application. Offers various drawing tools and selection features.",
   paint: "paint",
   tools: "Tools",
   select: "Select",
@@ -14,11 +17,15 @@ const en_pack = {
   save: "Save",
   undo: "Undo",
   redo: "Redo",
-  you_can_translation: "Would you like to switch to the English version of the site?",
+  you_can_translation:
+    "Would you like to switch to the English version of the site?",
 };
 
 const ko_pack: typeof en_pack = {
   current_language: "한국어",
+  appTitle: "그림판",
+  appDesription:
+    "간단하고 직관적인 웹 기반 그림판 애플리케이션입니다. 다양한 드로잉 도구와 선택 기능을 제공합니다.",
   paint: "그림판",
   tools: "도구",
   select: "선택",
@@ -38,6 +45,9 @@ const ko_pack: typeof en_pack = {
 
 const ja_pack: typeof en_pack = {
   current_language: "日本語",
+  appTitle: "ペイント",
+  appDesription:
+    "シンプルで直感的なウェブベースのペイントアプリケーションです。多彩な描画ツールと選択機能を提供します。",
   paint: "ペイント",
   tools: "ツール",
   select: "選択",
@@ -57,6 +67,9 @@ const ja_pack: typeof en_pack = {
 
 const es_pack: typeof en_pack = {
   current_language: "Español",
+  appTitle: "Paint Online",
+  appDesription:
+    "Una aplicación de dibujo web sencilla e intuitiva. Ofrece varias herramientas de dibujo y funciones de selección.",
   paint: "pintar",
   tools: "Herramientas",
   select: "Seleccionar",
@@ -76,6 +89,9 @@ const es_pack: typeof en_pack = {
 
 const fr_pack: typeof en_pack = {
   current_language: "Français",
+  appTitle: "Paint Online",
+  appDesription:
+    "Une application de dessin web simple et intuitive. Elle offre divers outils de dessin et fonctions de sélection.",
   paint: "peindre",
   tools: "Outils",
   select: "Sélectionner",
@@ -95,6 +111,9 @@ const fr_pack: typeof en_pack = {
 
 const de_pack: typeof en_pack = {
   current_language: "Deutsch",
+  appTitle: "Paint Online",
+  appDesription:
+    "Eine einfache und intuitive webbasierte Paint-Anwendung. Bietet verschiedene Zeichenwerkzeuge und Auswahlfunktionen.",
   paint: "malen",
   tools: "Werkzeuge",
   select: "Auswählen",
@@ -109,11 +128,14 @@ const de_pack: typeof en_pack = {
   save: "Speichern",
   undo: "Rückgängig",
   redo: "Wiederholen",
-  you_can_translation: "Möchten Sie zur deutschen Version der Website wechseln?",
+  you_can_translation:
+    "Möchten Sie zur deutschen Version der Website wechseln?",
 };
 
 const zh_pack: typeof en_pack = {
   current_language: "中文",
+  appTitle: "画图",
+  appDesription: "一款简单直观的网页绘图应用。提供多种绘图工具和选择功能。",
   paint: "绘图",
   tools: "工具",
   select: "选择",
@@ -133,6 +155,9 @@ const zh_pack: typeof en_pack = {
 
 const ru_pack: typeof en_pack = {
   current_language: "Русский",
+  appTitle: "Paint Online",
+  appDesription:
+    "Простое и интуитивно понятное веб-приложение Paint. Предлагает различные инструменты рисования и функции выделения.",
   paint: "рисовать",
   tools: "Инструменты",
   select: "Выбрать",
