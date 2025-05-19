@@ -43,8 +43,8 @@ export class PixelReadProcessor {
           if (pixelReader.isEmpty()) break;
 
           const fn = pixelReader.front();
-          fn();
-          
+          await fn();
+
           pixelReader.pop();
         }
       } else {

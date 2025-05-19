@@ -50,7 +50,6 @@ export const TEXTURE_UNIT = {
 // 각각 레이어 원본은 DRAM에 들고있다가 타겟 레이어가 변경되면
 // 그때 버퍼에 올리기로 하자.
 
-
 // 일반 브러시는 pointerup하면 소스 텍스쳐에 반영 전에 히스토리 스택에 소스 텍스쳐를 업로드 한다.
 // 픽셀유동화는 pointerup 하면 SOURCE_DISPLACEMENT에 반영 전에 히스토리 스택에 SOURCE_DISPLACEMENT를 업로드 한다.
 
@@ -100,7 +99,7 @@ export let paintOptions = {
 
 export function getSourceTextureManager(canvas, gl) {
   const manager = getManager(gl, "sourceTexture", () =>
-    makeSourceTextureManager(canvas, gl),
+    makeSourceTextureManager(canvas, gl)
   );
   return manager;
 }
@@ -120,7 +119,7 @@ function makeSourceTextureManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null,
+    null
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -135,7 +134,7 @@ function makeSourceTextureManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     sourceTexture,
-    0,
+    0
   );
 
   function applyHistory(layerId, pixelReader, rect) {
@@ -153,7 +152,7 @@ function makeSourceTextureManager(canvas, gl) {
       rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      pixelReader.getPixelData(), // 데이터
+      pixelReader.getPixelData() // 데이터
     );
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -170,7 +169,7 @@ function makeSourceTextureManager(canvas, gl) {
       rect.ex + 1,
       rect.ey + 1,
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
+      gl.NEAREST // 필터링 옵션
     );
   }
 
@@ -189,7 +188,7 @@ function makeSourceTextureManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     ); // 빈 텍스처 생성
 
     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
@@ -201,7 +200,7 @@ function makeSourceTextureManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       historyTex,
-      0,
+      0
     );
 
     // blit 좌표계는 0,0,1,1이 1칸임.
@@ -215,7 +214,7 @@ function makeSourceTextureManager(canvas, gl) {
       pathDirty.width,
       pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
+      gl.NEAREST // 필터링 옵션
     );
 
     return historyTex;
@@ -230,7 +229,7 @@ function makeSourceTextureManager(canvas, gl) {
       height,
       beforeTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE,
+      gl.UNSIGNED_BYTE
     );
     pushReadPixelQueue(gl, beforePixelReader);
 
@@ -255,7 +254,7 @@ function makeSourceTextureManager(canvas, gl) {
       height,
       beforeTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE,
+      gl.UNSIGNED_BYTE
     );
     pushReadPixelQueue(gl, beforePixelReader);
 
@@ -282,7 +281,7 @@ function makeSourceTextureManager(canvas, gl) {
       renderRect.ex + 1,
       renderRect.ey + 1,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
+      gl.NEAREST
     );
 
     const afterTex = makeDirtyTexture(renderRect);
@@ -292,9 +291,9 @@ function makeSourceTextureManager(canvas, gl) {
       height,
       afterTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE,
+      gl.UNSIGNED_BYTE
     );
-    pushReadPixelQueue(gl, afterPixelReader);
+    // pushReadPixelQueue(gl, afterPixelReader);
 
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -326,7 +325,7 @@ function makeSourceTextureManager(canvas, gl) {
       paintOptions.width,
       paintOptions.height,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
+      gl.NEAREST
     );
   }
 
@@ -343,7 +342,7 @@ function makeSourceTextureManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
   }
 

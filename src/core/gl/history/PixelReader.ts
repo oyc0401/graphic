@@ -1,116 +1,151 @@
-/* ---------- 상수 ---------- */
-const TILE_SIZE = 512 * 2; // 한 타일의 폭·높이(px)
-const PACK_ALIGNMENT = 1; // 행 정렬을 1바이트로 맞춰 안전 확보
+const CHUNK_BYTES = 8_000_00000; // 한 번에 읽을 최대 바이트 수
 
-/* ---------- PixelReader ---------- */
 export class PixelReader {
-  pixelData: Uint8Array | Uint16Array | Float32Array;
-  private static fbo: WebGLFramebuffer;
-  private workQueue: (() => void)[] = [];
+  pixelData;
+  gl: WebGL2RenderingContext;
+  width: number;
+  height: number;
+  texture: WebGLTexture;
+  static fbo: WebGLFramebuffer;
+  static pbo: WebGLBuffer;
+  workQueue: Function[] = [];
+  format; // RGBA, RG
+  type; // UNSIGNED_BYTE, HALF_FLOAT
 
-  constructor(
-    private gl: WebGL2RenderingContext,
-    private width: number,
-    private height: number,
-    private texture: WebGLTexture,
-    private format: number, // gl.RGBA 등
-    private type: number, // gl.UNSIGNED_BYTE 등
-  ) {
-    /* 1) 대상 버퍼 준비 ---------------------------------------------------- */
-    const { components, TypedArray } = getPixelFormatInfo(gl, format, type);
+  constructor(gl, width, height, texture, format, type) {
+    this.gl = gl;
+    this.width = width;
+    this.height = height;
+    this.texture = texture;
+
+    this.format = format;
+    this.type = type;
+
+    const info = getPixelFormatInfo(gl, this.format, this.type);
+    const { components, bytesPerComponent, TypedArray } = info;
+
     this.pixelData = new TypedArray(width * height * components);
 
-    /* 2) FBO(재사용) 준비 -------------------------------------------------- */
     if (!PixelReader.fbo) {
-      PixelReader.fbo = gl.createFramebuffer()!;
+      PixelReader.fbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
     }
-
-    /* 3) 타일 단위 작업 생성 ---------------------------------------------- */
-    this.enqueueTiles();
+    if (!PixelReader.pbo) {
+      PixelReader.pbo = gl.createBuffer();
+      //gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
+    }
+    this.workQueue = [];
+    this.enqueue();
   }
 
-  /* 타일별 readPixels 작업을 큐에 적재 */
-  private enqueueTiles() {
-    const { gl, width, height, texture, format, type } = this;
+  private enqueue() {
+    const gl = this.gl;
+    const width = this.width;
+    const height = this.height;
+    const historyTex = this.texture;
     const fbo = PixelReader.fbo;
+    const pbo = PixelReader.pbo;
 
-    /* 가로·세로 타일 개수(끝 타일은 자투리) */
-    const tilesX = Math.ceil(width / TILE_SIZE);
-    const tilesY = Math.ceil(height / TILE_SIZE);
+    const info = getPixelFormatInfo(gl, this.format, this.type);
+    const { components, bytesPerComponent, bytesPerPixel, TypedArray } = info;
 
-    for (let ty = 0; ty < tilesY; ty++) {
-      for (let tx = 0; tx < tilesX; tx++) {
-        /* 타일 위치·크기 계산 --------------------------------------------- */
-        const tileX = tx * TILE_SIZE;
-        const tileY = ty * TILE_SIZE;
-        const tileW = Math.min(TILE_SIZE, width - tileX);
-        const tileH = Math.min(TILE_SIZE, height - tileY);
+    // 한 줄씩 읽어서 처리
+    const rowsPerChunk = Math.floor(CHUNK_BYTES / (width * bytesPerPixel));
+    // => 1바이트 RGBA(4 comp): chunkBytes/4픽셀
+    //    2바이트 RG (2 comp): chunkBytes/4픽셀
+    //    2바이트 RGBA (4 comp): chunkBytes/8픽셀
 
-        /* 실제 readPixels 호출 람다 -------------------------------------- */
-        this.workQueue.push(() => {
-          const start = performance.now();
+    for (let rowOffset = 0; rowOffset < height; rowOffset += rowsPerChunk) {
+      let chunk = async () => {
+        const remainingRows = height - rowOffset;
+        const rowsToRead = Math.min(rowsPerChunk, remainingRows);
 
-          /* FBO 바인딩 후 대상 텍스처 연결 */
-          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-          gl.framebufferTexture2D(
-            gl.READ_FRAMEBUFFER,
-            gl.COLOR_ATTACHMENT0,
-            gl.TEXTURE_2D,
-            texture,
-            0,
-          );
+        const subArray = new TypedArray(
+          this.pixelData.buffer,
+          rowOffset * width * components * bytesPerComponent, // byteOffset
+          rowsToRead * width * components // elementCount
+        );
 
-          /* --- PACK 스토어 설정 (타일 → 전체 버퍼 정확 위치) ------------- */
-          gl.pixelStorei(gl.PACK_ALIGNMENT, PACK_ALIGNMENT); // 1바이트 정렬
-          gl.pixelStorei(gl.PACK_ROW_LENGTH, width); // 한 행 전체 픽셀 수
-          gl.pixelStorei(gl.PACK_SKIP_ROWS, tileY); // 행 오프셋
-          gl.pixelStorei(gl.PACK_SKIP_PIXELS, tileX); // 열 오프셋
+        // // 한 줄씩 읽기
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        // gl.framebufferTexture2D(
+        //   gl.READ_FRAMEBUFFER,
+        //   gl.COLOR_ATTACHMENT0,
+        //   gl.TEXTURE_2D,
+        //   historyTex,
+        //   0
+        // );
+        // gl.readPixels(
+        //   0,
+        //   rowOffset,
+        //   width,
+        //   rowsToRead,
+        //   this.format, // gl.RGBA,
+        //   this.type, //gl.UNSIGNED_BYTE,
+        //   subArray
+        // );
 
-          /* 타일 읽기 – 결과는 pixelData의 정확 위치로 직행 -------------- */
-          gl.readPixels(
-            tileX,
-            tileY,
-            tileW,
-            tileH,
-            format,
-            type,
-            this.pixelData,
-          );
+        // 1. PBO 할당 & 바인딩
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+        gl.bufferData(
+          gl.PIXEL_PACK_BUFFER,
+          rowsToRead * width * components,
+          gl.STREAM_READ
+        );
 
-          /* 상태 복원 (다른 코드에 영향 방지) ----------------------------- */
-          gl.pixelStorei(gl.PACK_ROW_LENGTH, 0);
-          gl.pixelStorei(gl.PACK_SKIP_ROWS, 0);
-          gl.pixelStorei(gl.PACK_SKIP_PIXELS, 0);
+        // 2. FBO에 텍스처 부착
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(
+          gl.READ_FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          historyTex,
+          0
+        );
 
-          const end = performance.now();
-          //console.log(`read tile (${tx},${ty}) size ${tileW}×${tileH}`);
-          //console.log("read!", end - start);
-        });
-      }
+        // 3. GPU-Side readPixels → PBO (null = 현재 바인딩된 PBO)
+        gl.readPixels(0, 0, width, height, this.format, this.type, 0);
+
+        // 4. GPU flush & fence
+        await waitForSync(gl);
+
+        // 5. CPU-Side getBufferSubData → TypedArray
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelData);
+
+        // 6. 정리
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.deleteTexture(historyTex); // 요청대로 텍스처 즉시 파기
+
+        console.log("read!");
+      };
+
+      this.workQueue.push(chunk);
     }
 
-    /* 마지막에 정리 작업 */
-    this.workQueue.push(() => {
-      gl.deleteTexture(texture);
-    });
+    let finish = () => {
+      gl.deleteTexture(historyTex); // 텍스처 삭제
+    };
+
+    this.workQueue.push(finish);
   }
 
-  /* ---------- 퍼블릭 API ---------- */
   isEmpty() {
-    return this.workQueue.length === 0;
+    return this.workQueue.length == 0;
   }
+
   front() {
     return this.workQueue[0];
   }
+
   pop() {
     this.workQueue.shift();
   }
 
-  /** 큐의 모든 readPixels를 순차 실행 후 픽셀 버퍼 반환 */
   getPixelData() {
     while (!this.isEmpty()) {
-      const job = this.front();
-      job();
+      let fn = this.front();
+      fn();
       this.pop();
     }
     return this.pixelData;
@@ -121,7 +156,7 @@ export class PixelReader {
 function getPixelFormatInfo(
   gl: WebGL2RenderingContext,
   format: number,
-  type: number,
+  type: number
 ) {
   let components = 4; // default: RGBA
   switch (format) {
@@ -170,4 +205,19 @@ function getPixelFormatInfo(
     bytesPerPixel,
     TypedArray,
   };
+}
+async function waitForSync(gl) {
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+  gl.flush();
+
+  while (true) {
+    const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
+    // console.log("while:", status);
+    if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
+      break;
+    }
+    // GPU가 아직 안 끝났으면, CPU는 양보
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  gl.deleteSync(sync);
 }
