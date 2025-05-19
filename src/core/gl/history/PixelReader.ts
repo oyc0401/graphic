@@ -67,33 +67,6 @@ export class PixelReader {
         );
 
         // // 한 줄씩 읽기
-        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-        // gl.framebufferTexture2D(
-        //   gl.READ_FRAMEBUFFER,
-        //   gl.COLOR_ATTACHMENT0,
-        //   gl.TEXTURE_2D,
-        //   historyTex,
-        //   0
-        // );
-        // gl.readPixels(
-        //   0,
-        //   rowOffset,
-        //   width,
-        //   rowsToRead,
-        //   this.format, // gl.RGBA,
-        //   this.type, //gl.UNSIGNED_BYTE,
-        //   subArray
-        // );
-
-        // 1. PBO 할당 & 바인딩
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-        gl.bufferData(
-          gl.PIXEL_PACK_BUFFER,
-          rowsToRead * width * components,
-          gl.STREAM_READ
-        );
-
-        // 2. FBO에 텍스처 부착
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(
           gl.READ_FRAMEBUFFER,
@@ -102,15 +75,42 @@ export class PixelReader {
           historyTex,
           0
         );
+        gl.readPixels(
+          0,
+          rowOffset,
+          width,
+          rowsToRead,
+          this.format, // gl.RGBA,
+          this.type, //gl.UNSIGNED_BYTE,
+          subArray
+        );
 
-        // 3. GPU-Side readPixels → PBO (null = 현재 바인딩된 PBO)
-        gl.readPixels(0, 0, width, height, this.format, this.type, 0);
+        // // 1. PBO 할당 & 바인딩
+        // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
+        // gl.bufferData(
+        //   gl.PIXEL_PACK_BUFFER,
+        //   rowsToRead * width * components,
+        //   gl.STREAM_READ
+        // );
+
+        // // 2. FBO에 텍스처 부착
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+        // gl.framebufferTexture2D(
+        //   gl.READ_FRAMEBUFFER,
+        //   gl.COLOR_ATTACHMENT0,
+        //   gl.TEXTURE_2D,
+        //   historyTex,
+        //   0
+        // );
+
+        // // 3. GPU-Side readPixels → PBO (null = 현재 바인딩된 PBO)
+        // gl.readPixels(0, 0, width, height, this.format, this.type, 0);
 
         // 4. GPU flush & fence
-        await waitForSync(gl);
+        //await waitForSync(gl);
 
         // 5. CPU-Side getBufferSubData → TypedArray
-        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelData);
+        //  gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelData);
 
         // 6. 정리
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);

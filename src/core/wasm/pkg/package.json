@@ -1,0 +1,15 @@
+{
+  "name": "wasm-tasks",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "wasm_tasks_bg.wasm",
+    "wasm_tasks.js",
+    "wasm_tasks.d.ts"
+  ],
+  "main": "wasm_tasks.js",
+  "types": "wasm_tasks.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

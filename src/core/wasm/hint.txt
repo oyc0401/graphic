@@ -1,0 +1,8 @@
+export PATH="$HOME/.cargo/bin:$PATH"        
+
+wasm-pack build --target web --out-dir ./pkg
+
+
+
+rm -rf target
+rm Cargo.lock

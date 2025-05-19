@@ -128,3 +128,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+
+# Rust build output (inside src/core/wasm)
+src/core/wasm/target/
+src/core/wasm/Cargo.lock  

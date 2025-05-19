@@ -15,6 +15,7 @@ import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../gl/history/history";
 import { mainThread } from "./mainPool";
 import { Callink } from "callink";
+import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 
 interface Pointer {
   x: number;
@@ -44,13 +45,16 @@ export class PaintService {
     this.gl = gl;
     paintOptions.toolId = "brush";
 
-    this.init();
+    this.initialize();
   }
-  async init() {
+  async initialize() {
     await this.installTools();
 
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();
+
+    await init(); // .wasm 로딩 및 초기화
+    do_task(4000 * 4000 * 4); // 실행
 
     console.log("Making Layer Complete!");
   }
@@ -185,7 +189,7 @@ export class PaintService {
     await mainThread.download(
       Callink.transfer(pixels, [pixels.buffer]),
       width,
-      height,
+      height
     );
   }
 

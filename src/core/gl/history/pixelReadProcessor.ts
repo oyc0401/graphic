@@ -39,7 +39,7 @@ export class PixelReadProcessor {
         const pixelReader = this.readPixelStack.pop();
 
         while (!pixelReader.isEmpty()) {
-          await waitForSync(this.gl);
+          //await waitForSync(this.gl);
           if (pixelReader.isEmpty()) break;
 
           const fn = pixelReader.front();
