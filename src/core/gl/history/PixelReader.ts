@@ -11,6 +11,7 @@ export class PixelReader {
   workQueue: Function[] = [];
   format; // RGBA, RG
   type; // UNSIGNED_BYTE, HALF_FLOAT
+  complete: boolean;
 
   constructor(gl, width, height, texture, format, type) {
     this.gl = gl;
@@ -20,6 +21,7 @@ export class PixelReader {
 
     this.format = format;
     this.type = type;
+    this.complete = false;
 
     const info = getPixelFormatInfo(gl, this.format, this.type);
     const { components, bytesPerComponent, TypedArray } = info;
@@ -125,6 +127,7 @@ export class PixelReader {
 
     let finish = () => {
       gl.deleteTexture(historyTex); // 텍스처 삭제
+      this.complete = true;
     };
 
     this.workQueue.push(finish);
@@ -143,7 +146,8 @@ export class PixelReader {
   }
 
   getPixelData() {
-    while (!this.isEmpty()) {
+    // 큐에 있는 걸 하나 수행
+    while (!this.complete) {
       let fn = this.front();
       fn();
       this.pop();

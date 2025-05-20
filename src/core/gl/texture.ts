@@ -219,6 +219,7 @@ function makeSourceTextureManager(canvas, gl) {
 
     return historyTex;
   }
+
   function getCurrentSnapshot(x, y, width, height) {
     const renderRect = DirtyRect.fromWidth(x, y, width, height);
 
@@ -257,6 +258,14 @@ function makeSourceTextureManager(canvas, gl) {
       gl.UNSIGNED_BYTE
     );
     pushReadPixelQueue(gl, beforePixelReader);
+
+    // 이전 큐에 쌓인 픽셀을 모두 읽어온 다음에 픽셀을 복사해야함.
+    // 그러면 리드픽셀프로세서를 큐로 먼들고.
+    // 큐에는 그냥 리드픽셀만 하는게 아니라 배열 복사도 이루어질 수 있게 해야함.
+    // 만약에 큐 작업이 시작되기 전에 그 픽셀이 필요하다고 해도. 강제로 작업을 완료시킬 수 없고.
+    // 그 픽셀이 필요하다는 명령도 큐에 넣어서 이전 작업이 모두 완료된 이후에 작업이 실행될 수 있게 해야한다.
+    // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
+    // getDirtyUnit8Array()
 
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
