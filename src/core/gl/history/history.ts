@@ -13,7 +13,7 @@ export interface HistoryItem {
   rect?: DirtyRect;
   pixelReader?: PixelReader;
   skipHistory: boolean;
-  applyHistory(HistoryItem): HistoryItem;
+  applyHistory(HistoryItem): Promise<HistoryItem>;
   showSelection?: boolean;
   selectionRect?: Rect;
 }

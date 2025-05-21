@@ -15,7 +15,7 @@ import { getBufferManager, getFullQuadShader } from "./vertexShader";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>
-    createSelectionManager(canvas, gl),
+    createSelectionManager(canvas, gl)
   );
   return manager;
 }
@@ -120,26 +120,26 @@ function createSelectionManager(canvas, gl) {
   let selectionShader = createShader(
     gl,
     gl.FRAGMENT_SHADER,
-    selectionShaderSource,
+    selectionShaderSource
   );
   let selectionProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    selectionShader,
+    selectionShader
   );
   gl.useProgram(selectionProgram);
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection_source"),
-    TEXTURE_UNIT.SOURCE_SELECTION,
+    TEXTURE_UNIT.SOURCE_SELECTION
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.RENDERED_SELECTION,
+    TEXTURE_UNIT.RENDERED_SELECTION
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE,
+    TEXTURE_UNIT.SOURCE
   );
 
   const bufferManager = getBufferManager(canvas, gl);
@@ -152,7 +152,7 @@ function createSelectionManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     selectionTex,
-    0,
+    0
   );
 
   const renderedSelectionFBO = gl.createFramebuffer();
@@ -162,7 +162,7 @@ function createSelectionManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     renderedSelectionTex,
-    0,
+    0
   );
 
   function openTexture() {
@@ -180,7 +180,7 @@ function createSelectionManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
   }
 
@@ -197,7 +197,7 @@ function createSelectionManager(canvas, gl) {
       0, // border
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      null,
+      null
     );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.RENDERED_SELECTION);
@@ -211,7 +211,7 @@ function createSelectionManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
   }
 
@@ -241,7 +241,7 @@ function createSelectionManager(canvas, gl) {
       selectionPos.width,
       selectionPos.height, // 목표 영역 (크기 조정됨)
       gl.COLOR_BUFFER_BIT,
-      paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST,
+      paintOptions.selectionAntialias ? gl.LINEAR : gl.NEAREST
     );
   }
 
@@ -260,7 +260,7 @@ function createSelectionManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     ); // 빈 텍스처 생성
 
     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
@@ -272,7 +272,7 @@ function createSelectionManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       historyTex,
-      0,
+      0
     );
 
     // blit 좌표계는 0,0,1,1이 1칸임.
@@ -286,7 +286,7 @@ function createSelectionManager(canvas, gl) {
       originalWidth,
       originalHeight, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
+      gl.NEAREST // 필터링 옵션
     );
 
     return historyTex;
@@ -303,14 +303,14 @@ function createSelectionManager(canvas, gl) {
       originalHeight,
       selectionCopyTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE,
+      gl.UNSIGNED_BYTE
     );
     pushReadPixelQueue(gl, pixelReader);
     const selectionPosRect = Rect.fromWidth(
       selectionPos.x,
       selectionPos.y,
       selectionPos.width,
-      selectionPos.height,
+      selectionPos.height
     );
 
     let showSnapshot: Snapshot = {
@@ -318,7 +318,7 @@ function createSelectionManager(canvas, gl) {
       pixelReader: pixelReader,
       rect: renderRect,
       selectionRect: selectionPosRect,
-      apply() {
+      async apply() {
         openTexture();
         selectionPos.x = this.selectionRect.x;
         selectionPos.y = this.selectionRect.y;
@@ -338,7 +338,7 @@ function createSelectionManager(canvas, gl) {
           0, // border
           gl.RGBA, // format
           gl.UNSIGNED_BYTE, // type
-          this.pixelReader.getPixelData(),
+          await this.pixelReader.getPixelData()
         );
 
         paintOptions.showSelection = true;
@@ -348,7 +348,7 @@ function createSelectionManager(canvas, gl) {
     let hideSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
       rect: renderRect,
-      apply() {
+      async apply() {
         // 선택창 제거
         paintOptions.showSelection = false;
         closeTexture();
@@ -386,7 +386,7 @@ function createSelectionManager(canvas, gl) {
       0, // border
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      null,
+      null
     );
 
     // 2) selection Tex에 복사
@@ -403,7 +403,7 @@ function createSelectionManager(canvas, gl) {
       originalWidth,
       originalHeight, // dst 영역
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼 (컬러 버퍼)
-      gl.NEAREST, // 필터링 모드 (스케일링 없이 복사)
+      gl.NEAREST // 필터링 모드 (스케일링 없이 복사)
     );
 
     // 3) 선택된 영역을 완전히 투명으로 지우기
@@ -423,9 +423,9 @@ function createSelectionManager(canvas, gl) {
       sourceTextureManager.upload(sx, sy, swidth, sheight);
 
     const newHistory = new HistoryObject(gl, {
-      undo: () => {
-        before.apply();
-        beforeSource.apply();
+      undo: async () => {
+        await before.apply();
+        await beforeSource.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -435,13 +435,13 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "select";
       },
-      redo: () => {
-        after.apply();
-        afterSource.apply();
+      redo: async () => {
+        await after.apply();
+        await afterSource.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -451,7 +451,7 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "selection";
       },
@@ -470,17 +470,17 @@ function createSelectionManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height,
+      paintOptions.height
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionPos"),
       selectionPos.x,
-      selectionPos.y,
+      selectionPos.y
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionSize"),
       selectionPos.width,
-      selectionPos.height,
+      selectionPos.height
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
@@ -495,9 +495,9 @@ function createSelectionManager(canvas, gl) {
       sourceTextureManager.upload(dirty.x, dirty.y, dirty.width, dirty.height);
 
     const newHistory = new HistoryObject(gl, {
-      undo: () => {
-        before.apply();
-        beforeSource.apply();
+      undo: async () => {
+        await before.apply();
+        await beforeSource.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -507,13 +507,13 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "selection";
       },
-      redo: () => {
-        after.apply();
-        afterSource.apply();
+      redo: async () => {
+        await after.apply();
+        await afterSource.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -523,7 +523,7 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "brush";
       },
@@ -558,7 +558,7 @@ function createSelectionManager(canvas, gl) {
       gl.RGBA, // internal format
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      bitmap, // ✅ 직접 전달 가능
+      bitmap // ✅ 직접 전달 가능
     );
 
     uploadRenderedTex();
@@ -566,8 +566,8 @@ function createSelectionManager(canvas, gl) {
     let { hide: before, show: after } = selectionSnapshot();
 
     const newHistory = new HistoryObject(gl, {
-      undo: () => {
-        before.apply();
+      undo: async () => {
+        await before.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -577,12 +577,12 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "select";
       },
-      redo: () => {
-        after.apply();
+      redo: async () => {
+        await after.apply();
         uploadRenderedTex();
 
         renderingManager.render();
@@ -592,7 +592,7 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "selection";
       },
@@ -607,7 +607,7 @@ function createSelectionManager(canvas, gl) {
   function getPixelData() {
     // 픽셀 읽기 준비 (뒤집힌 픽셀)
     const flippedPixel = new Uint8Array(
-      selectionPos.width * selectionPos.height * 4,
+      selectionPos.width * selectionPos.height * 4
     );
 
     console.log("getPixelData", selectionPos.width, selectionPos.height);
@@ -624,14 +624,14 @@ function createSelectionManager(canvas, gl) {
       selectionPos.height,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      flippedPixel,
+      flippedPixel
     );
 
     // 최종 픽셀 (논프멀, 위에서 아래로 플립됨)
     const pixels = decodePremultAndFlip(
       flippedPixel,
       selectionPos.width,
-      selectionPos.height,
+      selectionPos.height
     );
 
     return { pixels, width: selectionPos.width, height: selectionPos.height };
@@ -650,12 +650,12 @@ function createSelectionManager(canvas, gl) {
     let afterPosition = structuredClone(selectionPos);
 
     const newHistory = new HistoryObject(gl, {
-      undo: () => {
+      undo: async () => {
         setSize(
           beforePosition.x,
           beforePosition.y,
           beforePosition.width,
-          beforePosition.height,
+          beforePosition.height
         );
 
         beforePos = structuredClone(selectionPos);
@@ -665,7 +665,7 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "selection";
       },
@@ -674,7 +674,7 @@ function createSelectionManager(canvas, gl) {
           afterPosition.x,
           afterPosition.y,
           afterPosition.width,
-          afterPosition.height,
+          afterPosition.height
         );
 
         beforePos = structuredClone(selectionPos);
@@ -683,7 +683,7 @@ function createSelectionManager(canvas, gl) {
           selectionPos.x,
           selectionPos.y,
           selectionPos.width,
-          selectionPos.height,
+          selectionPos.height
         );
         return "selection";
       },

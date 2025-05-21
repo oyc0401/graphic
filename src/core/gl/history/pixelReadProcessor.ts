@@ -44,8 +44,9 @@ class LowWorkQueue {
     this.running = true;
 
     while (this.queue.length > 0) {
+      if (this.stopRequested) break;
       await waitForSync(this.gl, 32);
-
+      if (this.stopRequested) break;
       if (this.queue.length > 0 && !flags.drawing) {
         const work = this.front();
         this.pop();
@@ -54,6 +55,13 @@ class LowWorkQueue {
     }
 
     this.running = false;
+
+    // ✅ stop 콜백 실행
+    if (this.stopRequested && this.onStop) {
+      this.onStop();
+      this.onStop = null;
+      this.stopRequested = false;
+    }
   }
 
   front() {
@@ -71,6 +79,21 @@ class LowWorkQueue {
       this.queue.push(job);
     }
     this.excute();
+  }
+  // ✅ 추가된 상태값
+  stopRequested = false;
+  onStop: (() => void) | null = null;
+
+  stop(fn: () => void) {
+    this.stopRequested = true;
+    this.onStop = fn;
+
+    // 실행 중이 아닐 경우 즉시 콜백
+    if (!this.running) {
+      fn();
+      this.onStop = null;
+      this.stopRequested = false;
+    }
   }
 }
 

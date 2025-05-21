@@ -137,7 +137,7 @@ function makeSourceTextureManager(canvas, gl) {
     0
   );
 
-  function applyHistory(layerId, pixelReader, rect) {
+  async function applyHistory(layerId, pixelReader, rect) {
     // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
@@ -152,7 +152,7 @@ function makeSourceTextureManager(canvas, gl) {
       rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      pixelReader.getPixelData() // 데이터
+      await pixelReader.getPixelData() // 데이터
     );
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -238,8 +238,8 @@ function makeSourceTextureManager(canvas, gl) {
       layerId: paintOptions.layerId,
       pixelReader: beforePixelReader,
       rect: renderRect,
-      apply() {
-        applyHistory(this.layerId, this.pixelReader, this.rect);
+      async apply() {
+        await applyHistory(this.layerId, this.pixelReader, this.rect);
       },
     };
     return beforeSnapshot;
@@ -271,8 +271,8 @@ function makeSourceTextureManager(canvas, gl) {
       layerId: paintOptions.layerId,
       pixelReader: beforePixelReader,
       rect: renderRect,
-      apply() {
-        applyHistory(this.layerId, this.pixelReader, this.rect);
+      async apply() {
+        await applyHistory(this.layerId, this.pixelReader, this.rect);
       },
     };
 
@@ -308,8 +308,8 @@ function makeSourceTextureManager(canvas, gl) {
       layerId: paintOptions.layerId,
       pixelReader: afterPixelReader,
       rect: renderRect,
-      apply() {
-        applyHistory(this.layerId, this.pixelReader, this.rect);
+      async apply() {
+        await applyHistory(this.layerId, this.pixelReader, this.rect);
       },
     };
 

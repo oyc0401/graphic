@@ -1,4 +1,4 @@
-import { lowQueue } from "./workQueue";
+import { lowQueue } from "./pixelReadProcessor";
 
 const CHUNK_BYTES = 8_000_00000; // 한 번에 읽을 최대 바이트 수
 
@@ -151,13 +151,20 @@ export class PixelReader {
     this.workQueue.shift();
   }
 
-  getPixelData() {
-    // 큐에 있는 걸 하나 수행
-    while (!this.complete) {
-      let fn = lowQueue.front();
-      fn();
-      lowQueue.pop();
-    }
+  async getPixelData() {
+    // 이때 큐에서 현재 실행되고있는게 다 실행 완료 되기까지 기다리기
+    await new Promise<void>((resolve) => {
+      lowQueue.stop(() => {
+        // 큐에 있는 걸 하나 수행
+        while (!this.complete) {
+          let fn = lowQueue.front();
+          fn();
+          lowQueue.pop();
+        }
+        resolve();
+      });
+    });
+
     return this.pixelData;
   }
 
