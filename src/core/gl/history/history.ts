@@ -1,7 +1,7 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect, Rect } from "../utils/dirtyRect";
-import { PixelReadProcessor, setDrawingFlag } from "./pixelReadProcessor";
+import { setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
 import { HistoryObject } from "../tool/liquify";
@@ -28,7 +28,7 @@ export function resetHisory() {
 
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
-    createHistoryManager(canvas, gl),
+    createHistoryManager(canvas, gl)
   );
   return manager;
 }
@@ -44,7 +44,7 @@ function createHistoryManager(canvas, gl) {
     newHistory: HistoryObject,
     options: {
       resetRedo?: boolean;
-    } = {},
+    } = {}
   ) {
     const { resetRedo = true } = options;
 
@@ -102,7 +102,7 @@ function createHistoryManager(canvas, gl) {
       "undo:",
       undoStack.length,
       "redo:",
-      redoStack.length,
+      redoStack.length
       // "\n",
       // "undoStack:",
       // undoStack,

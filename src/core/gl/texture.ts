@@ -302,7 +302,7 @@ function makeSourceTextureManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    // pushReadPixelQueue(gl, afterPixelReader);
+    pushReadPixelQueue(gl, afterPixelReader);
 
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,

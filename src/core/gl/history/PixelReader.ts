@@ -1,3 +1,5 @@
+import { lowQueue } from "./workQueue";
+
 const CHUNK_BYTES = 8_000_00000; // 한 번에 읽을 최대 바이트 수
 
 export class PixelReader {
@@ -41,6 +43,7 @@ export class PixelReader {
   }
 
   private enqueue() {
+    //console.log("enqueue");
     const gl = this.gl;
     const width = this.width;
     const height = this.height;
@@ -128,9 +131,12 @@ export class PixelReader {
     let finish = () => {
       gl.deleteTexture(historyTex); // 텍스처 삭제
       this.complete = true;
+      console.log("finish");
     };
 
     this.workQueue.push(finish);
+
+    console.log(this.workQueue);
   }
 
   isEmpty() {
@@ -148,11 +154,15 @@ export class PixelReader {
   getPixelData() {
     // 큐에 있는 걸 하나 수행
     while (!this.complete) {
-      let fn = this.front();
+      let fn = lowQueue.front();
       fn();
-      this.pop();
+      lowQueue.pop();
     }
     return this.pixelData;
+  }
+
+  getJobs() {
+    return this.workQueue;
   }
 }
 

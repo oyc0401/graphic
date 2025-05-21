@@ -1,9 +1,11 @@
+import { PixelReader } from "./PixelReader";
+
 const flags = { drawing: false };
 export function setDrawingFlag(value) {
   flags.drawing = value;
 }
 
-let lowQueue: LowWorkQueue;
+export let lowQueue: LowWorkQueue;
 
 export function pushLowQueue(gl, work: Function) {
   if (!lowQueue) {
@@ -11,6 +13,14 @@ export function pushLowQueue(gl, work: Function) {
   }
 
   lowQueue.push(work);
+}
+
+export function pushReadPixelQueue(gl, pixelReader: PixelReader) {
+  if (!lowQueue) {
+    lowQueue = new LowWorkQueue(gl);
+  }
+
+  lowQueue.pushPixelReader(pixelReader);
 }
 
 class LowWorkQueue {
@@ -36,13 +46,27 @@ class LowWorkQueue {
     while (this.queue.length > 0) {
       await waitForSync(this.gl, 32);
 
-      if (!flags.drawing) {
+      if (this.queue.length > 0 && !flags.drawing) {
         const work = this.queue.pop();
         await work();
       }
     }
 
     this.running = false;
+  }
+
+  front() {
+    return this.queue[0];
+  }
+
+  pop() {
+    this.queue.shift();
+  }
+
+  pushPixelReader(pixleReader: PixelReader) {
+    for (let job of pixleReader.getJobs()) {
+      this.push(job);
+    }
   }
 }
 
