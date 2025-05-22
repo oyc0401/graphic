@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager } from "./brushTool";
-import { setDrawingFlag } from "../history/workQueue";
+import { setDrawingFlag } from "../../canvas/history/workQueue";
 
 interface Pointer {
   x: number;

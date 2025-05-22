@@ -15,10 +15,10 @@ import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
 import { DirtyRect, Rect } from "../../utils/dirtyRect";
-import { getHistoryManager, HistoryItem } from "../history/history";
+import { getHistoryManager, HistoryItem } from "../../canvas/history/history";
 
-import { PixelReader } from "../history/PixelReader";
-import { PixelStorage } from "../history/PixelStore";
+import { PixelReader } from "../../canvas/history/PixelReader";
+import { PixelStorage } from "../../canvas/history/PixelStore";
 
 interface liquifyManager {
   enter(): void;

@@ -2,7 +2,7 @@ import { getManager } from "../../utils/cachedManager";
 import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";
-import { HistoryObject } from "../tool/liquify";
+import { HistoryObject } from "../../gl/tool/liquify";
 
 export interface HistoryItem {
   group?: string;

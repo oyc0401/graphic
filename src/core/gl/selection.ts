@@ -1,7 +1,7 @@
 import { paintConfig } from "@/paint.config";
 import { mainThread } from "../worker/mainPool";
-import { getHistoryManager, HistoryItem } from "./history/history";
-import { PixelReader } from "./history/PixelReader";
+import { getHistoryManager, HistoryItem } from "../canvas/history/history";
+import { PixelReader } from "../canvas/history/PixelReader";
 
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";

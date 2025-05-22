@@ -4,10 +4,10 @@ import { getLiquifyManager, HistoryObject, Snapshot } from "./tool/liquify";
 import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
-import { PixelReader } from "./history/PixelReader";
+import { PixelReader } from "../canvas/history/PixelReader";
 
 import { DirtyRect } from "../utils/dirtyRect";
-import { getHistoryManager } from "./history/history";
+import { getHistoryManager } from "../canvas/history/history";
 import { mainThread } from "../worker/mainPool";
 
 /**
