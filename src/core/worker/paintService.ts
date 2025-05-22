@@ -10,7 +10,7 @@ import { paintOptions } from "../gl/texture";
 import { getRenderingManager } from "../gl/render";
 import { resizeLayer, resizeScreen } from "../gl/resize";
 import { getSelectionManager } from "../gl/selection";
-import { getLayerManager } from "../gl/layer";
+import { getBitmapManager, getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../gl/history/history";
 import { mainThread } from "./mainPool";
@@ -49,6 +49,9 @@ export class PaintService {
   }
   async initialize() {
     await this.installTools();
+
+    const bitmapManager = getBitmapManager(this.canvas, this.gl);
+    bitmapManager.initState(paintOptions.width, paintOptions.height);
 
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();

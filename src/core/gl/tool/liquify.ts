@@ -17,11 +17,9 @@ import { getShaderSource } from "./liquifyShader";
 import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { getManager } from "../utils/cachedManager";
 import { getHistoryManager, HistoryItem } from "../history/history";
-import {
-  pushReadPixelQueue,
-  setDrawingFlag,
-} from "../history/pixelReadProcessor";
+
 import { PixelReader } from "../history/PixelReader";
+import { PixelStorage } from "../history/PixelStore";
 
 interface liquifyManager {
   enter(): void;
@@ -473,7 +471,6 @@ async function makeLiquifyManager(canvas, gl) {
       gl.RG,
       gl.HALF_FLOAT
     );
-    pushReadPixelQueue(gl, beforePixelReader);
 
     let beforeDirty: DirtyRect | null = null;
     if (sourceImageDirty) {
@@ -515,7 +512,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.RG,
       gl.HALF_FLOAT
     );
-    pushReadPixelQueue(gl, afterPixelReader);
+
     let afterDirty: DirtyRect | null = null;
     if (imageDirty) {
       afterDirty = DirtyRect.copy(imageDirty);
@@ -548,7 +545,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.RG,
       gl.HALF_FLOAT
     );
-    pushReadPixelQueue(gl, beforePixelReader);
+
     let beforeDirty: DirtyRect | null = null;
     if (sourceImageDirty) {
       beforeDirty = DirtyRect.copy(sourceImageDirty);
@@ -575,7 +572,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.RG,
       gl.HALF_FLOAT
     );
-    pushReadPixelQueue(gl, afterPixelReader);
+
     let afterDirty: DirtyRect | null = null;
     if (imageDirty) {
       afterDirty = DirtyRect.copy(imageDirty);
@@ -829,7 +826,7 @@ async function makeLiquifyManager(canvas, gl) {
 
 export interface Snapshot {
   layerId;
-  pixelReader?;
+  pixelReader?: PixelStorage;
   rect;
   apply: () => Promise<void>;
   selectionRect?;

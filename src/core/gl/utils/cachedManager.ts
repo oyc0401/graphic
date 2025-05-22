@@ -4,11 +4,7 @@
 
 const managerStore = new WeakMap<object, Map<string, unknown>>();
 
-export function getManager<T>(
-  gl: object,
-  key: string,
-  creator: () => T
-): T {
+export function getManager<T>(gl: object, key: string, creator: () => T): T {
   // gl에 해당하는 Map 가져오기
   let subMap = managerStore.get(gl);
   if (!subMap) {

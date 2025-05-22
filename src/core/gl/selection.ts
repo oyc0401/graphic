@@ -2,7 +2,7 @@ import { paintConfig } from "@/paint.config";
 import { mainThread } from "../worker/mainPool";
 import { getHistoryManager, HistoryItem } from "./history/history";
 import { PixelReader } from "./history/PixelReader";
-import { pushReadPixelQueue } from "./history/pixelReadProcessor";
+
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
@@ -305,7 +305,6 @@ function createSelectionManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    pushReadPixelQueue(gl, pixelReader);
     const selectionPosRect = Rect.fromWidth(
       selectionPos.x,
       selectionPos.y,

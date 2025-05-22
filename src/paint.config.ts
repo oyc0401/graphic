@@ -12,5 +12,5 @@ export enum Resolution {
 // 8K UHD:        7680 x 4320      ≈ 33.2MP
 // 8K DCI:        8192 x 4320      ≈ 35.4MP
 export const paintConfig = {
-  maxSize: Resolution._4K,
+  maxSize: Resolution._6K,
 };

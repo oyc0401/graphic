@@ -5,7 +5,7 @@ import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "./utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
-import { pushReadPixelQueue } from "./history/pixelReadProcessor";
+
 import { DirtyRect } from "./utils/dirtyRect";
 import { getHistoryManager } from "./history/history";
 import { mainThread } from "../worker/mainPool";
@@ -302,7 +302,6 @@ function createResizeManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    pushReadPixelQueue(gl, beforePixelReader);
 
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -334,7 +333,6 @@ function createResizeManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    pushReadPixelQueue(gl, afterPixelReader);
 
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,

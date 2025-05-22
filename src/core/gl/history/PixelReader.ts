@@ -1,8 +1,9 @@
-import { lowQueue } from "./pixelReadProcessor";
+import { lowQueue, pushLowQueue } from "./pixelReadProcessor";
+import { PixelStorage } from "./PixelStore";
 
 const CHUNK_BYTES = 8_000_00000; // 한 번에 읽을 최대 바이트 수
 
-export class PixelReader {
+export class PixelReader implements PixelStorage {
   pixelData;
   gl: WebGL2RenderingContext;
   width: number;
@@ -40,6 +41,10 @@ export class PixelReader {
     }
     this.workQueue = [];
     this.enqueue();
+
+    for (let job of this.workQueue) {
+      pushLowQueue(gl, job);
+    }
   }
 
   private enqueue() {
@@ -137,31 +142,14 @@ export class PixelReader {
     this.workQueue.push(finish);
   }
 
-  isEmpty() {
-    return this.workQueue.length == 0;
-  }
-
-  front() {
-    return this.workQueue[0];
-  }
-
-  pop() {
-    this.workQueue.shift();
-  }
-
-  async getPixelData() {
+  async getPixelData(isQueue = false) {
     // 이때 큐에서 현재 실행되고있는게 다 실행 완료 되기까지 기다리기
-    await new Promise<void>((resolve) => {
-      lowQueue.stop(() => {
-        // 큐에 있는 걸 하나 수행
-        while (!this.complete) {
-          let fn = lowQueue.front();
-          fn();
-          lowQueue.pop();
-        }
-        resolve();
-      });
-    });
+    if (isQueue && !this.complete) {
+      console.error("큐의 순서가 뒤집힘!");
+    }
+    if (!this.complete) {
+      await lowQueue.finish();
+    }
 
     return this.pixelData;
   }

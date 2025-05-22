@@ -1,14 +1,12 @@
-import { getLayerManager } from "./layer";
+import { getBitmapManager, getLayerManager } from "./layer";
 import { getManager } from "./utils/cachedManager";
 import { getRenderingManager } from "./render";
 import { getHistoryManager, HistoryItem } from "./history/history";
 import { DirtyRect } from "./utils/dirtyRect";
-import {
-  pushReadPixelQueue,
-  setDrawingFlag,
-} from "./history/pixelReadProcessor";
+import { pushLowQueue } from "./history/pixelReadProcessor";
 import { PixelReader } from "./history/PixelReader";
 import { Snapshot } from "./tool/liquify";
+import { PixelStorage, PixelStore } from "./history/PixelStore";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -137,7 +135,7 @@ function makeSourceTextureManager(canvas, gl) {
     0
   );
 
-  async function applyHistory(layerId, pixelReader, rect) {
+  async function applyHistory(layerId, pixelReader: PixelStorage, rect) {
     // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
@@ -171,6 +169,13 @@ function makeSourceTextureManager(canvas, gl) {
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
       gl.NEAREST // 필터링 옵션
     );
+
+    // afterDirty를 bitmap에 업로드 해야하기 때문에 작업큐에 넣기.
+    const bitmapManager = getBitmapManager(canvas, gl);
+
+    pushLowQueue(gl, async () => {
+      bitmapManager.applyDirtyRect(await pixelReader.getPixelData(true), rect);
+    });
   }
 
   const fbo = gl.createFramebuffer();
@@ -223,20 +228,11 @@ function makeSourceTextureManager(canvas, gl) {
   function getCurrentSnapshot(x, y, width, height) {
     const renderRect = DirtyRect.fromWidth(x, y, width, height);
 
-    const beforeTex = makeDirtyTexture(renderRect);
-    const beforePixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      beforeTex,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE
-    );
-    pushReadPixelQueue(gl, beforePixelReader);
+    let beforePixel = new PixelStore(gl, renderRect);
 
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
-      pixelReader: beforePixelReader,
+      pixelReader: beforePixel,
       rect: renderRect,
       async apply() {
         await applyHistory(this.layerId, this.pixelReader, this.rect);
@@ -246,18 +242,9 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function upload(x, y, width, height) {
-    const renderRect = DirtyRect.fromWidth(x, y, width, height);
+    const bitmapManager = getBitmapManager(canvas, gl);
 
-    const beforeTex = makeDirtyTexture(renderRect);
-    const beforePixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      beforeTex,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE
-    );
-    pushReadPixelQueue(gl, beforePixelReader);
+    const renderRect = DirtyRect.fromWidth(x, y, width, height);
 
     // 이전 큐에 쌓인 픽셀을 모두 읽어온 다음에 픽셀을 복사해야함.
     // 그러면 리드픽셀프로세서를 큐로 먼들고.
@@ -267,14 +254,7 @@ function makeSourceTextureManager(canvas, gl) {
     // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
     // getDirtyUnit8Array()
 
-    const beforeSnapshot: Snapshot = {
-      layerId: paintOptions.layerId,
-      pixelReader: beforePixelReader,
-      rect: renderRect,
-      async apply() {
-        await applyHistory(this.layerId, this.pixelReader, this.rect);
-      },
-    };
+    const beforeSnapshot: Snapshot = getCurrentSnapshot(x, y, width, height);
 
     // sourceMap으로 업로드
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -302,7 +282,14 @@ function makeSourceTextureManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    pushReadPixelQueue(gl, afterPixelReader);
+
+    // afterDirty를 bitmap에 업로드 해야하기 때문에 작업큐에 넣기.
+    pushLowQueue(gl, async () => {
+      bitmapManager.applyDirtyRect(
+        await afterPixelReader.getPixelData(true),
+        renderRect
+      );
+    });
 
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -356,7 +343,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   setSize();
-  upload(0, 0, paintOptions.width, paintOptions.height);
+  // upload(0, 0, paintOptions.width, paintOptions.height);
 
   let sourceTextureManager = {
     texture: sourceTexture,
