@@ -1,10 +1,10 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
-import { pushLowQueue } from "../canvas/history/workQueue";
-import { PixelReader } from "../canvas/history/PixelReader";
+import { pushLowQueue } from "./history/workQueue";
+import { PixelReader } from "./history/PixelReader";
 import { Snapshot } from "./tool/liquify";
-import { PixelStorage, PixelStore } from "../canvas/history/PixelStore";
+import { PixelStorage, PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../canvas/bitmap";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
@@ -170,7 +170,7 @@ function makeSourceTextureManager(canvas, gl) {
     );
 
     // afterDirty를 bitmap에 업로드 해야하기 때문에 작업큐에 넣기.
-    const bitmapManager = getBitmapManager(canvas, gl);
+    const bitmapManager = getBitmapManager();
 
     pushLowQueue(gl, async () => {
       bitmapManager.applyDirtyRect(await pixelReader.getPixelData(true), rect);
@@ -241,7 +241,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function upload(x, y, width, height) {
-    const bitmapManager = getBitmapManager(canvas, gl);
+    const bitmapManager = getBitmapManager();
 
     const renderRect = DirtyRect.fromWidth(x, y, width, height);
 

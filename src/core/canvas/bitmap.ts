@@ -2,10 +2,7 @@ import { getManager } from "../utils/cachedManager";
 import { Rect } from "../utils/dirtyRect";
 
 const d = {};
-export function getBitmapManager(
-  a: OffscreenCanvas | number = 1,
-  b: WebGL2RenderingContext | number = 2
-) {
+export function getBitmapManager() {
   const manager = getManager(d, "bitmap", () => new BitmapManager());
   return manager;
 }

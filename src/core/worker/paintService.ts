@@ -12,7 +12,7 @@ import { resizeLayer, resizeScreen } from "../gl/resize";
 import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
-import { getHistoryManager } from "../canvas/history/history";
+import { getHistoryManager } from "../gl/history/history";
 import { mainThread } from "./mainPool";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
@@ -51,7 +51,7 @@ export class PaintService {
   async initialize() {
     await this.installTools();
 
-    const bitmapManager = getBitmapManager(this.canvas, this.gl);
+    const bitmapManager = getBitmapManager();
     bitmapManager.initState(paintOptions.width, paintOptions.height);
 
     const renderingManager = getRenderingManager(this.canvas, this.gl);
