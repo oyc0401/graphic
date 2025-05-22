@@ -1,12 +1,11 @@
-import { getBitmapManager, getLayerManager } from "./layer";
-import { getManager } from "./utils/cachedManager";
-import { getRenderingManager } from "./render";
-import { getHistoryManager, HistoryItem } from "./history/history";
-import { DirtyRect } from "./utils/dirtyRect";
+import { getLayerManager } from "./layer";
+import { getManager } from "../utils/cachedManager";
+import { DirtyRect } from "../utils/dirtyRect";
 import { pushLowQueue } from "./history/pixelReadProcessor";
 import { PixelReader } from "./history/PixelReader";
 import { Snapshot } from "./tool/liquify";
 import { PixelStorage, PixelStore } from "./history/PixelStore";
+import { getBitmapManager } from "../canvas/bitmap";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상

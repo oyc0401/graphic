@@ -7,9 +7,9 @@ import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { HistoryObject, Snapshot } from "./tool/liquify";
-import { getManager } from "./utils/cachedManager";
-import { DirtyRect, Rect } from "./utils/dirtyRect";
-import { decodePremultAndFlip } from "./utils/flipPixel";
+import { getManager } from "../utils/cachedManager";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
+import { decodePremultAndFlip } from "../utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 

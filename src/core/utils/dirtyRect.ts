@@ -1,5 +1,5 @@
 import { clamp } from "@/utils/math";
-import { paintOptions } from "../texture";
+import { paintOptions } from "../gl/texture";
 
 export class DirtyRect {
   pathDirtyRect = { x: 0, y: 0, ex: 0, ey: 0 };

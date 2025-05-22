@@ -5,13 +5,13 @@ import { getSelectionManager } from "./selection";
 
 import { createShader, createProgram } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
-import { getManager } from "./utils/cachedManager";
-import { Rect } from "./utils/dirtyRect";
+import { getManager } from "../utils/cachedManager";
+import { Rect } from "../utils/dirtyRect";
 import { paintConfig } from "@/paint.config";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>
-    makeRenderingManager(canvas, gl),
+    makeRenderingManager(canvas, gl)
   );
   return manager;
 }
@@ -67,25 +67,25 @@ function makeRenderingManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(displayProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height,
+      paintOptions.height
     );
     gl.uniform2f(
       gl.getUniformLocation(displayProgram, "u_pos"),
       paintOptions.x,
-      paintOptions.y,
+      paintOptions.y
     );
     gl.uniform2f(
       gl.getUniformLocation(displayProgram, "u_screenSize"),
       paintOptions.screenWidth,
-      paintOptions.screenHeight,
+      paintOptions.screenHeight
     );
     gl.uniform1f(
       gl.getUniformLocation(displayProgram, "u_magnification"),
-      paintOptions.magnification,
+      paintOptions.magnification
     );
     gl.uniform1f(
       gl.getUniformLocation(displayProgram, "u_dpr"),
-      paintOptions.dpr,
+      paintOptions.dpr
     );
 
     // 쓰기 영역: 캔버스
@@ -139,7 +139,7 @@ function makeRenderingManager(canvas, gl) {
   let backgroundProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    backgroundShader,
+    backgroundShader
   );
   gl.useProgram(backgroundProgram);
   bufferManager.createFullQuadVAO(backgroundProgram);
@@ -150,21 +150,21 @@ function makeRenderingManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(backgroundProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height,
+      paintOptions.height
     );
     gl.uniform2f(
       gl.getUniformLocation(backgroundProgram, "u_pos"),
       paintOptions.x,
-      paintOptions.y,
+      paintOptions.y
     );
     gl.uniform2f(
       gl.getUniformLocation(backgroundProgram, "u_screenSize"),
       paintOptions.screenWidth,
-      paintOptions.screenHeight,
+      paintOptions.screenHeight
     );
     gl.uniform1f(
       gl.getUniformLocation(backgroundProgram, "u_magnification"),
-      paintOptions.magnification,
+      paintOptions.magnification
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -221,7 +221,7 @@ function makeRenderingManager(canvas, gl) {
 
   gl.uniform1i(
     gl.getUniformLocation(renderProgram, "u_source"),
-    TEXTURE_UNIT.LAYER,
+    TEXTURE_UNIT.LAYER
   );
   bufferManager.createFullQuadVAO(renderProgram);
 
@@ -231,21 +231,21 @@ function makeRenderingManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(renderProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height,
+      paintOptions.height
     );
     gl.uniform2f(
       gl.getUniformLocation(renderProgram, "u_pos"),
       paintOptions.x,
-      paintOptions.y,
+      paintOptions.y
     );
     gl.uniform2f(
       gl.getUniformLocation(renderProgram, "u_screenSize"),
       paintOptions.screenWidth,
-      paintOptions.screenHeight,
+      paintOptions.screenHeight
     );
     gl.uniform1f(
       gl.getUniformLocation(renderProgram, "u_magnification"),
-      paintOptions.magnification,
+      paintOptions.magnification
     );
 
     // 쓰기 영역: 캔버스
@@ -331,25 +331,25 @@ function makeRenderingManager(canvas, gl) {
       gl.uniform2f(
         gl.getUniformLocation(gridProgram, "u_resolution"),
         paintOptions.width,
-        paintOptions.height,
+        paintOptions.height
       );
       gl.uniform2f(
         gl.getUniformLocation(gridProgram, "u_pos"),
         paintOptions.x,
-        paintOptions.y,
+        paintOptions.y
       );
       gl.uniform2f(
         gl.getUniformLocation(gridProgram, "u_screenSize"),
         paintOptions.screenWidth,
-        paintOptions.screenHeight,
+        paintOptions.screenHeight
       );
       gl.uniform1f(
         gl.getUniformLocation(gridProgram, "u_magnification"),
-        paintOptions.magnification,
+        paintOptions.magnification
       );
       gl.uniform1f(
         gl.getUniformLocation(gridProgram, "u_dpr"),
-        paintOptions.dpr,
+        paintOptions.dpr
       );
 
       // 쓰기 영역: 캔버스
@@ -446,22 +446,22 @@ function makeRenderingManager(canvas, gl) {
   let selectionShader = createShader(
     gl,
     gl.FRAGMENT_SHADER,
-    selectionShaderSource,
+    selectionShaderSource
   );
   let selectionProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    selectionShader,
+    selectionShader
   );
   gl.useProgram(selectionProgram);
 
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection"),
-    TEXTURE_UNIT.RENDERED_SELECTION,
+    TEXTURE_UNIT.RENDERED_SELECTION
   );
   gl.uniform1i(
     gl.getUniformLocation(selectionProgram, "u_selection_source"),
-    TEXTURE_UNIT.SOURCE_SELECTION,
+    TEXTURE_UNIT.SOURCE_SELECTION
   );
   // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
   bufferManager.createFullQuadVAO(selectionProgram);
@@ -474,32 +474,32 @@ function makeRenderingManager(canvas, gl) {
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_pos"),
       paintOptions.x,
-      paintOptions.y,
+      paintOptions.y
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height,
+      paintOptions.height
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_screenSize"),
       paintOptions.screenWidth,
-      paintOptions.screenHeight,
+      paintOptions.screenHeight
     );
     gl.uniform1f(
       gl.getUniformLocation(selectionProgram, "u_magnification"),
-      paintOptions.magnification,
+      paintOptions.magnification
     );
 
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionPos"),
       selectionPos.x,
-      selectionPos.y,
+      selectionPos.y
     );
     gl.uniform2f(
       gl.getUniformLocation(selectionProgram, "u_selectionSize"),
       selectionPos.width,
-      selectionPos.height,
+      selectionPos.height
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -564,7 +564,7 @@ function makeRenderingManager(canvas, gl) {
       paintOptions.screenWidth,
       paintOptions.screenHeight, // dst rect
       gl.COLOR_BUFFER_BIT,
-      gl.LINEAR,
+      gl.LINEAR
     );
 
     // gl.blitFramebuffer(
@@ -602,7 +602,7 @@ function makeRenderingManager(canvas, gl) {
         0,
         0,
         paintOptions.screenWidth,
-        paintOptions.screenHeight,
+        paintOptions.screenHeight
       );
     }
 
@@ -621,7 +621,7 @@ function makeRenderingManager(canvas, gl) {
 
 export function getOffscreenManager(canvas, gl) {
   const manager = getManager(gl, "offscreen", () =>
-    createOffscreenManager(canvas, gl),
+    createOffscreenManager(canvas, gl)
   );
   return manager;
 }
@@ -638,7 +638,7 @@ function createOffscreenManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null,
+    null
   );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -650,7 +650,7 @@ function createOffscreenManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     offscreenTex,
-    0,
+    0
   );
 
   function resize(newWidth, newHeight) {
@@ -665,7 +665,7 @@ function createOffscreenManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null,
+      null
     );
   }
 

@@ -7,8 +7,8 @@ import {
 } from "../texture";
 import { getLayerManager } from "../layer";
 import { getBufferManager, getFullQuadShader } from "../vertexShader";
-import { getManager } from "../utils/cachedManager";
-import { DirtyRect, Rect } from "../utils/dirtyRect";
+import { getManager } from "../../utils/cachedManager";
+import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { getHistoryManager } from "../history/history";
 import { HistoryObject } from "./liquify";
 

@@ -1,6 +1,6 @@
 import { getSourceTextureManager, paintOptions } from "../texture";
-import { getManager } from "../utils/cachedManager";
-import { DirtyRect, Rect } from "../utils/dirtyRect";
+import { getManager } from "../../utils/cachedManager";
+import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { setDrawingFlag } from "./pixelReadProcessor";
 import { PixelReader } from "./PixelReader";
 import { mainThread } from "../../worker/mainPool";

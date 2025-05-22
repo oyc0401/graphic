@@ -38,7 +38,7 @@ export async function undo() {
   let worker = getLayerWorker();
   let msg = await worker.undo();
   if (!msg) return;
-  console.warn("change tool:", msg);
+  // console.warn("change tool:", msg);
   if (msg == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
@@ -74,7 +74,7 @@ export async function redo() {
   let worker = getLayerWorker();
   let msg = await worker.redo();
   if (!msg) return;
-  console.warn("change tool:", msg);
+  // console.warn("change tool:", msg);
   if (msg == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();

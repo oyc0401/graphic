@@ -1,4 +1,4 @@
-import { getManager } from "./utils/cachedManager";
+import { getManager } from "../utils/cachedManager";
 import { createShader } from "./utils/glHelper";
 
 /**
@@ -6,7 +6,7 @@ import { createShader } from "./utils/glHelper";
  */
 export function getFullQuadShader(gl) {
   const manager = getManager(gl, "fullQuadVertexShader", () =>
-    makeFullQuadVertexShader(gl),
+    makeFullQuadVertexShader(gl)
   );
   return manager;
 }
@@ -38,7 +38,7 @@ function makeBufferManager(gl) {
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-    gl.STATIC_DRAW,
+    gl.STATIC_DRAW
   );
 
   function createFullQuadVAO(program) {
