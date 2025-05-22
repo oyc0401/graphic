@@ -1,13 +1,13 @@
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
-import { getLiquifyManager, HistoryObject, Snapshot } from "./tool/liquify";
+import { getLiquifyManager } from "./tool/liquify";
 import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
 
 import { DirtyRect } from "../utils/dirtyRect";
-import { getHistoryManager } from "./history/history";
+import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
 import { mainThread } from "../worker/mainPool";
 
 /**

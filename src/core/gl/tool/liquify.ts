@@ -15,7 +15,11 @@ import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
 import { DirtyRect, Rect } from "../../utils/dirtyRect";
-import { getHistoryManager, HistoryItem } from "../history/history";
+import {
+  getHistoryManager,
+  HistoryObject,
+  Snapshot,
+} from "../../canvas/history";
 
 import { PixelReader } from "../history/PixelReader";
 import { PixelStorage } from "../history/PixelStore";
@@ -815,38 +819,4 @@ async function makeLiquifyManager(canvas, gl) {
   };
 
   return Liquify;
-}
-
-// 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
-//       이미지 1 -> 이미지 2 ->  이미지 3
-// 드로우2 를 하기 전, start단에서 이미지 1 때의 imageDirty를 보관한다.
-// 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
-// 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
-
-export interface Snapshot {
-  layerId;
-  pixelReader?: PixelStorage;
-  rect;
-  apply: () => Promise<void>;
-  selectionRect?;
-}
-
-export class HistoryObject {
-  gl;
-  tool;
-  id;
-  skip;
-
-  constructor(gl, { undo, redo }) {
-    this.gl = gl;
-    this.undo = undo;
-    this.redo = redo;
-
-    // redoPixels에 Rect2에 해당하는 이미지2 텍스쳐 픽셀리더, redoimageDirty 저장.
-    // 결과물을 올리느냐, 또는 pointers를 올리느냐. 그건 자기 입맛대로 하기
-  }
-
-  undo: () => Promise<string>;
-
-  redo: () => Promise<string>;
 }

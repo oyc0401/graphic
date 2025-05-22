@@ -1,20 +1,38 @@
-import { getManager } from "../../utils/cachedManager";
-import { DirtyRect, Rect } from "../../utils/dirtyRect";
-import { PixelReader } from "./PixelReader";
-import { mainThread } from "../../worker/mainPool";
-import { HistoryObject } from "../tool/liquify";
+import { getManager } from "../utils/cachedManager";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
+import { PixelReader } from "../gl/history/PixelReader";
+import { mainThread } from "../worker/mainPool";
+import { PixelStorage } from "../gl/history/PixelStore";
 
-export interface HistoryItem {
-  group?: string;
-  layerId: number;
-  tool: string;
-  rect?: DirtyRect;
-  pixelReader?: PixelReader;
-  skipHistory: boolean;
-  applyHistory(HistoryItem): Promise<HistoryItem>;
-  showSelection?: boolean;
+export class HistoryObject {
+  gl;
+  id;
+
+  constructor(gl, { undo, redo }) {
+    this.gl = gl;
+    this.undo = undo;
+    this.redo = redo;
+  }
+
+  undo: () => Promise<string>;
+
+  redo: () => Promise<string>;
+}
+
+// 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
+//       이미지 1 -> 이미지 2 ->  이미지 3
+// 드로우2 를 하기 전, start단에서 이미지 1 때의 imageDirty를 보관한다.
+// 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
+// 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
+
+export interface Snapshot {
+  layerId;
+  pixelReader?: PixelStorage;
+  rect: Rect;
+  apply: () => Promise<void>;
   selectionRect?: Rect;
 }
+
 let undoStack: HistoryObject[] = [];
 let redoStack: HistoryObject[] = [];
 
@@ -45,9 +63,6 @@ function createHistoryManager(canvas, gl) {
     } = {}
   ) {
     const { resetRedo = true } = options;
-
-    //console.log("addUndo:", newHistory.tool);
-
     undoStack.push(newHistory);
 
     if (resetRedo && redoStack.length != 0) {
@@ -63,8 +78,6 @@ function createHistoryManager(canvas, gl) {
   }
 
   function addRedo(newHistory: HistoryObject) {
-    //console.log("addRedo:", newHistory.tool);
-
     redoStack.push(newHistory);
 
     mainThread.historyCount(undoStack.length, redoStack.length);
