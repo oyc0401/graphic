@@ -53,8 +53,8 @@ export class PaintService {
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();
 
-    await init(); // .wasm 로딩 및 초기화
-    do_task(4000 * 4000 * 4); // 실행
+    // await init(); // .wasm 로딩 및 초기화
+    // do_task(4000 * 4000 * 4); // 실행
 
     console.log("Making Layer Complete!");
   }
