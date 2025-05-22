@@ -71,6 +71,8 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
           0
         );
         gl.readPixels(0, row, width, rows, this.format, this.type, sub);
+
+        console.log("[PixelReader]", "read");
       });
     }
 
@@ -78,6 +80,8 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
     workQueue.push(() => {
       gl.deleteTexture(texture);
       this.complete = true;
+
+      console.log("[PixelReader]", "finish");
     });
 
     return workQueue;

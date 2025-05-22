@@ -580,7 +580,7 @@ function makeRenderingManager(canvas, gl) {
     //   gl.NEAREST,
     // );
 
-    console.log("render complete!");
+    //console.log("render complete!");
   }
 
   let scheduled = false;
