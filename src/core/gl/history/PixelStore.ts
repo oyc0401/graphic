@@ -1,6 +1,6 @@
 import { getBitmapManager } from "@/core/canvas/bitmap";
 import { Rect } from "../../utils/dirtyRect";
-import { lowQueue, pushLowQueue } from "./pixelReadProcessor";
+import { lowQueue, pushLowQueue } from "./workQueue";
 
 export class PixelStore implements PixelStorage {
   pixelData;

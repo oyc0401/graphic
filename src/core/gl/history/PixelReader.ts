@@ -1,7 +1,7 @@
-import { lowQueue, pushLowQueue } from "./pixelReadProcessor";
+import { lowQueue, pushLowQueue } from "./workQueue";
 import { PixelStorage } from "./PixelStore";
 
-const CHUNK_BYTES = 8_000_00000; // 한 번에 읽을 최대 바이트 수
+const CHUNK_BYTES = 4_000_000; // 한 번에 읽을 최대 바이트 수
 
 export class PixelReader implements PixelStorage {
   pixelData;
@@ -35,10 +35,10 @@ export class PixelReader implements PixelStorage {
       PixelReader.fbo = gl.createFramebuffer();
       gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
     }
-    if (!PixelReader.pbo) {
-      PixelReader.pbo = gl.createBuffer();
-      //gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
-    }
+    // if (!PixelReader.pbo) {
+    //   PixelReader.pbo = gl.createBuffer();
+    //   //gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
+    // }
     this.workQueue = [];
     this.enqueue();
 
@@ -122,10 +122,10 @@ export class PixelReader implements PixelStorage {
         // 5. CPU-Side getBufferSubData → TypedArray
         //  gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelData);
 
-        // 6. 정리
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-        gl.deleteTexture(historyTex); // 요청대로 텍스처 즉시 파기
+        // // 6. 정리
+        // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        // gl.deleteTexture(historyTex); // 요청대로 텍스처 즉시 파기
 
         console.log("read!");
       };

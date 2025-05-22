@@ -1,7 +1,7 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect } from "../utils/dirtyRect";
-import { pushLowQueue } from "./history/pixelReadProcessor";
+import { pushLowQueue } from "./history/workQueue";
 import { PixelReader } from "./history/PixelReader";
 import { Snapshot } from "./tool/liquify";
 import { PixelStorage, PixelStore } from "./history/PixelStore";

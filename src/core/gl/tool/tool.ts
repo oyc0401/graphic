@@ -1,6 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify";
 import { getBrushManager } from "./brushTool";
-import { setDrawingFlag } from "../history/pixelReadProcessor";
+import { setDrawingFlag } from "../history/workQueue";
 
 interface Pointer {
   x: number;
@@ -28,7 +28,7 @@ export class BrushTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   enter() {
-   // console.log("brush enter");
+    // console.log("brush enter");
     this.drawManager.enter();
   }
   start(pointer: Pointer) {
@@ -42,13 +42,12 @@ export class BrushTool implements Tool {
   end() {
     //console.log("brush end");
     this.drawManager.end();
-
   }
   cancel() {
     this.drawManager.cancel();
   }
   exit() {
-   // console.log("brush exit");
+    // console.log("brush exit");
   }
 }
 
@@ -86,7 +85,7 @@ export class LiquifyTool implements Tool {
     this.liquifyManager.enter();
   }
   start(pointer: Pointer) {
-   // console.log("liquify start");
+    // console.log("liquify start");
     this.liquifyManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
