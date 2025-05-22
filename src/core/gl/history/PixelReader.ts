@@ -125,7 +125,7 @@ export class PixelReader {
         console.log("read!");
       };
 
-      //this.workQueue.push(chunk);
+      this.workQueue.push(chunk);
     }
 
     let finish = () => {
