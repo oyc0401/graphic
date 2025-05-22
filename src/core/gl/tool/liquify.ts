@@ -22,7 +22,6 @@ import {
 } from "../../canvas/history";
 
 import { PixelReader } from "../history/PixelReader";
-import { PixelStorage } from "../history/PixelStore";
 
 interface liquifyManager {
   enter(): void;

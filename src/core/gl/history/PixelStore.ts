@@ -1,40 +1,37 @@
-import { getBitmapManager } from "@/core/canvas/bitmap";
-import { Rect } from "../../utils/dirtyRect";
 import { lowQueue, pushLowQueue } from "./workQueue";
 
-export class PixelStore implements PixelStorage {
-  pixelData;
+export class PixelStore<T extends PixelTypedArray = Uint8Array>
+  implements PixelStorage<T>
+{
+  pixelData!: T; // 뒤에서 채워지므로 definite-assignment (!) 사용
+  complete = false;
 
-  rect: Rect;
-  complete: boolean;
-  constructor(gl, rect) {
-    this.rect = rect;
-    this.complete = false;
-
+  constructor(
+    gl: WebGL2RenderingContext,
+    job: () => T // ⬅️ 반환 타입도 동일 제네릭
+  ) {
     pushLowQueue(gl, async () => {
-      this.excute();
+      this.pixelData = job();
+      this.complete = true;
     });
   }
 
-  excute() {
-    const bitmapManager = getBitmapManager();
-    this.pixelData = bitmapManager.copyDirtRect(this.rect);
-    this.complete = true;
-  }
-
-  async getPixelData(isQueue = false) {
-    // 이때 큐에서 현재 실행되고있는게 다 실행 완료 되기까지 기다리기
+  async getPixelData(isQueue = false): Promise<T> {
     if (isQueue && !this.complete) {
       console.error("큐의 순서가 뒤집힘!");
     }
     if (!this.complete) {
       await lowQueue.finish();
     }
-
     return this.pixelData;
   }
 }
 
-export interface PixelStorage {
-  getPixelData: (bool?) => Promise<any>;
+export type PixelTypedArray = Uint8Array | Uint16Array | Float32Array;
+
+/** ② 픽셀 버퍼를 들고 다니는 최소 계약 */
+export interface PixelStorage<T extends PixelTypedArray = Uint8Array> {
+  readonly pixelData: T;
+  readonly complete: boolean;
+  getPixelData(isQueue?: boolean): Promise<T>;
 }

@@ -15,12 +15,12 @@ export function pushLowQueue(gl, work: Function) {
   lowQueue.push(work);
 }
 
-export function pushReadPixelQueue(gl, pixelReader: PixelReader) {
+export function pushManyLowQueue(gl, works: Function[]) {
   if (!lowQueue) {
     lowQueue = new LowWorkQueue(gl);
   }
 
-  lowQueue.pushPixelReader(pixelReader);
+  lowQueue.pushWorks(works);
 }
 
 class LowWorkQueue {
@@ -39,11 +39,10 @@ class LowWorkQueue {
     this.excute();
   }
 
-  pushPixelReader(pixleReader: PixelReader) {
+  pushWorks(works: Function[]) {
     setDrawingFlag(false);
-    let jobs = pixleReader.getJobs();
-    for (let job of jobs) {
-      this.queue.push(job);
+    for (let work of works) {
+      this.queue.push(work);
     }
     this.excute();
   }

@@ -1,163 +1,96 @@
-import { lowQueue, pushLowQueue } from "./workQueue";
-import { PixelStorage } from "./PixelStore";
+import { lowQueue, pushManyLowQueue } from "./workQueue";
+import { PixelStorage, PixelTypedArray } from "./PixelStore";
 
 const CHUNK_BYTES = 4_000_000; // 한 번에 읽을 최대 바이트 수
 
-export class PixelReader implements PixelStorage {
-  pixelData;
-  gl: WebGL2RenderingContext;
-  width: number;
-  height: number;
-  texture: WebGLTexture;
-  static fbo: WebGLFramebuffer;
-  static pbo: WebGLBuffer;
-  workQueue: Function[] = [];
-  format; // RGBA, RG
-  type; // UNSIGNED_BYTE, HALF_FLOAT
-  complete: boolean;
+export class PixelReader<T extends PixelTypedArray = Uint8Array>
+  implements PixelStorage<T>
+{
+  pixelData: T;
+  complete = false;
 
-  constructor(gl, width, height, texture, format, type) {
-    this.gl = gl;
-    this.width = width;
-    this.height = height;
-    this.texture = texture;
+  static fbo: WebGLFramebuffer | null = null;
 
-    this.format = format;
-    this.type = type;
-    this.complete = false;
+  constructor(
+    private gl: WebGL2RenderingContext,
+    private width: number,
+    private height: number,
+    private texture: WebGLTexture,
+    private format: number, // gl.RGBA …
+    private type: number // gl.UNSIGNED_BYTE …
+  ) {
+    const info = getPixelFormatInfo(gl, format, type);
+    this.pixelData = new (info.TypedArray as any)(
+      width * height * info.components
+    ) as T;
 
-    const info = getPixelFormatInfo(gl, this.format, this.type);
-    const { components, bytesPerComponent, TypedArray } = info;
-
-    this.pixelData = new TypedArray(width * height * components);
-
+    /* FBO 초기화(싱글턴) */
     if (!PixelReader.fbo) {
-      PixelReader.fbo = gl.createFramebuffer();
+      PixelReader.fbo = gl.createFramebuffer()!;
       gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
     }
-    // if (!PixelReader.pbo) {
-    //   PixelReader.pbo = gl.createBuffer();
-    //   //gl.bindFramebuffer(gl.FRAMEBUFFER, PixelReader.fbo);
-    // }
-    this.workQueue = [];
-    this.enqueue();
 
-    for (let job of this.workQueue) {
-      pushLowQueue(gl, job);
-    }
+    /* chunk 단위 작업 생성 → 공용 lowQueue 로 등록 */
+    let jobs = this.makeJobs(info);
+
+    pushManyLowQueue(gl, jobs);
   }
 
-  private enqueue() {
-    //console.log("enqueue");
-    const gl = this.gl;
-    const width = this.width;
-    const height = this.height;
-    const historyTex = this.texture;
-    const fbo = PixelReader.fbo;
-    const pbo = PixelReader.pbo;
-
-    const info = getPixelFormatInfo(gl, this.format, this.type);
-    const { components, bytesPerComponent, bytesPerPixel, TypedArray } = info;
-
-    // 한 줄씩 읽어서 처리
-    const rowsPerChunk = Math.floor(CHUNK_BYTES / (width * bytesPerPixel));
-    // => 1바이트 RGBA(4 comp): chunkBytes/4픽셀
-    //    2바이트 RG (2 comp): chunkBytes/4픽셀
-    //    2바이트 RGBA (4 comp): chunkBytes/8픽셀
-
-    for (let rowOffset = 0; rowOffset < height; rowOffset += rowsPerChunk) {
-      let chunk = async () => {
-        const remainingRows = height - rowOffset;
-        const rowsToRead = Math.min(rowsPerChunk, remainingRows);
-
-        const subArray = new TypedArray(
-          this.pixelData.buffer,
-          rowOffset * width * components * bytesPerComponent, // byteOffset
-          rowsToRead * width * components // elementCount
-        );
-
-        // // 한 줄씩 읽기
-        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-        gl.framebufferTexture2D(
-          gl.READ_FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          historyTex,
-          0
-        );
-        gl.readPixels(
-          0,
-          rowOffset,
-          width,
-          rowsToRead,
-          this.format, // gl.RGBA,
-          this.type, //gl.UNSIGNED_BYTE,
-          subArray
-        );
-
-        // // 1. PBO 할당 & 바인딩
-        // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-        // gl.bufferData(
-        //   gl.PIXEL_PACK_BUFFER,
-        //   rowsToRead * width * components,
-        //   gl.STREAM_READ
-        // );
-
-        // // 2. FBO에 텍스처 부착
-        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-        // gl.framebufferTexture2D(
-        //   gl.READ_FRAMEBUFFER,
-        //   gl.COLOR_ATTACHMENT0,
-        //   gl.TEXTURE_2D,
-        //   historyTex,
-        //   0
-        // );
-
-        // // 3. GPU-Side readPixels → PBO (null = 현재 바인딩된 PBO)
-        // gl.readPixels(0, 0, width, height, this.format, this.type, 0);
-
-        // 4. GPU flush & fence
-        //await waitForSync(gl);
-
-        // 5. CPU-Side getBufferSubData → TypedArray
-        //  gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.pixelData);
-
-        // // 6. 정리
-        // gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-        // gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-        // gl.deleteTexture(historyTex); // 요청대로 텍스처 즉시 파기
-
-        console.log("read!");
-      };
-
-      this.workQueue.push(chunk);
-    }
-
-    let finish = () => {
-      gl.deleteTexture(historyTex); // 텍스처 삭제
-      this.complete = true;
-      console.log("finish");
-    };
-
-    this.workQueue.push(finish);
-  }
-
-  async getPixelData(isQueue = false) {
-    // 이때 큐에서 현재 실행되고있는게 다 실행 완료 되기까지 기다리기
+  async getPixelData(isQueue = false): Promise<T> {
     if (isQueue && !this.complete) {
       console.error("큐의 순서가 뒤집힘!");
     }
     if (!this.complete) {
       await lowQueue.finish();
     }
-
     return this.pixelData;
   }
 
-  getJobs() {
-    return this.workQueue;
+  private makeJobs(info: PixelFormatInfo) {
+    const { gl, width, height, texture } = this;
+    const { components, bytesPerComponent, bytesPerPixel, TypedArray } = info;
+    const rowsPerChunk = Math.floor(CHUNK_BYTES / (width * bytesPerPixel));
+
+    let workQueue: Function[] = [];
+
+    for (let row = 0; row < height; row += rowsPerChunk) {
+      workQueue.push(async () => {
+        const rows = Math.min(rowsPerChunk, height - row);
+        const sub = new TypedArray(
+          this.pixelData.buffer,
+          row * width * components * bytesPerComponent,
+          rows * width * components
+        );
+
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, PixelReader.fbo);
+        gl.framebufferTexture2D(
+          gl.READ_FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          texture,
+          0
+        );
+        gl.readPixels(0, row, width, rows, this.format, this.type, sub);
+      });
+    }
+
+    /* 마지막 cleanup + 완료 플래그 */
+    workQueue.push(() => {
+      gl.deleteTexture(texture);
+      this.complete = true;
+    });
+
+    return workQueue;
   }
 }
+
+/* pixel-format helper  (변경 없음, 타입 추가)  */
+type PixelFormatInfo = {
+  components: number;
+  bytesPerComponent: number;
+  bytesPerPixel: number;
+  TypedArray: typeof Uint8Array | typeof Uint16Array | typeof Float32Array;
+};
 
 // WebGL pixel format/type 헬퍼
 function getPixelFormatInfo(
@@ -212,19 +145,4 @@ function getPixelFormatInfo(
     bytesPerPixel,
     TypedArray,
   };
-}
-async function waitForSync(gl) {
-  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-  gl.flush();
-
-  while (true) {
-    const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
-    // console.log("while:", status);
-    if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
-      break;
-    }
-    // GPU가 아직 안 끝났으면, CPU는 양보
-    await new Promise((r) => setTimeout(r, 0));
-  }
-  gl.deleteSync(sync);
 }

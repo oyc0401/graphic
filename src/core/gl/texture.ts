@@ -227,7 +227,11 @@ function makeSourceTextureManager(canvas, gl) {
   function getCurrentSnapshot(x, y, width, height) {
     const renderRect = DirtyRect.fromWidth(x, y, width, height);
 
-    let beforePixel = new PixelStore(gl, renderRect);
+    let beforePixel = new PixelStore(gl, () => {
+      const bitmapManager = getBitmapManager();
+      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      return pixelData;
+    });
 
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
