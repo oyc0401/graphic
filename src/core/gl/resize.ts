@@ -54,8 +54,12 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
   }
 
   setToolSize();
-
   const renderingManager = getRenderingManager(canvas, gl);
+  pushLowQueue(gl, async () => {
+    sourceTextureManager.uploadFromLayer(paintOptions.layerId);
+    renderingManager.render();
+  });
+
   renderingManager.render();
 
   const newHistory = new HistoryObject(gl, {
@@ -70,6 +74,8 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       for (let snapshot of snapshots) {
         await snapshot.before.apply();
       }
+
+      const sourceTextureManager = getSourceTextureManager(canvas, gl);
 
       await lowQueue.finish();
 

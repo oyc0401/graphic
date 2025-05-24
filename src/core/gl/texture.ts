@@ -135,6 +135,7 @@ function makeSourceTextureManager(canvas, gl) {
   );
 
   function uploadFromLayer(layerId) {
+    console.log("uploadFromLayer");
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
     const bitmapManager = getBitmapManager();

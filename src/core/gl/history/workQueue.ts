@@ -56,18 +56,20 @@ class LowWorkQueue {
 
     /* 🌟 새 완료 프라미스 생성 */
     this.donePromise = new Promise<void>((res) => (this.doneResolve = res));
+    console.log("excute");
     try {
       while (this.queue.length > 0) {
-        console.log(this.queue.length, flags.drawing, this.queue);
         if (!this.forceFlush) {
           await new Promise((r) => setTimeout(r, 32));
         }
-
+        console.log("queue size:", this.queue.length);
         if (this.queue.length > 0 && !flags.drawing) {
           const work = this.queue.shift();
           await work();
         }
       }
+
+      console.log("queue complete:", this.queue.length);
     } finally {
       this.running = false;
 
