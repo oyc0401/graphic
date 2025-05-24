@@ -34,6 +34,8 @@ class BitmapManager {
         output[dstIndex + 3] = this.bitmap[srcIndex + 3]; // A
       }
     }
+
+    //console.log(width, rect);
     //console.log(output);
     return output;
   }
@@ -52,5 +54,19 @@ class BitmapManager {
         this.bitmap[dstIndex + 3] = image[srcIndex + 3]; // A
       }
     }
+  }
+  applyResizeDirtyRect(image: Uint8Array, width: number, height: number): void {
+    console.log("applyResizeDirtyRect", width, height);
+    // 새로운 크기만큼 버퍼 생성
+    this.bitmap = new Uint8ClampedArray(width * height * 4);
+
+    // 전체 복사 (deep copy)
+    for (let i = 0; i < image.length; i++) {
+      this.bitmap[i] = image[i];
+    }
+
+    // 내부 상태도 업데이트
+    this.width = width;
+    this.height = height;
   }
 }

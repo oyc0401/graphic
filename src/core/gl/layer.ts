@@ -69,7 +69,7 @@ function makeLayerManager(canvas, gl) {
   gl.bindTexture(gl.TEXTURE_2D, layerTex);
 
   // 레이어 모음 구현
-  let layerArray = [layerTex, layerTex2];
+  let layerArray = [layerTex];
 
   function setLayerId(newLayerId) {
     paintOptions.layerId = newLayerId;
@@ -102,9 +102,9 @@ function makeLayerManager(canvas, gl) {
   }
 
   function getLayerTex(layerId) {
-    if (layerId == 1) {
-      return layerTex2;
-    }
+    // if (layerId == 1) {
+    //   return layerTex2;
+    // }
     return layerTex;
   }
 

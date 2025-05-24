@@ -134,6 +134,41 @@ function makeSourceTextureManager(canvas, gl) {
     0
   );
 
+  function uploadFromLayer(layerId) {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
+    const bitmapManager = getBitmapManager();
+
+    // pixelData를 texture에 다시 업로드
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0, // level
+      0, // x 좌표
+      0, // y 좌표
+      paintOptions.width, // width
+      paintOptions.height, // height
+      gl.RGBA, // format
+      gl.UNSIGNED_BYTE, // type
+      bitmapManager.bitmap // 데이터
+    );
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
+
+    // blit 좌표계는 0,0,1,1이 1칸임.
+    gl.blitFramebuffer(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
+      gl.NEAREST // 필터링 옵션
+    );
+  }
   async function applyHistory(layerId, pixelReader: PixelStorage, rect) {
     // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
@@ -244,6 +279,26 @@ function makeSourceTextureManager(canvas, gl) {
     return beforeSnapshot;
   }
 
+  function getCurrentSnapshot2(x, y, width, height) {
+    const renderRect = DirtyRect.fromWidth(x, y, width, height);
+
+    let beforePixel = new PixelStore(gl, () => {
+      const bitmapManager = getBitmapManager();
+      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      return pixelData;
+    });
+
+    const beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixel,
+      rect: renderRect,
+      async apply() {
+        await applyHistory(this.layerId, this.pixelReader, this.rect);
+      },
+    };
+    return beforeSnapshot;
+  }
+
   function upload(x, y, width, height) {
     const bitmapManager = getBitmapManager();
 
@@ -257,7 +312,7 @@ function makeSourceTextureManager(canvas, gl) {
     // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
     // getDirtyUnit8Array()
 
-    const beforeSnapshot: Snapshot = getCurrentSnapshot(x, y, width, height);
+    const beforeSnapshot: Snapshot = getCurrentSnapshot2(x, y, width, height);
 
     // sourceMap으로 업로드
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -355,6 +410,7 @@ function makeSourceTextureManager(canvas, gl) {
     sourceFBO,
     setSize,
     getCurrentSnapshot,
+    uploadFromLayer,
   };
 
   return sourceTextureManager;

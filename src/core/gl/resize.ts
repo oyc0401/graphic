@@ -6,9 +6,12 @@ import { getManager } from "../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
 
-import { DirtyRect } from "../utils/dirtyRect";
+import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
 import { mainThread } from "../worker/mainPool";
+import { PixelStore } from "./history/PixelStore";
+import { getBitmapManager } from "../canvas/bitmap";
+import { lowQueue, pushLowQueue } from "./history/workQueue";
 
 /**
  * 도화지의 크기를 조절함
@@ -35,13 +38,6 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
     height
   );
 
-  let before = sourceTextureManager.getCurrentSnapshot(
-    0,
-    0,
-    paintOptions.width,
-    paintOptions.height
-  );
-
   paintOptions.x += x;
   paintOptions.y += y;
   paintOptions.width = width;
@@ -59,12 +55,6 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
   setToolSize();
 
-  let { after } = sourceTextureManager.upload(
-    0,
-    0,
-    paintOptions.width,
-    paintOptions.height
-  );
   const renderingManager = getRenderingManager(canvas, gl);
   renderingManager.render();
 
@@ -80,7 +70,10 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       for (let snapshot of snapshots) {
         await snapshot.before.apply();
       }
-      await before.apply();
+
+      await lowQueue.finish();
+
+      sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
       renderingManager.render();
 
@@ -103,7 +96,10 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       for (let snapshot of snapshots) {
         await snapshot.after.apply();
       }
-      await after.apply();
+
+      await lowQueue.finish();
+
+      sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
       renderingManager.render();
 
@@ -222,8 +218,43 @@ function createResizeManager(canvas, gl) {
     layerTex
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
+    const bitmapManager = getBitmapManager();
+    const renderRect = Rect.fromWidth(0, 0, oldWidth, oldHeight);
 
-    let beforeTex = copyTexture(layerTex, oldWidth, oldHeight);
+    let beforePixel = new PixelStore(gl, () => {
+      const bitmapManager = getBitmapManager();
+      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      return pixelData;
+    });
+
+    const beforeSnapshot: Snapshot = {
+      layerId: paintOptions.layerId,
+      pixelReader: beforePixel,
+      rect: renderRect,
+      async apply() {
+        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+        gl.bindTexture(gl.TEXTURE_2D, layerTex);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0, // level
+          gl.RGBA, // internalFormat
+          this.rect.width,
+          this.rect.height,
+          0, // border
+          gl.RGBA, // format
+          gl.UNSIGNED_BYTE, // type
+          await this.pixelReader.getPixelData()
+        );
+
+        pushLowQueue(gl, async () => {
+          bitmapManager.applyResizeDirtyRect(
+            await beforePixel.getPixelData(true),
+            renderRect.width,
+            renderRect.height
+          );
+        });
+      },
+    };
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, mainFBO);
     gl.framebufferTexture2D(
@@ -294,37 +325,6 @@ function createResizeManager(canvas, gl) {
 
     let afterTex = copyTexture(layerTex, newWidth, newHeight);
 
-    const beforePixelReader = new PixelReader(
-      gl,
-      oldWidth,
-      oldHeight,
-      beforeTex,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE
-    );
-
-    const beforeSnapshot: Snapshot = {
-      layerId: paintOptions.layerId,
-      pixelReader: beforePixelReader,
-      rect: DirtyRect.fromWidth(0, 0, oldWidth, oldHeight),
-      async apply() {
-        gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-        gl.bindTexture(gl.TEXTURE_2D, layerTex);
-
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0, // level
-          gl.RGBA, // internalFormat
-          this.rect.width,
-          this.rect.height,
-          0, // border
-          gl.RGBA, // format
-          gl.UNSIGNED_BYTE, // type
-          await this.pixelReader.getPixelData()
-        );
-      },
-    };
-
     const afterPixelReader = new PixelReader(
       gl,
       newWidth,
@@ -334,10 +334,19 @@ function createResizeManager(canvas, gl) {
       gl.UNSIGNED_BYTE
     );
 
+    let newRect = Rect.fromWidth(0, 0, newWidth, newHeight);
+    pushLowQueue(gl, async () => {
+      bitmapManager.applyResizeDirtyRect(
+        await afterPixelReader.getPixelData(true),
+        newWidth,
+        newHeight
+      );
+    });
+
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
       pixelReader: afterPixelReader,
-      rect: DirtyRect.fromWidth(0, 0, newWidth, newHeight),
+      rect: newRect,
       async apply() {
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
         gl.bindTexture(gl.TEXTURE_2D, layerTex);
@@ -353,6 +362,14 @@ function createResizeManager(canvas, gl) {
           gl.UNSIGNED_BYTE, // type
           await this.pixelReader.getPixelData()
         );
+
+        pushLowQueue(gl, async () => {
+          bitmapManager.applyResizeDirtyRect(
+            await afterPixelReader.getPixelData(true),
+            newWidth,
+            newHeight
+          );
+        });
       },
     };
 
