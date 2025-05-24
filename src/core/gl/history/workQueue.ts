@@ -1,5 +1,3 @@
-import { PixelReader } from "./PixelReader";
-
 const flags = { drawing: false };
 export function setDrawingFlag(value) {
   flags.drawing = value;
@@ -58,15 +56,15 @@ class LowWorkQueue {
 
     /* 🌟 새 완료 프라미스 생성 */
     this.donePromise = new Promise<void>((res) => (this.doneResolve = res));
-
     try {
       while (this.queue.length > 0) {
+        console.log(this.queue.length, flags.drawing, this.queue);
         if (!this.forceFlush) {
-          await waitForSync(this.gl, 32);
+          await new Promise((r) => setTimeout(r, 32));
         }
 
         if (this.queue.length > 0 && !flags.drawing) {
-          const work = this.queue.shift()!;
+          const work = this.queue.shift();
           await work();
         }
       }
@@ -101,17 +99,21 @@ class LowWorkQueue {
       await this.donePromise; // busy-wait 없이 정확히 종료 시점까지 대기
     }
 
+    console.log("finished");
+
     this.forceFlush = false; // flush 모드 해제 (이후 push 는 다시 waitForSync 사용)
   }
 }
 
 async function waitForSync(gl, time) {
   const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-
+  console.log("gl.ALREADY_SIGNALED", gl.ALREADY_SIGNALED);
+  console.log("gl.CONDITION_SATISFIED", gl.CONDITION_SATISFIED);
   while (true) {
     await new Promise((r) => setTimeout(r, time));
 
     const status = gl.clientWaitSync(sync, 0, 0); // timeout 무조건 0
+    console.log(status);
     if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED) {
       break;
     }

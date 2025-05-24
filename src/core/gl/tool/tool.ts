@@ -44,6 +44,7 @@ export class BrushTool implements Tool {
     this.drawManager.end();
   }
   cancel() {
+    setDrawingFlag(false);
     this.drawManager.cancel();
   }
   exit() {
