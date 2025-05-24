@@ -11,7 +11,7 @@ import {
 import { redo, undo } from "../history";
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;
-const twoFingerTapInterval = 75; // 이중클릭 범위
+const twoFingerTapInterval = 150; // 이중클릭 범위 // (75->150) 핀치줌 범위.
 const doubleTapInterval = 250; // 더블클릭 범위
 const TWO_CLICK_INTERVAL = 150;
 const THREE_CLICK_INTERVAL = 200;
@@ -32,7 +32,7 @@ export function addGestureEvent() {
 
     // 1. pointerId를 오름차순 정렬하여 가장 낮은 두 개 선택
     const sortedPointers = Array.from(pointers.values()).sort(
-      (a, b) => a.index - b.index,
+      (a, b) => a.index - b.index
     );
     const firstPoint = sortedPointers[0];
     const secondPoint = sortedPointers[1];
@@ -61,7 +61,7 @@ export function addGestureEvent() {
         pointerIndex++;
       } else {
         alert(
-          "포인터 아이디가 이미 있는데 또 pointerdown? 버그임 근데 이문제 자꾸 나는데 꼭 해결해야함",
+          "포인터 아이디가 이미 있는데 또 pointerdown? 버그임 근데 이문제 자꾸 나는데 꼭 해결해야함"
         );
       }
 
@@ -100,7 +100,7 @@ export function addGestureEvent() {
         const points = Array.from(pointers.values());
         lastPinchDistance = Math.hypot(
           points[0].clientX - points[1].clientX,
-          points[0].clientY - points[1].clientY,
+          points[0].clientY - points[1].clientY
         );
       }
       if (pointers.size === 3) {
@@ -111,7 +111,7 @@ export function addGestureEvent() {
         }
       }
     },
-    true,
+    true
   );
 
   let moved = false;
@@ -124,7 +124,7 @@ export function addGestureEvent() {
         let lastPointer = pointers.get(event.pointerId);
         let distance = Math.hypot(
           lastPointer.x - event.clientX,
-          lastPointer.y - event.clientY,
+          lastPointer.y - event.clientY
         );
         moveDistance += distance;
       }
@@ -153,7 +153,7 @@ export function addGestureEvent() {
       const points = Array.from(pointers.values());
       const distance = Math.hypot(
         points[0].clientX - points[1].clientX,
-        points[0].clientY - points[1].clientY,
+        points[0].clientY - points[1].clientY
       );
 
       const scaleFactor = distance / lastPinchDistance;
@@ -162,13 +162,13 @@ export function addGestureEvent() {
 
       setMagification(
         clampedScale,
-        to_screen_coord(pinchCenterPos.x, pinchCenterPos.y),
+        to_screen_coord(pinchCenterPos.x, pinchCenterPos.y)
       );
       lastPinchDistance = distance;
 
       renderChangedPosition();
     },
-    true,
+    true
   );
 
   window.addEventListener(
@@ -201,7 +201,7 @@ export function addGestureEvent() {
         moved = false;
       }
     },
-    true,
+    true
   );
 
   window.addEventListener(
@@ -215,6 +215,6 @@ export function addGestureEvent() {
         console.log("포인터 제거!", event.pointerId);
       }
     },
-    true,
+    true
   );
 }
