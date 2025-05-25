@@ -18,25 +18,20 @@ class BitmapManager {
     this.bitmap = new Uint8ClampedArray(width * height * 4);
   }
 
-  copyDirtRect(rect: Rect): Uint8Array {
+  copyDirtyRect(rect: Rect): Uint8Array {
     const { x, y, width, height } = rect;
-
     const output = new Uint8Array(width * height * 4);
 
     for (let row = 0; row < height; row++) {
-      for (let col = 0; col < width; col++) {
-        const srcIndex = ((y + row) * this.width + (x + col)) * 4;
-        const dstIndex = (row * width + col) * 4;
+      const srcOffset = ((y + row) * this.width + x) * 4;
+      const dstOffset = row * width * 4;
 
-        output[dstIndex] = this.bitmap[srcIndex]; // R
-        output[dstIndex + 1] = this.bitmap[srcIndex + 1]; // G
-        output[dstIndex + 2] = this.bitmap[srcIndex + 2]; // B
-        output[dstIndex + 3] = this.bitmap[srcIndex + 3]; // A
-      }
+      output.set(
+        this.bitmap.subarray(srcOffset, srcOffset + width * 4),
+        dstOffset
+      );
     }
 
-    //console.log(width, rect);
-    //console.log(output);
     return output;
   }
 
@@ -44,28 +39,24 @@ class BitmapManager {
     const { x, y, width, height } = rect;
 
     for (let row = 0; row < height; row++) {
-      for (let col = 0; col < width; col++) {
-        const dstIndex = ((y + row) * this.width + (x + col)) * 4;
-        const srcIndex = (row * width + col) * 4;
+      const dstOffset = ((y + row) * this.width + x) * 4;
+      const srcOffset = row * width * 4;
 
-        this.bitmap[dstIndex] = image[srcIndex]; // R
-        this.bitmap[dstIndex + 1] = image[srcIndex + 1]; // G
-        this.bitmap[dstIndex + 2] = image[srcIndex + 2]; // B
-        this.bitmap[dstIndex + 3] = image[srcIndex + 3]; // A
-      }
+      // 성능 최적화를 위해 블록 단위로 복사
+      this.bitmap.set(
+        image.subarray(srcOffset, srcOffset + width * 4),
+        dstOffset
+      );
     }
   }
+
   applyResizeDirtyRect(image: Uint8Array, width: number, height: number): void {
     console.log("applyResizeDirtyRect", width, height);
-    // 새로운 크기만큼 버퍼 생성
+
+    // 깊은 복사: set() 사용
     this.bitmap = new Uint8ClampedArray(width * height * 4);
+    this.bitmap.set(image); // 빠르고 정확하게 깊은 복사
 
-    // 전체 복사 (deep copy)
-    for (let i = 0; i < image.length; i++) {
-      this.bitmap[i] = image[i];
-    }
-
-    // 내부 상태도 업데이트
     this.width = width;
     this.height = height;
   }

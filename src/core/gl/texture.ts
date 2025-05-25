@@ -136,23 +136,6 @@ function makeSourceTextureManager(canvas, gl) {
 
   function uploadFromLayer(layerId) {
     console.log("uploadFromLayer");
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
-    gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
-    const bitmapManager = getBitmapManager();
-
-    // pixelData를 texture에 다시 업로드
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0, // level
-      0, // x 좌표
-      0, // y 좌표
-      paintOptions.width, // width
-      paintOptions.height, // height
-      gl.RGBA, // format
-      gl.UNSIGNED_BYTE, // type
-      bitmapManager.bitmap // 데이터
-    );
-
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
 
@@ -265,7 +248,7 @@ function makeSourceTextureManager(canvas, gl) {
 
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      let pixelData = bitmapManager.copyDirtyRect(renderRect);
       return pixelData;
     });
 
@@ -285,7 +268,7 @@ function makeSourceTextureManager(canvas, gl) {
 
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      let pixelData = bitmapManager.copyDirtyRect(renderRect);
       return pixelData;
     });
 

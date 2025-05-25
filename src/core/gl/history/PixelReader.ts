@@ -1,7 +1,7 @@
 import { lowQueue, pushManyLowQueue } from "./workQueue";
 import { PixelStorage, PixelTypedArray } from "./PixelStore";
 
-const CHUNK_BYTES = 4_000_000; // 한 번에 읽을 최대 바이트 수
+const CHUNK_BYTES = 2_100_000_000; // 한 번에 읽을 최대 바이트 수
 
 export class PixelReader<T extends PixelTypedArray = Uint8Array>
   implements PixelStorage<T>

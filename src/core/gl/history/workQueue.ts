@@ -66,6 +66,7 @@ class LowWorkQueue {
         if (this.queue.length > 0 && !flags.drawing) {
           const work = this.queue.shift();
           await work();
+          //console.log(work);
         }
       }
 

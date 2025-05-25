@@ -55,10 +55,8 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
   setToolSize();
   const renderingManager = getRenderingManager(canvas, gl);
-  pushLowQueue(gl, async () => {
-    sourceTextureManager.uploadFromLayer(paintOptions.layerId);
-    renderingManager.render();
-  });
+
+  sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
   renderingManager.render();
 
@@ -229,7 +227,7 @@ function createResizeManager(canvas, gl) {
 
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtRect(renderRect);
+      let pixelData = bitmapManager.copyDirtyRect(renderRect);
       return pixelData;
     });
 
