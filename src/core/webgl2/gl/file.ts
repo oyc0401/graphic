@@ -1,4 +1,4 @@
-import { resetHisory } from "../../canvas/history";
+import { resetHisory } from "./history/history";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { resizeLayer } from "./resize";

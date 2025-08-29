@@ -1,10 +1,6 @@
 import { paintConfig } from "@/paint.config";
 import { mainApi as mainThread } from "@/app/worker/mainController";
-import {
-  getHistoryManager,
-  HistoryObject,
-  Snapshot,
-} from "../../canvas/history";
+import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { PixelReader } from "./history/PixelReader";
 
 import { getLayerManager } from "./layer";

@@ -17,26 +17,36 @@ export class PaintApplication {
     py: number,
     scale: number
   ) {
-    // try {
-    let webgl2Service = new WebGL2Controller();
-    await webgl2Service.install(
-      main_canvas,
-      screenWidth,
-      screenHeight,
-      dpr,
-      width,
-      height,
-      px,
-      py,
-      scale
-    );
+    try {
+      let webgl2Service = new WebGL2Controller();
+      await webgl2Service.install(
+        main_canvas,
+        screenWidth,
+        screenHeight,
+        dpr,
+        width,
+        height,
+        px,
+        py,
+        scale
+      );
 
-    this.renderer = webgl2Service;
-    // } catch (e) {
-    // let canvas2dService = new Canvas2DService();
-    // await canvas2dService.install(main_canvas);
-    // this.renderService = canvas2dService;
-    // }
+      this.renderer = webgl2Service;
+    } catch (e) {
+      // let canvas2dService = new Canvas2DService();
+      // await canvas2dService.install(
+      //   main_canvas,
+      //   screenWidth,
+      //   screenHeight,
+      //   dpr,
+      //   width,
+      //   height,
+      //   px,
+      //   py,
+      //   scale
+      // );
+      // this.renderService = canvas2dService;
+    }
   }
 
   start(pointer: Pointer): void {

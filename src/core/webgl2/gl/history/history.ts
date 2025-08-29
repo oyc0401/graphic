@@ -1,8 +1,7 @@
-import { getManager } from "../utils/cachedManager";
-import { DirtyRect, Rect } from "../utils/dirtyRect";
-import { PixelReader } from "../webgl2/gl/history/PixelReader";
+import { getManager } from "../../../utils/cachedManager";
+import { Rect } from "../../../utils/dirtyRect";
 import { mainApi as mainThread } from "@/app/worker/mainController";
-import { PixelStorage } from "../webgl2/gl/history/PixelStore";
+import { PixelStorage } from "./PixelStore";
 
 export class HistoryObject {
   gl;

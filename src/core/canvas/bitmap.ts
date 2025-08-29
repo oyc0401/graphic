@@ -1,9 +1,8 @@
 import { getManager } from "../utils/cachedManager";
 import { Rect } from "../utils/dirtyRect";
 
-const d = {};
 export function getBitmapManager() {
-  const manager = getManager(d, "bitmap", () => new BitmapManager());
+  const manager = getManager(1, "bitmap", () => new BitmapManager());
   return manager;
 }
 

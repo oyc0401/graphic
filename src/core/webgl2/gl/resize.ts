@@ -7,11 +7,7 @@ import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
 
 import { DirtyRect, Rect } from "../../utils/dirtyRect";
-import {
-  getHistoryManager,
-  HistoryObject,
-  Snapshot,
-} from "../../canvas/history";
+import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";

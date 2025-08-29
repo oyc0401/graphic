@@ -9,7 +9,7 @@ import { getLayerManager } from "../layer";
 import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../../../utils/cachedManager";
 import { DirtyRect, Rect } from "../../../utils/dirtyRect";
-import { getHistoryManager, HistoryObject } from "../../../canvas/history";
+import { getHistoryManager, HistoryObject } from "../history/history";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
