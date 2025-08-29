@@ -1,8 +1,25 @@
 import type { IRenderService } from "../IRenderService.js";
-import { paintOptions } from "../DrawingController.js";
+
 import { Rect } from "../rect.js";
 import type { Pointer } from "../types.js";
 import { calculateTangents, hermite } from "../utils";
+
+const paintOptions = {
+  width: 100,
+  height: 100,
+  dpr: 1,
+  diameter: 10,
+  color: { r: 0, g: 0, b: 0 },
+  alpha: 0.5,
+
+  radius: 10,
+  x: 0,
+  y: 0,
+  magnification: 1,
+
+  screenWidth: 800,
+  screenHeight: 800,
+};
 
 // WebGPU 타입 선언 (임시로 any 사용)
 declare global {

@@ -3,23 +3,6 @@ import { Canvas2DService } from "./canvas2d/Canvas2DService";
 import { WebGPUService } from "./webgpu/WebGPUService";
 import { workerApi } from "./worker/paintController";
 
-export const paintOptions = {
-  width: 100,
-  height: 100,
-  dpr: 1,
-  diameter: 10,
-  color: { r: 0, g: 0, b: 0 },
-  alpha: 0.5,
-
-  radius: 10,
-  x: 0,
-  y: 0,
-  magnification: 1,
-
-  screenWidth: 800,
-  screenHeight: 800,
-};
-
 export class DrawingController {
   private renderService!: IRenderService;
 
@@ -129,15 +112,15 @@ export class DrawingController {
   }
 
   setStrokeColor(r: number, g: number, b: number): void {
-    paintOptions.color = { r, g, b };
+    this.renderService.setStrokeColor(r, g, b);
   }
 
   setStrokeSize(size: number): void {
-    paintOptions.diameter = size;
+    this.renderService.setStrokeSize(size);
   }
 
   setAlpha(alpha: number): void {
-    paintOptions.alpha = alpha;
+    this.renderService.setAlpha(alpha);
   }
 
   setLayerId(layerId: string | number): void {

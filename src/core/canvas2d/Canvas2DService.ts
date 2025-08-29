@@ -1,7 +1,23 @@
-import { paintOptions } from "../DrawingController.js";
 import type { IRenderService } from "../IRenderService";
 import { SplineTool } from "./SplineTool";
 import type { Pointer } from "../types";
+
+export const paintOptions = {
+  width: 100,
+  height: 100,
+  dpr: 1,
+  diameter: 10,
+  color: { r: 0, g: 0, b: 0 },
+  alpha: 0.5,
+
+  radius: 10,
+  x: 0,
+  y: 0,
+  magnification: 1,
+
+  screenWidth: 800,
+  screenHeight: 800,
+};
 
 export class Canvas2DService implements IRenderService {
   private splineTool: SplineTool;
