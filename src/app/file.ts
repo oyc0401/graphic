@@ -183,7 +183,10 @@ function uploadImage(bitmap: ImageBitmap) {
   position.setHeight(bitmap.height);
 
   const worker = getLayerWorker();
-  worker.uploadImage(Comlink.transfer(bitmap, [bitmap]));
+  worker.uploadImage(
+    bitmap
+    // Comlink.transfer(bitmap, [bitmap])
+  );
 
   renderChangedPosition();
 }
@@ -191,7 +194,7 @@ function uploadImage(bitmap: ImageBitmap) {
 export async function copyPixelsToClipboard(
   pixels: Uint8ClampedArray,
   width: number,
-  height: number,
+  height: number
 ) {
   const imageData = new ImageData(pixels, width, height);
 
@@ -276,7 +279,7 @@ export function resetImage() {
 export async function downloadPixels(
   pixels: Uint8ClampedArray,
   width: number,
-  height: number,
+  height: number
 ) {
   const imageData = new ImageData(pixels, width, height);
 

@@ -1,7 +1,7 @@
-// 웹워커 쓰레드 js 파일
-import * as Comlink from "comlink";
-import { workerApi } from "./paintController";
+// // 웹워커 쓰레드 js 파일
+// import * as Comlink from "comlink";
+// import { workerApi } from "./paintController";
 
-console.log("worker!");
+// console.log("worker!");
 
-Comlink.expose(workerApi);
+// Comlink.expose(workerApi);

@@ -1,5 +1,4 @@
-/// <reference lib="webworker" />
-
+import { mainApi } from "@/app/worker/mainController";
 import {
   BrushTool,
   EraserTool,
@@ -13,7 +12,7 @@ import { getSelectionManager } from "../gl/selection";
 import { getLayerManager } from "../gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
 import { getHistoryManager } from "../canvas/history";
-import { mainThread } from "./mainPool";
+// import { mainThread } from "./mainPool";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
@@ -166,7 +165,7 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     let { pixels, width, height } = selectionManager.getPixelData();
 
-    mainThread.copy(Callink.transfer(pixels, [pixels.buffer]), width, height);
+    mainApi.copy(pixels, width, height);
   }
   cut() {
     // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
@@ -174,7 +173,7 @@ export class PaintService {
     let { pixels, width, height } = selectionManager.getPixelData();
 
     selectionManager.afterCut();
-    mainThread.copy(Callink.transfer(pixels, [pixels.buffer]), width, height);
+    mainApi.copy(pixels, width, height);
   }
   selectionDelete() {
     paintOptions.showSelection = false;
@@ -190,8 +189,9 @@ export class PaintService {
   async downloadImage() {
     let manager = getCanvasPixelManager(this.canvas, this.gl);
     let { pixels, width, height } = manager.getCanvasPixelData();
-    await mainThread.download(
-      Callink.transfer(pixels, [pixels.buffer]),
+    await mainApi.download(
+      // Callink.transfer(pixels, [pixels.buffer]),
+      pixels,
       width,
       height
     );
