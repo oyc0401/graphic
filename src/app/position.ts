@@ -83,7 +83,7 @@ export async function setCameraPosition() {
   position.setY(clampY);
 
   const worker = getLayerWorker();
-  await worker.setCamaraPosition(position.x, position.y, position.scale);
+  await worker.setCameraPosition(position.x, position.y, position.scale);
 }
 
 export async function resizeScreen() {

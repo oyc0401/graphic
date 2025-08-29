@@ -4,11 +4,8 @@ import { PaintService } from "./paintService";
 
 let paint: PaintService;
 
-export class workerApi implements IRenderService {
-  constructor(main_canvas) {
-    paint = new PaintService(main_canvas);
-  }
-  async makeLayer(
+export class WebGL2Service implements IRenderService {
+  async install(
     main_canvas: OffscreenCanvas,
     screenWidth: number,
     screenHeight: number,
@@ -48,7 +45,7 @@ export class workerApi implements IRenderService {
   setLayerId(layerId) {
     paint.setLayerId(layerId);
   }
-  setCamaraPosition(px, py, magnification) {
+  setCameraPosition(px, py, magnification) {
     let { x, y } = toWebglCoord3(
       px,
       py,

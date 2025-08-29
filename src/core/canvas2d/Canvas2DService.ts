@@ -22,7 +22,7 @@ export const paintOptions = {
 export class Canvas2DService implements IRenderService {
   private splineTool: SplineTool;
 
-  constructor(canvas: HTMLCanvasElement) {
+  async install(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
     this.splineTool = new SplineTool(canvas, ctx);

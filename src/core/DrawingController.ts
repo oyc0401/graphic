@@ -1,12 +1,12 @@
 import type { IRenderService } from "./IRenderService";
 import { Canvas2DService } from "./canvas2d/Canvas2DService";
 import { WebGPUService } from "./webgpu/WebGPUService";
-import { workerApi } from "./worker/paintController";
+import { WebGL2Service } from "./worker/paintController";
 
 export class DrawingController {
   private renderService!: IRenderService;
 
-  async makeLayer(
+  async install(
     main_canvas: OffscreenCanvas,
     screenWidth: number,
     screenHeight: number,
@@ -17,83 +17,27 @@ export class DrawingController {
     py: number,
     scale: number
   ) {
-    // let { x, y } = toWebglCoord3(
-    //   px,
-    //   py,
-    //   width,
-    //   height,
-    //   screenWidth,
-    //   screenHeight,
-    //   scale
-    // );
+    try {
+      let webgl2Service = new WebGL2Service();
+      await webgl2Service.install(
+        main_canvas,
+        screenWidth,
+        screenHeight,
+        dpr,
+        width,
+        height,
+        px,
+        py,
+        scale
+      );
 
-    // paintOptions.screenWidth = screenWidth;
-    // paintOptions.screenHeight = screenHeight;
-    // paintOptions.dpr = dpr;
-    // paintOptions.width = width;
-    // paintOptions.height = height;
-
-    // paintOptions.x = x;
-    // paintOptions.y = y;
-
-    // paintOptions.magnification = scale;
-
-    // main_canvas.width = screenWidth;
-    // main_canvas.height = screenHeight;
-
-    // WebGPU 지원 여부 체크
-    // const supportsWebGPU = false; //this.checkWebGPUSupport();
-
-    // if (supportsWebGPU) {
-    //   console.log("WebGPU supported - attempting initialization");
-    //   this.initializeWebGPU(main_canvas);
-    // } else {
-    //   console.log("WebGPU not supported - using Canvas2D fallback");
-    //   this.renderService = new Canvas2DService(main_canvas);
-    // }
-
-    this.renderService = new workerApi(main_canvas);
-    await this.renderService.makeLayer(
-      main_canvas,
-      screenWidth,
-      screenHeight,
-      dpr,
-      width,
-      height,
-      px,
-      py,
-      scale
-    );
+      this.renderService = webgl2Service;
+    } catch (e) {
+      let canvas2dService = new Canvas2DService();
+      await canvas2dService.install(main_canvas);
+      this.renderService = canvas2dService;
+    }
   }
-
-  // private checkWebGPUSupport(): boolean {
-  //   try {
-  //     const testCanvas = document.createElement("canvas");
-  //     const testCtx = testCanvas.getContext("webgpu");
-  //     return testCtx !== null;
-  //   } catch (error) {
-  //     return false;
-  //   }
-  // }
-
-  // private async initializeWebGPU(canvas: HTMLCanvasElement): Promise<void> {
-  //   try {
-  //     const webgpuService = new WebGPUService(canvas);
-  //     const success = await webgpuService.initialize();
-
-  //     if (success) {
-  //       console.log("WebGPU service initialized successfully");
-  //       this.renderService = webgpuService;
-  //     } else {
-  //       console.log("WebGPU initialization failed - falling back to Canvas2D");
-  //       this.renderService = new Canvas2DService(canvas);
-  //     }
-  //   } catch (error) {
-  //     console.error("WebGPU initialization error:", error);
-  //     console.log("Using Canvas2D fallback");
-  //     this.renderService = new Canvas2DService(canvas);
-  //   }
-  // }
 
   start(pointer: Pointer): void {
     this.renderService.start(pointer);

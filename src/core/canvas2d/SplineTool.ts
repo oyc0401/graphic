@@ -1,7 +1,7 @@
-import { paintOptions } from "../DrawingController";
+import { paintOptions } from "./Canvas2DService";
 import { Rect } from "../rect";
 import type { Pointer } from "../types.js";
-import { calculateTangents, hermite } from "../utils.js";
+import { calculateTangents, hermite } from "../utils";
 
 export class SplineTool {
   private points: Pointer[] = [];
