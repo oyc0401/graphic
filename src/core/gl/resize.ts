@@ -8,7 +8,7 @@ import { PixelReader } from "./history/PixelReader";
 
 import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
-import { mainThread } from "../worker/mainPool";
+import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../canvas/bitmap";
 import { lowQueue, pushLowQueue } from "./history/workQueue";

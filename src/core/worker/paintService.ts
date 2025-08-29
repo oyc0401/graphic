@@ -1,4 +1,4 @@
-import { mainApi } from "@/app/worker/mainController";
+import { mainApi as mainThread } from "@/app/worker/mainController";
 import {
   BrushTool,
   EraserTool,
@@ -165,7 +165,7 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     let { pixels, width, height } = selectionManager.getPixelData();
 
-    mainApi.copy(pixels, width, height);
+    mainThread.copy(pixels, width, height);
   }
   cut() {
     // 선택 된 이미지를 다운로드 해서 클립보드로 저장.
@@ -173,7 +173,7 @@ export class PaintService {
     let { pixels, width, height } = selectionManager.getPixelData();
 
     selectionManager.afterCut();
-    mainApi.copy(pixels, width, height);
+    mainThread.copy(pixels, width, height);
   }
   selectionDelete() {
     paintOptions.showSelection = false;
@@ -189,7 +189,7 @@ export class PaintService {
   async downloadImage() {
     let manager = getCanvasPixelManager(this.canvas, this.gl);
     let { pixels, width, height } = manager.getCanvasPixelData();
-    await mainApi.download(
+    await mainThread.download(
       // Callink.transfer(pixels, [pixels.buffer]),
       pixels,
       width,

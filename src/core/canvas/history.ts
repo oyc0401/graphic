@@ -1,7 +1,7 @@
 import { getManager } from "../utils/cachedManager";
 import { DirtyRect, Rect } from "../utils/dirtyRect";
 import { PixelReader } from "../gl/history/PixelReader";
-import { mainThread } from "../worker/mainPool";
+import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStorage } from "../gl/history/PixelStore";
 
 export class HistoryObject {

@@ -1,5 +1,5 @@
 import { paintConfig } from "@/paint.config";
-import { mainThread } from "../worker/mainPool";
+import { mainApi as mainThread } from "@/app/worker/mainController";
 import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
 import { PixelReader } from "./history/PixelReader";
 
