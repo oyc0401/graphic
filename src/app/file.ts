@@ -1,8 +1,7 @@
 /** file.ts */
 import { els } from "./ui/elements";
 import { getLayerWorker } from "./worker/workerPool";
-//import { encode } from "fast-png";
-import { encode } from "@jsquash/png";
+import { encode } from "fast-png";
 import * as Comlink from "comlink";
 import {
   applySelection,
@@ -196,10 +195,8 @@ export async function copyPixelsToClipboard(
   width: number,
   height: number
 ) {
-  const imageData = new ImageData(pixels, width, height);
-
   // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
-  const pngData = await encode(imageData);
+  const pngData = encode({ width, height, data: pixels });
 
   // 2. Blob 생성
   const blob = new Blob([pngData], { type: "image/png" });
@@ -281,10 +278,8 @@ export async function downloadPixels(
   width: number,
   height: number
 ) {
-  const imageData = new ImageData(pixels, width, height);
-
   // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
-  const pngData = await encode(imageData);
+  const pngData = encode({ width, height, data: pixels });
 
   // 2. Blob 생성
   const blob = new Blob([pngData], { type: "image/png" });
