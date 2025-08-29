@@ -1,4 +1,4 @@
-import { getManager } from "../utils/cachedManager";
+import { getManager } from "../../utils/cachedManager";
 import { createShader } from "./utils/glHelper";
 
 /**

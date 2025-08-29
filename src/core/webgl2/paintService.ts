@@ -4,13 +4,13 @@ import {
   EraserTool,
   installTools,
   LiquifyTool,
-} from "../gl/tool/tool";
-import { paintOptions } from "../gl/texture";
-import { getRenderingManager } from "../gl/render";
-import { resizeLayer, resizeScreen } from "../gl/resize";
-import { getSelectionManager } from "../gl/selection";
-import { getLayerManager } from "../gl/layer";
-import { getCanvasPixelManager, resetImage, uploadImage } from "../gl/file";
+} from "./gl/tool/tool";
+import { paintOptions } from "./gl/texture";
+import { getRenderingManager } from "./gl/render";
+import { resizeLayer, resizeScreen } from "./gl/resize";
+import { getSelectionManager } from "./gl/selection";
+import { getLayerManager } from "./gl/layer";
+import { getCanvasPixelManager, resetImage, uploadImage } from "./gl/file";
 import { getHistoryManager } from "../canvas/history";
 // import { mainThread } from "./mainPool";
 import { Callink } from "callink";

@@ -1,12 +1,12 @@
-import { resetHisory } from "../canvas/history";
+import { resetHisory } from "../../canvas/history";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { resizeLayer } from "./resize";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getBrushManager } from "./tool/brushTool";
 import { getLiquifyManager } from "./tool/liquify";
-import { getManager } from "../utils/cachedManager";
-import { decodePremultAndFlip } from "../utils/flipPixel";
+import { getManager } from "../../utils/cachedManager";
+import { decodePremultAndFlip } from "../../utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 

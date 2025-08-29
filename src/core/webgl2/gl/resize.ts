@@ -2,15 +2,19 @@ import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
 import { getLiquifyManager } from "./tool/liquify";
 import { getBrushManager } from "./tool/brushTool";
-import { getManager } from "../utils/cachedManager";
+import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
 
-import { DirtyRect, Rect } from "../utils/dirtyRect";
-import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
+import { DirtyRect, Rect } from "../../utils/dirtyRect";
+import {
+  getHistoryManager,
+  HistoryObject,
+  Snapshot,
+} from "../../canvas/history";
 import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStore } from "./history/PixelStore";
-import { getBitmapManager } from "../canvas/bitmap";
+import { getBitmapManager } from "../../canvas/bitmap";
 import { lowQueue, pushLowQueue } from "./history/workQueue";
 
 /**

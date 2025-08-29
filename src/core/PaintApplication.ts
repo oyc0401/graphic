@@ -1,7 +1,7 @@
 import type { RendererInterface } from "./RendererInterface";
 import { Canvas2DService } from "./canvas2d/Canvas2DService";
 import { WebGPUService } from "./webgpu/WebGPUService";
-import { WebGL2Controller } from "./worker/paintController";
+import { WebGL2Controller } from "./webgl2/paintController";
 
 export class PaintApplication {
   private renderer!: RendererInterface;

@@ -5,8 +5,8 @@ import { getSelectionManager } from "./selection";
 
 import { createShader, createProgram } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
-import { getManager } from "../utils/cachedManager";
-import { Rect } from "../utils/dirtyRect";
+import { getManager } from "../../utils/cachedManager";
+import { Rect } from "../../utils/dirtyRect";
 import { paintConfig } from "@/paint.config";
 
 export function getRenderingManager(canvas, gl) {

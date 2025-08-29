@@ -1,4 +1,4 @@
-import { paintOptions } from "../gl/texture";
+import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
 

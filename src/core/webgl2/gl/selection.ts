@@ -1,14 +1,18 @@
 import { paintConfig } from "@/paint.config";
 import { mainApi as mainThread } from "@/app/worker/mainController";
-import { getHistoryManager, HistoryObject, Snapshot } from "../canvas/history";
+import {
+  getHistoryManager,
+  HistoryObject,
+  Snapshot,
+} from "../../canvas/history";
 import { PixelReader } from "./history/PixelReader";
 
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
-import { getManager } from "../utils/cachedManager";
-import { DirtyRect, Rect } from "../utils/dirtyRect";
-import { decodePremultAndFlip } from "../utils/flipPixel";
+import { getManager } from "../../utils/cachedManager";
+import { DirtyRect, Rect } from "../../utils/dirtyRect";
+import { decodePremultAndFlip } from "../../utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 
