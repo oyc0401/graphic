@@ -44,9 +44,8 @@ export class PaintService {
     }
     this.gl = gl;
     paintOptions.toolId = "brush";
-
-    this.initialize();
   }
+
   async initialize() {
     await this.installTools();
 

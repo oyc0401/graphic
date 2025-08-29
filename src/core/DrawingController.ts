@@ -17,26 +17,26 @@ export class DrawingController {
     py: number,
     scale: number
   ) {
-    try {
-      let webgl2Service = new WebGL2Service();
-      await webgl2Service.install(
-        main_canvas,
-        screenWidth,
-        screenHeight,
-        dpr,
-        width,
-        height,
-        px,
-        py,
-        scale
-      );
+    // try {
+    let webgl2Service = new WebGL2Service();
+    await webgl2Service.install(
+      main_canvas,
+      screenWidth,
+      screenHeight,
+      dpr,
+      width,
+      height,
+      px,
+      py,
+      scale
+    );
 
-      this.renderService = webgl2Service;
-    } catch (e) {
-      let canvas2dService = new Canvas2DService();
-      await canvas2dService.install(main_canvas);
-      this.renderService = canvas2dService;
-    }
+    this.renderService = webgl2Service;
+    // } catch (e) {
+    // let canvas2dService = new Canvas2DService();
+    // await canvas2dService.install(main_canvas);
+    // this.renderService = canvas2dService;
+    // }
   }
 
   start(pointer: Pointer): void {
@@ -147,11 +147,11 @@ export class DrawingController {
   }
 
   // === 실행 취소/다시 실행 ===
-  undo(): boolean {
+  undo(): Promise<string> {
     return this.renderService.undo();
   }
 
-  redo(): boolean {
+  redo(): Promise<string> {
     return this.renderService.redo();
   }
 }
@@ -159,29 +159,4 @@ export class DrawingController {
 interface Pointer {
   x: number;
   y: number;
-}
-
-function toWebglCoord(pointer) {
-  let { x, y } = pointer;
-  return {
-    x,
-    y: paintOptions.height - y,
-  };
-}
-
-function toWebglCoord2(x, y, w, h) {
-  return {
-    x,
-    y: paintOptions.height - y - h,
-    w,
-    h,
-  };
-}
-
-function toWebglCoord3(x, y, width, height, screenWidth, screenHeight, scale) {
-  let newY = -y + screenHeight / scale - height;
-  return {
-    x,
-    y: newY,
-  };
 }

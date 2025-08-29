@@ -41,7 +41,9 @@ export class WebGL2Service implements IRenderService {
     main_canvas.height = screenHeight;
 
     paint = new PaintService(main_canvas);
+    await paint.initialize();
   }
+
   setLayerId(layerId) {
     paint.setLayerId(layerId);
   }

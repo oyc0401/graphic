@@ -1,11 +1,55 @@
 import type { Pointer } from "./types.js";
 
 export interface IRenderService {
-  // 스트로크 라이프사이클
+  // === 입력(브러시) ===
   start(pointer: Pointer): void;
   strokeTo(pointer: Pointer): void;
   end(): void;
   cancel(): void;
+
+  // === 스타일 ===
+  setStrokeColor(r: number, g: number, b: number): void;
+  setStrokeSize(size: number): void;
+  setAlpha(alpha: number): void;
+
+  // === 레이어 ===
+  setLayerId(layerId: string | number): void;
+  resizeLayer(px: number, py: number, width: number, height: number): void;
+
+  // === 카메라 및 뷰포트 ===
+  setCameraPosition(px: number, py: number, magnification: number): void;
+  resizeScreenSize(screenWidth: number, screenHeight: number): void;
+  render(): void;
+
+  // === 도구 관리 ===
+  setTool(toolId: string | number, doExit?: boolean): void;
+
+  // === 선택 영역 ===
+  select(px: number, py: number, w: number, h: number): void;
+  endMove(): void;
+  moveSelection(px: number, py: number, width: number, height: number): void;
+  applySelection(): void;
+
+  // === 클립보드 ===
+  paste(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    imageBitmap: ImageBitmap
+  ): void;
+  copy(): void;
+  cut(): void;
+  selectionDelete(): void;
+
+  // === 이미지 관리 ===
+  uploadImage(bitmap: ImageBitmap): void;
+  resetImage(width: number, height: number): void;
+  downloadImage(): void;
+
+  // === 실행 취소/재실행 ===
+  undo(): Promise<string>;
+  redo(): Promise<string>;
 
   // 서비스 정보
   getServiceType(): "canvas2d" | "webgl" | "webgpu";
