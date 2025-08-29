@@ -1,14 +1,14 @@
 // 메인스레드 임포트 영역
 
-import { DrawingController } from "@/core/DrawingController";
+import { PaintApplication } from "@/core/PaintApplication";
 
 const workerPool: {
-  [key: string]: DrawingController;
+  [key: string]: PaintApplication;
 } = {};
 
 function getWorkerObject() {
   if (!workerPool["layer"]) {
-    workerPool["layer"] = new DrawingController();
+    workerPool["layer"] = new PaintApplication();
   }
 
   return workerPool["layer"];

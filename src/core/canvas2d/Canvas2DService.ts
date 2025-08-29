@@ -1,4 +1,4 @@
-import type { IRenderService } from "../IRenderService";
+import type { RendererInterface } from "../RendererInterface";
 import { SplineTool } from "./SplineTool";
 import type { Pointer } from "../types";
 
@@ -19,7 +19,7 @@ export const paintOptions = {
   screenHeight: 800,
 };
 
-export class Canvas2DService implements IRenderService {
+export class Canvas2DService implements RendererInterface {
   private splineTool: SplineTool;
 
   async install(canvas: HTMLCanvasElement) {

@@ -1,6 +1,6 @@
 import type { Pointer } from "./types.js";
 
-export interface IRenderService {
+export interface RendererInterface {
   // === 입력(브러시) ===
   start(pointer: Pointer): void;
   strokeTo(pointer: Pointer): void;

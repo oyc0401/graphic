@@ -1,4 +1,4 @@
-import type { IRenderService } from "../IRenderService.js";
+import type { RendererInterface } from "../RendererInterface.js";
 
 import { Rect } from "../rect.js";
 import type { Pointer } from "../types.js";
@@ -28,7 +28,7 @@ declare global {
   }
 }
 
-export class WebGPUService implements IRenderService {
+export class WebGPUService implements RendererInterface {
   private points: Pointer[] = [];
   private isDrawing: boolean = false;
   private canvas2D: HTMLCanvasElement;

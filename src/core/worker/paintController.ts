@@ -1,10 +1,10 @@
 import { paintOptions } from "../gl/texture";
-import { IRenderService } from "../IRenderService";
+import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
 
 let paint: PaintService;
 
-export class WebGL2Service implements IRenderService {
+export class WebGL2Controller implements RendererInterface {
   async install(
     main_canvas: OffscreenCanvas,
     screenWidth: number,
