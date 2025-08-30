@@ -1,5 +1,5 @@
 // inclusive Range Rectangle
-export class Rect {
+export class RectNew {
   // 내부 표현: 시작점(x, y) + 크기(w, h)
   // 포함 범위는 [x, x+w-1], [y, y+h-1] (inclusive end)
   private pathDirtyRect: { x: number; y: number; w: number; h: number } | null =
@@ -20,8 +20,12 @@ export class Rect {
     this.pathDirtyRect = null;
   }
 
+  static fromWidth(x, y, width, height) {
+    return new RectNew(x, y, width, height);
+  }
+
   /** 시작/끝 좌표(inclusive end)로 생성 */
-  static fromPosition(sx: number, sy: number, ex: number, ey: number): Rect {
+  static fromPosition(sx: number, sy: number, ex: number, ey: number): RectNew {
     // 방향에 상관없이 정상화
     const minX = Math.min(sx, ex);
     const minY = Math.min(sy, ey);
@@ -29,25 +33,25 @@ export class Rect {
     const maxY = Math.max(sy, ey);
     const w = maxX - minX + 1;
     const h = maxY - minY + 1;
-    return new Rect(minX, minY, w, h);
+    return new RectNew(minX, minY, w, h);
   }
 
-  static copy(rect: Rect): Rect {
-    return new Rect(rect.x, rect.y, rect.width, rect.height);
+  static copy(rect: RectNew): RectNew {
+    return new RectNew(rect.x, rect.y, rect.width, rect.height);
   }
 
   /** 캔버스 경계([0..W-1], [0..H-1])로 클램프. inclusive end 유지 */
   static clampToCanvas(
-    rect: Rect,
+    rect: RectNew,
     canvasWidth: number,
     canvasHeight: number
-  ): Rect {
-    const bounds = new Rect(0, 0, canvasWidth, canvasHeight);
-    return Rect.clampTo(rect, bounds);
+  ): RectNew {
+    const bounds = new RectNew(0, 0, canvasWidth, canvasHeight);
+    return RectNew.clampTo(rect, bounds);
   }
 
   /** 경계 Rect 내부로 클램프. inclusive end 유지 */
-  static clampTo(rect: Rect, bounds: Rect): Rect {
+  static clampTo(rect: RectNew, bounds: RectNew): RectNew {
     if (rect.isEmpty()) {
       throw new Error(
         "Invalid operation: Rect is empty and cannot be clamped."
@@ -68,10 +72,10 @@ export class Rect {
 
     if (width <= 0 || height <= 0) {
       console.warn("Rect does not overlap with bounds, returning 0x0 rect");
-      return new Rect(startX, startY, 0, 0); // 빈 rect로 반환
+      return new RectNew(startX, startY, 0, 0); // 빈 rect로 반환
     }
 
-    return new Rect(startX, startY, width, height);
+    return new RectNew(startX, startY, width, height);
   }
 
   /** Rect 인스턴스를 { startX, startY, endX, endY, width, height } 객체로 변환 */

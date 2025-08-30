@@ -1,8 +1,8 @@
 import type { RendererInterface } from "../RendererInterface.js";
 
-import { Rect } from "../rect.js";
+import { RectNew } from "../rect.js";
 import type { Pointer } from "../types.js";
-import { calculateTangents, hermite } from "../utils";
+import { calculateTangents, hermite } from "../utils/spline.js";
 
 const paintOptions = {
   width: 100,
@@ -185,7 +185,7 @@ export class WebGPUService implements RendererInterface {
     this.commitToLayer();
   }
 
-  private drawToTempCanvas(mode: "incremental" | "final"): Rect | null {
+  private drawToTempCanvas(mode: "incremental" | "final"): RectNew | null {
     // 기존 SplineTool의 drawToTempCanvasInternal과 동일한 로직
     this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
     const slicedPoints = this.points.slice(-4);
@@ -197,7 +197,7 @@ export class WebGPUService implements RendererInterface {
     this.tempCtx.lineJoin = "round";
     this.tempCtx.beginPath();
 
-    let dirtyRect = new Rect();
+    let dirtyRect = new RectNew();
 
     if (slicedPoints.length == 1) {
       const p = slicedPoints[0];
@@ -243,13 +243,13 @@ export class WebGPUService implements RendererInterface {
     return dirtyRect.isEmpty() ? null : dirtyRect;
   }
 
-  private updateGPUFromCanvas(dirtyRect: Rect): void {
+  private updateGPUFromCanvas(dirtyRect: RectNew): void {
     // tempCanvas 픽셀 데이터 → alphaTexture 업로드
     // 실제 구현에서는 GPU 버퍼 생성 및 copyBufferToTexture 사용
     console.log("Updating GPU textures from canvas", dirtyRect);
   }
 
-  private renderOnGPU(dirtyRect: Rect): void {
+  private renderOnGPU(dirtyRect: RectNew): void {
     // alphaTexture + color → drawTexture 렌더링
     // GPU compute shader 실행
     console.log("Rendering on GPU", dirtyRect);

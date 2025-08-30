@@ -57,7 +57,7 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
       workQueue.push(async () => {
         const rows = Math.min(rowsPerChunk, height - row);
         const sub = new TypedArray(
-          this.pixelData.buffer,
+          this.pixelData.buffer as ArrayBuffer,
           row * width * components * bytesPerComponent,
           rows * width * components
         );

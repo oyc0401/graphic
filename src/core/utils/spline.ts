@@ -1,4 +1,4 @@
-import type { Pointer, Tangent } from "./types.js";
+import type { Pointer, Tangent } from "../types.js";
 
 const tension = 0; // 0 = Catmull-Rom
 const k = (1 - tension) * 0.5;
@@ -31,16 +31,5 @@ export function hermite(
   return {
     x: h1 * p0.x + h2 * p1.x + h3 * v0.x + h4 * v1.x,
     y: h1 * p0.y + h2 * p1.y + h3 * v0.y + h4 * v1.y,
-  };
-}
-
-export function getMousePos(
-  canvas: HTMLCanvasElement,
-  e: PointerEvent
-): Pointer {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: (e.clientX - rect.left) / 10,
-    y: (e.clientY - rect.top) / 10,
   };
 }
