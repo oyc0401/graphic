@@ -5,7 +5,7 @@ import { PixelReader } from "./history/PixelReader";
 import { PixelStorage, PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { Snapshot } from "./history/history";
-import { RectNew } from "@/core/utils/rect";
+import { Rect } from "@/core/utils/rect";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -244,7 +244,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function getCurrentSnapshot(x, y, width, height) {
-    let renderRect = RectNew.fromWidth(x, y, width, height);
+    let renderRect = Rect.fromWidth(x, y, width, height);
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
       let pixelData = bitmapManager.copyDirtyRect(renderRect);
@@ -265,7 +265,7 @@ function makeSourceTextureManager(canvas, gl) {
   function upload(x, y, width, height) {
     const bitmapManager = getBitmapManager();
 
-    let renderRect = RectNew.fromWidth(x, y, width, height);
+    let renderRect = Rect.fromWidth(x, y, width, height);
 
     if (renderRect.isEmpty()) {
       const beforeSnapshot: Snapshot = {

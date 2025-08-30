@@ -1,7 +1,7 @@
 import { position } from "@/app/position";
 import { getManager } from "../../../utils/cachedManager";
 import { PixelStorage } from "./PixelStore";
-import { RectNew } from "@/core/utils/rect";
+import { Rect } from "@/core/utils/rect";
 
 export class HistoryObject {
   gl;
@@ -72,9 +72,9 @@ export interface HistoryResponse {
 export interface Snapshot {
   layerId;
   pixelReader?: PixelStorage;
-  rect: RectNew;
+  rect: Rect;
   apply: () => Promise<void>;
-  selectionRect?: RectNew;
+  selectionRect?: Rect;
 }
 
 let undoStack: HistoryObject[] = [];

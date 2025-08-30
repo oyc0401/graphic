@@ -2,7 +2,7 @@ import type { Pointer } from "../types.js";
 
 // inclusive Range Rectangle
 
-export class RectNew {
+export class Rect {
   // 내부 표현: 시작점(x, y) + 크기(w, h)
   // 포함 범위는 [x, x+w-1], [y, y+h-1] (inclusive end)
   private rect: { x: number; y: number; w: number; h: number };
@@ -12,11 +12,11 @@ export class RectNew {
   }
 
   static fromWidth(x, y, width, height) {
-    return new RectNew(x, y, width, height);
+    return new Rect(x, y, width, height);
   }
 
   /** 시작/끝 좌표(inclusive end)로 생성 */
-  static fromPosition(sx: number, sy: number, ex: number, ey: number): RectNew {
+  static fromPosition(sx: number, sy: number, ex: number, ey: number): Rect {
     // 방향에 상관없이 정상화
     const minX = Math.min(sx, ex);
     const minY = Math.min(sy, ey);
@@ -24,22 +24,22 @@ export class RectNew {
     const maxY = Math.max(sy, ey);
     const w = maxX - minX + 1;
     const h = maxY - minY + 1;
-    return new RectNew(minX, minY, w, h);
+    return new Rect(minX, minY, w, h);
   }
 
-  static copy(rect: RectNew): RectNew {
-    return new RectNew(rect.x, rect.y, rect.width, rect.height);
+  static copy(rect: Rect): Rect {
+    return new Rect(rect.x, rect.y, rect.width, rect.height);
   }
 
   /** 경계 Rect 내부로 클램프해서 수정. inclusive end 유지 */
-  clampTo(x: number, y: number, w: number, h: number): RectNew {
+  clampTo(x: number, y: number, w: number, h: number): Rect {
     if (this.isEmpty()) {
       throw new Error(
         "Invalid operation: Rect is empty and cannot be clamped."
       );
     }
 
-    const bounds = new RectNew(x, y, w, h);
+    const bounds = new Rect(x, y, w, h);
     if (bounds.isEmpty()) {
       throw new Error("Invalid operation: Bounds Rect is empty.");
     }
@@ -116,8 +116,8 @@ export class RectNew {
     return this.rect.w <= 0 || this.rect.h <= 0;
   }
 
-  copy(): RectNew {
-    const newRect = new RectNew(
+  copy(): Rect {
+    const newRect = new Rect(
       this.rect.x,
       this.rect.y,
       this.rect.w,
@@ -197,7 +197,7 @@ export class DirtyRectRecorder {
   /**
    * RectNew가 차지하는 영역을 더티에 합집합으로 추가
    */
-  updateRect(rect: RectNew) {
+  updateRect(rect: Rect) {
     const newX = rect.x;
     const newY = rect.y;
     const newEx = rect.ex;
@@ -254,13 +254,13 @@ export class DirtyRectRecorder {
     return this.pathDirtyRect !== null;
   }
 
-  generateRect(): RectNew {
+  generateRect(): Rect {
     if (!this.hasBeenDirty()) {
       throw Error("기록이 하나도 없습니다.");
     }
 
     const clampedRect = this.getClampedRect();
     const { x, y, w, h } = clampedRect;
-    return new RectNew(x, y, w, h);
+    return new Rect(x, y, w, h);
   }
 }

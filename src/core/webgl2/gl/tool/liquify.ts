@@ -17,7 +17,7 @@ import { getShaderSource } from "./liquifyShader";
 import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
 
 import { PixelReader } from "../history/PixelReader";
-import { DirtyRectRecorder, RectNew } from "@/core/utils/rect";
+import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 
 interface liquifyManager {
   enter(): void;
@@ -243,7 +243,7 @@ async function makeLiquifyManager(canvas, gl) {
   // enter부터 exitRkwl?
   let imageDirty: DirtyRectRecorder;
   // 이전에 적용된 더티사각형
-  let sourceImageDirty: RectNew | null = null;
+  let sourceImageDirty: Rect | null = null;
   /////////////////////////////
 
   function setSize() {
@@ -390,7 +390,7 @@ async function makeLiquifyManager(canvas, gl) {
 
   const fbo = gl.createFramebuffer();
 
-  function makeDirtyTexture(rect: RectNew) {
+  function makeDirtyTexture(rect: Rect) {
     const historyTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, historyTex);
@@ -469,7 +469,7 @@ async function makeLiquifyManager(canvas, gl) {
   }
 
   function uploadAndMakeHistory(x, y, width, height) {
-    let renderRect = RectNew.fromWidth(x, y, width, height);
+    let renderRect = Rect.fromWidth(x, y, width, height);
 
     const beforeTex = makeDirtyTexture(renderRect);
     let beforePixelReader = new PixelReader(
@@ -481,7 +481,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let beforeDirty: RectNew | null = null;
+    let beforeDirty: Rect | null = null;
     if (sourceImageDirty) {
       beforeDirty = sourceImageDirty.copy();
     }
@@ -530,7 +530,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let afterDirty: RectNew | null = null;
+    let afterDirty: Rect | null = null;
     if (imageDirty.hasBeenDirty()) {
       afterDirty = imageDirty.generateRect();
     }
@@ -559,7 +559,7 @@ async function makeLiquifyManager(canvas, gl) {
   }
 
   function clearAndMakeHistory(x, y, width, height) {
-    let renderRect = RectNew.fromWidth(x, y, width, height);
+    let renderRect = Rect.fromWidth(x, y, width, height);
 
     const beforeTex = makeDirtyTexture(renderRect);
     let beforePixelReader = new PixelReader(
@@ -571,7 +571,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let beforeDirty: RectNew | null = null;
+    let beforeDirty: Rect | null = null;
     if (sourceImageDirty) {
       beforeDirty = sourceImageDirty.copy();
     }
@@ -607,7 +607,7 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let afterDirty: RectNew | null = null;
+    let afterDirty: Rect | null = null;
     if (imageDirty.hasBeenDirty()) {
       afterDirty = imageDirty.generateRect();
     }
@@ -635,7 +635,7 @@ async function makeLiquifyManager(canvas, gl) {
     };
   }
 
-  function restore(rect: RectNew) {
+  function restore(rect: Rect) {
     let liquifyManager = getLiquifyManager(canvas, gl);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, liquifyManager.displaceFBO);

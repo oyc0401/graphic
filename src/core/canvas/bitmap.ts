@@ -1,5 +1,5 @@
 import { getManager } from "../utils/cachedManager";
-import { RectNew } from "../utils/rect";
+import { Rect } from "../utils/rect";
 
 export function getBitmapManager() {
   const manager = getManager(1, "bitmap", () => new BitmapManager());
@@ -17,7 +17,7 @@ class BitmapManager {
     this.bitmap = new Uint8ClampedArray(width * height * 4);
   }
 
-  copyDirtyRect(rect: RectNew): Uint8Array {
+  copyDirtyRect(rect: Rect): Uint8Array {
     const { x, y, width, height } = rect;
     const output = new Uint8Array(width * height * 4);
 
@@ -34,7 +34,7 @@ class BitmapManager {
     return output;
   }
 
-  applyDirtyRect(image: Uint8Array, rect: RectNew): void {
+  applyDirtyRect(image: Uint8Array, rect: Rect): void {
     const { x, y, width, height } = rect;
 
     for (let row = 0; row < height; row++) {

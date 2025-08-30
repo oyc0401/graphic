@@ -1,5 +1,5 @@
 import { paintOptions } from "./Canvas2DService";
-import { RectNew } from "../utils/rect";
+import { Rect } from "../utils/rect";
 import type { Pointer } from "../types.js";
 import { calculateTangents, hermite } from "../utils/spline";
 
@@ -132,9 +132,7 @@ export class SplineTool {
     }
   }
 
-  private drawToTempCanvasInternal(
-    mode: "incremental" | "final"
-  ): RectNew | null {
+  private drawToTempCanvasInternal(mode: "incremental" | "final"): Rect | null {
     this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
     const slicedPoints = this.points.slice(-4);
     const tangents = calculateTangents(slicedPoints);
@@ -145,7 +143,7 @@ export class SplineTool {
     this.tempCtx.lineJoin = "round";
     this.tempCtx.beginPath();
 
-    let dirtyRect = new RectNew();
+    let dirtyRect = new Rect();
 
     if (slicedPoints.length == 1) {
       const p = slicedPoints[0];
@@ -200,8 +198,8 @@ export class SplineTool {
     return dirtyRect;
   }
 
-  private extractToAlphaMap(canvas, ctx, map, dirtyRect: RectNew): void {
-    const clampedRect = RectNew.clampToCanvas(
+  private extractToAlphaMap(canvas, ctx, map, dirtyRect: Rect): void {
+    const clampedRect = Rect.clampToCanvas(
       dirtyRect,
       canvas.width,
       canvas.height
@@ -224,9 +222,9 @@ export class SplineTool {
     }
   }
 
-  private renderFromAlphaMap(map, dirtyRect: RectNew): void {
+  private renderFromAlphaMap(map, dirtyRect: Rect): void {
     // Rect.clampToCanvas로 경계 계산을 캡슐화
-    const clampedRect = RectNew.clampToCanvas(
+    const clampedRect = Rect.clampToCanvas(
       dirtyRect,
       this.drawCanvas.width,
       this.drawCanvas.height
