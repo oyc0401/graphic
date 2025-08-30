@@ -120,11 +120,11 @@ export class WebGL2Controller implements RendererInterface {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.paste(x, y, width, height, imageBitmap);
   }
-  copy() {
-    paint.copy();
+  getSelectionPixel() {
+    return paint.getSelectionPixel();
   }
   cut() {
-    paint.cut();
+    return paint.cut();
   }
   selectionDelete() {
     paint.selectionDelete();
@@ -136,7 +136,7 @@ export class WebGL2Controller implements RendererInterface {
     paint.resetImage(width, height);
   }
   downloadImage() {
-    paint.downloadImage();
+    return paint.downloadImage();
   }
   undo() {
     return paint.undo();

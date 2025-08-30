@@ -15,5 +15,9 @@ function getWorkerObject() {
 }
 
 export function getLayerWorker() {
+  return getWorkerObject().service;
+}
+
+export function getApplication() {
   return getWorkerObject();
 }

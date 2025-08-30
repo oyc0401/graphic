@@ -10,14 +10,6 @@ export const mainApi = {
     historyState.setUndoCount(undoCount);
     historyState.setRedoCount(redoCount);
   },
-  copy(pixels, width, height) {
-    let pixelData: Uint8ClampedArray = pixels;
-    copyPixelsToClipboard(pixelData, width, height);
-  },
-  download(pixels, width, height) {
-    let pixelData: Uint8ClampedArray = pixels;
-    downloadPixels(pixelData, width, height);
-  },
   setSelectionPosition(showSelection, x, y, width, height) {
     let realY = position.height - y - height;
     selection.setX(x);

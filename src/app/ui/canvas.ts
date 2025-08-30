@@ -1,17 +1,17 @@
 /** canvas.ts */
 import { els } from "./elements";
 import { getPixelRatio, position } from "../position";
-import { getLayerWorker } from "../worker/workerPool";
+import { getApplication } from "../worker/workerPool";
 import * as Comlink from "comlink";
 
 export async function tranferCanvas() {
-  const worker = getLayerWorker();
+  const application = getApplication();
   const offscreen = els.canvas.transferControlToOffscreen();
 
   console.log("screenHeight", position.screenHeight);
 
   let dpr = getPixelRatio();
-  await worker.install(
+  await application.install(
     offscreen,
     position.screenWidth,
     position.screenHeight,

@@ -140,7 +140,8 @@ export function addClipboardEvent() {
     event.preventDefault();
     if (selection.visible) {
       let worker = getLayerWorker();
-      worker.copy();
+      let { pixels, width, height } = worker.getSelectionPixel();
+      copyPixelsToClipboard(pixels, width, height);
     }
   });
 
@@ -156,7 +157,8 @@ export function addClipboardEvent() {
     event.preventDefault();
     if (selection.visible) {
       let worker = getLayerWorker();
-      worker.cut();
+      let { pixels, width, height } = worker.cut();
+      copyPixelsToClipboard(pixels, width, height);
     }
 
     cutSelection();
@@ -301,5 +303,6 @@ export async function downloadPixels(
 
 export function downloadImage() {
   let worker = getLayerWorker();
-  worker.downloadImage();
+  let { pixels, width, height } = worker.downloadImage();
+  downloadPixels(pixels, width, height);
 }

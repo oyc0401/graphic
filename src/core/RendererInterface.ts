@@ -38,8 +38,16 @@ export interface RendererInterface {
     height: number,
     imageBitmap: ImageBitmap
   ): void;
-  copy(): void;
-  cut(): void;
+  getSelectionPixel(): {
+    pixels: Uint8ClampedArray<ArrayBufferLike>;
+    width: number;
+    height: number;
+  };
+  cut(): {
+    pixels: Uint8ClampedArray<ArrayBufferLike>;
+    width: number;
+    height: number;
+  };
   selectionDelete(): void;
 
   // === 이미지 관리 ===
