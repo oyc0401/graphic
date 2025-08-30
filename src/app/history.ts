@@ -3,6 +3,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { toolManager } from "./draw";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
+import { position } from "./position";
 
 class HistoryState {
   undoCount = 0;
@@ -67,6 +68,38 @@ export async function undo() {
   } else {
     console.warn("허용되지 않은 tool", tool);
   }
+
+  if (historyResponse.position) {
+    let { x, y, width, height } = historyResponse.position;
+    let newY = position.screenHeight / position.scale - height - y;
+
+    position.setX(x);
+    position.setY(newY);
+    position.setWidth(width);
+    position.setHeight(height);
+  }
+
+  if (historyResponse.selection) {
+    let { show, x, y, width, height } = historyResponse.selection;
+
+    let realY = position.height - y - height;
+    selection.setX(x);
+    selection.setY(realY);
+    selection.setWidth(width);
+    selection.setHeight(height);
+    selection.setShowHandle(show);
+    selection.setShowHint(show);
+    selection.setVisible(show);
+    let worker = getLayerWorker();
+
+    if (show) {
+      paintState.setToolId("selection");
+      worker.setTool("selection");
+    } else {
+      paintState.setToolId("select");
+      worker.setTool("select");
+    }
+  }
 }
 
 export async function redo() {
@@ -81,6 +114,7 @@ export async function redo() {
   let { tool, undoCount, redoCount } = historyResponse;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
+
   if (!tool) return;
   // console.warn("change tool:", msg);
   if (tool == "select") {
@@ -104,5 +138,37 @@ export async function redo() {
     worker.setTool(paintState.brushId, false);
   } else {
     console.warn("허용되지 않은 tool", tool);
+  }
+
+  if (historyResponse.position) {
+    let { x, y, width, height } = position;
+    let newY = position.screenHeight / position.scale - height - y;
+
+    position.setX(x);
+    position.setY(newY);
+    position.setWidth(width);
+    position.setHeight(height);
+  }
+
+  if (historyResponse.selection) {
+    let { show, x, y, width, height } = historyResponse.selection;
+
+    let realY = position.height - y - height;
+    selection.setX(x);
+    selection.setY(realY);
+    selection.setWidth(width);
+    selection.setHeight(height);
+    selection.setShowHandle(show);
+    selection.setShowHint(show);
+    selection.setVisible(show);
+    let worker = getLayerWorker();
+
+    if (show) {
+      paintState.setToolId("selection");
+      worker.setTool("selection");
+    } else {
+      paintState.setToolId("select");
+      worker.setTool("select");
+    }
   }
 }

@@ -1,5 +1,4 @@
 import { paintConfig } from "@/paint.config";
-import { mainApi as mainThread } from "@/app/worker/mainController";
 import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { PixelReader } from "./history/PixelReader";
 
@@ -428,14 +427,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "select";
+        return {
+          tool: "select",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
       redo: async () => {
         await after.apply();
@@ -444,14 +445,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "selection";
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
     });
 
@@ -500,14 +503,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "selection";
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
       redo: async () => {
         await after.apply();
@@ -516,14 +521,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "brush";
+        return {
+          tool: "brush",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
     });
 
@@ -570,14 +577,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "select";
+        return {
+          tool: "select",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
       redo: async () => {
         await after.apply();
@@ -585,14 +594,16 @@ function createSelectionManager(canvas, gl) {
 
         renderingManager.render();
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "selection";
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
     });
 
@@ -658,16 +669,18 @@ function createSelectionManager(canvas, gl) {
 
         beforePos = structuredClone(selectionPos);
 
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "selection";
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
-      redo: () => {
+      redo: async () => {
         setSize(
           afterPosition.x,
           afterPosition.y,
@@ -676,14 +689,17 @@ function createSelectionManager(canvas, gl) {
         );
 
         beforePos = structuredClone(selectionPos);
-        mainThread.setSelectionPosition(
-          paintOptions.showSelection,
-          selectionPos.x,
-          selectionPos.y,
-          selectionPos.width,
-          selectionPos.height
-        );
-        return "selection";
+
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: selectionPos.x,
+            y: selectionPos.y,
+            width: selectionPos.width,
+            height: selectionPos.height,
+          },
+        };
       },
     });
 

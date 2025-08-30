@@ -707,11 +707,11 @@ async function makeLiquifyManager(canvas, gl) {
       const newHistory = new HistoryObject(gl, {
         undo: async () => {
           closeTexture();
-          return "brush";
+          return { tool: "brush" };
         },
         redo: async () => {
           openTexture();
-          return "liquify";
+          return { tool: "liquify" };
         },
       });
       let historyManager = getHistoryManager(canvas, gl);
@@ -731,12 +731,12 @@ async function makeLiquifyManager(canvas, gl) {
         undo: async () => {
           await before.apply();
           render();
-          return "liquify";
+          return { tool: "liquify" };
         },
         redo: async () => {
           await after.apply();
           render();
-          return "liquify";
+          return { tool: "liquify" };
         },
       });
 
@@ -775,14 +775,14 @@ async function makeLiquifyManager(canvas, gl) {
             await before.apply();
             await beforeSource.apply();
             render();
-            return "liquify";
+            return { tool: "liquify" };
           },
           redo: async () => {
             await after.apply();
             await afterSource.apply();
             render();
             closeTexture();
-            return "brush";
+            return { tool: "brush" };
           },
         });
 
@@ -792,12 +792,12 @@ async function makeLiquifyManager(canvas, gl) {
           undo: async () => {
             openTexture();
             render();
-            return "liquify";
+            return { tool: "liquify" };
           },
           redo: async () => {
             render();
             closeTexture();
-            return "brush";
+            return { tool: "brush" };
           },
         });
 

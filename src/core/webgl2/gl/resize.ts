@@ -8,7 +8,6 @@ import { PixelReader } from "./history/PixelReader";
 
 import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
-import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { lowQueue, pushLowQueue } from "./history/workQueue";
@@ -81,13 +80,15 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
       renderingManager.render();
 
-      mainThread.setPosition(
-        paintOptions.x,
-        paintOptions.y,
-        paintOptions.width,
-        paintOptions.height
-      );
-      return "brush";
+      return {
+        tool: "brush",
+        position: {
+          x: paintOptions.x,
+          y: paintOptions.y,
+          width: paintOptions.width,
+          height: paintOptions.height,
+        },
+      };
     },
     redo: async () => {
       paintOptions.x += x;
@@ -107,13 +108,15 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
       renderingManager.render();
 
-      mainThread.setPosition(
-        paintOptions.x,
-        paintOptions.y,
-        paintOptions.width,
-        paintOptions.height
-      );
-      return "brush";
+      return {
+        tool: "brush",
+        position: {
+          x: paintOptions.x,
+          y: paintOptions.y,
+          width: paintOptions.width,
+          height: paintOptions.height,
+        },
+      };
     },
   });
 

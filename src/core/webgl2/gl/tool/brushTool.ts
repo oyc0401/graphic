@@ -483,12 +483,12 @@ function makeBrushManager(canvas, gl) {
         undo: async () => {
           await before.apply();
           await renderingManager.render();
-          return "brush";
+          return { tool: "brush" };
         },
         redo: async () => {
           await after.apply();
           await renderingManager.render();
-          return "brush";
+          return { tool: "brush" };
         },
       });
 

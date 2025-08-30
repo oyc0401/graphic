@@ -2,6 +2,7 @@ import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
 import type { Pointer } from "../types.js";
+import { HistoryResponse } from "./gl/history/history";
 
 let paint: PaintService;
 
@@ -209,12 +210,6 @@ function toWebglCoord3(
     x,
     y: newY,
   };
-}
-
-interface HistoryResponse {
-  tool: string;
-  undoCount: number;
-  redoCount: number;
 }
 
 interface HistoryCount {

@@ -1,3 +1,4 @@
+import { position } from "@/app/position";
 import { getManager } from "../../../utils/cachedManager";
 import { Rect } from "../../../utils/dirtyRect";
 import { PixelStorage } from "./PixelStore";
@@ -6,15 +7,60 @@ export class HistoryObject {
   gl;
   id;
 
-  constructor(gl, { undo, redo }) {
+  constructor(
+    gl,
+    {
+      undo,
+      redo,
+    }: {
+      undo: () => Promise<HistoryCommand>;
+      redo: () => Promise<HistoryCommand>;
+    }
+  ) {
     this.gl = gl;
     this.undo = undo;
     this.redo = redo;
   }
 
-  undo: () => Promise<string>;
+  undo: () => Promise<HistoryCommand>;
 
-  redo: () => Promise<string>;
+  redo: () => Promise<HistoryCommand>;
+}
+
+interface HistoryCommand {
+  tool: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  selection?: {
+    show: boolean;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export interface HistoryResponse {
+  tool: string;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  selection?: {
+    show: boolean;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  undoCount: number;
+  redoCount: number;
 }
 
 // 드로우 1 -> 드로우 2 -> 드로우 3 -> 나가기
@@ -37,7 +83,6 @@ let redoStack: HistoryObject[] = [];
 export function resetHisory() {
   undoStack = [];
   redoStack = [];
-  // mainThread.historyCount(undoStack.length, redoStack.length);
 }
 
 export function getHistoryManager(canvas, gl) {
@@ -70,20 +115,17 @@ function createHistoryManager(canvas, gl) {
       redoStack = [];
     }
 
-    // mainThread.historyCount(undoStack.length, redoStack.length);
-
     logCurrent();
   }
 
   function addRedo(newHistory: HistoryObject) {
     redoStack.push(newHistory);
 
-    // mainThread.historyCount(undoStack.length, redoStack.length);
     logCurrent();
   }
 
-  async function undo() {
-    if (undoStack.length == 0) return;
+  async function undo(): Promise<HistoryResponse | null> {
+    if (undoStack.length == 0) return null;
 
     let history = undoStack[undoStack.length - 1];
     undoStack.pop();
@@ -92,14 +134,16 @@ function createHistoryManager(canvas, gl) {
     addRedo(history);
 
     return {
-      tool: response,
+      tool: response.tool,
+      selection: response.selection,
+      position: response.position,
       undoCount: undoStack.length,
       redoCount: redoStack.length,
     };
   }
 
-  async function redo() {
-    if (redoStack.length == 0) return;
+  async function redo(): Promise<HistoryResponse | null> {
+    if (redoStack.length == 0) return null;
 
     let history = redoStack[redoStack.length - 1];
     redoStack.pop();
@@ -108,7 +152,9 @@ function createHistoryManager(canvas, gl) {
     addUndo(history, { resetRedo: false });
 
     return {
-      tool: response,
+      tool: response.tool,
+      selection: response.selection,
+      position: response.position,
       undoCount: undoStack.length,
       redoCount: redoStack.length,
     };
