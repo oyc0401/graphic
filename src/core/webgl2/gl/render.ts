@@ -6,7 +6,6 @@ import { getSelectionManager } from "./selection";
 import { createShader, createProgram } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
 import { getManager } from "../../utils/cachedManager";
-import { Rect } from "../../utils/dirtyRect";
 import { paintConfig } from "@/paint.config";
 import { RectNew } from "@/core/utils/rect";
 
@@ -508,7 +507,7 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  function renderNow(rect: Rect) {
+  function renderNow(rect: RectNew) {
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     if (paintOptions.selectionAntialias) {
@@ -586,9 +585,9 @@ function makeRenderingManager(canvas, gl) {
 
   let scheduled = false;
 
-  function render(rect: RectNew = undefined) {
+  function render(rect: RectNew | undefined = undefined) {
     //console.log("rect:", rect);
-    let newRect: Rect;
+    let newRect: RectNew;
 
     if (rect) {
       let calX = Math.floor(rect.x + paintOptions.x);
@@ -597,9 +596,9 @@ function makeRenderingManager(canvas, gl) {
       let calH = Math.ceil(rect.height * paintOptions.magnification);
       //console.log("x:", rect.x, paintOptions.magnification, paintOptions.x);
       //console.log("calculated:", calX, calY, calW, calH);
-      newRect = Rect.fromWidth(calX, calY, calW, calH);
+      newRect = RectNew.fromWidth(calX, calY, calW, calH);
     } else {
-      newRect = Rect.fromWidth(
+      newRect = RectNew.fromWidth(
         0,
         0,
         paintOptions.screenWidth,

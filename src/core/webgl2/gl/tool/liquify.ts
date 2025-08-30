@@ -14,7 +14,6 @@ import {
 import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
 import { getRenderingManager } from "../render";
 import { getShaderSource } from "./liquifyShader";
-import { DirtyRect, Rect } from "../../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
 
 import { PixelReader } from "../history/PixelReader";

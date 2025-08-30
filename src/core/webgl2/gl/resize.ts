@@ -5,12 +5,11 @@ import { getBrushManager } from "./tool/brushTool";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";
-
-import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { lowQueue, pushLowQueue } from "./history/workQueue";
+import { RectNew } from "@/core/utils/rect";
 
 /**
  * 도화지의 크기를 조절함
@@ -226,7 +225,7 @@ function createResizeManager(canvas, gl) {
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
     const bitmapManager = getBitmapManager();
-    const renderRect = Rect.fromWidth(0, 0, oldWidth, oldHeight);
+    const renderRect = RectNew.fromWidth(0, 0, oldWidth, oldHeight);
 
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
@@ -341,7 +340,7 @@ function createResizeManager(canvas, gl) {
       gl.UNSIGNED_BYTE
     );
 
-    let newRect = Rect.fromWidth(0, 0, newWidth, newHeight);
+    let newRect = RectNew.fromWidth(0, 0, newWidth, newHeight);
     pushLowQueue(gl, async () => {
       bitmapManager.applyResizeDirtyRect(
         await afterPixelReader.getPixelData(true),
@@ -409,7 +408,10 @@ function createResizeManager(canvas, gl) {
       null
     );
 
-    let snapshots = [];
+    let snapshots: {
+      before: Snapshot;
+      after: Snapshot;
+    }[] = [];
     for (let layerTex of layerManager.layerArray) {
       let snapshot = resize(
         x,

@@ -6,10 +6,10 @@ import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getManager } from "../../utils/cachedManager";
-import { DirtyRect, Rect } from "../../utils/dirtyRect";
 import { decodePremultAndFlip } from "../../utils/flipPixel";
 import { createProgram, createShader } from "./utils/glHelper";
 import { getBufferManager, getFullQuadShader } from "./vertexShader";
+import { RectNew } from "@/core/utils/rect";
 
 export function getSelectionManager(canvas, gl) {
   const manager = getManager(gl, "selection", () =>
@@ -291,7 +291,7 @@ function createSelectionManager(canvas, gl) {
   }
 
   function selectionSnapshot() {
-    const renderRect = Rect.fromWidth(0, 0, originalWidth, originalHeight);
+    const renderRect = RectNew.fromWidth(0, 0, originalWidth, originalHeight);
 
     const selectionCopyTex = makeSelectionCopyTexture();
 
@@ -303,7 +303,7 @@ function createSelectionManager(canvas, gl) {
       gl.RGBA,
       gl.UNSIGNED_BYTE
     );
-    const selectionPosRect = Rect.fromWidth(
+    const selectionPosRect = RectNew.fromWidth(
       selectionPos.x,
       selectionPos.y,
       selectionPos.width,
@@ -491,7 +491,13 @@ function createSelectionManager(canvas, gl) {
     let { show: before, hide: after } = selectionSnapshot();
 
     // sourceTextureManager rect는 꼭 캔버스 내부 영역으로 제한
-    let dirty = DirtyRect.copy(selectionPos);
+    let dirty = RectNew.fromWidth(
+      selectionPos.x,
+      selectionPos.y,
+      selectionPos.width,
+      selectionPos.height
+    ).clampTo(0, 0, paintOptions.width, paintOptions.height);
+
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(dirty.x, dirty.y, dirty.width, dirty.height);
 

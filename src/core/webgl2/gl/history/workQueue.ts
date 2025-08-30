@@ -64,7 +64,7 @@ class LowWorkQueue {
         }
         console.log("queue size:", this.queue.length);
         if (this.queue.length > 0 && !flags.drawing) {
-          const work = this.queue.shift();
+          const work = this.queue.shift()!;
           await work();
           //console.log(work);
         }

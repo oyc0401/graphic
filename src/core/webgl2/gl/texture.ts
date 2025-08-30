@@ -1,11 +1,11 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../../utils/cachedManager";
-import { DirtyRect } from "../../utils/dirtyRect";
 import { pushLowQueue } from "./history/workQueue";
 import { PixelReader } from "./history/PixelReader";
 import { PixelStorage, PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { Snapshot } from "./history/history";
+import { RectNew } from "@/core/utils/rect";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -244,28 +244,7 @@ function makeSourceTextureManager(canvas, gl) {
   }
 
   function getCurrentSnapshot(x, y, width, height) {
-    const renderRect = DirtyRect.fromWidth(x, y, width, height);
-
-    let beforePixel = new PixelStore(gl, () => {
-      const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtyRect(renderRect);
-      return pixelData;
-    });
-
-    const beforeSnapshot: Snapshot = {
-      layerId: paintOptions.layerId,
-      pixelReader: beforePixel,
-      rect: renderRect,
-      async apply() {
-        await applyHistory(this.layerId, this.pixelReader, this.rect);
-      },
-    };
-    return beforeSnapshot;
-  }
-
-  function getCurrentSnapshot2(x, y, width, height) {
-    const renderRect = DirtyRect.fromWidth(x, y, width, height);
-
+    let renderRect = RectNew.fromWidth(x, y, width, height);
     let beforePixel = new PixelStore(gl, () => {
       const bitmapManager = getBitmapManager();
       let pixelData = bitmapManager.copyDirtyRect(renderRect);
@@ -286,7 +265,29 @@ function makeSourceTextureManager(canvas, gl) {
   function upload(x, y, width, height) {
     const bitmapManager = getBitmapManager();
 
-    const renderRect = DirtyRect.fromWidth(x, y, width, height);
+    let renderRect = RectNew.fromWidth(x, y, width, height);
+
+    if (renderRect.isEmpty()) {
+      const beforeSnapshot: Snapshot = {
+        layerId: paintOptions.layerId,
+        rect: renderRect,
+        async apply() {
+          // await applyHistory(this.layerId, this.pixelReader, this.rect);
+        },
+      };
+      const afterSnapshot: Snapshot = {
+        layerId: paintOptions.layerId,
+        rect: renderRect,
+        async apply() {
+          // await applyHistory(this.layerId, this.pixelReader, this.rect);
+        },
+      };
+
+      return {
+        before: beforeSnapshot,
+        after: afterSnapshot,
+      };
+    }
 
     // 이전 큐에 쌓인 픽셀을 모두 읽어온 다음에 픽셀을 복사해야함.
     // 그러면 리드픽셀프로세서를 큐로 먼들고.
@@ -296,7 +297,7 @@ function makeSourceTextureManager(canvas, gl) {
     // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
     // getDirtyUnit8Array()
 
-    const beforeSnapshot: Snapshot = getCurrentSnapshot2(x, y, width, height);
+    const beforeSnapshot: Snapshot = getCurrentSnapshot(x, y, width, height);
 
     // sourceMap으로 업로드
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -393,7 +394,7 @@ function makeSourceTextureManager(canvas, gl) {
     restore,
     sourceFBO,
     setSize,
-    getCurrentSnapshot,
+    //getCurrentSnapshot,
     uploadFromLayer,
   };
 
