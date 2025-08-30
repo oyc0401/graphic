@@ -9,7 +9,7 @@ import { getLayerManager } from "../layer";
 import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../../../utils/cachedManager";
 import { getHistoryManager, HistoryObject } from "../history/history";
-import { RectNew } from "@/core/utils/rect";
+import { DirtyRectRecorder, RectNew } from "@/core/utils/rect";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -346,11 +346,11 @@ function makeBrushManager(canvas, gl) {
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
 
-  // 이전 move에서 다음 move까지
-  let scissorDirty: RectNew;
-
   // start부터 end까지
-  let pathDirty: RectNew;
+  let strokeDirtyRecorder: DirtyRectRecorder;
+
+  // 이전 move에서 다음 move까지
+  let scissorDirtyRecorder: DirtyRectRecorder;
 
   let brushManager = {
     enter() {
@@ -359,13 +359,13 @@ function makeBrushManager(canvas, gl) {
     start(pointer) {
       // console.log("start!");
 
-      pathDirty = RectNew.clampdRect(
+      strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
         0,
         0,
         paintOptions.width,
         paintOptions.height
       );
-      pathDirty.updatePointer(pointer, paintOptions.radius);
+      strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
     },
     stroke(start, end) {
       gl.useProgram(strokeProgram);
@@ -401,25 +401,26 @@ function makeBrushManager(canvas, gl) {
         0
       );
 
-      scissorDirty = RectNew.clampdRect(
+      scissorDirtyRecorder = DirtyRectRecorder.clampedRect(
         0,
         0,
         paintOptions.width,
         paintOptions.height
       );
-      scissorDirty.updatePointer(start, paintOptions.radius);
-      scissorDirty.updatePointer(end, paintOptions.radius);
+      scissorDirtyRecorder.updatePointer(start, paintOptions.radius);
+      scissorDirtyRecorder.updatePointer(end, paintOptions.radius);
 
-      pathDirty.updatePointer(start, paintOptions.radius);
-      pathDirty.updatePointer(end, paintOptions.radius);
+      strokeDirtyRecorder.updatePointer(start, paintOptions.radius);
+      strokeDirtyRecorder.updatePointer(end, paintOptions.radius);
 
+      let scissorRect = scissorDirtyRecorder.generateRect();
       // SCISSOR TEST로 일부만 렌더링
       gl.enable(gl.SCISSOR_TEST);
       gl.scissor(
-        scissorDirty.x,
-        scissorDirty.y,
-        scissorDirty.width,
-        scissorDirty.height
+        scissorRect.x,
+        scissorRect.y,
+        scissorRect.width,
+        scissorRect.height
       );
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -445,14 +446,14 @@ function makeBrushManager(canvas, gl) {
       );
 
       gl.blitFramebuffer(
-        scissorDirty.x,
-        scissorDirty.y,
-        scissorDirty.ex + 1,
-        scissorDirty.ey + 1, // 소스
-        scissorDirty.x,
-        scissorDirty.y,
-        scissorDirty.ex + 1,
-        scissorDirty.ey + 1, // 대상
+        scissorRect.x,
+        scissorRect.y,
+        scissorRect.ex + 1,
+        scissorRect.ey + 1, // 소스
+        scissorRect.x,
+        scissorRect.y,
+        scissorRect.ex + 1,
+        scissorRect.ey + 1, // 대상
         gl.COLOR_BUFFER_BIT,
         gl.NEAREST
       );
@@ -471,7 +472,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(scissorDirty.copy());
+      renderingManager.render(scissorDirtyRecorder.generateRect());
     },
     eraser() {
       gl.useProgram(eraserProgram);
@@ -482,14 +483,15 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(scissorDirty.copy());
+      renderingManager.render(scissorDirtyRecorder.generateRect());
     },
     end() {
+      let strokeRect = strokeDirtyRecorder.generateRect();
       let { before, after } = sourceTextureManager.upload(
-        pathDirty.x,
-        pathDirty.y,
-        pathDirty.width,
-        pathDirty.height
+        strokeRect.x,
+        strokeRect.y,
+        strokeRect.width,
+        strokeRect.height
       );
 
       const newHistory = new HistoryObject(gl, {

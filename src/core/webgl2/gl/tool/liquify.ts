@@ -18,7 +18,7 @@ import { DirtyRect, Rect } from "../../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
 
 import { PixelReader } from "../history/PixelReader";
-import { RectNew } from "@/core/utils/rect";
+import { DirtyRectRecorder, RectNew } from "@/core/utils/rect";
 
 interface liquifyManager {
   enter(): void;
@@ -47,7 +47,7 @@ export async function installLiquifyManager(canvas, gl) {
 }
 
 export function getLiquifyManager(canvas, gl) {
-  let liquifyManager = liquifyManagerStore.get(gl);
+  let liquifyManager = liquifyManagerStore.get(gl)!;
   if (!liquifyManager) {
     console.error("Not Installed LiquifyManager!");
   }
@@ -237,13 +237,15 @@ async function makeLiquifyManager(canvas, gl) {
 
   ////////////////
   // start부터 end까지
-  let pathDirty: RectNew;
-  // enter부터 exitRkwl?
-  let imageDirty: DirtyRect | null = null;
-  let sourceImageDirty: DirtyRect | null = null;
-  /////////////////////////////
+  let strokeDirtyRecorder: DirtyRectRecorder;
 
-  let scissorDirty: RectNew;
+  let scissorDirtyRecorder: DirtyRectRecorder;
+
+  // enter부터 exitRkwl?
+  let imageDirty: DirtyRectRecorder;
+  // 이전에 적용된 더티사각형
+  let sourceImageDirty: RectNew | null = null;
+  /////////////////////////////
 
   function setSize() {
     const width = paintOptions.width;
@@ -275,21 +277,15 @@ async function makeLiquifyManager(canvas, gl) {
     //console.log("시작!");
 
     let ceiledRadius = Math.ceil(paintOptions.radius);
-    pathDirty = RectNew.clampdRect(
+    strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
       0,
       0,
       paintOptions.width,
       paintOptions.height
     );
-    pathDirty.updatePointer(pointer, paintOptions.radius);
-    if (imageDirty) {
-      //console.log("liq dirty updatePointer...");
-      imageDirty.updatePointer(pointer, ceiledRadius);
-    } else {
-      imageDirty = new DirtyRect();
-      //console.log("liq dirty reset!!!");
-      imageDirty.reset(pointer, ceiledRadius);
-    }
+    strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
+
+    imageDirty.updatePointer(pointer, ceiledRadius);
   }
   // init 시에 한 번만 호출 (ex. setSize()나 초기화 구간)
   const u_radiusLoc = gl.getUniformLocation(liquifyPushProgram, "u_radius");
@@ -305,30 +301,31 @@ async function makeLiquifyManager(canvas, gl) {
     gl.uniform2f(u_startLoc, start.x, start.y);
     gl.uniform2f(u_endLoc, end.x, end.y);
 
-    scissorDirty = RectNew.clampdRect(
+    scissorDirtyRecorder = DirtyRectRecorder.clampedRect(
       0,
       0,
       paintOptions.width,
       paintOptions.height
     );
-    scissorDirty.updatePointer(start, paintOptions.radius);
-    scissorDirty.updatePointer(end, paintOptions.radius);
+    scissorDirtyRecorder.updatePointer(start, paintOptions.radius);
+    scissorDirtyRecorder.updatePointer(end, paintOptions.radius);
 
-    pathDirty.updatePointer(start, paintOptions.radius);
-    pathDirty.updatePointer(end, paintOptions.radius);
+    strokeDirtyRecorder.updatePointer(start, paintOptions.radius);
+    strokeDirtyRecorder.updatePointer(end, paintOptions.radius);
     imageDirty.updatePointer(start, paintOptions.radius);
     imageDirty.updatePointer(end, paintOptions.radius);
 
     // 렌더 대상: output
     gl.bindFramebuffer(gl.FRAMEBUFFER, displaceOutFBO);
 
+    let scissorRect = scissorDirtyRecorder.generateRect();
     // SCISSOR TEST로 일부만 렌더링
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(
-      scissorDirty.x,
-      scissorDirty.y,
-      scissorDirty.width,
-      scissorDirty.height
+      scissorRect.x,
+      scissorRect.y,
+      scissorRect.width,
+      scissorRect.height
     );
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -338,14 +335,14 @@ async function makeLiquifyManager(canvas, gl) {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, displaceInFBO);
 
     gl.blitFramebuffer(
-      scissorDirty.x,
-      scissorDirty.y,
-      scissorDirty.ex + 1,
-      scissorDirty.ey + 1, // 소스
-      scissorDirty.x,
-      scissorDirty.y,
-      scissorDirty.ex + 1,
-      scissorDirty.ey + 1, // 대상
+      scissorRect.x,
+      scissorRect.y,
+      scissorRect.ex + 1,
+      scissorRect.ey + 1, // 소스
+      scissorRect.x,
+      scissorRect.y,
+      scissorRect.ex + 1,
+      scissorRect.ey + 1, // 대상
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST
     );
@@ -360,7 +357,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
-    renderingManager.render(scissorDirty.copy());
+    renderingManager.render(scissorDirtyRecorder.generateRect());
   }
 
   function clearMap() {
@@ -394,7 +391,7 @@ async function makeLiquifyManager(canvas, gl) {
 
   const fbo = gl.createFramebuffer();
 
-  function makeDirtyTexture(pathDirty) {
+  function makeDirtyTexture(rect: RectNew) {
     const historyTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, historyTex);
@@ -402,8 +399,8 @@ async function makeLiquifyManager(canvas, gl) {
       gl.TEXTURE_2D,
       0,
       gl.RG16F,
-      pathDirty.width,
-      pathDirty.height,
+      rect.width,
+      rect.height,
       0,
       gl.RG,
       gl.HALF_FLOAT,
@@ -424,14 +421,14 @@ async function makeLiquifyManager(canvas, gl) {
 
     // blit 좌표계는 0,0,1,1이 1칸임.
     gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
       0,
       0,
-      pathDirty.width,
-      pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
+      rect.width,
+      rect.height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
       gl.NEAREST // 필터링 옵션
     );
@@ -473,7 +470,7 @@ async function makeLiquifyManager(canvas, gl) {
   }
 
   function uploadAndMakeHistory(x, y, width, height) {
-    let renderRect = DirtyRect.fromWidth(x, y, width, height);
+    let renderRect = RectNew.fromWidth(x, y, width, height);
 
     const beforeTex = makeDirtyTexture(renderRect);
     let beforePixelReader = new PixelReader(
@@ -485,9 +482,9 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let beforeDirty: DirtyRect | null = null;
+    let beforeDirty: RectNew | null = null;
     if (sourceImageDirty) {
-      beforeDirty = DirtyRect.copy(sourceImageDirty);
+      beforeDirty = sourceImageDirty.copy();
     }
 
     let beforeSnapshot: Snapshot = {
@@ -496,7 +493,15 @@ async function makeLiquifyManager(canvas, gl) {
       rect: renderRect,
       async apply() {
         await applyHistory(this.pixelReader, this.rect);
-        imageDirty = beforeDirty;
+        imageDirty = DirtyRectRecorder.clampedRect(
+          0,
+          0,
+          paintOptions.width,
+          paintOptions.height
+        );
+        if (beforeDirty) {
+          imageDirty.updateRect(beforeDirty);
+        }
       },
     };
 
@@ -526,9 +531,9 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let afterDirty: DirtyRect | null = null;
-    if (imageDirty) {
-      afterDirty = DirtyRect.copy(imageDirty);
+    let afterDirty: RectNew | null = null;
+    if (imageDirty.hasBeenDirty()) {
+      afterDirty = imageDirty.generateRect();
     }
     let afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -536,7 +541,15 @@ async function makeLiquifyManager(canvas, gl) {
       rect: renderRect,
       async apply() {
         await applyHistory(this.pixelReader, this.rect);
-        imageDirty = afterDirty;
+        imageDirty = DirtyRectRecorder.clampedRect(
+          0,
+          0,
+          paintOptions.width,
+          paintOptions.height
+        );
+        if (afterDirty) {
+          imageDirty.updateRect(afterDirty);
+        }
       },
     };
 
@@ -547,7 +560,7 @@ async function makeLiquifyManager(canvas, gl) {
   }
 
   function clearAndMakeHistory(x, y, width, height) {
-    let renderRect = DirtyRect.fromWidth(x, y, width, height);
+    let renderRect = RectNew.fromWidth(x, y, width, height);
 
     const beforeTex = makeDirtyTexture(renderRect);
     let beforePixelReader = new PixelReader(
@@ -559,9 +572,9 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let beforeDirty: DirtyRect | null = null;
+    let beforeDirty: RectNew | null = null;
     if (sourceImageDirty) {
-      beforeDirty = DirtyRect.copy(sourceImageDirty);
+      beforeDirty = sourceImageDirty.copy();
     }
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -569,7 +582,16 @@ async function makeLiquifyManager(canvas, gl) {
       rect: renderRect,
       async apply() {
         await applyHistory(this.pixelReader, this.rect);
-        imageDirty = beforeDirty;
+
+        imageDirty = DirtyRectRecorder.clampedRect(
+          0,
+          0,
+          paintOptions.width,
+          paintOptions.height
+        );
+        if (beforeDirty) {
+          imageDirty.updateRect(beforeDirty);
+        }
       },
     };
 
@@ -586,9 +608,9 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT
     );
 
-    let afterDirty: DirtyRect | null = null;
-    if (imageDirty) {
-      afterDirty = DirtyRect.copy(imageDirty);
+    let afterDirty: RectNew | null = null;
+    if (imageDirty.hasBeenDirty()) {
+      afterDirty = imageDirty.generateRect();
     }
     let afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -596,7 +618,15 @@ async function makeLiquifyManager(canvas, gl) {
       rect: renderRect,
       async apply() {
         await applyHistory(this.pixelReader, this.rect);
-        imageDirty = afterDirty;
+        imageDirty = DirtyRectRecorder.clampedRect(
+          0,
+          0,
+          paintOptions.width,
+          paintOptions.height
+        );
+        if (afterDirty) {
+          imageDirty.updateRect(afterDirty);
+        }
       },
     };
 
@@ -605,20 +635,21 @@ async function makeLiquifyManager(canvas, gl) {
       after: afterSnapshot,
     };
   }
-  function restore(pathDirty) {
+
+  function restore(rect: RectNew) {
     let liquifyManager = getLiquifyManager(canvas, gl);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, liquifyManager.displaceFBO);
 
     gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
+      rect.x,
+      rect.y,
+      rect.ex + 1,
+      rect.ey + 1,
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST
     );
@@ -718,6 +749,13 @@ async function makeLiquifyManager(canvas, gl) {
 
   let Liquify = {
     enter() {
+      imageDirty = DirtyRectRecorder.clampedRect(
+        0,
+        0,
+        paintOptions.width,
+        paintOptions.height
+      );
+
       openTexture();
       const newHistory = new HistoryObject(gl, {
         undo: async () => {
@@ -736,11 +774,12 @@ async function makeLiquifyManager(canvas, gl) {
     push,
     render,
     end() {
+      let strokeRect = strokeDirtyRecorder.generateRect();
       const { before, after } = uploadAndMakeHistory(
-        pathDirty.x,
-        pathDirty.y,
-        pathDirty.width,
-        pathDirty.height
+        strokeRect.x,
+        strokeRect.y,
+        strokeRect.width,
+        strokeRect.height
       );
       const newHistory = new HistoryObject(gl, {
         undo: async () => {
@@ -758,15 +797,20 @@ async function makeLiquifyManager(canvas, gl) {
       let historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(newHistory);
 
-      sourceImageDirty = DirtyRect.copy(imageDirty);
+      sourceImageDirty = imageDirty.generateRect();
     },
     cancel() {
-      restore(pathDirty);
+      restore(strokeDirtyRecorder.generateRect());
 
       render();
     },
     exit() {
-      imageDirty = null;
+      imageDirty = DirtyRectRecorder.clampedRect(
+        0,
+        0,
+        paintOptions.width,
+        paintOptions.height
+      );
       let historyManager = getHistoryManager(canvas, gl);
 
       if (sourceImageDirty) {

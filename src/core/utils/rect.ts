@@ -2,26 +2,34 @@ import type { Pointer } from "../types.js";
 
 // inclusive Range Rectangle
 
-class DirtyRectRecorder {}
-export class RectNew {
-  // 내부 표현: 시작점(x, y) + 크기(w, h)
-  // 포함 범위는 [x, x+w-1], [y, y+h-1] (inclusive end)
+export class DirtyRectRecorder {
   private pathDirtyRect: { x: number; y: number; w: number; h: number } | null =
     null;
 
+  private clamped: boolean = false;
   private clampRect: { x: number; y: number; w: number; h: number } | null =
     null;
-  private clamped: boolean = false;
 
-  constructor(x?: number, y?: number, w?: number, h?: number) {
-    if (
-      x !== undefined &&
-      y !== undefined &&
-      w !== undefined &&
-      h !== undefined
-    ) {
-      this.pathDirtyRect = { x, y, w, h };
-    }
+  static clampedRect(
+    x: number,
+    y: number,
+    w: number,
+    h: number
+  ): DirtyRectRecorder {
+    const recorder = new DirtyRectRecorder();
+    recorder.setClampRect(x, y, w, h);
+    return recorder;
+  }
+
+  /** 클램프 영역 설정 */
+  setClampRect(x: number, y: number, w: number, h: number): void {
+    this.clampRect = { x, y, w, h };
+    this.setClampEnabled(true);
+  }
+
+  /** 클램프 사용 여부 설정 */
+  setClampEnabled(enabled: boolean): void {
+    this.clamped = enabled;
   }
 
   reset(pointer?: Pointer, radius?: number): void {
@@ -32,26 +40,58 @@ export class RectNew {
     }
   }
 
-  static clampdRect(
-    x: number,
-    y: number,
-    width: number,
-    height: number
-  ): RectNew {
-    const rect = new RectNew();
-    rect.setClampRect(x, y, width, height);
-    return rect;
+  /**
+   * 포인터 (x,y)와 반경 radius를 포함하는 정사각형을 합집합(inclusive)으로 반영
+   */
+  updatePointer(pointer: Pointer, radius: number) {
+    let { x, y } = pointer;
+    const newX = Math.floor(x - radius);
+    const newY = Math.floor(y - radius);
+    const newEx = Math.floor(x + radius);
+    const newEy = Math.floor(y + radius);
+
+    const newW = newEx - newX + 1;
+    const newH = newEy - newY + 1;
+
+    if (this.pathDirtyRect === null) {
+      this.pathDirtyRect = { x: newX, y: newY, w: newW, h: newH };
+    } else {
+      const r = this.pathDirtyRect;
+      const unionX = Math.min(r.x, newX);
+      const unionY = Math.min(r.y, newY);
+      const unionEx = Math.max(r.x + r.w - 1, newEx);
+      const unionEy = Math.max(r.y + r.h - 1, newEy);
+      r.x = unionX;
+      r.y = unionY;
+      r.w = unionEx - unionX + 1;
+      r.h = unionEy - unionY + 1;
+    }
   }
 
-  /** 클램프 영역 설정 */
-  setClampRect(x: number, y: number, width: number, height: number): void {
-    this.clampRect = { x, y, w: width, h: height };
-    this.setClampEnabled(true);
-  }
+  /**
+   * RectNew가 차지하는 영역을 더티에 합집합으로 추가
+   */
+  updateRect(rect: RectNew) {
+    const newX = rect.x;
+    const newY = rect.y;
+    const newEx = rect.ex;
+    const newEy = rect.ey;
+    const newW = rect.width;
+    const newH = rect.height;
 
-  /** 클램프 사용 여부 설정 */
-  setClampEnabled(enabled: boolean): void {
-    this.clamped = enabled;
+    if (this.pathDirtyRect === null) {
+      this.pathDirtyRect = { x: newX, y: newY, w: newW, h: newH };
+    } else {
+      const r = this.pathDirtyRect;
+      const unionX = Math.min(r.x, newX);
+      const unionY = Math.min(r.y, newY);
+      const unionEx = Math.max(r.x + r.w - 1, newEx);
+      const unionEy = Math.max(r.y + r.h - 1, newEy);
+      r.x = unionX;
+      r.y = unionY;
+      r.w = unionEx - unionX + 1;
+      r.h = unionEy - unionY + 1;
+    }
   }
 
   /** 클램프 적용된 rect 계산 */
@@ -60,9 +100,9 @@ export class RectNew {
     y: number;
     w: number;
     h: number;
-  } | null {
+  } {
     if (!this.pathDirtyRect) {
-      return null;
+      throw Error("기록이 하나도 없습니다.");
     }
 
     if (!this.clamped || !this.clampRect) {
@@ -81,6 +121,31 @@ export class RectNew {
     const height = Math.max(0, endY - startY + 1);
 
     return { x: startX, y: startY, w: width, h: height };
+  }
+
+  /** 더티 체크되지 되었는지 확인 */
+  hasBeenDirty(): boolean {
+    return this.pathDirtyRect !== null;
+  }
+
+  generateRect(): RectNew {
+    if (!this.hasBeenDirty()) {
+      throw Error("기록이 하나도 없습니다.");
+    }
+
+    const clampedRect = this.getClampedRect();
+    const { x, y, w, h } = clampedRect;
+    return new RectNew(x, y, w, h);
+  }
+}
+
+export class RectNew {
+  // 내부 표현: 시작점(x, y) + 크기(w, h)
+  // 포함 범위는 [x, x+w-1], [y, y+h-1] (inclusive end)
+  private rect: { x: number; y: number; w: number; h: number };
+
+  constructor(x: number, y: number, w: number, h: number) {
+    this.rect = { x, y, w, h };
   }
 
   static fromWidth(x, y, width, height) {
@@ -143,11 +208,6 @@ export class RectNew {
 
   /** Rect 인스턴스를 { startX, startY, endX, endY, width, height } 객체로 변환 */
   toData() {
-    if (this.isEmpty()) {
-      throw new Error(
-        "Invalid operation: Cannot convert an empty Rect to an object."
-      );
-    }
     return {
       startX: this.x,
       startY: this.y,
@@ -160,115 +220,47 @@ export class RectNew {
 
   // === Getters ===
   get x() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error(
-        "Invalid access: Rect is empty, no x coordinate available."
-      );
-    }
+    const rect = this.rect;
     return rect.x;
   }
 
   get y() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error(
-        "Invalid access: Rect is empty, no y coordinate available."
-      );
-    }
+    const rect = this.rect;
     return rect.y;
   }
 
   get width() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error("Invalid access: Rect is empty, no width available.");
-    }
+    const rect = this.rect;
     return rect.w;
   }
 
   get height() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error("Invalid access: Rect is empty, no height available.");
-    }
+    const rect = this.rect;
     return rect.h;
   }
 
   // 계산된 inclusive end (읽기 전용 파생 값)
   get ex() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error("Invalid access: Rect is empty, cannot calculate ex.");
-    }
+    const rect = this.rect;
     return rect.x + rect.w - 1;
   }
 
   get ey() {
-    const rect = this.getClampedRect();
-    if (!rect) {
-      throw new Error("Invalid access: Rect is empty, cannot calculate ey.");
-    }
+    const rect = this.rect;
     return rect.y + rect.h - 1;
   }
 
   isEmpty() {
-    return this.getClampedRect() === null;
-  }
-
-  /**
-   * 포인터 (x,y)와 반경 radius를 포함하는 정사각형을 합집합(inclusive)으로 반영
-   */
-  updatePointer(pointer: Pointer, radius: number) {
-    let { x, y } = pointer;
-    const newX = Math.floor(x - radius);
-    const newY = Math.floor(y - radius);
-    const newEx = Math.floor(x + radius);
-    const newEy = Math.floor(y + radius);
-
-    const newW = newEx - newX + 1;
-    const newH = newEy - newY + 1;
-
-    if (this.pathDirtyRect === null) {
-      this.pathDirtyRect = { x: newX, y: newY, w: newW, h: newH };
-    } else {
-      const r = this.pathDirtyRect;
-      const unionX = Math.min(r.x, newX);
-      const unionY = Math.min(r.y, newY);
-      const unionEx = Math.max(r.x + r.w - 1, newEx);
-      const unionEy = Math.max(r.y + r.h - 1, newEy);
-      r.x = unionX;
-      r.y = unionY;
-      r.w = unionEx - unionX + 1;
-      r.h = unionEy - unionY + 1;
-    }
+    return this.rect.w <= 0 || this.rect.h <= 0;
   }
 
   copy(): RectNew {
-    const newRect = new RectNew();
-
-    // pathDirtyRect 복사
-    if (this.pathDirtyRect) {
-      newRect.pathDirtyRect = {
-        x: this.pathDirtyRect.x,
-        y: this.pathDirtyRect.y,
-        w: this.pathDirtyRect.w,
-        h: this.pathDirtyRect.h,
-      };
-    }
-
-    // clampRect 복사
-    if (this.clampRect) {
-      newRect.clampRect = {
-        x: this.clampRect.x,
-        y: this.clampRect.y,
-        w: this.clampRect.w,
-        h: this.clampRect.h,
-      };
-    }
-
-    // 클램프 플래그 복사
-    newRect.clamped = this.clamped;
+    const newRect = new RectNew(
+      this.rect.x,
+      this.rect.y,
+      this.rect.w,
+      this.rect.h
+    );
 
     return newRect;
   }
