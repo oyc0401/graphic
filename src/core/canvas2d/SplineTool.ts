@@ -1,5 +1,5 @@
 import { paintOptions } from "./Canvas2DService";
-import { RectNew } from "../rect";
+import { RectNew } from "../utils/rect";
 import type { Pointer } from "../types.js";
 import { calculateTangents, hermite } from "../utils/spline";
 

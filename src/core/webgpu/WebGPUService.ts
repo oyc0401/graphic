@@ -1,6 +1,6 @@
 import type { RendererInterface } from "../RendererInterface.js";
 
-import { RectNew } from "../rect.js";
+import { RectNew } from "../utils/rect.js";
 import type { Pointer } from "../types.js";
 import { calculateTangents, hermite } from "../utils/spline.js";
 
