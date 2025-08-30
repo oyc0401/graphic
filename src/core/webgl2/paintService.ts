@@ -186,10 +186,10 @@ export class PaintService {
     renderingManager.render();
   }
   uploadImage(imageBitmap: ImageBitmap) {
-    uploadImage(this.canvas, this.gl, imageBitmap);
+    return uploadImage(this.canvas, this.gl, imageBitmap);
   }
   resetImage(width, height) {
-    resetImage(this.canvas, this.gl, width, height);
+    return resetImage(this.canvas, this.gl, width, height);
   }
   downloadImage() {
     let manager = getCanvasPixelManager(this.canvas, this.gl);
@@ -204,5 +204,9 @@ export class PaintService {
   redo() {
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.redo();
+  }
+  getHistoryCount() {
+    let historyManager = getHistoryManager(this.canvas, this.gl);
+    return historyManager.getHistoryCount();
   }
 }

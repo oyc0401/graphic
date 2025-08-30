@@ -1,5 +1,11 @@
 import type { Pointer } from "./types.js";
 
+interface HistoryResponse {
+  tool: string;
+  undoCount: number;
+  redoCount: number;
+}
+
 export interface RendererInterface {
   // === 입력(브러시) ===
   start(pointer: Pointer): void;
@@ -51,13 +57,13 @@ export interface RendererInterface {
   selectionDelete(): void;
 
   // === 이미지 관리 ===
-  uploadImage(bitmap: ImageBitmap): void;
-  resetImage(width: number, height: number): void;
+  uploadImage(bitmap: ImageBitmap): HistoryResponse;
+  resetImage(width: number, height: number): HistoryResponse;
   downloadImage(): void;
 
   // === 실행 취소/재실행 ===
-  undo(): Promise<string>;
-  redo(): Promise<string>;
+  undo(): Promise<HistoryResponse>;
+  redo(): Promise<HistoryResponse>;
 
   // 서비스 정보
   getServiceType(): "canvas2d" | "webgl" | "webgpu";

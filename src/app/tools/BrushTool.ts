@@ -1,7 +1,8 @@
 import { paintState } from "../paintState";
 import { getLayerWorker } from "../worker/workerPool";
-import {  to_canvas_coord } from "../position";
+import { to_canvas_coord } from "../position";
 import { colorState } from "../colorState";
+import { historyState } from "../history";
 
 export class BrushTool {
   private active = false;
@@ -62,6 +63,9 @@ export class BrushTool {
     }
 
     worker.end();
+    let { undoCount, redoCount } = worker.getHistoryCount();
+    historyState.setUndoCount(undoCount);
+    historyState.setRedoCount(redoCount);
     paintState.setMoved(false);
     paintState.changed = true;
   }

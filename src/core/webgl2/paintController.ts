@@ -1,10 +1,11 @@
 import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
+import type { Pointer } from "../types.js";
 
 let paint: PaintService;
 
-export class WebGL2Controller implements RendererInterface {
+export class WebGL2Controller {
   async install(
     main_canvas: OffscreenCanvas,
     screenWidth: number,
@@ -15,7 +16,7 @@ export class WebGL2Controller implements RendererInterface {
     px: number,
     py: number,
     scale: number
-  ) {
+  ): Promise<void> {
     let { x, y } = toWebglCoord3(
       px,
       py,
@@ -44,10 +45,10 @@ export class WebGL2Controller implements RendererInterface {
     await paint.initialize();
   }
 
-  setLayerId(layerId) {
+  setLayerId(layerId: string | number): void {
     paint.setLayerId(layerId);
   }
-  setCameraPosition(px, py, magnification) {
+  setCameraPosition(px: number, py: number, magnification: number): void {
     let { x, y } = toWebglCoord3(
       px,
       py,
@@ -59,7 +60,7 @@ export class WebGL2Controller implements RendererInterface {
     );
     paint.setCameraPosition(x, y, magnification);
   }
-  resizeLayer(px, py, width, height) {
+  resizeLayer(px: number, py: number, width: number, height: number): void {
     const diffH = paintOptions.height - height;
     let newY;
 
@@ -70,79 +71,93 @@ export class WebGL2Controller implements RendererInterface {
     }
     paint.resizeLayer(px, newY, width, height);
   }
-  resizeScreenSize(screenWidth, screenHeight) {
+  resizeScreenSize(screenWidth: number, screenHeight: number): void {
     paint.resizeScreen(screenWidth, screenHeight);
   }
-  render() {
+  render(): void {
     paint.render();
   }
-  setStrokeColor(r, g, b) {
+  setStrokeColor(r: number, g: number, b: number): void {
     paint.setStrokeColor(r, g, b);
   }
-  setStrokeSize(size) {
+  setStrokeSize(size: number): void {
     paint.setStrokeSize(size);
   }
-  setAlpha(alpha) {
+  setAlpha(alpha: number): void {
     paint.setAlpha(alpha / 100);
   }
-  setTool(toolId, doExit = true) {
+  setTool(toolId: string | number, doExit: boolean = true): void {
     paint.setTool(toolId, doExit);
   }
-  start(p: Pointer) {
+  start(p: Pointer): void {
     let pointer = toWebglCoord(p);
     paint.start(pointer);
   }
-  strokeTo(p: Pointer) {
+  strokeTo(p: Pointer): void {
     let pointer = toWebglCoord(p);
     paint.strokeTo(pointer);
   }
-  end() {
+  end(): void {
     paint.end();
   }
-  cancel() {
+  cancel(): void {
     paint.cancel();
   }
-  select(px, py, w, h) {
+  select(px: number, py: number, w: number, h: number): void {
     let { x, y } = toWebglCoord2(px, py, w, h);
     paint.select(x, y, w, h);
   }
-  endMove() {
+  endMove(): void {
     paint.endMove();
   }
-  moveSelection(px, py, width, height) {
+  moveSelection(px: number, py: number, width: number, height: number): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.moveSelection(x, y, width, height);
   }
-  applySelection() {
+  applySelection(): void {
     paint.applySelection();
   }
-  paste(px, py, width, height, imageBitmap) {
+
+  selectionDelete(): void {
+    paint.selectionDelete();
+  }
+  paste(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    imageBitmap: ImageBitmap
+  ): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.paste(x, y, width, height, imageBitmap);
   }
-  getSelectionPixel() {
+
+  getSelectionPixel(): PixelData {
     return paint.getSelectionPixel();
   }
-  cut() {
+  cut(): PixelData {
     return paint.cut();
   }
-  selectionDelete() {
-    paint.selectionDelete();
-  }
-  uploadImage(bitmap) {
-    paint.uploadImage(bitmap);
-  }
-  resetImage(width, height) {
-    paint.resetImage(width, height);
-  }
-  downloadImage() {
+  downloadImage(): PixelData {
     return paint.downloadImage();
   }
-  undo() {
+
+  uploadImage(bitmap: ImageBitmap): void {
+    return paint.uploadImage(bitmap);
+  }
+  resetImage(width: number, height: number): void {
+    return paint.resetImage(width, height);
+  }
+
+  async undo(): Promise<HistoryResponse | null> {
     return paint.undo();
   }
-  redo() {
+  async redo(): Promise<HistoryResponse | null> {
     return paint.redo();
+  }
+
+  getHistoryCount(): HistoryCount {
+    return paint.getHistoryCount();
   }
 
   getServiceType(): "canvas2d" | "webgl" | "webgpu" {
@@ -158,12 +173,7 @@ export class WebGL2Controller implements RendererInterface {
   }
 }
 
-interface Pointer {
-  x: number;
-  y: number;
-}
-
-function toWebglCoord(pointer) {
+function toWebglCoord(pointer: Pointer): { x: number; y: number } {
   let { x, y } = pointer;
   return {
     x,
@@ -171,7 +181,12 @@ function toWebglCoord(pointer) {
   };
 }
 
-function toWebglCoord2(x, y, w, h) {
+function toWebglCoord2(
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): { x: number; y: number; w: number; h: number } {
   return {
     x,
     y: paintOptions.height - y - h,
@@ -180,10 +195,35 @@ function toWebglCoord2(x, y, w, h) {
   };
 }
 
-function toWebglCoord3(x, y, width, height, screenWidth, screenHeight, scale) {
+function toWebglCoord3(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  screenWidth: number,
+  screenHeight: number,
+  scale: number
+): { x: number; y: number } {
   let newY = -y + screenHeight / scale - height;
   return {
     x,
     y: newY,
   };
+}
+
+interface HistoryResponse {
+  tool: string;
+  undoCount: number;
+  redoCount: number;
+}
+
+interface HistoryCount {
+  undoCount: number;
+  redoCount: number;
+}
+
+interface PixelData {
+  pixels: Uint8ClampedArray<ArrayBufferLike>;
+  width: number;
+  height: number;
 }

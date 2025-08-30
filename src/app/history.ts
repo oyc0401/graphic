@@ -36,24 +36,28 @@ export async function undo() {
   }
 
   let worker = getLayerWorker();
-  let msg = await worker.undo();
-  if (!msg) return;
+  let historyResponse = await worker.undo();
+  if (!historyResponse) return;
+  let { tool, undoCount, redoCount } = historyResponse;
+  historyState.setUndoCount(undoCount);
+  historyState.setRedoCount(redoCount);
+
   // console.warn("change tool:", msg);
-  if (msg == "select") {
+  if (tool == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
     worker.setTool("select", false);
-  } else if (msg == "selection") {
+  } else if (tool == "selection") {
     paintState.setToolId("selection");
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
-  } else if (msg == "brush") {
+  } else if (tool == "brush") {
     paintState.setToolId("brush");
     paintState.setBrushId("brush");
     const worker = getLayerWorker();
     worker.setTool(paintState.brushId, false);
-  } else if (msg == "liquify") {
+  } else if (tool == "liquify") {
     // 이때 liquify -> brush로 가면 liquify의 exit안해도 됌.
 
     paintState.setToolId("brush");
@@ -61,7 +65,7 @@ export async function undo() {
     const worker = getLayerWorker();
     worker.setTool(paintState.brushId, false);
   } else {
-    console.warn("허용되지 않은 tool", msg);
+    console.warn("허용되지 않은 tool", tool);
   }
 }
 
@@ -72,29 +76,33 @@ export async function redo() {
     toolManager.setBrushTool();
   }
   let worker = getLayerWorker();
-  let msg = await worker.redo();
-  if (!msg) return;
+  let historyResponse = await worker.redo();
+  if (!historyResponse) return;
+  let { tool, undoCount, redoCount } = historyResponse;
+  historyState.setUndoCount(undoCount);
+  historyState.setRedoCount(redoCount);
+  if (!tool) return;
   // console.warn("change tool:", msg);
-  if (msg == "select") {
+  if (tool == "select") {
     paintState.setToolId("select");
     const worker = getLayerWorker();
     worker.setTool("select", false);
-  } else if (msg == "selection") {
+  } else if (tool == "selection") {
     paintState.setToolId("selection");
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
-  } else if (msg == "brush") {
+  } else if (tool == "brush") {
     paintState.setToolId("brush");
     paintState.setBrushId("brush");
     const worker = getLayerWorker();
     worker.setTool(paintState.brushId, false);
-  } else if (msg == "liquify") {
+  } else if (tool == "liquify") {
     paintState.setToolId("brush");
     paintState.setBrushId("liquify");
     const worker = getLayerWorker();
     worker.setTool(paintState.brushId, false);
   } else {
-    console.warn("허용되지 않은 tool", msg);
+    console.warn("허용되지 않은 tool", tool);
   }
 }

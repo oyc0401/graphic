@@ -6,10 +6,6 @@ import { selection } from "../selection";
 import { getLayerWorker } from "./workerPool";
 
 export const mainApi = {
-  historyCount(undoCount, redoCount) {
-    historyState.setUndoCount(undoCount);
-    historyState.setRedoCount(redoCount);
-  },
   setSelectionPosition(showSelection, x, y, width, height) {
     let realY = position.height - y - height;
     selection.setX(x);

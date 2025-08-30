@@ -1,6 +1,5 @@
 import { getManager } from "../../../utils/cachedManager";
 import { Rect } from "../../../utils/dirtyRect";
-import { mainApi as mainThread } from "@/app/worker/mainController";
 import { PixelStorage } from "./PixelStore";
 
 export class HistoryObject {
@@ -38,7 +37,7 @@ let redoStack: HistoryObject[] = [];
 export function resetHisory() {
   undoStack = [];
   redoStack = [];
-  mainThread.historyCount(undoStack.length, redoStack.length);
+  // mainThread.historyCount(undoStack.length, redoStack.length);
 }
 
 export function getHistoryManager(canvas, gl) {
@@ -71,7 +70,7 @@ function createHistoryManager(canvas, gl) {
       redoStack = [];
     }
 
-    mainThread.historyCount(undoStack.length, redoStack.length);
+    // mainThread.historyCount(undoStack.length, redoStack.length);
 
     logCurrent();
   }
@@ -79,36 +78,44 @@ function createHistoryManager(canvas, gl) {
   function addRedo(newHistory: HistoryObject) {
     redoStack.push(newHistory);
 
-    mainThread.historyCount(undoStack.length, redoStack.length);
+    // mainThread.historyCount(undoStack.length, redoStack.length);
     logCurrent();
   }
 
-  function undo() {
+  async function undo() {
     if (undoStack.length == 0) return;
 
     let history = undoStack[undoStack.length - 1];
     undoStack.pop();
 
-    let response = history.undo();
+    let response = await history.undo();
     addRedo(history);
 
-    return response;
+    return {
+      tool: response,
+      undoCount: undoStack.length,
+      redoCount: redoStack.length,
+    };
   }
 
-  function redo() {
+  async function redo() {
     if (redoStack.length == 0) return;
 
     let history = redoStack[redoStack.length - 1];
     redoStack.pop();
 
-    let response = history.redo();
+    let response = await history.redo();
     addUndo(history, { resetRedo: false });
 
-    return response;
+    return {
+      tool: response,
+      undoCount: undoStack.length,
+      redoCount: redoStack.length,
+    };
   }
 
   function logCurrent() {
-    console.log(
+    console.warn(
       "undo:",
       undoStack.length,
       "redo:",
@@ -120,9 +127,17 @@ function createHistoryManager(canvas, gl) {
       // redoStack,
     );
   }
+
+  function getHistoryCount() {
+    return {
+      undoCount: undoStack.length,
+      redoCount: redoStack.length,
+    };
+  }
   return {
     addUndo,
     undo,
     redo,
+    getHistoryCount,
   };
 }
