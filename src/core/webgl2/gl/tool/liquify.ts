@@ -336,12 +336,12 @@ async function makeLiquifyManager(canvas, gl) {
     gl.blitFramebuffer(
       scissorRect.x,
       scissorRect.y,
-      scissorRect.ex + 1,
-      scissorRect.ey + 1, // 소스
+      scissorRect.right,
+      scissorRect.bottom, // 소스
       scissorRect.x,
       scissorRect.y,
-      scissorRect.ex + 1,
-      scissorRect.ey + 1, // 대상
+      scissorRect.right,
+      scissorRect.bottom, // 대상
       gl.COLOR_BUFFER_BIT,
       gl.NEAREST
     );
@@ -422,8 +422,8 @@ async function makeLiquifyManager(canvas, gl) {
     gl.blitFramebuffer(
       rect.x,
       rect.y,
-      rect.ex + 1,
-      rect.ey + 1,
+      rect.right,
+      rect.bottom,
       0,
       0,
       rect.width,

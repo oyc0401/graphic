@@ -11,7 +11,7 @@ export class Rect {
     this.rect = { x, y, w, h };
   }
 
-  static fromWidth(x, y, width, height) {
+  static fromWidth(x: number, y: number, width: number, height: number) {
     return new Rect(x, y, width, height);
   }
 
@@ -110,6 +110,28 @@ export class Rect {
   get ey() {
     const rect = this.rect;
     return rect.y + rect.h - 1;
+  }
+
+  // 계산된 inclusive end (읽기 전용 파생 값)
+  get endX() {
+    const rect = this.rect;
+    return rect.x + rect.w - 1;
+  }
+
+  get endY() {
+    const rect = this.rect;
+    return rect.y + rect.h - 1;
+  }
+
+  // 계산된 exclusive end (읽기 전용 파생 값)
+  get right() {
+    const rect = this.rect;
+    return rect.x + rect.w;
+  }
+
+  get bottom() {
+    const rect = this.rect;
+    return rect.y + rect.h;
   }
 
   isEmpty() {
