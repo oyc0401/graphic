@@ -8,8 +8,8 @@ import {
 import { getLayerManager } from "../layer";
 import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../../../utils/cachedManager";
-import { DirtyRect, Rect } from "../../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject } from "../history/history";
+import { RectNew } from "@/core/utils/rect";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -271,8 +271,6 @@ function makeBrushManager(canvas, gl) {
 
   //////////////////////
 
-  let pathDirty = new DirtyRect();
-
   ///////////
 
   function setSize() {
@@ -348,7 +346,11 @@ function makeBrushManager(canvas, gl) {
     glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
   }
 
-  let scissorDirty = new DirtyRect();
+  // 이전 move에서 다음 move까지
+  let scissorDirty: RectNew;
+
+  // start부터 end까지
+  let pathDirty: RectNew;
 
   let brushManager = {
     enter() {
@@ -357,7 +359,13 @@ function makeBrushManager(canvas, gl) {
     start(pointer) {
       // console.log("start!");
 
-      pathDirty.reset(pointer, paintOptions.radius);
+      pathDirty = RectNew.clampdRect(
+        0,
+        0,
+        paintOptions.width,
+        paintOptions.height
+      );
+      pathDirty.updatePointer(pointer, paintOptions.radius);
     },
     stroke(start, end) {
       gl.useProgram(strokeProgram);
@@ -393,7 +401,12 @@ function makeBrushManager(canvas, gl) {
         0
       );
 
-      scissorDirty.reset(start, paintOptions.radius);
+      scissorDirty = RectNew.clampdRect(
+        0,
+        0,
+        paintOptions.width,
+        paintOptions.height
+      );
       scissorDirty.updatePointer(start, paintOptions.radius);
       scissorDirty.updatePointer(end, paintOptions.radius);
 
@@ -458,7 +471,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(Rect.copy(scissorDirty));
+      renderingManager.render(scissorDirty.copy());
     },
     eraser() {
       gl.useProgram(eraserProgram);
@@ -469,7 +482,7 @@ function makeBrushManager(canvas, gl) {
 
       gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(Rect.copy(scissorDirty));
+      renderingManager.render(scissorDirty.copy());
     },
     end() {
       let { before, after } = sourceTextureManager.upload(

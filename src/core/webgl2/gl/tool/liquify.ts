@@ -18,6 +18,7 @@ import { DirtyRect, Rect } from "../../../utils/dirtyRect";
 import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
 
 import { PixelReader } from "../history/PixelReader";
+import { RectNew } from "@/core/utils/rect";
 
 interface liquifyManager {
   enter(): void;
@@ -235,10 +236,14 @@ async function makeLiquifyManager(canvas, gl) {
   bufferManager.createFullQuadVAO(renderProgram);
 
   ////////////////
-  let pathDirty = new DirtyRect();
+  // start부터 end까지
+  let pathDirty: RectNew;
+  // enter부터 exitRkwl?
   let imageDirty: DirtyRect | null = null;
   let sourceImageDirty: DirtyRect | null = null;
   /////////////////////////////
+
+  let scissorDirty: RectNew;
 
   function setSize() {
     const width = paintOptions.width;
@@ -270,7 +275,13 @@ async function makeLiquifyManager(canvas, gl) {
     //console.log("시작!");
 
     let ceiledRadius = Math.ceil(paintOptions.radius);
-    pathDirty.reset(pointer, ceiledRadius);
+    pathDirty = RectNew.clampdRect(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height
+    );
+    pathDirty.updatePointer(pointer, paintOptions.radius);
     if (imageDirty) {
       //console.log("liq dirty updatePointer...");
       imageDirty.updatePointer(pointer, ceiledRadius);
@@ -286,7 +297,6 @@ async function makeLiquifyManager(canvas, gl) {
   const u_startLoc = gl.getUniformLocation(liquifyPushProgram, "u_start");
   const u_endLoc = gl.getUniformLocation(liquifyPushProgram, "u_end");
 
-  let scissorDirty = new DirtyRect();
   function push(start, end) {
     gl.useProgram(liquifyPushProgram);
     // 유나폼 변수 설정
@@ -295,7 +305,12 @@ async function makeLiquifyManager(canvas, gl) {
     gl.uniform2f(u_startLoc, start.x, start.y);
     gl.uniform2f(u_endLoc, end.x, end.y);
 
-    scissorDirty.reset(start, paintOptions.radius);
+    scissorDirty = RectNew.clampdRect(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height
+    );
     scissorDirty.updatePointer(start, paintOptions.radius);
     scissorDirty.updatePointer(end, paintOptions.radius);
 
@@ -345,7 +360,7 @@ async function makeLiquifyManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
-    renderingManager.render(Rect.copy(scissorDirty));
+    renderingManager.render(scissorDirty.copy());
   }
 
   function clearMap() {

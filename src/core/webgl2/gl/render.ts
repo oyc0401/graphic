@@ -8,6 +8,7 @@ import { getBufferManager, getFullQuadShader } from "./vertexShader";
 import { getManager } from "../../utils/cachedManager";
 import { Rect } from "../../utils/dirtyRect";
 import { paintConfig } from "@/paint.config";
+import { RectNew } from "@/core/utils/rect";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>
@@ -585,7 +586,7 @@ function makeRenderingManager(canvas, gl) {
 
   let scheduled = false;
 
-  function render(rect = undefined) {
+  function render(rect: RectNew = undefined) {
     //console.log("rect:", rect);
     let newRect: Rect;
 
