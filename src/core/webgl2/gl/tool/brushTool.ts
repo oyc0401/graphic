@@ -26,10 +26,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const fullQuadVertexShader = getFullQuadShader(gl);
   const bufferManager = getBufferManager(canvas, gl);
 
-  // ====== [NEW] 스플라인용 오프스크린 캔버스/컨텍스트 & CPU 알파맵 ======
-
-  let points: Pointer[] = []; // 스플라인 포인트
-  let lastDirtyRect: Rect | null = null;
+  let scissorRect: Rect | null = null;
 
   // ====== PATHMAP 텍스처 생성 (R8) ======
   let pathTex = gl.createTexture();
@@ -108,41 +105,30 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const layerManager = getLayerManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
 
-  let splineAlphaBackend = new SplineAlphaBackend(gl, pathTex, points);
+  let splineAlphaBackend = new SplineAlphaBackend(gl, pathTex);
 
   let brushManager = {
-    enter() {
-      splineAlphaBackend.ensureTempCanvasSize(
-        paintOptions.width,
-        paintOptions.height
-      );
-    },
+    enter() {},
     start(pointer: Pointer) {
-      splineAlphaBackend.ensureTempCanvasSize(
+      splineAlphaBackend.resetWorkSpace(
         paintOptions.width,
         paintOptions.height
       );
-      points = [];
-      splineAlphaBackend.points = points;
-      points.push(pointer);
-      lastDirtyRect = null;
+      scissorRect = null;
 
       splineAlphaBackend.start(pointer);
 
       // CPU/GPU 알파 초기화(새 스트로크 시작 시)
-      splineAlphaBackend.clearAlpha(paintOptions.width, paintOptions.height);
     },
     stroke(start: Pointer, end: Pointer) {
       // 스플라인 포인트 누적: 기존 API 유지(매 프레임 end만 추가)
-      points.push(end);
-
       let rect = splineAlphaBackend.stroke(start, end);
       if (rect) {
-        lastDirtyRect = rect; // brush/eraser 렌더 영역으로 사용
+        scissorRect = rect; // brush/eraser 렌더 영역으로 사용
       }
     },
     brush() {
-      if (!lastDirtyRect) return;
+      if (!scissorRect) return;
 
       gl.useProgram(brushProgram);
       gl.uniform3fv(
@@ -150,35 +136,53 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
         paintOptions.color
       );
 
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(
+        scissorRect.x,
+        scissorRect.y,
+        scissorRect.width,
+        scissorRect.height
+      );
+
       // 출력: 현재 레이어 FBO
       gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(lastDirtyRect); // 더티 영역만 리프레시
+      renderingManager.render(scissorRect); // 더티 영역만 리프레시
     },
     eraser() {
-      if (!lastDirtyRect) return;
+      if (!scissorRect) return;
       gl.useProgram(eraserProgram);
+
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(
+        scissorRect.x,
+        scissorRect.y,
+        scissorRect.width,
+        scissorRect.height
+      );
+
       gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.disable(gl.SCISSOR_TEST);
 
-      renderingManager.render(lastDirtyRect);
+      renderingManager.render(scissorRect);
     },
     end() {
-      console.log("endPoints:", points);
       // end할때 스플라인 마지막 곡선 그리기
       let rect = splineAlphaBackend.end();
-      console.log("endRect", rect);
       if (rect) {
-        lastDirtyRect = rect; // brush/eraser 렌더 영역으로 사용
+        scissorRect = rect; // brush/eraser 렌더 영역으로 사용
         this.brush();
       }
 
-      // 기존 end 함수들
+      scissorRect = null;
 
-      const strokeRect = splineAlphaBackend.getStrokeRect();
+      // 기존 end 함수들
+      const strokeRect = splineAlphaBackend.getStrokeDirtyRect();
       const { before, after } = sourceTextureManager.upload(
         strokeRect.x,
         strokeRect.y,
@@ -201,18 +205,16 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
 
       const historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(newHistory);
-
-      // 다음 스트로크 대비 초기화
-      splineAlphaBackend.clearAlpha(paintOptions.width, paintOptions.height);
-      points = [];
-      lastDirtyRect = null;
     },
     cancel() {
       sourceTextureManager.restore();
-      splineAlphaBackend.clearAlpha(paintOptions.width, paintOptions.height);
+      splineAlphaBackend.cancel();
+      splineAlphaBackend.resetWorkSpace(
+        paintOptions.width,
+        paintOptions.height
+      );
+      scissorRect = null;
       renderingManager.render();
-      points = [];
-      lastDirtyRect = null;
     },
     exit() {},
     setSize() {
@@ -223,8 +225,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
       gl.clearColor(0, 0, 0, 0);
 
       // 캔버스/버퍼 준비
-      splineAlphaBackend.ensureTempCanvasSize(width, height);
-      splineAlphaBackend.clearAlpha(width, height);
+      splineAlphaBackend.resetWorkSpace(width, height);
     },
   };
 
@@ -233,7 +234,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   return brushManager;
 }
 
-// pathTex를 원하는대로 만들어드립니다!!
+// pathTex만을 원하는대로 만들어드립니다!!
 class SplineAlphaBackend {
   gl: WebGL2RenderingContext;
   pathTex;
@@ -244,31 +245,63 @@ class SplineAlphaBackend {
   alphaCPU: Uint8Array; // PATHMAP(R8)에 대응하는 0~255 알파 버퍼
   strokeDirtyRecorder: DirtyRectRecorder;
 
-  constructor(gl, pathTex, points) {
+  constructor(gl, pathTex) {
     this.gl = gl;
     this.pathTex = pathTex;
-    this.points = points;
   }
 
-  ensureTempCanvasSize(w: number, h: number) {
-    // OffscreenCanvas 우선, 없으면 숨김 canvas
-    if (typeof OffscreenCanvas !== "undefined") {
-      if (!(this.tempCanvas instanceof OffscreenCanvas)) {
-        this.tempCanvas = new OffscreenCanvas(w, h);
-      }
-      this.tempCanvas.width = w;
-      this.tempCanvas.height = h;
-      this.tempCtx = (this.tempCanvas as OffscreenCanvas).getContext("2d")!;
-    } else {
-      if (!this.tempCanvas) this.tempCanvas = document.createElement("canvas");
-      this.tempCanvas.width = w;
-      (this.tempCanvas as HTMLCanvasElement).height = h;
-      this.tempCtx = (this.tempCanvas as HTMLCanvasElement).getContext("2d")!;
-    }
-    this.tempCtx.imageSmoothingEnabled = false;
+  resetWorkSpace(w: number, h: number) {
+    this.clearAlpha(w, h);
+    this.ensureTempCanvasSize(w, h);
   }
 
-  drawSplineToTemp(
+  start(pointer) {
+    this.points = [];
+    this.points.push(pointer);
+    this.strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height
+    );
+    this.strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
+  }
+
+  stroke(start, end): Rect | null {
+    this.points.push(end);
+
+    // 스플라인을 tempCanvas에 그림 → 더티 사각형 산출
+    const rect = this.drawSplineToTemp(this.points, "incremental");
+    if (!rect) return null;
+
+    // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
+    this.mergeAlphaFromTempAndUpload(rect);
+
+    return rect;
+  }
+
+  end(): Rect | null {
+    const rect = this.drawSplineToTemp(this.points, "final");
+    if (!rect) return null;
+
+    // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
+    this.mergeAlphaFromTempAndUpload(rect);
+
+    this.points = [];
+
+    return rect;
+  }
+
+  cancel() {
+    this.points = [];
+  }
+
+  getStrokeDirtyRect() {
+    const strokeRect = this.strokeDirtyRecorder.generateRect();
+    return strokeRect;
+  }
+
+  private drawSplineToTemp(
     points: Pointer[],
     mode: "incremental" | "final"
   ): Rect | null {
@@ -343,7 +376,7 @@ class SplineAlphaBackend {
     return dirty.generateRect();
   }
 
-  mergeAlphaFromTempAndUpload(rect: Rect) {
+  private mergeAlphaFromTempAndUpload(rect: Rect) {
     let alphaCPU = this.alphaCPU;
     let gl = this.gl;
     let pathTex = this.pathTex;
@@ -391,7 +424,25 @@ class SplineAlphaBackend {
     );
   }
 
-  clearAlpha(w, h) {
+  private ensureTempCanvasSize(w: number, h: number) {
+    // OffscreenCanvas 우선, 없으면 숨김 canvas
+    if (typeof OffscreenCanvas !== "undefined") {
+      if (!(this.tempCanvas instanceof OffscreenCanvas)) {
+        this.tempCanvas = new OffscreenCanvas(w, h);
+      }
+      this.tempCanvas.width = w;
+      this.tempCanvas.height = h;
+      this.tempCtx = (this.tempCanvas as OffscreenCanvas).getContext("2d")!;
+    } else {
+      if (!this.tempCanvas) this.tempCanvas = document.createElement("canvas");
+      this.tempCanvas.width = w;
+      (this.tempCanvas as HTMLCanvasElement).height = h;
+      this.tempCtx = (this.tempCanvas as HTMLCanvasElement).getContext("2d")!;
+    }
+    this.tempCtx.imageSmoothingEnabled = false;
+  }
+
+  private clearAlpha(w, h) {
     let gl = this.gl;
     let pathTex = this.pathTex;
 
@@ -410,47 +461,5 @@ class SplineAlphaBackend {
       gl.UNSIGNED_BYTE,
       null
     );
-  }
-
-  start(pointer) {
-    this.strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
-      0,
-      0,
-      paintOptions.width,
-      paintOptions.height
-    );
-    this.strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
-  }
-
-  stroke(start, end): Rect | null {
-    // 스플라인을 tempCanvas에 그림 → 더티 사각형 산출
-    const rect = this.drawSplineToTemp(this.points, "incremental");
-    if (!rect) return null;
-
-    // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
-    this.mergeAlphaFromTempAndUpload(rect);
-
-    // 히스토리용 전체 dirty 영역 누적(대략 start/end로 확장)
-    // 이거 안해도 될것 같은데 어떻게할까요 뺄까요?
-    // drawSplineToTemp()안에서도 이미 업뎃해요!
-    this.strokeDirtyRecorder.updatePointer(start, paintOptions.radius);
-    this.strokeDirtyRecorder.updatePointer(end, paintOptions.radius);
-
-    return rect;
-  }
-
-  end(): Rect | null {
-    const rect = this.drawSplineToTemp(this.points, "final");
-    if (!rect) return null;
-
-    // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
-    this.mergeAlphaFromTempAndUpload(rect);
-
-    return rect;
-  }
-
-  getStrokeRect() {
-    const strokeRect = this.strokeDirtyRecorder.generateRect();
-    return strokeRect;
   }
 }
