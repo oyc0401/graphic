@@ -23,6 +23,7 @@ import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
+import { runPointerTests } from "@/test/pointerTestUtils";
 
 const root = document.getElementById("appbar-root");
 if (root) {
@@ -38,8 +39,7 @@ if (navroot) {
   console.error("nav-root not found!");
 }
 
-
-export function runApp(){
+export function runApp() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       main();
@@ -76,6 +76,10 @@ async function main() {
   console.log("Complete App!");
 
   debugSetting();
+
+  setTimeout(() => {
+    // runPointerTests();
+  }, 200);
 
   // requestAnimationFrame(() => {
   //   updateBouncingRect();

@@ -11,7 +11,7 @@ export class BrushTool {
   down(e: PointerEvent) {
     if (!paintState.pointerdown || paintState.toolId !== "brush") return;
     this.active = true;
-
+    // console.log("down:", e.clientX, e.clientY);
     const point = to_canvas_coord(e.clientX, e.clientY);
     const worker = getLayerWorker();
 
@@ -28,6 +28,7 @@ export class BrushTool {
   }
 
   move(e: PointerEvent) {
+    // console.log("dddd22", paintState.pointerdown, paintState.toolId);
     if (
       !paintState.pointerdown ||
       !this.active ||
@@ -41,6 +42,7 @@ export class BrushTool {
     const brushSize = paintState.getBrushSize();
     const point = to_canvas_coord(e.clientX, e.clientY);
 
+    //console.log("move:", e.clientX, e.clientY);
     const dx = point.x - this.start.x;
     const dy = point.y - this.start.y;
     //if (Math.hypot(dx, dy) > 4/ position.scale) {
@@ -62,6 +64,7 @@ export class BrushTool {
       worker.strokeTo(point);
     }
 
+    //console.log("up:", e.clientX, e.clientY);
     worker.end();
     let { undoCount, redoCount } = worker.getHistoryCount();
     historyState.setUndoCount(undoCount);
