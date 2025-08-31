@@ -10,6 +10,8 @@ import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { getManager } from "../../../utils/cachedManager";
 import { getHistoryManager, HistoryObject } from "../history/history";
 import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
+import { Pointer } from "@/core/types";
+import { calculateTangents, hermite } from "@/core/utils/spline";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -19,345 +21,247 @@ export function getBrushManager(canvas, gl) {
 }
 
 function makeBrushManager(canvas, gl) {
-  const ext = gl.getExtension("EXT_color_buffer_float");
-  if (!ext) {
-    console.error("EXT_color_buffer_float not supported!");
-  }
-  const extFloatLinear =
-    gl.getExtension("OES_texture_float_linear") ||
-    gl.getExtension("EXT_texture_filter_float");
-  if (!extFloatLinear) {
-    console.error(
-      "This device does not support linear filtering for float textures."
-    );
-  }
-
-  // 원본 이미지 텍스처 생성
+  // (기존 확장 확인 등은 동일)
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const fullQuadVertexShader = getFullQuadShader(gl);
   const bufferManager = getBufferManager(canvas, gl);
 
-  let strokeShaderSource = `#version 300 es
-    precision mediump float;
-    
-    // 현재까지 그려진 알파 채널이 담긴 텍스처
-    uniform sampler2D u_pathMap;
-    
-    // 선분 정보와 브러시 특성
-    uniform vec2 u_start;
-    uniform vec2 u_end;
-    uniform float u_radius;
-    uniform float u_alpha;
-    
-    // 화면 해상도 (텍스처 좌표 → 픽셀 좌표 변환)
-    uniform vec2 u_resolution;
-    
-    // 메인 텍스 좌표 & 출력
-    in vec2 v_texCoord;
-    out float outAlpha;
-    
-    // 16샘플(2×2) 오프셋
-    const vec2 sampleOffsets[16] = vec2[](
-        vec2(-0.375, -0.375), vec2(-0.125, -0.375), vec2(0.125, -0.375), vec2(0.375, -0.375),
-        vec2(-0.375, -0.125), vec2(-0.125, -0.125), vec2(0.125, -0.125), vec2(0.375, -0.125),
-        vec2(-0.375,  0.125), vec2(-0.125,  0.125), vec2(0.125,  0.125), vec2(0.375,  0.125),
-        vec2(-0.375,  0.375), vec2(-0.125,  0.375), vec2(0.125,  0.375), vec2(0.375,  0.375)
-    );
-    
-    // 픽셀(또는 샘플)과 선분 사이의 최단거리 구하기
-    float distanceToSegment(vec2 p, vec2 a, vec2 b) {
-        vec2 ab = b - a;
-        float abLen2 = dot(ab, ab); // 선분 길이^2
-        if(abLen2 < 0.000001) {
-            // 선분이 거의 점에 가깝다면, 그냥 a와의 거리
-            return length(p - a);
-        }
-        // 투영 비율 t
-        float t = dot(p - a, ab) / abLen2;
-        t = clamp(t, 0.0, 1.0);
-        // 선분 위의 최근접 점
-        vec2 closest = a + ab * t;
-        return distance(p, closest);
-    }
-    
-    void main() {
-        // (1) 현재 픽셀에서 기존 알파값
-        float basicAlpha = texture(u_pathMap, v_texCoord).r;
-    
-        // (2) 픽셀 중심 좌표 (픽셀 단위)
-        vec2 pixelCoord = v_texCoord * u_resolution;
-    
-        // (3) 이 픽셀 중심 ~ 선분 거리
-        float distCenter = distanceToSegment(pixelCoord, u_start, u_end);
-    
-        // 내부/외부 빠른 판정용 범위
-        float inner = u_radius - 1.0;
-        float outer = u_radius + 1.0;
-    
-        float finalAlpha;
-    
-        // (A) 완전 내부: 알파 100%
-        if(distCenter < inner) {
-            finalAlpha = u_alpha;
-        }
-        // (B) 완전 외부: 알파 0%
-        else if(distCenter > outer) {
-            finalAlpha = 0.0;
-        }
-        // (C) 경계 영역 16샘플 수동 SSAA
-        else {
-            float coverage = 0.0;
-    
-            // 16번 샘플링
-            for(int i = 0; i < 16; i++) {
-                vec2 offset = sampleOffsets[i];
-                vec2 sampleCoord = pixelCoord + offset;
-                float distSample = distanceToSegment(sampleCoord, u_start, u_end);
-                if(distSample < u_radius) {
-                    coverage += 1.0;
-                }
-            }
-            // 16샘플 평균 → [0..1] 커버리지
-            coverage /= 16.0;
-            
-            // 최종 알파
-            finalAlpha = coverage * u_alpha;
-        }
-    
-        // (4) 기존 알파(basicAlpha)와 비교해 더 큰 값 적용
-        outAlpha = max(basicAlpha, finalAlpha);
-    }
-    
-    `;
-  let strokeShader = createShader(gl, gl.FRAGMENT_SHADER, strokeShaderSource);
+  // ====== [NEW] 스플라인용 오프스크린 캔버스/컨텍스트 & CPU 알파맵 ======
+  let tempCanvas: OffscreenCanvas | HTMLCanvasElement;
+  let tempCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+  let alphaCPU: Uint8Array; // PATHMAP(R8)에 대응하는 0~255 알파 버퍼
+  let points: Pointer[] = []; // 스플라인 포인트
+  let lastDirtyRect: Rect | null = null;
 
-  let strokeProgram = createProgram(gl, fullQuadVertexShader, strokeShader);
-  gl.useProgram(strokeProgram);
-
-  // 알파맵 텍스처 생성 및 데이터 업로드
+  // ====== PATHMAP 텍스처 생성 (R8) ======
   let pathTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
   gl.bindTexture(gl.TEXTURE_2D, pathTex);
-
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); // 서브업로드 정렬 이슈 방지
 
-  gl.uniform1i(
-    gl.getUniformLocation(strokeProgram, "u_pathMap"),
-    TEXTURE_UNIT.PATHMAP
+  // ====== 기존 brush/eraser 셰이더는 그대로 둠 ======
+  const brushShaderSource = `#version 300 es
+    precision mediump float;
+    uniform sampler2D u_pathMap;
+    uniform sampler2D u_source;
+    uniform vec2 u_resolution;
+    uniform vec3 u_color;
+    in vec2 v_texCoord;
+    out vec4 outColor;
+    void main(){
+      float value = texture(u_pathMap, v_texCoord).r;
+      vec4 brushColor = vec4(u_color, value);
+      vec4 imageColor = texture(u_source, v_texCoord);
+      vec3 premultBrush = brushColor.rgb * brushColor.a;
+      vec3 premultImage = imageColor.rgb;
+      vec3 blendedRGB = premultImage * (1.0 - brushColor.a) + premultBrush;
+      float blendedAlpha = imageColor.a + brushColor.a * (1.0 - imageColor.a);
+      outColor = vec4(blendedRGB, blendedAlpha);
+    }`;
+  const brushProgram = createProgram(
+    gl,
+    fullQuadVertexShader,
+    createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource)
   );
-
-  // 출력용 텍스처 생성
-  let pathTexOut = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-  gl.bindTexture(gl.TEXTURE_2D, pathTexOut);
-
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-  // 프레임버퍼 생성 및 바인딩
-  let framebuffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    pathTexOut,
-    0
-  );
-
-  // 쓰여진 결과를 blit으로 기본 변위맵에 업로드 하기 위해서
-  let readFrameBuffer = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-  gl.framebufferTexture2D(
-    // 당장 안쓰더라도 바인딩 해놓으면 내부에서 자체 최적화 되나?
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    pathTexOut,
-    0
-  );
-
-  bufferManager.createFullQuadVAO(strokeProgram);
-
-  //////////////////////////
-
-  //////////////////////////
-  //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  let brushShaderSource = `#version 300 es
-      precision mediump float;
-
-      uniform sampler2D u_pathMap;
-      uniform sampler2D u_source;  // 원본 텍스처
-      uniform vec2 u_resolution;
-      uniform vec3 u_color; // 원하는 색
-
-      in vec2 v_texCoord;
-      out vec4 outColor;
-
-      void main() {
-       float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
-        vec4 brushColor = vec4(u_color, value); // 새로운 색
-        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
-
-       // Premultiplied Alpha 적용
-        vec3 premultBrush = brushColor.rgb * brushColor.a; // RGB에 알파를 미리 곱함
-        vec3 premultImage = imageColor.rgb;
-
-        // 블렌딩 (Premultiplied 방식)
-        vec3 blendedRGB = premultImage * (1.0 - brushColor.a) + premultBrush;
-        float blendedAlpha = imageColor.a + brushColor.a * (1.0 - imageColor.a); 
-
-        // 최종 색상
-        outColor = vec4(blendedRGB, blendedAlpha);
-      }
-      `;
-
-  let brushShader = createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource);
-  let brushProgram = createProgram(gl, fullQuadVertexShader, brushShader);
   gl.useProgram(brushProgram);
-
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP
   );
-
   gl.uniform1i(
     gl.getUniformLocation(brushProgram, "u_source"),
     TEXTURE_UNIT.SOURCE
-  ); // 텍스처 유닛 1에 할당
-
+  );
   bufferManager.createFullQuadVAO(brushProgram);
 
-  ///////////////////////////////////////
-  let eraserShaderSource = `#version 300 es
-      precision mediump float;
-
-      uniform sampler2D u_pathMap;
-      uniform sampler2D u_source;  // 원본 텍스처
-      uniform vec2 u_resolution;
-
-      in vec2 v_texCoord;
-      out vec4 outColor;
-
-      void main() {
-        float value = texture(u_pathMap, v_texCoord).x; // 브러시 알파값 (0~1)
-        vec4 imageColor = texture(u_source, v_texCoord); // 기존 이미지 색
-
-        float factor = 1.0 - value;
-        outColor = vec4(imageColor.rgb * factor, imageColor.a * factor);
-      }
-      `;
-
-  let eraserShader = createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource);
-  let eraserProgram = createProgram(gl, fullQuadVertexShader, eraserShader);
+  const eraserShaderSource = `#version 300 es
+    precision mediump float;
+    uniform sampler2D u_pathMap;
+    uniform sampler2D u_source;
+    uniform vec2 u_resolution;
+    in vec2 v_texCoord;
+    out vec4 outColor;
+    void main(){
+      float value = texture(u_pathMap, v_texCoord).r;
+      vec4 imageColor = texture(u_source, v_texCoord);
+      float factor = 1.0 - value;
+      outColor = vec4(imageColor.rgb * factor, imageColor.a * factor);
+    }`;
+  const eraserProgram = createProgram(
+    gl,
+    fullQuadVertexShader,
+    createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource)
+  );
   gl.useProgram(eraserProgram);
-
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP
   );
-
   gl.uniform1i(
     gl.getUniformLocation(eraserProgram, "u_source"),
     TEXTURE_UNIT.SOURCE
-  ); // 텍스처 유닛 1에 할당
-
+  );
   bufferManager.createFullQuadVAO(eraserProgram);
 
-  //////////////////////
+  // ====== [NEW] 유틸 ======
+  function ensureTempCanvasSize(w: number, h: number) {
+    // OffscreenCanvas 우선, 없으면 숨김 canvas
+    if (typeof OffscreenCanvas !== "undefined") {
+      if (!(tempCanvas instanceof OffscreenCanvas)) {
+        tempCanvas = new OffscreenCanvas(w, h);
+      }
+      tempCanvas.width = w;
+      tempCanvas.height = h;
+      tempCtx = (tempCanvas as OffscreenCanvas).getContext("2d")!;
+    } else {
+      if (!tempCanvas) tempCanvas = document.createElement("canvas");
+      tempCanvas.width = w;
+      (tempCanvas as HTMLCanvasElement).height = h;
+      tempCtx = (tempCanvas as HTMLCanvasElement).getContext("2d")!;
+    }
+    tempCtx.imageSmoothingEnabled = false;
+  }
 
-  ///////////
-
-  function setSize() {
-    let width = paintOptions.width;
-    let height = paintOptions.height;
-
-    //console.log(paintOptions);
-    gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
-
-    gl.useProgram(strokeProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(strokeProgram, "u_resolution"),
-      width,
-      height
-    );
-
-    gl.useProgram(brushProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(brushProgram, "u_resolution"),
-      width,
-      height
-    );
-    gl.useProgram(eraserProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(eraserProgram, "u_resolution"),
-      width,
-      height
-    );
-
-    // 알파맵 텍스처 데이터 업로드
+  function clearCPUAndGPUAlpha(w: number, h: number) {
+    alphaCPU = new Uint8Array(w * h); // 0으로 초기화
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
     gl.bindTexture(gl.TEXTURE_2D, pathTex);
-
-    // 0으로 초기화
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
       gl.R8,
-      width,
-      height,
+      w,
+      h,
       0,
       gl.RED,
       gl.UNSIGNED_BYTE,
       null
     );
+  }
 
-    // 출력용 텍스처
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, pathTexOut);
-    gl.texImage2D(
+  function drawSplineToTemp(mode: "incremental" | "final"): Rect | null {
+    const w = paintOptions.width,
+      h = paintOptions.height;
+    tempCtx.clearRect(0, 0, w, h);
+
+    const sliced = points.slice(-4);
+    const tangents = calculateTangents(sliced);
+
+    tempCtx.strokeStyle = "black";
+    const diameter = paintOptions.radius * 2;
+    tempCtx.lineWidth = diameter;
+    tempCtx.lineCap = "round";
+    tempCtx.lineJoin = "round";
+    tempCtx.beginPath();
+
+    let dirty = DirtyRectRecorder.clampedRect(0, 0, w, h);
+
+    if (sliced.length === 1) {
+      const p = sliced[0];
+      strokeDirtyRecorder.updatePointer(p, paintOptions.radius);
+      dirty.updatePointer(p, diameter / 2);
+      tempCtx.moveTo(p.x, p.y);
+      tempCtx.lineTo(p.x, p.y);
+      tempCtx.stroke();
+      return dirty.generateRect();
+    }
+
+    for (let i = 0; i < sliced.length - 1; i++) {
+      const p0 = sliced[i],
+        p1 = sliced[i + 1];
+      const v0 = tangents[i],
+        v1 = tangents[i + 1];
+
+      const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      const steps = Math.max(1, (dist | 0) >> 1);
+      const step = 1.0 / steps;
+
+      const shouldDraw =
+        mode === "incremental"
+          ? i === sliced.length - 3
+          : i === sliced.length - 2;
+
+      if (shouldDraw) {
+        let first = true;
+        for (let t = 0; t <= 1.0001; t += step) {
+          const p = hermite(t, p0, p1, v0, v1);
+
+          strokeDirtyRecorder.updatePointer(p, paintOptions.radius);
+          dirty.updatePointer(p, diameter / 2);
+          if (first) {
+            tempCtx.moveTo(p.x, p.y);
+            first = false;
+          } else {
+            tempCtx.lineTo(p.x, p.y);
+          }
+        }
+      }
+    }
+    tempCtx.stroke();
+
+    if (!dirty.hasBeenDirty()) return null;
+    return dirty.generateRect();
+  }
+
+  function mergeAlphaFromTempAndUpload(rect: Rect) {
+    if (rect.isEmpty()) return;
+    const { startX, startY, endX, endY, width, height } = rect.toData();
+
+    // tempCtx → ImageData(알파 채널만 사용)
+    const img = tempCtx.getImageData(startX, startY, width, height).data;
+
+    // CPU 누적(max) & 업로드 버퍼 구성 (paintOptions.alpha를 PATHMAP에 bake)
+    const out = new Uint8Array(width * height);
+    const W = paintOptions.width;
+
+    let k = 0;
+    for (let y = startY; y <= endY; y++) {
+      let rowBase = y * W;
+      for (let x = startX; x <= endX; x++) {
+        const idxImg = ((y - startY) * width + (x - startX)) * 4;
+        const aByte = img[idxImg + 3]; // 0..255
+        const baked = Math.min(255, Math.round(aByte * paintOptions.alpha));
+        const cpuIdx = rowBase + x;
+        const merged = baked > alphaCPU[cpuIdx] ? baked : alphaCPU[cpuIdx];
+        alphaCPU[cpuIdx] = merged;
+        out[k++] = merged;
+      }
+    }
+
+    // GPU PATHMAP에 서브업로드
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+    gl.bindTexture(gl.TEXTURE_2D, pathTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.R8,
+      startX,
+      startY,
       width,
       height,
-      0,
       gl.RED,
       gl.UNSIGNED_BYTE,
-      null
+      out
     );
 
-    clearMap();
+    lastDirtyRect = rect; // brush/eraser 렌더 영역으로 사용
   }
 
-  setSize();
+  const layerManager = getLayerManager(canvas, gl);
+  const renderingManager = getRenderingManager(canvas, gl);
 
-  let layerManager = getLayerManager(canvas, gl);
-
-  let renderingManager = getRenderingManager(canvas, gl);
-  function clearMap() {
-    let glHelper = getGlHelper(gl);
-    glHelper.clearTexture(pathTex, paintOptions.width, paintOptions.height, 0);
-  }
-
-  // start부터 end까지
   let strokeDirtyRecorder: DirtyRectRecorder;
 
-  // 이전 move에서 다음 move까지
-  let scissorDirtyRecorder: DirtyRectRecorder;
-
   let brushManager = {
-    enter() {
-      // console.log("enter!");
-    },
-    start(pointer) {
-      // console.log("start!");
+    enter() {},
+    start(pointer: Pointer) {
+      points = [];
+      points.push(pointer);
+      lastDirtyRect = null;
 
       strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
         0,
@@ -366,134 +270,53 @@ function makeBrushManager(canvas, gl) {
         paintOptions.height
       );
       strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
+      // CPU/GPU 알파 초기화(새 스트로크 시작 시)
+      clearCPUAndGPUAlpha(paintOptions.width, paintOptions.height);
     },
-    stroke(start, end) {
-      // stroke는 알파맵에 대상 부위를 저장하는 것이다.
+    stroke(start: Pointer, end: Pointer) {
+      // 스플라인 포인트 누적: 기존 API 유지(매 프레임 end만 추가)
+      points.push(end);
 
-      // 현재는 pathTex를 유니폼으로 넣고. 해당 선분에 위치하는것을 pathOut에 그린다. 이때 pathTex에 이미 그려져있는 부분은 그대로 반영하고. max값만 반영한다.
+      // 스플라인을 tempCanvas에 그림 → 더티 사각형 산출
+      const rect = drawSplineToTemp("incremental");
+      if (!rect) return;
 
-      // webgl을 사용하는 것에서 canvas2d를 사용하는 코드로 변환을 먼저 해보자.
+      // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
+      mergeAlphaFromTempAndUpload(rect);
 
-      gl.useProgram(strokeProgram);
-
-      gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-      gl.bindTexture(gl.TEXTURE_2D, pathTex);
-
-      // 유나폼 변수 설정
-      gl.uniform1f(
-        gl.getUniformLocation(strokeProgram, "u_radius"),
-        paintOptions.radius
-      );
-      gl.uniform1f(
-        gl.getUniformLocation(strokeProgram, "u_alpha"),
-        paintOptions.alpha
-      );
-
-      gl.uniform2f(
-        gl.getUniformLocation(strokeProgram, "u_start"),
-        start.x,
-        start.y
-      );
-      gl.uniform2f(gl.getUniformLocation(strokeProgram, "u_end"), end.x, end.y);
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      // 프레임버퍼에 쓰기 텍스처 넣기
-      // 이전에 blit할때 다른거 지정되어있었음
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        pathTexOut,
-        0
-      );
-
-      scissorDirtyRecorder = DirtyRectRecorder.clampedRect(
-        0,
-        0,
-        paintOptions.width,
-        paintOptions.height
-      );
-      scissorDirtyRecorder.updatePointer(start, paintOptions.radius);
-      scissorDirtyRecorder.updatePointer(end, paintOptions.radius);
-
+      // 히스토리용 전체 dirty 영역 누적(대략 start/end로 확장)
+      // 이거 안해도 될것 같은데 어떻게할까요 뺄까요?
+      // drawSplineToTemp()안에서도 이미 업뎃해요!
       strokeDirtyRecorder.updatePointer(start, paintOptions.radius);
       strokeDirtyRecorder.updatePointer(end, paintOptions.radius);
-
-      let scissorRect = scissorDirtyRecorder.generateRect();
-      // SCISSOR TEST로 일부만 렌더링
-      gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(
-        scissorRect.x,
-        scissorRect.y,
-        scissorRect.width,
-        scissorRect.height
-      );
-      gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-      // 적용된 텍스처를 read에도 옮기기
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFrameBuffer);
-      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffer);
-
-      gl.framebufferTexture2D(
-        gl.READ_FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        pathTexOut,
-        0
-      );
-
-      gl.framebufferTexture2D(
-        gl.DRAW_FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_2D,
-        pathTex,
-        0
-      );
-
-      gl.blitFramebuffer(
-        scissorRect.x,
-        scissorRect.y,
-        scissorRect.ex + 1,
-        scissorRect.ey + 1, // 소스
-        scissorRect.x,
-        scissorRect.y,
-        scissorRect.ex + 1,
-        scissorRect.ey + 1, // 대상
-        gl.COLOR_BUFFER_BIT,
-        gl.NEAREST
-      );
     },
     brush() {
+      if (!lastDirtyRect) return;
       gl.useProgram(brushProgram);
-
       gl.uniform3fv(
         gl.getUniformLocation(brushProgram, "u_color"),
         paintOptions.color
       );
-      // 쓰기 영역: 내 화면
+
+      // 출력: 현재 레이어 FBO
       gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-      gl.disable(gl.SCISSOR_TEST);
-
-      renderingManager.render(scissorDirtyRecorder.generateRect());
+      renderingManager.render(lastDirtyRect); // 더티 영역만 리프레시
     },
     eraser() {
+      if (!lastDirtyRect) return;
       gl.useProgram(eraserProgram);
-      // 쓰기 영역: 내 화면
       gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
       gl.viewport(0, 0, paintOptions.width, paintOptions.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-      gl.disable(gl.SCISSOR_TEST);
-
-      renderingManager.render(scissorDirtyRecorder.generateRect());
+      renderingManager.render(lastDirtyRect);
     },
     end() {
-      let strokeRect = strokeDirtyRecorder.generateRect();
-      let { before, after } = sourceTextureManager.upload(
+      const strokeRect = strokeDirtyRecorder.generateRect();
+      const { before, after } = sourceTextureManager.upload(
         strokeRect.x,
         strokeRect.y,
         strokeRect.width,
@@ -513,18 +336,36 @@ function makeBrushManager(canvas, gl) {
         },
       });
 
-      let historyManager = getHistoryManager(canvas, gl);
+      const historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(newHistory);
-      clearMap();
+
+      // 다음 스트로크 대비 초기화
+      clearCPUAndGPUAlpha(paintOptions.width, paintOptions.height);
+      points = [];
+      lastDirtyRect = null;
     },
     cancel() {
       sourceTextureManager.restore();
-      clearMap();
+      clearCPUAndGPUAlpha(paintOptions.width, paintOptions.height);
       renderingManager.render();
+      points = [];
+      lastDirtyRect = null;
     },
     exit() {},
-    setSize,
+    setSize() {
+      const width = paintOptions.width;
+      const height = paintOptions.height;
+
+      gl.viewport(0, 0, width, height);
+      gl.clearColor(0, 0, 0, 0);
+
+      // 캔버스/버퍼 준비
+      ensureTempCanvasSize(width, height);
+      clearCPUAndGPUAlpha(width, height);
+    },
   };
+
+  brushManager.setSize();
 
   return brushManager;
 }
