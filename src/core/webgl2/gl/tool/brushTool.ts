@@ -368,6 +368,12 @@ function makeBrushManager(canvas, gl) {
       strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
     },
     stroke(start, end) {
+      // stroke는 알파맵에 대상 부위를 저장하는 것이다.
+
+      // 현재는 pathTex를 유니폼으로 넣고. 해당 선분에 위치하는것을 pathOut에 그린다. 이때 pathTex에 이미 그려져있는 부분은 그대로 반영하고. max값만 반영한다.
+
+      // webgl을 사용하는 것에서 canvas2d를 사용하는 코드로 변환을 먼저 해보자.
+
       gl.useProgram(strokeProgram);
 
       gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);

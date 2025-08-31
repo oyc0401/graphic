@@ -1,5 +1,5 @@
 import { paintOptions } from "./Canvas2DService";
-import { Rect } from "../utils/rect";
+import { DirtyRectRecorder, Rect } from "../utils/rect";
 import type { Pointer } from "../types.js";
 import { calculateTangents, hermite } from "../utils/spline";
 
@@ -105,6 +105,7 @@ export class SplineTool {
 
   private drawSpline(): void {
     let dirtyRect = this.drawToTempCanvasInternal("incremental");
+    // console.log(dirtyRect?.toData());
     if (dirtyRect) {
       // dirtyRect 디버깅 출력
       // console.log(
@@ -143,15 +144,20 @@ export class SplineTool {
     this.tempCtx.lineJoin = "round";
     this.tempCtx.beginPath();
 
-    let dirtyRect = new Rect();
+    let dirtyRect = DirtyRectRecorder.clampedRect(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
 
     if (slicedPoints.length == 1) {
       const p = slicedPoints[0];
-      dirtyRect.updatePointer(p.x, p.y, paintOptions.diameter / 2);
+      dirtyRect.updatePointer(p, paintOptions.diameter / 2);
       this.tempCtx.moveTo(p.x, p.y);
       this.tempCtx.lineTo(p.x, p.y);
       this.tempCtx.stroke();
-      return dirtyRect;
+      return dirtyRect.generateRect();
     }
 
     for (let i = 0; i < slicedPoints.length - 1; i++) {
@@ -178,7 +184,7 @@ export class SplineTool {
 
           // console.log("stepSize:", p.x, p.y);
 
-          dirtyRect.updatePointer(p.x, p.y, paintOptions.diameter / 2);
+          dirtyRect.updatePointer(p, paintOptions.diameter / 2);
 
           if (isFirst) {
             this.tempCtx.moveTo(p.x, p.y);
@@ -191,19 +197,17 @@ export class SplineTool {
     }
     this.tempCtx.stroke();
 
-    if (dirtyRect.isEmpty()) {
+    if (!dirtyRect.hasBeenDirty()) {
       return null;
     }
 
-    return dirtyRect;
+    return dirtyRect.generateRect();
   }
 
-  private extractToAlphaMap(canvas, ctx, map, dirtyRect: Rect): void {
-    const clampedRect = Rect.clampToCanvas(
-      dirtyRect,
-      canvas.width,
-      canvas.height
-    );
+  private extractToAlphaMap(canvas, ctx, map, clampedRect: Rect): void {
+    if (clampedRect.isEmpty()) {
+      return;
+    }
     const { startX, startY, endX, endY, width, height } = clampedRect.toData();
 
     const imageData = ctx.getImageData(startX, startY, width, height);
@@ -222,13 +226,12 @@ export class SplineTool {
     }
   }
 
-  private renderFromAlphaMap(map, dirtyRect: Rect): void {
+  private renderFromAlphaMap(map, clampedRect: Rect): void {
     // Rect.clampToCanvas로 경계 계산을 캡슐화
-    const clampedRect = Rect.clampToCanvas(
-      dirtyRect,
-      this.drawCanvas.width,
-      this.drawCanvas.height
-    );
+
+    if (clampedRect.isEmpty()) {
+      return;
+    }
     const { startX, startY, endX, endY, width, height } = clampedRect.toData();
 
     this.drawCtx.clearRect(startX, startY, width, height);
