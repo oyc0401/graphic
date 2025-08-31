@@ -167,15 +167,13 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
       renderingManager.render(lastDirtyRect);
     },
     end() {
-      // if (points.length == 1) {
-      //   points.push(points[0]);
-      // }
       console.log("endPoints:", points);
       // end할때 스플라인 마지막 곡선 그리기
       let rect = splineAlphaBackend.end();
       console.log("endRect", rect);
       if (rect) {
         lastDirtyRect = rect; // brush/eraser 렌더 영역으로 사용
+        this.brush();
       }
 
       // 기존 end 함수들
@@ -270,14 +268,17 @@ class SplineAlphaBackend {
     this.tempCtx.imageSmoothingEnabled = false;
   }
 
-  drawSplineToTemp(mode: "incremental" | "final"): Rect | null {
+  drawSplineToTemp(
+    points: Pointer[],
+    mode: "incremental" | "final"
+  ): Rect | null {
     let tempCtx = this.tempCtx;
 
     const w = paintOptions.width,
       h = paintOptions.height;
     tempCtx.clearRect(0, 0, w, h);
 
-    const sliced = this.points.slice(-4);
+    const sliced = points.slice(-4);
     const tangents = calculateTangents(sliced);
 
     tempCtx.strokeStyle = "black";
@@ -289,6 +290,9 @@ class SplineAlphaBackend {
 
     let dirty = DirtyRectRecorder.clampedRect(0, 0, w, h);
 
+    if (sliced.length == 0) {
+      throw Error("points가 비었는데, 호출됌!!");
+    }
     if (sliced.length === 1) {
       const p = sliced[0];
       this.strokeDirtyRecorder.updatePointer(p, paintOptions.radius);
@@ -319,15 +323,11 @@ class SplineAlphaBackend {
 
         for (let t = 0; t <= 1.0001; t += step) {
           const p = hermite(t, p0, p1, v0, v1);
-          // console.log("steps", step, shouldDraw);
           this.strokeDirtyRecorder.updatePointer(p, paintOptions.radius);
           dirty.updatePointer(p, diameter / 2);
           if (first) {
             tempCtx.moveTo(p.x, p.y);
-
-            console.log("steps", step, shouldDraw, this.points.length, mode);
             first = false;
-          } else {
           }
           tempCtx.lineTo(p.x, p.y);
         }
@@ -335,8 +335,9 @@ class SplineAlphaBackend {
     }
 
     tempCtx.stroke();
+
+    // 이 경우는, 포인트가 아직 두개인데, 그리는 중일 때..!!
     if (!dirty.hasBeenDirty()) {
-      // console.log("steps e1", this.points.length);
       return null;
     }
     return dirty.generateRect();
@@ -423,7 +424,7 @@ class SplineAlphaBackend {
 
   stroke(start, end): Rect | null {
     // 스플라인을 tempCanvas에 그림 → 더티 사각형 산출
-    const rect = this.drawSplineToTemp("incremental");
+    const rect = this.drawSplineToTemp(this.points, "incremental");
     if (!rect) return null;
 
     // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
@@ -439,7 +440,7 @@ class SplineAlphaBackend {
   }
 
   end(): Rect | null {
-    const rect = this.drawSplineToTemp("final");
+    const rect = this.drawSplineToTemp(this.points, "final");
     if (!rect) return null;
 
     // tempCanvas 알파 → CPU alphaCPU에 max 병합 → PATHMAP에 서브업로드
