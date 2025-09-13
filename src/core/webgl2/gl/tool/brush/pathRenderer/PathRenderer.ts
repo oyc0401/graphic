@@ -64,7 +64,7 @@ export abstract class PathRenderer {
       0,
       gl.RED,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
   }
 }

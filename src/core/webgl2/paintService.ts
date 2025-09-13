@@ -5,7 +5,7 @@ import {
   LiquifyTool,
 } from "./gl/tool/tool";
 import { paintOptions } from "./gl/texture";
-import { getRenderingManager } from "./gl/render";
+import { getRenderingManager } from "./gl/render/render";
 import { resizeLayer, resizeScreen } from "./gl/resize";
 import { getSelectionManager } from "./gl/selection";
 import { getLayerManager } from "./gl/layer";

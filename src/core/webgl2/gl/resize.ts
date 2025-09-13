@@ -3,7 +3,7 @@ import { getLayerManager } from "./layer";
 import { getLiquifyManager } from "./tool/liquify/liquify";
 import { getBrushManager } from "./tool/brush/brushTool";
 import { getManager } from "../../utils/cachedManager";
-import { getOffscreenManager, getRenderingManager } from "./render";
+import { getOffscreenManager, getRenderingManager } from "./render/render";
 import { PixelReader } from "./history/PixelReader";
 import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { PixelStore } from "./history/PixelStore";
@@ -33,7 +33,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
     oldWidth,
     oldHeight,
     width,
-    height
+    height,
   );
 
   paintOptions.x += x;
@@ -140,7 +140,7 @@ export function resizeScreen(canvas, gl, screenWidth, screenHeight) {
 
 function getResizeLayerTexManager(canvas, gl) {
   const manager = getManager(gl, "resizeTex", () =>
-    createResizeManager(canvas, gl)
+    createResizeManager(canvas, gl),
   );
   return manager;
 }
@@ -175,7 +175,7 @@ function createResizeManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     ); // 빈 텍스처 생성
 
     // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
@@ -185,7 +185,7 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       layerTex,
-      0
+      0,
     );
 
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, drawfbo);
@@ -194,7 +194,7 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       historyTex,
-      0
+      0,
     );
 
     // blit 좌표계는 0,0,1,1이 1칸임.
@@ -208,7 +208,7 @@ function createResizeManager(canvas, gl) {
       width,
       height, // 쓰기 버퍼의 영역 (텍스처 크기)
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
+      gl.NEAREST, // 필터링 옵션
     );
 
     return historyTex;
@@ -221,7 +221,7 @@ function createResizeManager(canvas, gl) {
     oldHeight: number,
     newWidth: number,
     newHeight: number,
-    layerTex
+    layerTex,
   ) {
     console.log("resize", oldWidth, oldHeight, newWidth, newHeight);
     const bitmapManager = getBitmapManager();
@@ -249,14 +249,14 @@ function createResizeManager(canvas, gl) {
           0, // border
           gl.RGBA, // format
           gl.UNSIGNED_BYTE, // type
-          await this.pixelReader.getPixelData()
+          await this.pixelReader.getPixelData(),
         );
 
         pushLowQueue(gl, async () => {
           bitmapManager.applyResizeDirtyRect(
             await beforePixel.getPixelData(true),
             renderRect.width,
-            renderRect.height
+            renderRect.height,
           );
         });
       },
@@ -268,7 +268,7 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       layerTex,
-      0
+      0,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, tempFBO);
@@ -277,7 +277,7 @@ function createResizeManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       tempTex,
-      0
+      0,
     );
 
     // temp에 임시 저장
@@ -294,7 +294,7 @@ function createResizeManager(canvas, gl) {
       oldWidth,
       oldHeight,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
 
     // 대상 텍스쳐 늘리기
@@ -309,7 +309,7 @@ function createResizeManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
 
     // 임시 텍스처 → 레이어 텍스처로 복사
@@ -326,7 +326,7 @@ function createResizeManager(canvas, gl) {
       newWidth,
       newHeight,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
 
     let afterTex = copyTexture(layerTex, newWidth, newHeight);
@@ -337,7 +337,7 @@ function createResizeManager(canvas, gl) {
       newHeight,
       afterTex,
       gl.RGBA,
-      gl.UNSIGNED_BYTE
+      gl.UNSIGNED_BYTE,
     );
 
     let newRect = Rect.fromWidth(0, 0, newWidth, newHeight);
@@ -345,7 +345,7 @@ function createResizeManager(canvas, gl) {
       bitmapManager.applyResizeDirtyRect(
         await afterPixelReader.getPixelData(true),
         newWidth,
-        newHeight
+        newHeight,
       );
     });
 
@@ -366,14 +366,14 @@ function createResizeManager(canvas, gl) {
           0, // border
           gl.RGBA, // format
           gl.UNSIGNED_BYTE, // type
-          await this.pixelReader.getPixelData()
+          await this.pixelReader.getPixelData(),
         );
 
         pushLowQueue(gl, async () => {
           bitmapManager.applyResizeDirtyRect(
             await afterPixelReader.getPixelData(true),
             newWidth,
-            newHeight
+            newHeight,
           );
         });
       },
@@ -391,7 +391,7 @@ function createResizeManager(canvas, gl) {
     oldWidth: number,
     oldHeight: number,
     newWidth: number,
-    newHeight: number
+    newHeight: number,
   ) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, tempTex);
@@ -405,7 +405,7 @@ function createResizeManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
 
     let snapshots: {
@@ -420,7 +420,7 @@ function createResizeManager(canvas, gl) {
         oldHeight,
         newWidth,
         newHeight,
-        layerTex
+        layerTex,
       );
       snapshots.push(snapshot);
     }

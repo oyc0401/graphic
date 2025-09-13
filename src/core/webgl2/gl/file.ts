@@ -1,6 +1,6 @@
 import { resetHisory } from "./history/history";
 import { getLayerManager } from "./layer";
-import { getRenderingManager } from "./render";
+import { getRenderingManager } from "./render/render";
 import { resizeLayer } from "./resize";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
 import { getBrushManager } from "./tool/brush/brushTool";
@@ -21,7 +21,7 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
     paintOptions.x,
     paintOptions.y,
     bitmap.width,
-    bitmap.height
+    bitmap.height,
   );
 
   resetHisory();
@@ -33,7 +33,7 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
     gl.RGBA, // internal format
     gl.RGBA, // format
     gl.UNSIGNED_BYTE, // type
-    bitmap // ✅ 직접 전달 가능
+    bitmap, // ✅ 직접 전달 가능
   );
 
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
@@ -70,7 +70,7 @@ export function resetImage(canvas, gl, width, height) {
     0, // border (항상 0)
     gl.RGBA, // format
     gl.UNSIGNED_BYTE, // type
-    null // → allocate only
+    null, // → allocate only
   );
 
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
@@ -84,7 +84,7 @@ export function resetImage(canvas, gl, width, height) {
     0, // border (항상 0)
     gl.RGBA, // format
     gl.UNSIGNED_BYTE, // type
-    null // → allocate only
+    null, // → allocate only
   );
 
   renderingManager.render();
@@ -92,7 +92,7 @@ export function resetImage(canvas, gl, width, height) {
 
 export function getCanvasPixelManager(canvas, gl) {
   const manager = getManager(gl, "canvasPixel", () =>
-    canvasPixelManager(canvas, gl)
+    canvasPixelManager(canvas, gl),
   );
   return manager;
 }
@@ -130,13 +130,13 @@ function canvasPixelManager(canvas, gl) {
 
     gl.uniform1i(
       gl.getUniformLocation(renderProgram, "u_source"),
-      TEXTURE_UNIT.LAYER
+      TEXTURE_UNIT.LAYER,
     );
 
     gl.uniform2f(
       gl.getUniformLocation(renderProgram, "u_resolution"),
       paintOptions.width,
-      paintOptions.height
+      paintOptions.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, canvasFBO);
@@ -157,7 +157,7 @@ function canvasPixelManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, canvasFBO);
@@ -166,7 +166,7 @@ function canvasPixelManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       canvasTex,
-      0
+      0,
     );
 
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);

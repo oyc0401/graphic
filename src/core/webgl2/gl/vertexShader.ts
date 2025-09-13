@@ -6,13 +6,15 @@ import { createShader } from "./utils/glHelper";
  */
 export function getFullQuadShader(gl) {
   const manager = getManager(gl, "fullQuadVertexShader", () =>
-    makeFullQuadVertexShader(gl)
+    makeFullQuadVertexShader(gl),
   );
   return manager;
 }
 
 function makeFullQuadVertexShader(gl) {
   let vertexShaderSource = `#version 300 es
+   #pragma vscode_glsllint_stage: vert
+
   in vec2 a_position;
   out vec2 v_texCoord; // 좌표변환: 0 ~ 1
 
@@ -38,7 +40,7 @@ function makeBufferManager(gl) {
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-    gl.STATIC_DRAW
+    gl.STATIC_DRAW,
   );
 
   function createFullQuadVAO(program) {

@@ -1,6 +1,6 @@
 import { getManager } from "../../utils/cachedManager";
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
-import { getRenderingManager } from "./render";
+import { getRenderingManager } from "./render/render";
 
 export function getLayerManager(canvas, gl) {
   const manager = getManager(gl, "layer", () => makeLayerManager(canvas, gl));
@@ -27,7 +27,7 @@ function makeLayerManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null
+    null,
   );
 
   let layerFBO = gl.createFramebuffer();
@@ -37,7 +37,7 @@ function makeLayerManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     layerTex,
-    0
+    0,
   );
   layerTex.id = 0;
 
@@ -60,7 +60,7 @@ function makeLayerManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null
+    null,
   );
   layerTex2.id = 1;
 
@@ -84,7 +84,7 @@ function makeLayerManager(canvas, gl) {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       currentLayerTex,
-      0
+      0,
     );
 
     const sourceTextureManager = getSourceTextureManager(canvas, gl);
@@ -128,7 +128,7 @@ function makeLayerManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
   }
   return {

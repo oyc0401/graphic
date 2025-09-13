@@ -1,0 +1,13 @@
+{
+  "prettier.prettierPath": "node_modules/prettier",
+  "prettier.requireConfig": true,
+  "files.associations": {
+    "*.glsl": "glsl",
+    "*.frag": "glsl",
+    "*.vert": "glsl"
+  },
+  "[glsl]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}

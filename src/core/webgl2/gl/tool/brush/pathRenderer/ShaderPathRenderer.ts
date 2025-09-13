@@ -4,7 +4,7 @@ import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 import { paintOptions, TEXTURE_UNIT } from "../../../texture";
 import { createShader, createProgram } from "../../../utils/glHelper";
 import { getFullQuadShader, getBufferManager } from "../../../vertexShader";
-import strokeShaderSource from "./strokeShaderSource.frag?raw";
+import strokeShaderSource from "./strokeShader.frag?raw";
 
 export class ShaderPathRenderer extends PathRenderer {
   private strokeProgram: WebGLProgram;

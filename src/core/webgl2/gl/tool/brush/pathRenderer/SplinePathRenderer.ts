@@ -26,7 +26,7 @@ export class SplinePathRenderer extends PathRenderer {
       0,
       0,
       paintOptions.width,
-      paintOptions.height
+      paintOptions.height,
     );
     this.strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
   }
@@ -59,7 +59,7 @@ export class SplinePathRenderer extends PathRenderer {
 
   private drawSplineToTemp(
     points: Pointer[],
-    mode: "incremental" | "final"
+    mode: "incremental" | "final",
   ): Rect | null {
     let tempCtx = this.tempCtx;
 
@@ -172,7 +172,7 @@ export class SplinePathRenderer extends PathRenderer {
       height,
       gl.RED,
       gl.UNSIGNED_BYTE,
-      out
+      out,
     );
   }
 
