@@ -6,7 +6,6 @@ import { calculateTangents, hermite } from "@/core/utils/spline";
 import { TEXTURE_UNIT } from "../../texture";
 
 export class SplinePathRenderer extends PathRenderer {
-  private points: Pointer[];
   private tempCanvas: OffscreenCanvas | HTMLCanvasElement;
   private tempCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
   private alphaCPU: Uint8Array;
@@ -22,8 +21,7 @@ export class SplinePathRenderer extends PathRenderer {
   }
 
   start(pointer: Pointer) {
-    this.points = [];
-    this.points.push(pointer);
+    super.start(pointer);
     this.strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
       0,
       0,
@@ -33,8 +31,8 @@ export class SplinePathRenderer extends PathRenderer {
     this.strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
   }
 
-  stroke(point: Pointer): Rect | null {
-    this.points.push(point);
+  stroke(pointer: Pointer): Rect | null {
+    super.stroke(pointer);
 
     const rect = this.drawSplineToTemp(this.points, "incremental");
     if (!rect) return null;
@@ -50,13 +48,8 @@ export class SplinePathRenderer extends PathRenderer {
 
     this.mergeAlphaFromTempAndUpload(rect);
 
-    this.points = [];
-
+    super.end();
     return rect;
-  }
-
-  cancel() {
-    this.points = [];
   }
 
   getStrokeDirtyRect() {
@@ -201,23 +194,8 @@ export class SplinePathRenderer extends PathRenderer {
   }
 
   private clearAlpha(w: number, h: number) {
-    let gl = this.gl;
-    let pathTex = this.pathTex;
+    super.clearPathTex(w, h);
 
     this.alphaCPU = new Uint8Array(w * h);
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-    gl.bindTexture(gl.TEXTURE_2D, pathTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R8,
-      w,
-      h,
-      0,
-      gl.RED,
-      gl.UNSIGNED_BYTE,
-      null
-    );
   }
 }

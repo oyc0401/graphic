@@ -12,7 +12,6 @@ export class ShaderPathRenderer extends PathRenderer {
   private readFrameBuffer: WebGLFramebuffer;
   private strokeDirtyRecorder: DirtyRectRecorder;
   private scissorDirtyRecorder: DirtyRectRecorder;
-  private points: Pointer[];
 
   constructor(gl: WebGL2RenderingContext, pathTex: WebGLTexture) {
     super(gl, pathTex);
@@ -164,8 +163,7 @@ export class ShaderPathRenderer extends PathRenderer {
   }
 
   start(pointer: Pointer) {
-    this.points = [];
-    this.points.push(pointer);
+    super.start(pointer);
     this.strokeDirtyRecorder = DirtyRectRecorder.clampedRect(
       0,
       0,
@@ -175,8 +173,8 @@ export class ShaderPathRenderer extends PathRenderer {
     this.strokeDirtyRecorder.updatePointer(pointer, paintOptions.radius);
   }
 
-  stroke(point: Pointer): Rect | null {
-    this.points.push(point);
+  stroke(pointer: Pointer): Rect | null {
+    super.stroke(pointer);
 
     const rect = this.drawLineToTex(
       this.points[this.points.length - 2],
@@ -184,16 +182,6 @@ export class ShaderPathRenderer extends PathRenderer {
     );
 
     return rect;
-  }
-
-  end(): Rect | null {
-    this.points = [];
-
-    return null;
-  }
-
-  cancel() {
-    this.points = [];
   }
 
   getStrokeDirtyRect(): Rect {
@@ -294,19 +282,7 @@ export class ShaderPathRenderer extends PathRenderer {
   }
 
   private clearAlpha(w: number, h: number) {
-    this.gl.activeTexture(this.gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.pathTex);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.R8,
-      w,
-      h,
-      0,
-      this.gl.RED,
-      this.gl.UNSIGNED_BYTE,
-      null
-    );
+    super.clearPathTex(w, h);
 
     this.gl.activeTexture(this.gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.pathTexOut);
