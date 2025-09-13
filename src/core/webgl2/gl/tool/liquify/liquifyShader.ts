@@ -1,4 +1,4 @@
-import liquifyPush from "./liquifyPush.glsl?raw";
+import liquifyPush from "./liquifyPush.frag?raw";
 const _xorKey = 73;
 
 export function getShaderSource(): string {

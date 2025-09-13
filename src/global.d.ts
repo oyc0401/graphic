@@ -14,6 +14,11 @@ declare module "*.glsl?raw" {
   export default content;
 }
 
+declare module "*.frag?raw" {
+  const content: string;
+  export default content;
+}
+
 declare module "*?worker" {
   const workerConstructor: {
     new (): Worker;
