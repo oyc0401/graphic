@@ -1,7 +1,7 @@
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
-import { getLiquifyManager } from "./tool/liquify";
-import { getBrushManager } from "./tool/brushTool";
+import { getLiquifyManager } from "./tool/liquify/liquify";
+import { getBrushManager } from "./tool/brush/brushTool";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render";
 import { PixelReader } from "./history/PixelReader";

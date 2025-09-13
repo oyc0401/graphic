@@ -1,5 +1,5 @@
-import { getLiquifyManager, installLiquifyManager } from "./liquify";
-import { getBrushManager } from "./brushTool";
+import { getLiquifyManager, installLiquifyManager } from "./liquify/liquify";
+import { getBrushManager } from "./brush/brushTool";
 import { setDrawingFlag } from "../history/workQueue";
 
 interface Pointer {

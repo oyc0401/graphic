@@ -1,14 +1,14 @@
-import { createShader, createProgram, getGlHelper } from "../utils/glHelper";
-import { getRenderingManager } from "../render";
+import { createShader, createProgram, getGlHelper } from "../../utils/glHelper";
+import { getRenderingManager } from "../../render";
 import {
   TEXTURE_UNIT,
   getSourceTextureManager,
   paintOptions,
-} from "../texture";
-import { getLayerManager } from "../layer";
-import { getBufferManager, getFullQuadShader } from "../vertexShader";
-import { getManager } from "../../../utils/cachedManager";
-import { getHistoryManager, HistoryObject } from "../history/history";
+} from "../../texture";
+import { getLayerManager } from "../../layer";
+import { getBufferManager, getFullQuadShader } from "../../vertexShader";
+import { getManager } from "../../../../utils/cachedManager";
+import { getHistoryManager, HistoryObject } from "../../history/history";
 import { Rect } from "@/core/utils/rect";
 import { Pointer } from "@/core/types";
 import { SplinePathRenderer } from "./pathRenderer/SplinePathRenderer";

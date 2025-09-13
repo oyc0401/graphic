@@ -1,9 +1,9 @@
 import { PathRenderer } from "./PathRenderer";
 import { Pointer } from "@/core/types";
 import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
-import { paintOptions } from "../../texture";
+import { paintOptions } from "../../../texture";
 import { calculateTangents, hermite } from "@/core/utils/spline";
-import { TEXTURE_UNIT } from "../../texture";
+import { TEXTURE_UNIT } from "../../../texture";
 
 export class SplinePathRenderer extends PathRenderer {
   private tempCanvas: OffscreenCanvas | HTMLCanvasElement;

@@ -1,6 +1,6 @@
 import { Pointer } from "@/core/types";
 import { Rect } from "@/core/utils/rect";
-import { TEXTURE_UNIT } from "../../texture";
+import { TEXTURE_UNIT } from "../../../texture";
 
 export abstract class PathRenderer {
   protected gl: WebGL2RenderingContext;
@@ -51,17 +51,19 @@ export abstract class PathRenderer {
   abstract getStrokeDirtyRect(): Rect;
 
   protected clearPathTex(width: number, heigth: number) {
-    this.gl.activeTexture(this.gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.pathTex);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
+    const gl = this.gl;
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+    gl.bindTexture(gl.TEXTURE_2D, this.pathTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
       0,
-      this.gl.R8,
+      gl.R8,
       width,
       heigth,
       0,
-      this.gl.RED,
-      this.gl.UNSIGNED_BYTE,
+      gl.RED,
+      gl.UNSIGNED_BYTE,
       null
     );
   }
