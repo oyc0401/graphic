@@ -105,6 +105,7 @@ function canvasPixelManager(canvas, gl) {
   const canvasFBO = gl.createFramebuffer();
 
   const renderSource = `#version 300 es
+  #pragma vscode_glsllint_stage: frag
     precision mediump float;
 
     uniform sampler2D u_source;   // 원본 텍스처

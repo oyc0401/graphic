@@ -57,6 +57,7 @@ function createSelectionManager(canvas, gl) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
   let selectionShaderSource = `#version 300 es
+  #pragma vscode_glsllint_stage: frag
     precision highp float;
 
     uniform sampler2D u_selection_source;

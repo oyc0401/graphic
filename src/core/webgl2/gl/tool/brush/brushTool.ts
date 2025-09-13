@@ -15,8 +15,8 @@ import { SplinePathRenderer } from "./pathRenderer/SplinePathRenderer";
 import { PathRenderer } from "./pathRenderer/PathRenderer";
 import { ShaderPathRenderer } from "./pathRenderer/ShaderPathRenderer";
 
-import brushShaderSource from "./brushShader.frag?raw";
-import eraserShaderSource from "./eraserShader.frag?raw";
+import brushFrag from "./brush.frag?raw";
+import eraserFrag from "./eraser.frag?raw";
 
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
@@ -46,7 +46,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const brushProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    createShader(gl, gl.FRAGMENT_SHADER, brushShaderSource),
+    createShader(gl, gl.FRAGMENT_SHADER, brushFrag),
   );
   gl.useProgram(brushProgram);
   gl.uniform1i(
@@ -62,7 +62,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const eraserProgram = createProgram(
     gl,
     fullQuadVertexShader,
-    createShader(gl, gl.FRAGMENT_SHADER, eraserShaderSource),
+    createShader(gl, gl.FRAGMENT_SHADER, eraserFrag),
   );
   gl.useProgram(eraserProgram);
   gl.uniform1i(

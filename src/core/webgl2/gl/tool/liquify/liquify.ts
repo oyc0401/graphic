@@ -13,7 +13,6 @@ import {
 
 import { createShader, createProgram, getGlHelper } from "../../utils/glHelper";
 import { getRenderingManager } from "../../render/render";
-import { getShaderSource } from "./liquifyShader";
 import {
   getHistoryManager,
   HistoryObject,
@@ -23,7 +22,8 @@ import {
 import { PixelReader } from "../../history/PixelReader";
 import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 
-import colorShaderSource from "./colorShader.frag?raw";
+import liquifyPushFrag from "./liquifyPush.frag?raw";
+import colorFrag from "./color.frag?raw";
 
 interface liquifyManager {
   enter(): void;
@@ -81,11 +81,7 @@ async function makeLiquifyManager(canvas, gl) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const fullQuadVertexShader = getFullQuadShader(gl);
 
-  let liquifyPushShader = createShader(
-    gl,
-    gl.FRAGMENT_SHADER,
-    getShaderSource(),
-  );
+  let liquifyPushShader = createShader(gl, gl.FRAGMENT_SHADER, liquifyPushFrag);
   let liquifyPushProgram = createProgram(
     gl,
     fullQuadVertexShader,
@@ -192,7 +188,7 @@ async function makeLiquifyManager(canvas, gl) {
   const bufferManager = getBufferManager(canvas, gl);
   bufferManager.createFullQuadVAO(liquifyPushProgram);
 
-  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorShaderSource);
+  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorFrag);
   let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
   gl.useProgram(renderProgram);
 

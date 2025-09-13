@@ -9,6 +9,12 @@ import { getManager } from "../../../utils/cachedManager";
 import { paintConfig } from "@/paint.config";
 import { Rect } from "@/core/utils/rect";
 
+import displayFrag from "./display.frag?raw";
+import backgroundFrag from "./background.frag?raw";
+import renderFrag from "./render.frag?raw";
+import gridFrag from "./grid.frag?raw";
+import selectionFrag from "./selection.frag?raw";
+
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () =>
     makeRenderingManager(canvas, gl),
@@ -21,42 +27,7 @@ function makeRenderingManager(canvas, gl) {
   const offscreenManager = getOffscreenManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
 
-  let displaySource = `#version 300 es
-      #pragma vscode_glsllint_stage: frag
-   
-      precision highp float;
-    
-      in vec2 v_texCoord;
-      out vec4 outColor;
-    
-      uniform vec2 u_resolution;
-      uniform vec2 u_pos;
-      uniform vec2 u_screenSize;
-      uniform float u_magnification;
-      uniform float u_dpr;
-    
-    
-    void main() {
-      // 실제 픽셀 좌표
-      float px = v_texCoord.x * u_screenSize.x / u_dpr ;
-      float py = v_texCoord.y * u_screenSize.y / u_dpr ;
-    
-      float cellSize = 16.0 ;   // 셀 크기
-      float borderSize = 1.0;  // 테두리 두께
-    
-      float modX = mod(px, cellSize);
-      float modY = mod(py, cellSize);
-    
-      // 경계선 근처면 밝은 선 색
-      if (modX < borderSize || modY < borderSize) {
-        outColor = vec4(0.89, 0.89, 0.89, 1.0);  // 테두리
-      } else {
-        outColor = vec4(0.91, 0.91, 0.91, 1.0);  // 셀 내부 
-      }
-    }
-  `;
-
-  let displayShader = createShader(gl, gl.FRAGMENT_SHADER, displaySource);
+  let displayShader = createShader(gl, gl.FRAGMENT_SHADER, displayFrag);
   let displayProgram = createProgram(gl, fullQuadVertexShader, displayShader);
   gl.useProgram(displayProgram);
 
@@ -96,49 +67,7 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  let backgroundSource = `#version 300 es
-  #pragma vscode_glsllint_stage: frag
-    precision highp float;
-    
-    in vec2 v_texCoord;
-    out vec4 outColor;
-    
-    uniform vec2 u_resolution;   // 캔버스(원본 텍스처) 해상도 (px)
-    uniform vec2 u_pos;          // 캔버스의 왼쪽 상단 위치 (2D UI 좌표, px)
-    uniform vec2 u_screenSize;   // 전체 스크린 크기 (px)
-    uniform float u_magnification; // 확대 배율 (값이 클수록 크게 보임)
-
-    void main() {
-      // 1. magnification을 반영한 "스케일된 스크린" 크기 계산
-      vec2 scaledScreenSize = u_screenSize / u_magnification;
-      vec2 canvasSize = u_resolution;
-      
-      // 2. 풀스크린 정규 좌표(v_texCoord)를 스케일된 픽셀 좌표로 변환
-      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
-      
-      // 3. 2D UI 기준 (왼쪽 상단 기준)인 캔버스 영역을 스케일된 좌표계로 변환  
-      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
-      vec2 minCanvPos = canvasPos;
-      vec2 maxCanvPos = canvasPos + canvasSize;
-      
-      // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 체크
-      if (scaledFragCoord.x < minCanvPos.x ||
-          scaledFragCoord.x > maxCanvPos.x ||
-          scaledFragCoord.y < minCanvPos.y ||
-          scaledFragCoord.y > maxCanvPos.y) {
-        discard;
-      }
-      
-      // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력  
-      vec3 rgb = vec3(0.0, 0.0, 0.0);
-      float alpha = 0.04;
-      //outColor = vec4(rgb * alpha, alpha);
-       
-      outColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-  `;
-
-  let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundSource);
+  let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundFrag);
   let backgroundProgram = createProgram(
     gl,
     fullQuadVertexShader,
@@ -175,52 +104,7 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  let renderShaderSource = `#version 300 es
-  #pragma vscode_glsllint_stage: frag
-
-    precision highp float;
-    
-    uniform sampler2D u_source;   // 원본 텍스처
-    
-    uniform vec2 u_resolution;    // 캔버스의 전체 화면 기준(왼쪽 상단) 위치 (픽셀 단위)
-    uniform vec2 u_pos;           // 전체 스크린 크기 (픽셀 단위)
-    uniform vec2 u_screenSize;    // 확대 배율 (값이 클수록 크게 보임)
-    uniform float u_magnification;
-    
-    in vec2 v_texCoord;           // 풀스크린 정규화 좌표 (0~1)
-    out vec4 outColor;
-    
-    void main() {
-      // 1. magnification 반영된 "스케일된 스크린" 크기 계산
-      vec2 scaledScreenSize = u_screenSize / u_magnification;
-      vec2 canvasSize = u_resolution;
-      
-      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
-      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
-     
-      // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
-      vec2 minCanvPos = canvasPos;
-      vec2 maxCanvPos = canvasPos + canvasSize;
-    
-      // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 검사
-      if (scaledFragCoord.x < minCanvPos.x ||
-          scaledFragCoord.x > maxCanvPos.x ||
-          scaledFragCoord.y < minCanvPos.y ||
-          scaledFragCoord.y > maxCanvPos.y) {
-        discard;
-      }
-    
-      // 5.) 캔버스 영역 내의 상대 좌표 (0~1) 계산
-      vec2 local = (scaledFragCoord - minCanvPos) / canvasSize;
-    
-      // 6. 원본 텍스처에서 local 좌표로 색상을 샘플링
-      vec4 imageColor = texture(u_source, local);
-      outColor = vec4(imageColor.rgb, imageColor.a);
-    }
-  `;
-
-  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderShaderSource);
+  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderFrag);
   let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
   gl.useProgram(renderProgram);
 
@@ -263,70 +147,7 @@ function makeRenderingManager(canvas, gl) {
    * 격자무늬 렌더링
    */
 
-  let gridShaderSource = `#version 300 es
-  #pragma vscode_glsllint_stage: frag
-
-    precision highp float;
-
-    uniform vec2 u_resolution;    // 캔버스의 전체 화면 기준(왼쪽 상단) 위치 (픽셀 단위)
-    uniform vec2 u_pos;           // 전체 스크린 크기 (픽셀 단위)
-    uniform vec2 u_screenSize;    // 확대 배율 (값이 클수록 크게 보임)
-    uniform float u_magnification;
-    uniform float u_dpr;
-    
-    in vec2 v_texCoord;           // 풀스크린 정규화 좌표 (0~1)
-    out vec4 outColor;
-
-    void main() {
-      // 1. magnification 반영된 "스케일된 스크린" 크기 계산
-      vec2 scaledScreenSize = u_screenSize / u_magnification;
-      vec2 canvasSize = u_resolution;
-
-      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
-      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
-
-      // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
-      vec2 minCanvPos = canvasPos;
-      vec2 maxCanvPos = canvasPos + canvasSize;
-
-      // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 검사
-      if (scaledFragCoord.x < minCanvPos.x ||
-          scaledFragCoord.x > maxCanvPos.x ||
-          scaledFragCoord.y < minCanvPos.y ||
-          scaledFragCoord.y > maxCanvPos.y) {
-        discard;
-      }
-
-      vec2 screenPx = v_texCoord * u_screenSize;
-
-      
-      float pixelStep   = u_magnification * u_dpr;  // device‑pixel 단위
-   
-      // 현재 프래그먼트의 캔버스 내 위치를 *스크린 픽셀* 단위로 환산
-      // scaledFragCoord는 (스크린픽셀 / u_magnification) 단위이므로
-      // 다시 u_magnification·u_dpr을 곱해주면 실제 스크린‑픽셀 좌표가 된다.
-      vec2 canvasPx = (scaledFragCoord - minCanvPos) * u_magnification * u_dpr;
-
-      float gridX = fract(canvasPx.x / pixelStep + 0.005);
-      float gridY = fract(canvasPx.y / pixelStep + 0.005);
-      
-      // 임계값: 선 두께가 전체 격자 간격에서 차지하는 비율
-      float threshold = 1.0 / u_magnification;
-      
-      bool isGridLine = gridX <= threshold || gridY <= threshold;
-
-      // 격자 색상(시안)으로 덮어쓰기
-      if (isGridLine) {
-        vec3 rgb = vec3(1.0,1.0,1.0);
-        float alpha = 0.2;
-        outColor = vec4(rgb * alpha, alpha);
-      }
-      
-    }
-  `;
-
-  let gridShader = createShader(gl, gl.FRAGMENT_SHADER, gridShaderSource);
+  let gridShader = createShader(gl, gl.FRAGMENT_SHADER, gridFrag);
   let gridProgram = createProgram(gl, fullQuadVertexShader, gridShader);
   gl.useProgram(gridProgram);
   bufferManager.createFullQuadVAO(gridProgram);
@@ -370,93 +191,7 @@ function makeRenderingManager(canvas, gl) {
    * 선택창 렌더링
    */
 
-  let selectionShaderSource = `#version 300 es
-  #pragma vscode_glsllint_stage: frag
-  
-    precision highp float;
-
-    uniform sampler2D u_selection_source;
-    uniform sampler2D u_selection;
-    
-    uniform vec2 u_pos;             // 전체 화면 기준: 캔버스 왼쪽 상단
-    uniform vec2 u_resolution;      // 실제 캔버스 크기 (px)
-    uniform vec2 u_screenSize;      // 전체 스크린 크기 (px)
-    uniform float u_magnification;
-    
-    uniform vec2 u_selectionPos;    // 선택 영역 위치 (캔버스 내부 기준)
-    uniform vec2 u_selectionSize;   // 선택 영역 크기
-    
-    in vec2 v_texCoord;             // 풀스크린 정규화 좌표 (0~1)
-    out vec4 outColor;
-    
-    void main() {
-      // 1. magnification 반영된 "스케일된 스크린" 크기 계산
-      vec2 scaledScreenSize = u_screenSize / u_magnification;
-      vec2 canvasSize = u_resolution;
-  
-      // 2. v_texCoord (0~1)를 scaledScreenSize 기준 픽셀 좌표로 변환
-      vec2 scaledFragCoord = v_texCoord * scaledScreenSize;
-      
-      
-      // 3. 선택요소(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 selectionPos = vec2(u_pos.x + u_selectionPos.x, u_pos.y + u_selectionPos.y);
-      vec2 minSelPos = selectionPos;
-      vec2 maxSelPos = selectionPos + u_selectionSize;
-    
-      // 현재 픽셀이 selection 안에 있지 않으면 버림
-      if (
-        scaledFragCoord.x < minSelPos.x || scaledFragCoord.x > maxSelPos.x ||
-        scaledFragCoord.y < minSelPos.y || scaledFragCoord.y > maxSelPos.y
-      ) {
-        discard;
-      }
-
-      // 3. 캔버스(원본 텍스처)가 차지하는 영역을 scaledScreenSize 좌표계로 구함.
-      vec2 canvasPos = vec2(u_pos.x, u_pos.y);
-      vec2 minCanvPos = canvasPos;
-      vec2 maxCanvPos = canvasPos + canvasSize;
-      bool isOut = false;
-
-      // 4. 현재 픽셀이 캔버스 영역 내부에 있는지 검사
-      if (scaledFragCoord.x < minCanvPos.x ||
-          scaledFragCoord.x > maxCanvPos.x ||
-          scaledFragCoord.y < minCanvPos.y ||
-          scaledFragCoord.y > maxCanvPos.y) {
-        isOut = true;
-      }
-    
-      // 선택영역 내에 있으면 텍스처 좌표 계산
-      vec2 local = (scaledFragCoord - minSelPos) / u_selectionSize;
-
-      if(u_selectionSize.x > 2048.0 || u_selectionSize.y > 2048.0){
-        // 화면이 엄청 크면 걍 근사로
-        vec4 imageColor = texture(u_selection_source, local);
-        if (isOut){
-          float alpha = 0.25;
-          outColor = vec4(imageColor.rgb * alpha, imageColor.a * alpha);
-          return;
-        }
-        outColor = vec4(imageColor.rgb, imageColor.a);
-        return;
-      } 
-
-      // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 8192텍스쳐 기준으로 잡으면
-      vec2 newLocal = local * u_selectionSize / ${paintConfig.maxSize}.0;
-      vec4 imageColor = texture(u_selection, newLocal);
-      if (isOut){
-        float alpha = 0.25;
-        outColor = vec4(imageColor.rgb * alpha, imageColor.a * alpha);
-        return;
-      }
-      outColor = vec4(imageColor.rgb, imageColor.a);
-    }
-  `;
-
-  let selectionShader = createShader(
-    gl,
-    gl.FRAGMENT_SHADER,
-    selectionShaderSource,
-  );
+  let selectionShader = createShader(gl, gl.FRAGMENT_SHADER, selectionFrag);
   let selectionProgram = createProgram(
     gl,
     fullQuadVertexShader,
