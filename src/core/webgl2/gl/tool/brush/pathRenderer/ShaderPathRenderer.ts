@@ -97,7 +97,21 @@ export class ShaderPathRenderer extends PathRenderer {
       height,
     );
 
-    this.clearAlpha(width, height);
+    super.clearPathTex(width, height);
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, this.pathTexOut);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R8,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
   }
 
   start(pointer: Pointer) {
@@ -219,25 +233,5 @@ export class ShaderPathRenderer extends PathRenderer {
     );
 
     return scissorRect;
-  }
-
-  private clearAlpha(w: number, h: number) {
-    super.clearPathTex(w, h);
-
-    const gl = this.gl;
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, this.pathTexOut);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R8,
-      w,
-      h,
-      0,
-      gl.RED,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
   }
 }

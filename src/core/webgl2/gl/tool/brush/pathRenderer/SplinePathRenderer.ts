@@ -16,7 +16,9 @@ export class SplinePathRenderer extends PathRenderer {
   }
 
   resetWorkSpace(w: number, h: number) {
-    this.clearAlpha(w, h);
+    super.clearPathTex(w, h);
+
+    this.alphaCPU = new Uint8Array(w * h);
     this.ensureTempCanvasSize(w, h);
   }
 
@@ -191,11 +193,5 @@ export class SplinePathRenderer extends PathRenderer {
       this.tempCtx = (this.tempCanvas as HTMLCanvasElement).getContext("2d")!;
     }
     this.tempCtx.imageSmoothingEnabled = false;
-  }
-
-  private clearAlpha(w: number, h: number) {
-    super.clearPathTex(w, h);
-
-    this.alphaCPU = new Uint8Array(w * h);
   }
 }
