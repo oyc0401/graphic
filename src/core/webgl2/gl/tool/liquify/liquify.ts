@@ -116,48 +116,6 @@ async function makeLiquifyManager(canvas, gl) {
   let layerManager = getLayerManager(canvas, gl);
   let renderingManager = getRenderingManager(canvas, gl);
 
-  function start(pointer) {
-    //console.log("시작!");
-
-    let ceiledRadius = Math.ceil(paintOptions.radius);
-    displacementModifier.start(pointer);
-
-    imageDirty.updatePointer(pointer, ceiledRadius);
-  }
-
-  function push(start, end) {
-    let rect = displacementModifier.push(start, end);
-    if (rect) {
-      scissorRect = rect; // brush/eraser 렌더 영역으로 사용
-    }
-    imageDirty.updatePointer(start, paintOptions.radius);
-    imageDirty.updatePointer(end, paintOptions.radius);
-  }
-
-  function render() {
-    gl.useProgram(renderProgram);
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-    gl.disable(gl.SCISSOR_TEST);
-
-    renderingManager.render(scissorRect);
-  }
-
-  function setSize() {
-    const width = paintOptions.width;
-    const height = paintOptions.height;
-
-    gl.useProgram(renderProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_resolution"),
-      width,
-      height,
-    );
-  }
-
   let sourceDisplacementTex = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
   gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
@@ -485,33 +443,59 @@ async function makeLiquifyManager(canvas, gl) {
     );
   }
 
+  function enterLogic() {
+    imageDirty = DirtyRectRecorder.clampedRect(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    openTexture();
+  }
+
   let Liquify = {
     enter() {
-      setSize();
-      imageDirty = DirtyRectRecorder.clampedRect(
-        0,
-        0,
-        paintOptions.width,
-        paintOptions.height,
-      );
-
-      openTexture();
+      enterLogic();
       const newHistory = new HistoryObject(gl, {
         undo: async () => {
           closeTexture();
           return { tool: "brush" };
         },
         redo: async () => {
-          openTexture();
+          enterLogic();
           return { tool: "liquify" };
         },
       });
       let historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(newHistory);
     },
-    start,
-    push,
-    render,
+    start(pointer) {
+      //console.log("시작!");
+
+      let ceiledRadius = Math.ceil(paintOptions.radius);
+      displacementModifier.start(pointer);
+
+      imageDirty.updatePointer(pointer, ceiledRadius);
+    },
+    push(start, end) {
+      let rect = displacementModifier.push(start, end);
+      if (rect) {
+        scissorRect = rect; // brush/eraser 렌더 영역으로 사용
+      }
+      imageDirty.updatePointer(start, paintOptions.radius);
+      imageDirty.updatePointer(end, paintOptions.radius);
+    },
+    render() {
+      gl.useProgram(renderProgram);
+      // 쓰기 영역: 내 화면
+      gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
+      gl.viewport(0, 0, paintOptions.width, paintOptions.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.disable(gl.SCISSOR_TEST);
+
+      renderingManager.render(scissorRect);
+    },
     end() {
       let strokeRect = displacementModifier.getStrokeDirtyRect();
       const { before, after } = uploadAndMakeHistory(
@@ -523,12 +507,12 @@ async function makeLiquifyManager(canvas, gl) {
       const newHistory = new HistoryObject(gl, {
         undo: async () => {
           await before.apply();
-          render();
+          this.render();
           return { tool: "liquify" };
         },
         redo: async () => {
           await after.apply();
-          render();
+          this.render();
           return { tool: "liquify" };
         },
       });
@@ -541,7 +525,7 @@ async function makeLiquifyManager(canvas, gl) {
     cancel() {
       restore(displacementModifier.getStrokeDirtyRect());
 
-      render();
+      this.render();
     },
     exit() {
       imageDirty = DirtyRectRecorder.clampedRect(
@@ -569,16 +553,16 @@ async function makeLiquifyManager(canvas, gl) {
 
         const newHistory = new HistoryObject(gl, {
           undo: async () => {
-            openTexture();
+            enterLogic();
             await before.apply();
             await beforeSource.apply();
-            render();
+            this.render();
             return { tool: "liquify" };
           },
           redo: async () => {
             await after.apply();
             await afterSource.apply();
-            render();
+            this.render();
             closeTexture();
             return { tool: "brush" };
           },
@@ -588,12 +572,12 @@ async function makeLiquifyManager(canvas, gl) {
       } else {
         const newHistory = new HistoryObject(gl, {
           undo: async () => {
-            openTexture();
-            render();
+            enterLogic();
+            this.render();
             return { tool: "liquify" };
           },
           redo: async () => {
-            render();
+            this.render();
             closeTexture();
             return { tool: "brush" };
           },
@@ -606,7 +590,7 @@ async function makeLiquifyManager(canvas, gl) {
 
       sourceImageDirty = null;
     },
-    setSize,
+    setSize: () => {},
   };
 
   return Liquify;
