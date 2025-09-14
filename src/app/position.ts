@@ -140,11 +140,12 @@ export function setDefaultPosition() {
   let x = (position.screenWidth - width) / 2;
   let y = (position.screenHeight - height) / 2;
 
-  // width = 200;
-  // height = 200;
-  // scale = 4;
-  // x=0;
-  // y=0;
+  // //디버깅용!
+  width = 20;
+  height = 20;
+  scale = 60;
+  x = 10;
+  y = 10;
 
   position.setScale(scale);
   position.setWidth(Math.floor(width));

@@ -84,6 +84,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   let pathRenderer: PathRenderer = splinePathRenderer;
 
   const FALLBACK_SIZE = 1024;
+
   let brushManager = {
     enter() {},
     start(pointer: Pointer) {
@@ -151,12 +152,16 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
 
       renderingManager.render(scissorRect);
     },
-    end() {
+    end(toolId) {
       // end할때 스플라인 마지막 곡선 그리기
       let rect = pathRenderer.end();
       if (rect) {
         scissorRect = rect; // brush/eraser 렌더 영역으로 사용
-        this.brush();
+        if (toolId == "brush") {
+          this.brush();
+        } else if (toolId == "eraser") {
+          this.eraser();
+        }
       }
 
       scissorRect = null;

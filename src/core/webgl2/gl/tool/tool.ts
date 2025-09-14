@@ -41,7 +41,7 @@ export class BrushTool implements Tool {
   }
   end() {
     //console.log("brush end");
-    this.drawManager.end();
+    this.drawManager.end("brush");
   }
   cancel() {
     setDrawingFlag(false);
@@ -68,7 +68,7 @@ export class EraserTool implements Tool {
     this.drawManager.eraser();
   }
   end() {
-    this.drawManager.end();
+    this.drawManager.end("eraser");
   }
   cancel() {
     this.drawManager.cancel();
