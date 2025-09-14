@@ -1,6 +1,6 @@
 import { getManager } from "../../utils/cachedManager";
 import { createShader } from "./utils/glHelper";
-
+import * as twgl from "twgl.js";
 /**
  * in vec2 a_position;
  */
@@ -60,4 +60,33 @@ function makeBufferManager(gl) {
   return {
     createFullQuadVAO,
   };
+}
+
+export function getVertexManager(gl) {
+  const manager = getManager(gl, "VertexManager", () => makeVertexManager(gl));
+  return manager;
+}
+
+function makeVertexManager(gl) {
+  const quadBufferInfo = twgl.createBufferInfoFromArrays(gl, {
+    // a_position만 있으면 됩니다. (x,y) 6개 삼각형 버텍스
+    a_position: {
+      numComponents: 2,
+      data: new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+    },
+  });
+
+  let vsSource = `#version 300 es
+   #pragma vscode_glsllint_stage: vert
+
+  in vec2 a_position;
+  out vec2 v_texCoord; // 좌표변환: 0 ~ 1
+
+  void main() {
+    v_texCoord = a_position * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+  `;
+
+  return { vsSource, quadBufferInfo };
 }

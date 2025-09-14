@@ -3,8 +3,13 @@ import { getLayerManager } from "../layer";
 
 import { getSelectionManager } from "../selection";
 
-import { createShader, createProgram } from "../utils/glHelper";
-import { getBufferManager, getFullQuadShader } from "../vertexShader";
+import {
+  getBufferManager,
+  getFullQuadShader,
+  getVertexManager,
+} from "../vertexShader";
+
+import * as twgl from "twgl.js";
 import { getManager } from "../../../utils/cachedManager";
 import { paintConfig } from "@/paint.config";
 import { Rect } from "@/core/utils/rect";
@@ -24,42 +29,33 @@ export function getRenderingManager(canvas, gl) {
 
 function makeRenderingManager(canvas, gl) {
   const fullQuadVertexShader = getFullQuadShader(gl);
+  const bufferManager = getBufferManager(gl);
   const offscreenManager = getOffscreenManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
 
-  let displayShader = createShader(gl, gl.FRAGMENT_SHADER, displayFrag);
-  let displayProgram = createProgram(gl, fullQuadVertexShader, displayShader);
-  gl.useProgram(displayProgram);
+  const vertexManager = getVertexManager(gl);
 
-  const bufferManager = getBufferManager(gl);
-  bufferManager.createFullQuadVAO(displayProgram);
+  const displayProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    displayFrag,
+  ]);
+
+  twgl.setBuffersAndAttributes(
+    gl,
+    displayProgramInfo,
+    vertexManager.quadBufferInfo,
+  );
 
   function renderDisplay() {
-    gl.useProgram(displayProgram);
+    gl.useProgram(displayProgramInfo.program);
 
-    gl.uniform2f(
-      gl.getUniformLocation(displayProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(displayProgram, "u_pos"),
-      paintOptions.x,
-      paintOptions.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(displayProgram, "u_screenSize"),
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(displayProgram, "u_magnification"),
-      paintOptions.magnification,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(displayProgram, "u_dpr"),
-      paintOptions.dpr,
-    );
+    twgl.setUniforms(displayProgramInfo, {
+      u_resolution: [paintOptions.width, paintOptions.height],
+      u_pos: [paintOptions.x, paintOptions.y],
+      u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+      u_magnification: paintOptions.magnification,
+      u_dpr: paintOptions.dpr,
+    });
 
     // 쓰기 영역: 캔버스
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -67,75 +63,58 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  let backgroundShader = createShader(gl, gl.FRAGMENT_SHADER, backgroundFrag);
-  let backgroundProgram = createProgram(
+  const backgroundProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    backgroundFrag,
+  ]);
+
+  twgl.setBuffersAndAttributes(
     gl,
-    fullQuadVertexShader,
-    backgroundShader,
+    backgroundProgramInfo,
+    vertexManager.quadBufferInfo,
   );
-  gl.useProgram(backgroundProgram);
-  bufferManager.createFullQuadVAO(backgroundProgram);
 
   function renderBackground() {
-    gl.useProgram(backgroundProgram);
+    gl.useProgram(backgroundProgramInfo.program);
 
-    gl.uniform2f(
-      gl.getUniformLocation(backgroundProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(backgroundProgram, "u_pos"),
-      paintOptions.x,
-      paintOptions.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(backgroundProgram, "u_screenSize"),
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(backgroundProgram, "u_magnification"),
-      paintOptions.magnification,
-    );
+    twgl.setUniforms(backgroundProgramInfo, {
+      u_resolution: [paintOptions.width, paintOptions.height],
+      u_pos: [paintOptions.x, paintOptions.y],
+      u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+      u_magnification: paintOptions.magnification,
+    });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderFrag);
-  let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
-  gl.useProgram(renderProgram);
+  const renderProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    renderFrag,
+  ]);
+
+  twgl.setBuffersAndAttributes(
+    gl,
+    renderProgramInfo,
+    vertexManager.quadBufferInfo,
+  );
+  gl.useProgram(renderProgramInfo.program);
 
   gl.uniform1i(
-    gl.getUniformLocation(renderProgram, "u_source"),
+    gl.getUniformLocation(renderProgramInfo.program, "u_source"),
     TEXTURE_UNIT.LAYER,
   );
-  bufferManager.createFullQuadVAO(renderProgram);
 
   function renderTexture() {
-    gl.useProgram(renderProgram);
+    gl.useProgram(renderProgramInfo.program);
 
-    gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_pos"),
-      paintOptions.x,
-      paintOptions.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_screenSize"),
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(renderProgram, "u_magnification"),
-      paintOptions.magnification,
-    );
+    twgl.setUniforms(renderProgramInfo, {
+      u_resolution: [paintOptions.width, paintOptions.height],
+      u_pos: [paintOptions.x, paintOptions.y],
+      u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+      u_magnification: paintOptions.magnification,
+    });
 
     // 쓰기 영역: 캔버스
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -147,38 +126,29 @@ function makeRenderingManager(canvas, gl) {
    * 격자무늬 렌더링
    */
 
-  let gridShader = createShader(gl, gl.FRAGMENT_SHADER, gridFrag);
-  let gridProgram = createProgram(gl, fullQuadVertexShader, gridShader);
-  gl.useProgram(gridProgram);
-  bufferManager.createFullQuadVAO(gridProgram);
+  const gridProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    gridFrag,
+  ]);
+
+  twgl.setBuffersAndAttributes(
+    gl,
+    gridProgramInfo,
+    vertexManager.quadBufferInfo,
+  );
+  gl.useProgram(gridProgramInfo.program);
 
   function renderGrid() {
     if (paintOptions.magnification / paintOptions.dpr > 20) {
-      gl.useProgram(gridProgram);
+      gl.useProgram(gridProgramInfo.program);
 
-      gl.uniform2f(
-        gl.getUniformLocation(gridProgram, "u_resolution"),
-        paintOptions.width,
-        paintOptions.height,
-      );
-      gl.uniform2f(
-        gl.getUniformLocation(gridProgram, "u_pos"),
-        paintOptions.x,
-        paintOptions.y,
-      );
-      gl.uniform2f(
-        gl.getUniformLocation(gridProgram, "u_screenSize"),
-        paintOptions.screenWidth,
-        paintOptions.screenHeight,
-      );
-      gl.uniform1f(
-        gl.getUniformLocation(gridProgram, "u_magnification"),
-        paintOptions.magnification,
-      );
-      gl.uniform1f(
-        gl.getUniformLocation(gridProgram, "u_dpr"),
-        paintOptions.dpr,
-      );
+      twgl.setUniforms(gridProgramInfo, {
+        u_resolution: [paintOptions.width, paintOptions.height],
+        u_pos: [paintOptions.x, paintOptions.y],
+        u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+        u_magnification: paintOptions.magnification,
+        u_dpr: paintOptions.dpr,
+      });
 
       // 쓰기 영역: 캔버스
       gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -191,64 +161,44 @@ function makeRenderingManager(canvas, gl) {
    * 선택창 렌더링
    */
 
-  let selectionShader = createShader(gl, gl.FRAGMENT_SHADER, selectionFrag);
-  let selectionProgram = createProgram(
+  const selectionProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    selectionFrag,
+  ]);
+
+  twgl.setBuffersAndAttributes(
     gl,
-    fullQuadVertexShader,
-    selectionShader,
+    selectionProgramInfo,
+    vertexManager.quadBufferInfo,
   );
-  gl.useProgram(selectionProgram);
+  gl.useProgram(selectionProgramInfo.program);
 
   gl.uniform1i(
-    gl.getUniformLocation(selectionProgram, "u_selection"),
+    gl.getUniformLocation(selectionProgramInfo.program, "u_selection"),
     TEXTURE_UNIT.RENDERED_SELECTION,
   );
   gl.uniform1i(
-    gl.getUniformLocation(selectionProgram, "u_selection_source"),
+    gl.getUniformLocation(selectionProgramInfo.program, "u_selection_source"),
     TEXTURE_UNIT.SOURCE_SELECTION,
   );
   gl.uniform1f(
-    gl.getUniformLocation(selectionProgram, "u_max_size"),
+    gl.getUniformLocation(selectionProgramInfo.program, "u_max_size"),
     paintConfig.maxSize,
   );
-  // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
-  bufferManager.createFullQuadVAO(selectionProgram);
 
   function renderSelection() {
     let selectionManager = getSelectionManager(canvas, gl);
     let selectionPos = selectionManager.getPosition();
-    gl.useProgram(selectionProgram);
+    gl.useProgram(selectionProgramInfo.program);
 
-    gl.uniform2f(
-      gl.getUniformLocation(selectionProgram, "u_pos"),
-      paintOptions.x,
-      paintOptions.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(selectionProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(selectionProgram, "u_screenSize"),
-      paintOptions.screenWidth,
-      paintOptions.screenHeight,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(selectionProgram, "u_magnification"),
-      paintOptions.magnification,
-    );
-
-    gl.uniform2f(
-      gl.getUniformLocation(selectionProgram, "u_selectionPos"),
-      selectionPos.x,
-      selectionPos.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(selectionProgram, "u_selectionSize"),
-      selectionPos.width,
-      selectionPos.height,
-    );
+    twgl.setUniforms(selectionProgramInfo, {
+      u_pos: [paintOptions.x, paintOptions.y],
+      u_resolution: [paintOptions.width, paintOptions.height],
+      u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+      u_magnification: paintOptions.magnification,
+      u_selectionPos: [selectionPos.x, selectionPos.y],
+      u_selectionSize: [selectionPos.width, selectionPos.height],
+    });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
     gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
