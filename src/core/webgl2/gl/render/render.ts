@@ -28,8 +28,6 @@ export function getRenderingManager(canvas, gl) {
 }
 
 function makeRenderingManager(canvas, gl) {
-  const fullQuadVertexShader = getFullQuadShader(gl);
-  const bufferManager = getBufferManager(gl);
   const offscreenManager = getOffscreenManager(canvas, gl);
   const layerManager = getLayerManager(canvas, gl);
 

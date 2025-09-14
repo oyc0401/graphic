@@ -6,7 +6,7 @@ import {
   paintOptions,
 } from "../../texture";
 import { getLayerManager } from "../../layer";
-import { getBufferManager, getFullQuadShader } from "../../vertexShader";
+import { getVertexManager } from "../../vertexShader";
 import { getManager } from "../../../../utils/cachedManager";
 import { getHistoryManager, HistoryObject } from "../../history/history";
 import { Rect } from "@/core/utils/rect";
@@ -18,6 +18,7 @@ import { ShaderPathRenderer } from "./pathRenderer/ShaderPathRenderer";
 import brushFrag from "./brush.frag?raw";
 import eraserFrag from "./eraser.frag?raw";
 
+import * as twgl from "twgl.js";
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
     makeBrushManager(canvas, gl),
@@ -28,52 +29,59 @@ export function getBrushManager(canvas, gl) {
 function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   // (기존 확장 확인 등은 동일)
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const fullQuadVertexShader = getFullQuadShader(gl);
-  const bufferManager = getBufferManager(gl);
+  const vertexManager = getVertexManager(gl);
 
   let scissorRect: Rect | null = null;
-
-  // ====== PATHMAP 텍스처 생성 (R8) ======
-  let pathTex = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
-  gl.bindTexture(gl.TEXTURE_2D, pathTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); // 서브업로드 정렬 이슈 방지
 
-  const brushProgram = createProgram(
-    gl,
-    fullQuadVertexShader,
-    createShader(gl, gl.FRAGMENT_SHADER, brushFrag),
-  );
-  gl.useProgram(brushProgram);
-  gl.uniform1i(
-    gl.getUniformLocation(brushProgram, "u_pathMap"),
-    TEXTURE_UNIT.PATHMAP,
-  );
-  gl.uniform1i(
-    gl.getUniformLocation(brushProgram, "u_source"),
-    TEXTURE_UNIT.SOURCE,
-  );
-  bufferManager.createFullQuadVAO(brushProgram);
+  // ====== PATHMAP 텍스처 생성 (R8) ======
+  let pathTex = twgl.createTexture(gl, {
+    wrap: gl.CLAMP_TO_EDGE,
+    minMag: gl.LINEAR,
+    auto: false,
+  });
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+  gl.bindTexture(gl.TEXTURE_2D, pathTex);
 
-  const eraserProgram = createProgram(
+  const brushProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    brushFrag,
+  ]);
+  twgl.setBuffersAndAttributes(
     gl,
-    fullQuadVertexShader,
-    createShader(gl, gl.FRAGMENT_SHADER, eraserFrag),
+    brushProgramInfo,
+    vertexManager.quadBufferInfo,
   );
-  gl.useProgram(eraserProgram);
+
+  gl.useProgram(brushProgramInfo.program);
   gl.uniform1i(
-    gl.getUniformLocation(eraserProgram, "u_pathMap"),
+    gl.getUniformLocation(brushProgramInfo.program, "u_pathMap"),
     TEXTURE_UNIT.PATHMAP,
   );
   gl.uniform1i(
-    gl.getUniformLocation(eraserProgram, "u_source"),
+    gl.getUniformLocation(brushProgramInfo.program, "u_source"),
     TEXTURE_UNIT.SOURCE,
   );
-  bufferManager.createFullQuadVAO(eraserProgram);
+
+  const eraserProgramInfo = twgl.createProgramInfo(gl, [
+    vertexManager.vsSource,
+    eraserFrag,
+  ]);
+  twgl.setBuffersAndAttributes(
+    gl,
+    eraserProgramInfo,
+    vertexManager.quadBufferInfo,
+  );
+
+  gl.useProgram(eraserProgramInfo.program);
+  gl.uniform1i(
+    gl.getUniformLocation(eraserProgramInfo.program, "u_pathMap"),
+    TEXTURE_UNIT.PATHMAP,
+  );
+  gl.uniform1i(
+    gl.getUniformLocation(eraserProgramInfo.program, "u_source"),
+    TEXTURE_UNIT.SOURCE,
+  );
 
   const layerManager = getLayerManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
@@ -111,11 +119,10 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
     brush() {
       if (!scissorRect) return;
 
-      gl.useProgram(brushProgram);
-      gl.uniform3fv(
-        gl.getUniformLocation(brushProgram, "u_color"),
-        paintOptions.color,
-      );
+      gl.useProgram(brushProgramInfo.program);
+      twgl.setUniforms(brushProgramInfo, {
+        u_color: paintOptions.color,
+      });
 
       gl.enable(gl.SCISSOR_TEST);
       gl.scissor(
@@ -135,7 +142,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
     },
     eraser() {
       if (!scissorRect) return;
-      gl.useProgram(eraserProgram);
+      gl.useProgram(eraserProgramInfo.program);
 
       gl.enable(gl.SCISSOR_TEST);
       gl.scissor(
