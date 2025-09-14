@@ -41,7 +41,7 @@ export class ShaderPathRenderer extends PathRenderer {
     const gl = this.gl;
 
     const fullQuadVertexShader = getFullQuadShader(gl);
-    const bufferManager = getBufferManager(6, gl);
+    const bufferManager = getBufferManager(gl);
 
     const strokeShader = createShader(
       gl,

@@ -75,7 +75,7 @@ export class DisplacementModifier {
     let integralMirrorData = await getIntegralEaseInOutMirror();
 
     const fullQuadVertexShader = getFullQuadShader(gl);
-    const bufferManager = getBufferManager(6, gl);
+    const bufferManager = getBufferManager(gl);
 
     const pushShader = createShader(gl, gl.FRAGMENT_SHADER, liquifyPushFrag);
     this.pushProgram = createProgram(gl, fullQuadVertexShader, pushShader);

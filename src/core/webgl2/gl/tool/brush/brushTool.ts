@@ -29,7 +29,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   // (기존 확장 확인 등은 동일)
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const fullQuadVertexShader = getFullQuadShader(gl);
-  const bufferManager = getBufferManager(canvas, gl);
+  const bufferManager = getBufferManager(gl);
 
   let scissorRect: Rect | null = null;
 

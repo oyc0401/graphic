@@ -29,7 +29,7 @@ function makeFullQuadVertexShader(gl) {
   return vertexShader;
 }
 
-export function getBufferManager(canvas = 5, gl) {
+export function getBufferManager(gl) {
   const manager = getManager(gl, "bufferManager", () => makeBufferManager(gl));
   return manager;
 }

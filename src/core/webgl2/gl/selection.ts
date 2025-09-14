@@ -141,7 +141,7 @@ function createSelectionManager(canvas, gl) {
     TEXTURE_UNIT.SOURCE,
   );
 
-  const bufferManager = getBufferManager(canvas, gl);
+  const bufferManager = getBufferManager(gl);
   bufferManager.createFullQuadVAO(selectionProgram);
 
   const selectionFBO = gl.createFramebuffer();

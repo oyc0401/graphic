@@ -31,7 +31,7 @@ function makeRenderingManager(canvas, gl) {
   let displayProgram = createProgram(gl, fullQuadVertexShader, displayShader);
   gl.useProgram(displayProgram);
 
-  const bufferManager = getBufferManager(canvas, gl);
+  const bufferManager = getBufferManager(gl);
   bufferManager.createFullQuadVAO(displayProgram);
 
   function renderDisplay() {

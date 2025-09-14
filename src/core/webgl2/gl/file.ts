@@ -123,7 +123,7 @@ function canvasPixelManager(canvas, gl) {
   let renderShader = createShader(gl, gl.FRAGMENT_SHADER, renderSource);
   let renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
 
-  const bufferManager = getBufferManager(canvas, gl);
+  const bufferManager = getBufferManager(gl);
   bufferManager.createFullQuadVAO(renderProgram);
 
   function renderTexture() {
