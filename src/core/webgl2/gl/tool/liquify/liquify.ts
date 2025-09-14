@@ -53,22 +53,8 @@ export function getLiquifyManager(canvas, gl) {
 }
 
 async function makeLiquifyManager(canvas, gl) {
-  const ext = gl.getExtension("EXT_color_buffer_float");
-  if (!ext) {
-    console.error("EXT_color_buffer_float not supported!");
-  }
-  const extFloatLinear =
-    gl.getExtension("OES_texture_float_linear") ||
-    gl.getExtension("EXT_texture_filter_float");
-  if (!extFloatLinear) {
-    console.error(
-      "This device does not support linear filtering for float textures.",
-    );
-  }
-
   // 원본 이미지 텍스처 생성
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const fullQuadVertexShader = getFullQuadShader(gl);
 
   // Create displacement input texture and framebuffer
   let displacementTex = gl.createTexture();
@@ -100,6 +86,7 @@ async function makeLiquifyManager(canvas, gl) {
     displaceFBO,
   );
 
+  const fullQuadVertexShader = getFullQuadShader(gl);
   const bufferManager = getBufferManager(canvas, gl);
 
   let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorFrag);
@@ -118,30 +105,13 @@ async function makeLiquifyManager(canvas, gl) {
 
   bufferManager.createFullQuadVAO(renderProgram);
 
-  ////////////////
-
   // enter부터 exitRkwl?
   let imageDirty: DirtyRectRecorder;
   // 이전에 적용된 더티사각형
   let sourceImageDirty: Rect | null = null;
   /////////////////////////////
 
-  function setSize() {
-    const width = paintOptions.width;
-    const height = paintOptions.height;
-
-    gl.viewport(0, 0, width, height);
-    gl.clearColor(0, 0, 0, 0);
-
-    displacementModifier.resetWorkSpace(width, height);
-
-    gl.useProgram(renderProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(renderProgram, "u_resolution"),
-      width,
-      height,
-    );
-  }
+  let scissorRect: Rect;
 
   let layerManager = getLayerManager(canvas, gl);
   let renderingManager = getRenderingManager(canvas, gl);
@@ -155,11 +125,11 @@ async function makeLiquifyManager(canvas, gl) {
     imageDirty.updatePointer(pointer, ceiledRadius);
   }
 
-  let scissorRect: Rect;
-
   function push(start, end) {
-    scissorRect = displacementModifier.push(start, end);
-
+    let rect = displacementModifier.push(start, end);
+    if (rect) {
+      scissorRect = rect; // brush/eraser 렌더 영역으로 사용
+    }
     imageDirty.updatePointer(start, paintOptions.radius);
     imageDirty.updatePointer(end, paintOptions.radius);
   }
@@ -176,14 +146,16 @@ async function makeLiquifyManager(canvas, gl) {
     renderingManager.render(scissorRect);
   }
 
-  function clearMap() {
-    let width = paintOptions.width;
-    let height = paintOptions.height;
+  function setSize() {
+    const width = paintOptions.width;
+    const height = paintOptions.height;
 
-    displacementModifier.clearMap();
-    let glHelper = getGlHelper(gl);
-    glHelper.clearTextureVec2(displacementTex, width, height, [0, 0]);
-    glHelper.clearTextureVec2(sourceDisplacementTex, width, height, [0, 0]);
+    gl.useProgram(renderProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_resolution"),
+      width,
+      height,
+    );
   }
 
   let sourceDisplacementTex = gl.createTexture();
@@ -411,9 +383,6 @@ async function makeLiquifyManager(canvas, gl) {
       },
     };
 
-    // 클리어
-    clearMap();
-
     const afterTex = makeDirtyTexture(renderRect);
     let afterPixelReader = new PixelReader(
       gl,
@@ -453,7 +422,6 @@ async function makeLiquifyManager(canvas, gl) {
   }
 
   function restore(rect: Rect) {
-    let liquifyManager = getLiquifyManager(canvas, gl);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, displaceFBO);
 
@@ -471,26 +439,11 @@ async function makeLiquifyManager(canvas, gl) {
     );
   }
 
-  setSize();
-
   function openTexture() {
-    //console.log("openTexture");
-    // Initialize displacement input texture
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
+    displacementModifier.resetWorkSpace(
       paintOptions.width,
       paintOptions.height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
     );
-
-    displacementModifier.enter();
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, sourceDisplacementTex);
@@ -505,25 +458,16 @@ async function makeLiquifyManager(canvas, gl) {
       gl.HALF_FLOAT,
       null,
     );
+
+    gl.useProgram(renderProgram);
+    gl.uniform2f(
+      gl.getUniformLocation(renderProgram, "u_resolution"),
+      paintOptions.width,
+      paintOptions.height,
+    );
   }
 
   function closeTexture() {
-    //console.log("closeTexture");
-    // Cleanup displacement input texture
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, displacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      1,
-      1,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
-
     displacementModifier.exit();
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
@@ -543,6 +487,7 @@ async function makeLiquifyManager(canvas, gl) {
 
   let Liquify = {
     enter() {
+      setSize();
       imageDirty = DirtyRectRecorder.clampedRect(
         0,
         0,
@@ -662,8 +607,6 @@ async function makeLiquifyManager(canvas, gl) {
       sourceImageDirty = null;
     },
     setSize,
-    displacementTex: displacementTex,
-    displaceFBO: displaceFBO,
   };
 
   return Liquify;

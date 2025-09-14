@@ -254,6 +254,20 @@ export class DisplacementModifier {
   private clearDisplacement(width: number, height: number) {
     const gl = this.gl;
 
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
+    gl.bindTexture(gl.TEXTURE_2D, this.displacementTexInput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      width,
+      height,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
+
     // Only resize the output texture
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.displacementTexOutput);
@@ -270,28 +284,23 @@ export class DisplacementModifier {
     );
   }
 
-  clearMap() {
-    const gl = this.gl;
-    const width = paintOptions.width;
-    const height = paintOptions.height;
-
-    let glHelper = getGlHelper(gl);
-    glHelper.clearTextureVec2(
-      this.displacementTexOutput,
-      width,
-      height,
-      [0, 0],
-    );
-  }
-
-  enter() {
-    // Initialize displacement textures when entering liquify mode
-    this.clearDisplacement(paintOptions.width, paintOptions.height);
-  }
-
   exit() {
     // Cleanup displacement output texture when exiting liquify mode
     const gl = this.gl;
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
+    gl.bindTexture(gl.TEXTURE_2D, this.displacementTexInput);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG16F,
+      1,
+      1,
+      0,
+      gl.RG,
+      gl.HALF_FLOAT,
+      null,
+    );
 
     // Resize output texture to 1x1 to free memory
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);

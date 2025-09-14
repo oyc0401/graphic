@@ -1,4 +1,5 @@
 #version 300 es
+
 precision highp float;
 
 uniform sampler2D u_selection_source;
@@ -9,6 +10,7 @@ uniform vec2 u_resolution; // 실제 캔버스 크기 (px)
 uniform vec2 u_screenSize; // 전체 스크린 크기 (px)
 uniform float u_magnification;
 
+uniform float u_max_size;
 uniform vec2 u_selectionPos; // 선택 영역 위치 (캔버스 내부 기준)
 uniform vec2 u_selectionSize; // 선택 영역 크기
 
@@ -73,7 +75,7 @@ void main() {
   }
 
   // 이제 변환을 해야하는데, 현재 100px너비에서의 0.5 라면 50px인데, 이걸 8192텍스쳐 기준으로 잡으면
-  vec2 newLocal = local * u_selectionSize / 8192.0;
+  vec2 newLocal = local * u_selectionSize / u_max_size;
   vec4 imageColor = texture(u_selection, newLocal);
   if (isOut) {
     float alpha = 0.25;

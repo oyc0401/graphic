@@ -207,6 +207,10 @@ function makeRenderingManager(canvas, gl) {
     gl.getUniformLocation(selectionProgram, "u_selection_source"),
     TEXTURE_UNIT.SOURCE_SELECTION,
   );
+  gl.uniform1f(
+    gl.getUniformLocation(selectionProgram, "u_max_size"),
+    paintConfig.maxSize,
+  );
   // I want... => selectionProgram.setUniform1i("u_selection", TEXTURE_UNIT.SELECTION);
   bufferManager.createFullQuadVAO(selectionProgram);
 

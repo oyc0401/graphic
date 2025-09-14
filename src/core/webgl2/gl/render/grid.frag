@@ -1,4 +1,5 @@
 #version 300 es
+
 precision highp float;
 
 uniform vec2 u_resolution; // 캔버스의 전체 화면 기준(왼쪽 상단) 위치 (픽셀 단위)
@@ -56,4 +57,5 @@ void main() {
     float alpha = 0.2;
     outColor = vec4(rgb * alpha, alpha);
   }
+
 }
