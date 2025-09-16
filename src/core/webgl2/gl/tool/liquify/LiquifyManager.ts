@@ -300,6 +300,15 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const pixels = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
     gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels);
 
+    const pixels2 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels2);
+
+    const pixels3 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels3);
+
+    const pixels4 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels4);
+
     let beforePixelReader = PixelReader.fromPixelData(pixels, width, height);
 
     // const beforeTex = this.createCopyTextureFromSourceDisTex(renderRect);
@@ -423,19 +432,19 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const gl = this.gl;
     this.enterLogic();
 
-    // const newHistory = new HistoryObject(gl, {
-    //   undo: async () => {
-    //     this.closeTexture();
-    //     return { tool: "brush" };
-    //   },
-    //   redo: async () => {
-    //     this.enterLogic();
-    //     return { tool: "liquify" };
-    //   },
-    // });
+    const newHistory = new HistoryObject(gl, {
+      undo: async () => {
+        this.closeTexture();
+        return { tool: "brush" };
+      },
+      redo: async () => {
+        this.enterLogic();
+        return { tool: "liquify" };
+      },
+    });
 
-    // let historyManager = getHistoryManager(this.canvas, gl);
-    // historyManager.addUndo(newHistory);
+    let historyManager = getHistoryManager(this.canvas, gl);
+    historyManager.addUndo(newHistory);
   }
 
   start(pointer: any) {
@@ -469,28 +478,28 @@ export class LiquifyManager implements LiquifyManagerInterface {
   end() {
     const gl = this.gl;
     let strokeRect = this.displacementModifier.getStrokeDirtyRect();
-    // const { before, after } = this.uploadAndMakeHistory(
-    //   strokeRect.x,
-    //   strokeRect.y,
-    //   strokeRect.width,
-    //   strokeRect.height,
-    // );
-    // const self = this;
-    // const newHistory = new HistoryObject(gl, {
-    //   undo: async () => {
-    //     await before.apply();
-    //     self.render();
-    //     return { tool: "liquify" };
-    //   },
-    //   redo: async () => {
-    //     await after.apply();
-    //     self.render();
-    //     return { tool: "liquify" };
-    //   },
-    // });
+    const { before, after } = this.uploadAndMakeHistory(
+      strokeRect.x,
+      strokeRect.y,
+      strokeRect.width,
+      strokeRect.height,
+    );
+    const self = this;
+    const newHistory = new HistoryObject(gl, {
+      undo: async () => {
+        await before.apply();
+        self.render();
+        return { tool: "liquify" };
+      },
+      redo: async () => {
+        await after.apply();
+        self.render();
+        return { tool: "liquify" };
+      },
+    });
 
-    // let historyManager = getHistoryManager(this.canvas, gl);
-    // historyManager.addUndo(newHistory);
+    let historyManager = getHistoryManager(this.canvas, gl);
+    historyManager.addUndo(newHistory);
 
     this.changedRect = this.changeDirtyRecorder.generateRect();
   }
@@ -503,54 +512,54 @@ export class LiquifyManager implements LiquifyManagerInterface {
   exit() {
     const gl = this.gl;
 
-    // let historyManager = getHistoryManager(this.canvas, gl);
+    let historyManager = getHistoryManager(this.canvas, gl);
 
-    // const self = this;
-    // if (this.changedRect) {
-    //   const displaceSnapshot = this.createCurrentSnapshot(
-    //     this.changedRect.x,
-    //     this.changedRect.y,
-    //     this.changedRect.width,
-    //     this.changedRect.height,
-    //   );
-    //   let { before: beforeSource, after: afterSource } =
-    //     this.sourceTextureManager.upload(
-    //       this.changedRect.x,
-    //       this.changedRect.y,
-    //       this.changedRect.width,
-    //       this.changedRect.height,
-    //     );
+    const self = this;
+    if (this.changedRect) {
+      const displaceSnapshot = this.createCurrentSnapshot(
+        this.changedRect.x,
+        this.changedRect.y,
+        this.changedRect.width,
+        this.changedRect.height,
+      );
+      let { before: beforeSource, after: afterSource } =
+        this.sourceTextureManager.upload(
+          this.changedRect.x,
+          this.changedRect.y,
+          this.changedRect.width,
+          this.changedRect.height,
+        );
 
-    //   const newHistory = new HistoryObject(gl, {
-    //     undo: async () => {
-    //       self.enterLogic();
-    //       await displaceSnapshot.apply();
-    //       await beforeSource.apply();
-    //       self.render(); // 지금 상태는 scissorTest를 안 켰기 때문에 전체가 렌더링 됌.
-    //       return { tool: "liquify" };
-    //     },
-    //     redo: async () => {
-    //       await afterSource.apply();
-    //       self.closeTexture();
-    //       return { tool: "brush" };
-    //     },
-    //   });
+      const newHistory = new HistoryObject(gl, {
+        undo: async () => {
+          self.enterLogic();
+          await displaceSnapshot.apply();
+          await beforeSource.apply();
+          self.render(); // 지금 상태는 scissorTest를 안 켰기 때문에 전체가 렌더링 됌.
+          return { tool: "liquify" };
+        },
+        redo: async () => {
+          await afterSource.apply();
+          self.closeTexture();
+          return { tool: "brush" };
+        },
+      });
 
-    //   historyManager.addUndo(newHistory);
-    // } else {
-    //   const newHistory = new HistoryObject(gl, {
-    //     undo: async () => {
-    //       self.enterLogic();
-    //       return { tool: "liquify" };
-    //     },
-    //     redo: async () => {
-    //       self.closeTexture();
-    //       return { tool: "brush" };
-    //     },
-    //   });
+      historyManager.addUndo(newHistory);
+    } else {
+      const newHistory = new HistoryObject(gl, {
+        undo: async () => {
+          self.enterLogic();
+          return { tool: "liquify" };
+        },
+        redo: async () => {
+          self.closeTexture();
+          return { tool: "brush" };
+        },
+      });
 
-    //   historyManager.addUndo(newHistory);
-    // }
+      historyManager.addUndo(newHistory);
+    }
 
     this.closeTexture();
   }
