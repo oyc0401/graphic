@@ -36,6 +36,19 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
     pushManyLowQueue(gl, jobs);
   }
 
+  static fromPixelData<T extends PixelTypedArray = Uint8Array>(
+    pixelData: T,
+    width: number,
+    height: number
+  ): PixelReader<T> {
+    const instance = Object.create(PixelReader.prototype);
+    instance.pixelData = pixelData;
+    instance.complete = true;
+    instance.width = width;
+    instance.height = height;
+    return instance;
+  }
+
   async getPixelData(isQueue = false): Promise<T> {
     if (isQueue && !this.complete) {
       console.error("큐의 순서가 뒤집힘!");

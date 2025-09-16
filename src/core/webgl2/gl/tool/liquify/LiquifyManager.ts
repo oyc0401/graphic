@@ -295,15 +295,22 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const gl = this.gl;
     let renderRect = Rect.fromWidth(x, y, width, height);
 
-    const beforeTex = this.createCopyTextureFromSourceDisTex(renderRect);
-    let beforePixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      beforeTex,
-      gl.RG,
-      gl.HALF_FLOAT,
-    );
+    // sourceDisplacementFBO에서 직접 픽셀 데이터 읽기
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
+    const pixels = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels);
+
+    let beforePixelReader = PixelReader.fromPixelData(pixels, width, height);
+
+    // const beforeTex = this.createCopyTextureFromSourceDisTex(renderRect);
+    // let beforePixelReader = new PixelReader(
+    //   gl,
+    //   width,
+    //   height,
+    //   beforeTex,
+    //   gl.RG,
+    //   gl.HALF_FLOAT,
+    // );
 
     let copiedChangedRect = this.changedRect?.copy();
 

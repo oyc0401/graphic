@@ -15,7 +15,7 @@ export class HistoryObject {
     }: {
       undo: () => Promise<HistoryCommand>;
       redo: () => Promise<HistoryCommand>;
-    }
+    },
   ) {
     this.gl = gl;
     this.undo = undo;
@@ -71,7 +71,7 @@ export interface HistoryResponse {
 
 export interface Snapshot {
   layerId;
-  pixelReader?: PixelStorage;
+  pixelReader?: PixelStorage<Uint8Array | Uint16Array>;
   rect: Rect;
   apply: () => Promise<void>;
   selectionRect?: Rect;
@@ -87,7 +87,7 @@ export function resetHisory() {
 
 export function getHistoryManager(canvas, gl) {
   const manager = getManager(gl, "history", () =>
-    createHistoryManager(canvas, gl)
+    createHistoryManager(canvas, gl),
   );
   return manager;
 }
@@ -103,7 +103,7 @@ function createHistoryManager(canvas, gl) {
     newHistory: HistoryObject,
     options: {
       resetRedo?: boolean;
-    } = {}
+    } = {},
   ) {
     const { resetRedo = true } = options;
     undoStack.push(newHistory);
@@ -165,7 +165,7 @@ function createHistoryManager(canvas, gl) {
       "undo:",
       undoStack.length,
       "redo:",
-      redoStack.length
+      redoStack.length,
       // "\n",
       // "undoStack:",
       // undoStack,
