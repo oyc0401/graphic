@@ -300,14 +300,14 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const pixels = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
     gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels);
 
-    const pixels2 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
-    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels2);
+    // const pixels2 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    // gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels2);
 
-    const pixels3 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
-    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels3);
+    // const pixels3 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    // gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels3);
 
-    const pixels4 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
-    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels4);
+    // const pixels4 = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    // gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels4);
 
     let beforePixelReader = PixelReader.fromPixelData(pixels, width, height);
 
