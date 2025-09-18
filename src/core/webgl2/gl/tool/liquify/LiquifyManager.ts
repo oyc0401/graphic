@@ -459,32 +459,32 @@ export class LiquifyManager implements LiquifyManagerInterface {
       strokeRect.height,
     );
 
-    const { before } = this.uploadAndMakeHistory(
-      strokeRect.x,
-      strokeRect.y,
-      strokeRect.width,
-      strokeRect.height,
-    );
+    // const { before } = this.uploadAndMakeHistory(
+    //   strokeRect.x,
+    //   strokeRect.y,
+    //   strokeRect.width,
+    //   strokeRect.height,
+    // );
 
     let after: Snapshot;
 
     const self = this;
     const newHistory = new HistoryObject(gl, {
       undo: async () => {
-        await before.apply();
+        // await before.apply();
         self.render();
 
-        after = this.createCurrentSnapshot(
-          renderRect.x,
-          renderRect.y,
-          renderRect.width,
-          renderRect.height,
-        );
+        // after = this.createCurrentSnapshot(
+        //   renderRect.x,
+        //   renderRect.y,
+        //   renderRect.width,
+        //   renderRect.height,
+        // );
 
         return { tool: "liquify" };
       },
       redo: async () => {
-        await after.apply();
+        // await after.apply();
         self.render();
         return { tool: "liquify" };
       },
