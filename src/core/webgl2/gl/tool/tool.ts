@@ -97,9 +97,11 @@ export class LiquifyTool implements Tool {
   end() {
     //console.log("liquify end");
     paintState.setCanTouch(false);
-    setTimeout(() => {
-      this.liquifyManager.end();
-      paintState.setCanTouch(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.liquifyManager.end();
+        paintState.setCanTouch(true);
+      });
     });
   }
   cancel() {
