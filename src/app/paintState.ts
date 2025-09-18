@@ -16,6 +16,7 @@ class PaintState {
 
     pointerdown = false;
     drawing = false;
+    canTouch = true;
 
     targetId = "brush";
 
@@ -42,6 +43,9 @@ class PaintState {
     }
     setDrawing(val: boolean) {
         this.drawing = val;
+    }
+    setCanTouch(val: boolean) {
+        this.canTouch = val;
     }
     setCursorPosition(x, y) {
         this.cursorX = x;

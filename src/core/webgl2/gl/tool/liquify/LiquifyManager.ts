@@ -3,6 +3,7 @@ import {
   getSourceTextureManager,
   paintOptions,
 } from "../../texture";
+import { paintState } from "@/app/paintState";
 import { getLayerManager } from "../../layer";
 import { getBufferManager, getFullQuadShader } from "../../vertexShader";
 
@@ -270,16 +271,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
     // changedRect 업로드
     this.changedRect = this.changeDirtyRecorder.generateRect();
 
-    let afterSnapshot: Snapshot = this.createCurrentSnapshot(
-      x,
-      y,
-      width,
-      height,
-    );
-
     return {
       before: beforeSnapshot,
-      after: afterSnapshot,
+      // after: afterSnapshot,
     };
   }
 
@@ -478,17 +472,35 @@ export class LiquifyManager implements LiquifyManagerInterface {
   end() {
     const gl = this.gl;
     let strokeRect = this.displacementModifier.getStrokeDirtyRect();
-    const { before, after } = this.uploadAndMakeHistory(
+    let renderRect = Rect.fromWidth(
       strokeRect.x,
       strokeRect.y,
       strokeRect.width,
       strokeRect.height,
     );
+
+    const { before } = this.uploadAndMakeHistory(
+      strokeRect.x,
+      strokeRect.y,
+      strokeRect.width,
+      strokeRect.height,
+    );
+
+    let after: Snapshot;
+
     const self = this;
     const newHistory = new HistoryObject(gl, {
       undo: async () => {
         await before.apply();
         self.render();
+
+        after = this.createCurrentSnapshot(
+          renderRect.x,
+          renderRect.y,
+          renderRect.width,
+          renderRect.height,
+        );
+
         return { tool: "liquify" };
       },
       redo: async () => {

@@ -12,6 +12,7 @@ export function bindView() {
   bindSelectionUI();
   bindCursorPositionUI();
   bindZoomAreaUI();
+  bindLoadingIndicatorUI();
 }
 
 function bindCursorUI() {
@@ -201,5 +202,12 @@ function bindZoomAreaUI() {
     els.zoomArea.style.top = `${startY}px`;
     els.zoomArea.style.width = `${width}px`;
     els.zoomArea.style.height = `${height}px`;
+  });
+}
+
+function bindLoadingIndicatorUI() {
+  autorun(() => {
+    const canTouch = paintState.canTouch;
+    els.loadingIndicator.style.visibility = canTouch ? "hidden" : "visible";
   });
 }

@@ -1,6 +1,7 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify/liquify";
 import { getBrushManager } from "./brush/brushTool";
 import { setDrawingFlag } from "../history/workQueue";
+import { paintState } from "@/app/paintState";
 
 interface Pointer {
   x: number;
@@ -95,7 +96,11 @@ export class LiquifyTool implements Tool {
   }
   end() {
     //console.log("liquify end");
-    this.liquifyManager.end();
+    paintState.setCanTouch(false);
+    setTimeout(() => {
+      this.liquifyManager.end();
+      paintState.setCanTouch(true);
+    });
   }
   cancel() {
     this.liquifyManager.cancel();

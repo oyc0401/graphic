@@ -31,6 +31,7 @@ function elements() {
 
     positionBox: $id("cursor-position"),
     positionText: $id("cursor-position-text"),
+    loadingIndicator: $id("loading-indicator"),
   };
 }
 
