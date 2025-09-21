@@ -9,7 +9,7 @@
 #header {
   height: 44px;
   width: 100%;
-  background: #F5F5F5;
+  background: #f5f5f5;
 
   display: flex;
   flex-direction: row;
@@ -29,7 +29,7 @@
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
 }
 
-#main-menu>button {
+#main-menu > button {
   padding: 10px 12px;
   font-size: 12px;
   height: 44px;
@@ -40,10 +40,9 @@
   gap: 16px;
   background: transparent;
   cursor: pointer;
-
 }
 
-#main-menu>button>div {
+#main-menu > button > div {
   width: 24px;
   height: 24px;
 }
@@ -60,7 +59,7 @@
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.25);
 }
 
-.sub-menu>button {
+.sub-menu > button {
   padding: 10px 16px;
   font-size: 12px;
   height: 44px;
@@ -71,7 +70,6 @@
   gap: 16px;
   background: transparent;
   cursor: pointer;
-
 }
 
 .header-button {
@@ -84,9 +82,6 @@
   align-items: center;
 }
 
-
-
-
 #menu-bar {
   display: flex;
   /* flex-wrap: wrap; */
@@ -97,10 +92,10 @@
   padding-top: 4px;
   padding-bottom: 4px;
   width: 100%;
-  background: #FFFFFF;
+  background: #ffffff;
   padding-left: 8px;
   gap: 8px;
-  border-bottom: 1px #E2E2E2 solid;
+  border-bottom: 1px #e2e2e2 solid;
 }
 
 .select-button {
@@ -119,7 +114,7 @@
   align-items: center;
 }
 
-.select-button>p {
+.select-button > p {
   font-size: 12px;
 }
 
@@ -149,8 +144,12 @@
 }
 
 .selected {
-  background: #F5F5F5;
+  background: #f5f5f5;
   /* border: 1px #E2E2E2 solid; */
+}
+
+.selected > svg > path {
+  fill: #3587ff;
 }
 
 .div-bar {
@@ -172,18 +171,17 @@
   height: 34px;
 }
 
-.brush-control>p {
+.brush-control > p {
   font-size: 12px;
 }
 
-.brush-control>.label {
+.brush-control > .label {
   width: 48px;
 }
 
-.brush-control>.value {
+.brush-control > .value {
   width: 40px;
 }
-
 
 .slider {
   -webkit-appearance: none;
@@ -224,12 +222,12 @@
 }
 
 #opacity-slider::-webkit-slider-runnable-track {
-  background: #E3E3E3;
+  background: #e3e3e3;
 }
 
 #opacity-slider::-webkit-slider-thumb {
   background: #ffffff;
-  border: 1px solid #E3E3E3;
+  border: 1px solid #e3e3e3;
   box-sizing: border-box;
 }
 
@@ -240,7 +238,6 @@
   justify-content: center;
   align-items: center;
 }
-
 
 #color-box {
   display: grid;
@@ -256,21 +253,20 @@
   justify-content: center;
   align-items: center;
   cursor: pointer;
-
 }
 
 .circle-shape {
   width: 24px;
   height: 24px;
   border-radius: 100px;
-  background: #FAFAFA;
-  border: 1px solid #E3E3E3;
+  background: #fafafa;
+  border: 1px solid #e3e3e3;
 }
 
 #color-icon {
   width: 32px;
   height: 32px;
   border-radius: 100px;
-  background: #FAFAFA;
-  border: 1px solid #E3E3E3;
+  background: #fafafa;
+  border: 1px solid #e3e3e3;
 }

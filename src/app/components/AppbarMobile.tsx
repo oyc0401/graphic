@@ -93,7 +93,9 @@ const ToolsToggleButton = observer(() => {
         onClick={toggleMenu}
         ref={buttonRef}
       >
-        <p className={`${menuState.showTools ? "selected" : ""}`}>{getLetter("tools")}</p>
+        <p className={`${menuState.showTools ? "selected" : ""}`}>
+          {getLetter("tools")}
+        </p>
       </button>
 
       {menuState.showTools && (
@@ -136,7 +138,7 @@ const SizeToggleButton = observer(() => {
         onClick={toggleMenu}
         ref={buttonRef}
       >
-        <p>{`${fixedNumber(paintState.getBrushSize())}px`}</p>
+        {/* <p>{`${fixedNumber(paintState.getBrushSize())}px`}</p> */}
       </button>
 
       {menuState.showSizeBar && (
@@ -166,11 +168,20 @@ const BrushToolButton = observer(() => {
   const isSelected =
     paintState.toolId === "brush" && paintState.brushId === "brush";
 
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  const onClick = () => {
+    toolManager.setBrushTool();
+    toggleMenu();
+  };
+
   return (
     <button
       id="select-brush"
       className={`header-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setBrushTool()}
+      onClick={onClick}
     >
       <BrushIcon width={24} height={24} />
     </button>
@@ -181,14 +192,25 @@ const EraserToolButton = observer(() => {
   const isSelected =
     paintState.toolId === "brush" && paintState.brushId === "eraser";
 
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  const onClick = () => {
+    toolManager.setEraserTool();
+    toggleMenu();
+  };
+
   return (
-    <button
-      id="select-eraser"
-      className={`header-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setEraserTool()}
-    >
-      <EraserIcon width={24} height={24} />
-    </button>
+    <>
+      <button
+        id="select-eraser"
+        className={`header-button ${isSelected ? "selected" : ""}`}
+        onClick={onClick}
+      >
+        <EraserIcon width={24} height={24} />
+      </button>
+    </>
   );
 });
 
@@ -211,11 +233,20 @@ const LiquifyToolButton = observer(() => {
   const isSelected =
     paintState.toolId === "brush" && paintState.brushId === "liquify";
 
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  const onClick = () => {
+    toolManager.setLiquifyTool();
+    toggleMenu();
+  };
+
   return (
     <button
       id="select-liquify"
       className={`header-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setLiquifyTool()}
+      onClick={onClick}
     >
       <LiquifyIcon />
     </button>
