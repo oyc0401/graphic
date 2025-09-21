@@ -71,6 +71,9 @@ export interface Snapshot {
   selectionRect?: Rect;
 }
 
+const MAX_UNDO_SIZE = 5;
+const MAX_REDO_SIZE = 5;
+
 let undoStack: HistoryObject[] = [];
 let redoStack: HistoryObject[] = [];
 
@@ -89,10 +92,16 @@ function createHistoryManager() {
     newHistory: HistoryObject,
     options: {
       resetRedo?: boolean;
+      overflow?: boolean;
     } = {},
   ) {
-    const { resetRedo = true } = options;
+    const { resetRedo = true, overflow = false } = options;
     undoStack.push(newHistory);
+
+    // 최대 제한 (overflow가 true가 아닌 경우)
+    if (!overflow && undoStack.length > MAX_UNDO_SIZE) {
+      undoStack.shift(); // 가장 오래된 항목 제거
+    }
 
     if (resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
@@ -104,8 +113,13 @@ function createHistoryManager() {
     logCurrent();
   }
 
-  function addRedo(newHistory: HistoryObject) {
+  function addRedo(newHistory: HistoryObject, overflow: boolean = false) {
     redoStack.push(newHistory);
+
+    // 최대 제한 (overflow가 true가 아닌 경우)
+    if (!overflow && redoStack.length > MAX_REDO_SIZE) {
+      redoStack.shift(); // 가장 오래된 항목 제거
+    }
 
     logCurrent();
   }

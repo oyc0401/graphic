@@ -54,13 +54,13 @@ export async function runPointerTests() {
 
   console.log("🧪 Running pointer tests...");
 
-  setTimeout(() => {
-    pointerDown(584, 685);
-    pointerMove(561, 587);
-    pointerUp(561, 587);
+  // setTimeout(() => {
+  //   pointerDown(584, 685);
+  //   pointerMove(561, 587);
+  //   pointerUp(561, 587);
 
-    pointerDown(561, 587);
-    pointerMove(584, 685);
-    pointerUp(584, 685);
-  }, 3000);
+  //   pointerDown(561, 587);
+  //   pointerMove(584, 685);
+  //   pointerUp(584, 685);
+  // }, 3000);
 }

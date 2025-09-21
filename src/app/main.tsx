@@ -78,7 +78,7 @@ async function main() {
   debugSetting();
 
   setTimeout(() => {
-    runPointerTests();
+    // runPointerTests();
   }, 200);
 
   // requestAnimationFrame(() => {
