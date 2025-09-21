@@ -1,20 +1,23 @@
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
-import { paintOptions } from "../webgl2/gl/texture";
 
 export class HistoryObject {
   id;
+  byteSize: number;
 
   constructor({
     undo,
     redo,
+    byteSize = 0,
   }: {
     undo: () => Promise<HistoryCommand>;
     redo: () => Promise<HistoryCommand>;
+    byteSize?: number;
   }) {
     this.undo = undo;
     this.redo = redo;
+    this.byteSize = byteSize;
   }
 
   undo: () => Promise<HistoryCommand>;
@@ -72,31 +75,17 @@ export interface Snapshot {
   selectionRect?: Rect;
 }
 
-const MAX_UNDO_SIZE = 5;
-const MAX_REDO_SIZE = 5;
+// 6000x6000 이미지 일정분의 ㄷ바이트 크기를 최대 제한으로 설정
+const MAX_TOTAL_BYTES = 6000 * 6000 * 4 * 10; // RGBA, 10개
 
-function getMaxUndoSize(width: number, height: number): number {
-  return MAX_UNDO_SIZE;
-  const totalPixels = width * height;
-  // 6000x6000 = 36,000,000 pixels -> 5개
-  // 3000x6000 = 18,000,000 pixels -> 10개
-  // 1000x1000 = 1,000,000 pixels -> 50개 (최대값 제한)
-  const basePixels = 36_000_000; // 6000x6000
-  const baseHistorySize = 5;
-  const maxHistorySize = 50;
-
-  if (totalPixels >= basePixels) {
-    return baseHistorySize;
-  } else {
-    // 픽셀 수가 적을수록 더 많은 히스토리
-    const calculated = Math.round(baseHistorySize * (basePixels / totalPixels));
-    return Math.min(calculated, maxHistorySize);
-  }
+function getTotalStackBytes(stack: HistoryObject[]): number {
+  return stack.reduce((total, history) => total + history.byteSize, 0);
 }
 
-function getMaxRedoSize(width: number, height: number): number {
-  return MAX_REDO_SIZE;
-  return getMaxUndoSize(width, height); // 동일한 로직 사용
+function trimStackByBytes(stack: HistoryObject[], maxBytes: number): void {
+  while (stack.length > 0 && getTotalStackBytes(stack) > maxBytes) {
+    stack.shift(); // 가장 오래된 항목 제거
+  }
 }
 
 let undoStack: HistoryObject[] = [];
@@ -123,12 +112,9 @@ function createHistoryManager() {
     const { resetRedo = true, overflow = false } = options;
     undoStack.push(newHistory);
 
-    // 최대 제한 (overflow가 true가 아닌 경우)
-    if (
-      !overflow &&
-      undoStack.length > getMaxUndoSize(paintOptions.width, paintOptions.height)
-    ) {
-      undoStack.shift(); // 가장 오래된 항목 제거
+    // 바이트 크기 기반 제한 (overflow가 true가 아닌 경우)
+    if (!overflow) {
+      trimStackByBytes(undoStack, MAX_TOTAL_BYTES);
     }
 
     if (resetRedo && redoStack.length != 0) {
@@ -144,12 +130,9 @@ function createHistoryManager() {
   function addRedo(newHistory: HistoryObject, overflow: boolean = false) {
     redoStack.push(newHistory);
 
-    // 최대 제한 (overflow가 true가 아닌 경우)
-    if (
-      !overflow &&
-      redoStack.length > getMaxRedoSize(paintOptions.width, paintOptions.height)
-    ) {
-      redoStack.shift(); // 가장 오래된 항목 제거
+    // 바이트 크기 기반 제한 (overflow가 true가 아닌 경우)
+    if (!overflow) {
+      trimStackByBytes(redoStack, MAX_TOTAL_BYTES);
     }
 
     logCurrent();
@@ -192,16 +175,14 @@ function createHistoryManager() {
   }
 
   function logCurrent() {
+    const undoBytes = getTotalStackBytes(undoStack);
+    const redoBytes = getTotalStackBytes(redoStack);
+    const undoMB = (undoBytes / (1024 * 1024)).toFixed(2);
+    const redoMB = (redoBytes / (1024 * 1024)).toFixed(2);
+
     console.warn(
-      "undo:",
-      undoStack.length,
-      "redo:",
-      redoStack.length,
-      // "\n",
-      // "undoStack:",
-      // undoStack,
-      // "redoStack:",
-      // redoStack,
+      `undo: ${undoStack.length} (${undoMB} MB)`,
+      `redo: ${redoStack.length} (${redoMB} MB)`,
     );
   }
 

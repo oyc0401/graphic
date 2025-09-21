@@ -364,6 +364,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const gl = this.gl;
     this.enterLogic();
 
+    // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
+    const byteSize = paintOptions.width * paintOptions.height * 2 * 2 * 2;
+
     const newHistory = new HistoryObject({
       undo: async () => {
         this.closeTexture();
@@ -373,6 +376,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
         this.enterLogic();
         return { tool: "liquify" };
       },
+      byteSize,
     });
 
     let historyManager = getHistoryManager(this.canvas, gl);
@@ -417,6 +421,10 @@ export class LiquifyManager implements LiquifyManagerInterface {
       strokeRect.height,
     );
 
+    if (strokeRect.isEmpty()) {
+      return;
+    }
+
     const { before } = this.uploadAndMakeHistory(
       strokeRect.x,
       strokeRect.y,
@@ -425,6 +433,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
     );
 
     let after: Snapshot;
+
+    // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
+    const byteSize = strokeRect.width * strokeRect.height * 2 * 2 * 2;
 
     const self = this;
     const newHistory = new HistoryObject({
@@ -446,6 +457,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
         self.render();
         return { tool: "liquify" };
       },
+      byteSize,
     });
 
     let historyManager = getHistoryManager(this.canvas, gl);
@@ -480,6 +492,13 @@ export class LiquifyManager implements LiquifyManagerInterface {
           this.changedRect.height,
         );
 
+      // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트 + RGBA 4바이트, undo용과 redo용 두 개)
+      const displacementBytes =
+        this.changedRect.width * this.changedRect.height * 2 * 2;
+      const sourceBytes =
+        this.changedRect.width * this.changedRect.height * 4 * 2;
+      const byteSize = displacementBytes + sourceBytes;
+
       const newHistory = new HistoryObject({
         undo: async () => {
           self.enterLogic();
@@ -493,6 +512,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
           self.closeTexture();
           return { tool: "brush" };
         },
+        byteSize,
       });
 
       historyManager.addUndo(newHistory);

@@ -60,6 +60,11 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
   renderingManager.render();
 
+  // 바이트 크기 계산 (RGBA 4바이트, 이전 크기와 새 크기 두 개)
+  const oldImageBytes = oldWidth * oldHeight * 4;
+  const newImageBytes = newWidth * newHeight * 4;
+  const byteSize = oldImageBytes + newImageBytes;
+
   const newHistory = new HistoryObject({
     undo: async () => {
       paintOptions.x -= x;
@@ -119,6 +124,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
         },
       };
     },
+    byteSize,
   });
 
   let historyManager = getHistoryManager(canvas, gl);

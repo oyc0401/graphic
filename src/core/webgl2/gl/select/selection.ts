@@ -332,6 +332,11 @@ function createSelectionManager(canvas, gl) {
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(sx, sy, swidth, sheight);
 
+    // 바이트 크기 계산 (selection RGBA + source RGBA, undo용과 redo용 두 개)
+    const selectionBytes = originalWidth * originalHeight * 4;
+    const sourceBytes = swidth * sheight * 4 * 2;
+    const byteSize = selectionBytes + sourceBytes;
+
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
@@ -369,6 +374,7 @@ function createSelectionManager(canvas, gl) {
           },
         };
       },
+      byteSize,
     });
 
     let historyManager = getHistoryManager(canvas, gl);
@@ -418,6 +424,11 @@ function createSelectionManager(canvas, gl) {
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(dirty.x, dirty.y, dirty.width, dirty.height);
 
+    // 바이트 크기 계산 (selection RGBA + source RGBA, undo용과 redo용 두 개)
+    const selectionBytes = originalWidth * originalHeight * 4;
+    const sourceBytes = dirty.width * dirty.height * 4 * 2;
+    const byteSize = selectionBytes + sourceBytes;
+
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
@@ -455,6 +466,7 @@ function createSelectionManager(canvas, gl) {
           },
         };
       },
+      byteSize,
     });
 
     let historyManager = getHistoryManager(canvas, gl);
@@ -493,6 +505,9 @@ function createSelectionManager(canvas, gl) {
 
     let { hide: before, show: after } = createCurrentSnapshot();
 
+    // 바이트 크기 계산
+    const byteSize = originalWidth * originalHeight * 4;
+
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
@@ -528,6 +543,7 @@ function createSelectionManager(canvas, gl) {
           },
         };
       },
+      byteSize,
     });
 
     let historyManager = getHistoryManager(canvas, gl);
@@ -581,6 +597,9 @@ function createSelectionManager(canvas, gl) {
     let beforePosition = structuredClone(beforePos);
     let afterPosition = structuredClone(selectionPos);
 
+    // 바이트 크기 계산 (위치 정보만 저장하므로 바이트 크기는 최소값)
+    const byteSize = 0;
+
     const newHistory = new HistoryObject({
       undo: async () => {
         setSize(
@@ -624,6 +643,7 @@ function createSelectionManager(canvas, gl) {
           },
         };
       },
+      byteSize,
     });
 
     beforePos = structuredClone(selectionPos);

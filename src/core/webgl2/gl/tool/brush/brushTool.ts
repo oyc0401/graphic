@@ -175,12 +175,18 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
 
       // 기존 end 함수들
       const strokeRect = pathRenderer.getStrokeDirtyRect();
+      if (strokeRect.isEmpty()) {
+        return;
+      }
       const { before, after } = sourceTextureManager.upload(
         strokeRect.x,
         strokeRect.y,
         strokeRect.width,
         strokeRect.height,
       );
+
+      // 바이트 크기 계산 (RGBA 4바이트, undo용과 redo용 두 개)
+      const byteSize = strokeRect.width * strokeRect.height * 4 * 2;
 
       const newHistory = new HistoryObject({
         undo: async () => {
@@ -193,6 +199,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
           await renderingManager.render();
           return { tool: "brush" };
         },
+        byteSize,
       });
 
       const historyManager = getHistoryManager(canvas, gl);
