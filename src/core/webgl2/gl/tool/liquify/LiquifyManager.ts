@@ -355,7 +355,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.enterLogic();
 
     // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-    const byteSize = paintOptions.width * paintOptions.height * 2 * 4 * 2;
+    const byteSize = 0;
 
     const newHistory = new HistoryObject({
       undo: async () => {
@@ -425,20 +425,24 @@ export class LiquifyManager implements LiquifyManagerInterface {
     let after: Snapshot;
 
     // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-    const byteSize = strokeRect.width * strokeRect.height * 2 * 4 * 2;
+
+    const displacePageSize = strokeRect.width * strokeRect.height * 2 * 4;
+    const byteSize = displacePageSize;
 
     const self = this;
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         self.render();
-
-        after = this.createCurrentSnapshot(
-          renderRect.x,
-          renderRect.y,
-          renderRect.width,
-          renderRect.height,
-        );
+        if (!after) {
+          after = this.createCurrentSnapshot(
+            renderRect.x,
+            renderRect.y,
+            renderRect.width,
+            renderRect.height,
+          );
+          newHistory.byteSize += displacePageSize;
+        }
 
         return { tool: "liquify" };
       },
