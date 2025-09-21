@@ -1,24 +1,3 @@
-import {
-  TEXTURE_UNIT,
-  getSourceTextureManager,
-  paintOptions,
-} from "../../texture";
-import { getLayerManager } from "../../layer";
-import { getBufferManager, getFullQuadShader } from "../../vertexShader";
-
-import { createShader, createProgram, getGlHelper } from "../../utils/glHelper";
-import { getRenderingManager } from "../../render/render";
-import {
-  getHistoryManager,
-  HistoryObject,
-  Snapshot,
-} from "../../history/history";
-
-import { PixelReader } from "../../history/PixelReader";
-import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
-
-import colorFrag from "./color.frag?raw";
-import { DisplacementModifier } from "./DisplacementModifier";
 import { LiquifyManager } from "./LiquifyManager";
 
 interface liquifyManager {

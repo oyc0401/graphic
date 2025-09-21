@@ -1,6 +1,4 @@
 import type { RendererInterface } from "./RendererInterface";
-import { Canvas2DService } from "./canvas2d/Canvas2DService";
-import { WebGPUService } from "./webgpu/WebGPUService";
 import { WebGL2Controller } from "./webgl2/paintController";
 
 export class PaintApplication {
@@ -15,7 +13,7 @@ export class PaintApplication {
     height: number,
     px: number,
     py: number,
-    scale: number
+    scale: number,
   ) {
     try {
       let webgl2Service = new WebGL2Controller();
@@ -28,7 +26,7 @@ export class PaintApplication {
         height,
         px,
         py,
-        scale
+        scale,
       );
 
       this.renderer = webgl2Service;

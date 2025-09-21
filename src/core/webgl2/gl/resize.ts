@@ -4,10 +4,13 @@ import { getLiquifyManager } from "./tool/liquify/liquify";
 import { getBrushManager } from "./tool/brush/brushTool";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render/render";
-import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
-import { PixelStore } from "./history/PixelStore";
+import {
+  getHistoryManager,
+  HistoryObject,
+  Snapshot,
+} from "../../history/history";
+import { PixelStore } from "../../history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
-import { lowQueue, pushLowQueue } from "./history/workQueue";
 import { Rect } from "@/core/utils/rect";
 
 /**
@@ -57,7 +60,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
   renderingManager.render();
 
-  const newHistory = new HistoryObject(gl, {
+  const newHistory = new HistoryObject({
     undo: async () => {
       paintOptions.x -= x;
       paintOptions.y -= y;
@@ -72,7 +75,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
 
       const sourceTextureManager = getSourceTextureManager(canvas, gl);
 
-      await lowQueue.finish();
+      //await lowQueue.finish();
 
       sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
@@ -100,7 +103,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
         await snapshot.after.apply();
       }
 
-      await lowQueue.finish();
+      //await lowQueue.finish();
 
       sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
@@ -383,13 +386,11 @@ function createResizeManager(canvas, gl) {
           await this.pixelReader.getPixelData(),
         );
 
-        pushLowQueue(gl, async () => {
-          bitmapManager.applyResizeDirtyRect(
-            await afterPixelReader.getPixelData(true),
-            newWidth,
-            newHeight,
-          );
-        });
+        bitmapManager.applyResizeDirtyRect(
+          afterPixelReader.getPixelData(true),
+          newWidth,
+          newHeight,
+        );
       },
     };
 

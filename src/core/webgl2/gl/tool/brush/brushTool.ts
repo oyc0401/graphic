@@ -8,7 +8,7 @@ import {
 import { getLayerManager } from "../../layer";
 import { getVertexManager } from "../../vertexShader";
 import { getManager } from "../../../../utils/cachedManager";
-import { getHistoryManager, HistoryObject } from "../../history/history";
+import { getHistoryManager, HistoryObject } from "../../../../history/history";
 import { Rect } from "@/core/utils/rect";
 import { Pointer } from "@/core/types";
 import { SplinePathRenderer } from "./pathRenderer/SplinePathRenderer";
@@ -182,7 +182,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
         strokeRect.height,
       );
 
-      const newHistory = new HistoryObject(gl, {
+      const newHistory = new HistoryObject({
         undo: async () => {
           await before.apply();
           await renderingManager.render();

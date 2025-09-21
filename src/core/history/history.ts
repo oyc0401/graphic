@@ -1,24 +1,17 @@
-import { position } from "@/app/position";
-import { getManager } from "../../../utils/cachedManager";
-import { PixelStorage } from "./PixelStore";
+import { getManager } from "../utils/cachedManager";
+import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
-import { PixelReader } from "./PixelReader";
 
 export class HistoryObject {
-  gl;
   id;
 
-  constructor(
-    gl,
-    {
-      undo,
-      redo,
-    }: {
-      undo: () => Promise<HistoryCommand>;
-      redo: () => Promise<HistoryCommand>;
-    },
-  ) {
-    this.gl = gl;
+  constructor({
+    undo,
+    redo,
+  }: {
+    undo: () => Promise<HistoryCommand>;
+    redo: () => Promise<HistoryCommand>;
+  }) {
     this.undo = undo;
     this.redo = redo;
   }
@@ -72,7 +65,7 @@ export interface HistoryResponse {
 
 export interface Snapshot {
   layerId;
-  pixelReader?: PixelStorage<any>;
+  pixelReader?: PixelStore<any>;
   rect: Rect;
   apply: () => Promise<void>;
   selectionRect?: Rect;
@@ -87,19 +80,11 @@ export function resetHisory() {
 }
 
 export function getHistoryManager(canvas, gl) {
-  const manager = getManager(gl, "history", () =>
-    createHistoryManager(canvas, gl),
-  );
+  const manager = getManager(gl, "history", () => createHistoryManager());
   return manager;
 }
 
-function createHistoryManager(canvas, gl) {
-  // 2. FBO 설정
-  const fbo = gl.createFramebuffer();
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-
-  //const readPixelQueue = new PixelReadProcessor(gl);
-
+function createHistoryManager() {
   function addUndo(
     newHistory: HistoryObject,
     options: {

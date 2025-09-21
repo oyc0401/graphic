@@ -2,7 +2,7 @@ import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
 import type { Pointer } from "../types.js";
-import { HistoryResponse } from "./gl/history/history";
+import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
 
@@ -16,7 +16,7 @@ export class WebGL2Controller {
     height: number,
     px: number,
     py: number,
-    scale: number
+    scale: number,
   ): Promise<void> {
     let { x, y } = toWebglCoord3(
       px,
@@ -25,7 +25,7 @@ export class WebGL2Controller {
       height,
       screenWidth,
       screenHeight,
-      scale
+      scale,
     );
 
     paintOptions.screenWidth = screenWidth;
@@ -57,7 +57,7 @@ export class WebGL2Controller {
       paintOptions.height,
       paintOptions.screenWidth,
       paintOptions.screenHeight,
-      magnification
+      magnification,
     );
     paint.setCameraPosition(x, y, magnification);
   }
@@ -127,7 +127,7 @@ export class WebGL2Controller {
     py: number,
     width: number,
     height: number,
-    imageBitmap: ImageBitmap
+    imageBitmap: ImageBitmap,
   ): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.paste(x, y, width, height, imageBitmap);
@@ -186,7 +186,7 @@ function toWebglCoord2(
   x: number,
   y: number,
   w: number,
-  h: number
+  h: number,
 ): { x: number; y: number; w: number; h: number } {
   return {
     x,
@@ -203,7 +203,7 @@ function toWebglCoord3(
   height: number,
   screenWidth: number,
   screenHeight: number,
-  scale: number
+  scale: number,
 ): { x: number; y: number } {
   let newY = -y + screenHeight / scale - height;
   return {

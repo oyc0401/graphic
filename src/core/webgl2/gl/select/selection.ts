@@ -1,6 +1,10 @@
 import { paintConfig } from "@/paint.config";
-import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
-import { PixelStore } from "../history/PixelStore";
+import {
+  getHistoryManager,
+  HistoryObject,
+  Snapshot,
+} from "../../../history/history";
+import { PixelStore } from "../../../history/PixelStore";
 
 import { getLayerManager } from "../layer";
 import { getRenderingManager } from "../render/render";
@@ -328,7 +332,7 @@ function createSelectionManager(canvas, gl) {
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(sx, sy, swidth, sheight);
 
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         await beforeSource.apply();
@@ -414,7 +418,7 @@ function createSelectionManager(canvas, gl) {
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(dirty.x, dirty.y, dirty.width, dirty.height);
 
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         await beforeSource.apply();
@@ -489,7 +493,7 @@ function createSelectionManager(canvas, gl) {
 
     let { hide: before, show: after } = createCurrentSnapshot();
 
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         uploadRenderedTex();
@@ -577,7 +581,7 @@ function createSelectionManager(canvas, gl) {
     let beforePosition = structuredClone(beforePos);
     let afterPosition = structuredClone(selectionPos);
 
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         setSize(
           beforePosition.x,

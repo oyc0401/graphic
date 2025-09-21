@@ -12,14 +12,12 @@ import {
   getHistoryManager,
   HistoryObject,
   Snapshot,
-} from "../../history/history";
-
-import { PixelReader } from "../../history/PixelReader";
+} from "../../../../history/history";
 import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 
 import colorFrag from "./color.frag?raw";
 import { DisplacementModifier } from "./DisplacementModifier";
-import { PixelStore } from "../../history/PixelStore";
+import { PixelStore } from "../../../../history/PixelStore";
 
 interface LiquifyManagerInterface {
   enter(): void;
@@ -147,59 +145,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.fbo = gl.createFramebuffer()!;
   }
-  /**
-   * sourceDisplaceTex를 기반으로 더미 텍스쳐를 만들어 리턴한다.
-   */
-  private createCopyTextureFromSourceDisTex(rect: Rect): WebGLTexture {
-    const gl = this.gl;
-    const historyTex = gl.createTexture()!;
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, historyTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      rect.width,
-      rect.height,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
-
-    // 4. blitFramebuffer를 사용하여 면을 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
-
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.fbo);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      historyTex,
-      0,
-    );
-
-    // blit 좌표계는 0,0,1,1이 1칸임.
-    gl.blitFramebuffer(
-      rect.x,
-      rect.y,
-      rect.right,
-      rect.bottom,
-      0,
-      0,
-      rect.width,
-      rect.height, // 쓰기 버퍼의 영역 (텍스처 크기)
-      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
-    );
-
-    return historyTex;
-  }
 
   /**
    * displacementTex와 sourceDisplaceTex에 해당 픽셀을 적용시킨다.
    */
-  private async applyHistory(pixelReader: PixelReader, rect: Rect) {
+  private async applyHistory(pixelReader: PixelStore, rect: Rect) {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, this.displacementTex);
@@ -414,7 +364,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const gl = this.gl;
     this.enterLogic();
 
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         this.closeTexture();
         return { tool: "brush" };
@@ -477,7 +427,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     let after: Snapshot;
 
     const self = this;
-    const newHistory = new HistoryObject(gl, {
+    const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         self.render();
@@ -530,7 +480,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
           this.changedRect.height,
         );
 
-      const newHistory = new HistoryObject(gl, {
+      const newHistory = new HistoryObject({
         undo: async () => {
           self.enterLogic();
           await displaceSnapshot.apply();
@@ -547,7 +497,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
       historyManager.addUndo(newHistory);
     } else {
-      const newHistory = new HistoryObject(gl, {
+      const newHistory = new HistoryObject({
         undo: async () => {
           self.enterLogic();
           return { tool: "liquify" };

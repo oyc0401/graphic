@@ -1,10 +1,9 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../../utils/cachedManager";
-import { PixelReader } from "./history/PixelReader";
 import { getBitmapManager } from "../../canvas/bitmap";
-import { Snapshot } from "./history/history";
+import { Snapshot } from "../../history/history";
 import { Rect } from "@/core/utils/rect";
-import { PixelStore } from "./history/PixelStore";
+import { PixelStore } from "../../history/PixelStore";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -152,7 +151,7 @@ function makeSourceTextureManager(canvas, gl) {
       gl.NEAREST, // 필터링 옵션
     );
   }
-  async function applyHistory(layerId, pixelReader: PixelReader, rect) {
+  async function applyHistory(layerId, pixelReader: PixelStore, rect) {
     // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));

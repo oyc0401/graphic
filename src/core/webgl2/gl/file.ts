@@ -1,4 +1,4 @@
-import { resetHisory } from "./history/history";
+import { resetHisory } from "../../history/history";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render/render";
 import { resizeLayer } from "./resize";
