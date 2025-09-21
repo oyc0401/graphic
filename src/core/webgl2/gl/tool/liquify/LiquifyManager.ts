@@ -162,7 +162,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
       rect.width,
       rect.height,
       gl.RG,
-      gl.HALF_FLOAT,
+      gl.FLOAT,
       await pixelReader.getPixelData(),
     );
 
@@ -241,7 +241,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     // sourceDisplacementFBO에서 직접 픽셀 데이터 읽기
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
-    const pixels = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+    const pixels = new Float32Array(width * height * 2);
 
     const sizeInBytes = pixels.byteLength;
     const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
@@ -249,7 +249,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
       `[LiquifyManager] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${width}x${height}`,
     );
 
-    gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels);
+    gl.readPixels(x, y, width, height, gl.RG, gl.FLOAT, pixels);
 
     let beforePixelReader = PixelStore.fromPixelData(pixels, width, height);
 
@@ -312,12 +312,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.RG16F,
+      gl.RG32F,
       paintOptions.width,
       paintOptions.height,
       0,
       gl.RG,
-      gl.HALF_FLOAT,
+      gl.FLOAT,
       null,
     );
 
@@ -335,17 +335,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, this.sourceDisplacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      1,
-      1,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, 1, 1, 0, gl.RG, gl.FLOAT, null);
   }
 
   private enterLogic() {
@@ -365,7 +355,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.enterLogic();
 
     // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-    const byteSize = paintOptions.width * paintOptions.height * 2 * 2 * 2;
+    const byteSize = paintOptions.width * paintOptions.height * 2 * 4 * 2;
 
     const newHistory = new HistoryObject({
       undo: async () => {
@@ -435,7 +425,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     let after: Snapshot;
 
     // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-    const byteSize = strokeRect.width * strokeRect.height * 2 * 2 * 2;
+    const byteSize = strokeRect.width * strokeRect.height * 2 * 4 * 2;
 
     const self = this;
     const newHistory = new HistoryObject({
@@ -492,9 +482,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
           this.changedRect.height,
         );
 
-      // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트 + RGBA 4바이트, undo용과 redo용 두 개)
+      // 바이트 크기 계산 (RG 2채널 하나, HALF_FLOAT 2바이트 + RGBA 4바이트, undo용과 redo용 두 개)
       const displacementBytes =
-        this.changedRect.width * this.changedRect.height * 2 * 2;
+        this.changedRect.width * this.changedRect.height * 2 * 4;
       const sourceBytes =
         this.changedRect.width * this.changedRect.height * 4 * 2;
       const byteSize = displacementBytes + sourceBytes;

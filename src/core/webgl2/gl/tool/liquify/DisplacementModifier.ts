@@ -259,12 +259,12 @@ export class DisplacementModifier {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.RG16F,
+      gl.RG32F,
       width,
       height,
       0,
       gl.RG,
-      gl.HALF_FLOAT,
+      gl.FLOAT,
       null,
     );
 
@@ -274,12 +274,12 @@ export class DisplacementModifier {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.RG16F,
+      gl.RG32F,
       width,
       height,
       0,
       gl.RG,
-      gl.HALF_FLOAT,
+      gl.FLOAT,
       null,
     );
   }
@@ -290,31 +290,11 @@ export class DisplacementModifier {
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, this.displacementTexInput);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      1,
-      1,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, 1, 1, 0, gl.RG, gl.FLOAT, null);
 
     // Resize output texture to 1x1 to free memory
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.displacementTexOutput);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG16F,
-      1,
-      1,
-      0,
-      gl.RG,
-      gl.HALF_FLOAT,
-      null,
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, 1, 1, 0, gl.RG, gl.FLOAT, null);
   }
 }
