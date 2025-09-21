@@ -1,5 +1,7 @@
 import { paintState } from "@/app/paintState";
 import { dispatch } from "../app/events/pointerEvents";
+import { toolManager } from "@/app/draw";
+import { uploadImage } from "@/app/file";
 
 function createFakeEvent(x: number, y: number): PointerEvent {
   const event = new CustomEvent("pointer") as any;
@@ -37,28 +39,26 @@ function pointerUp(x: number, y: number) {
   dispatch(createFakeEvent(x, y), "up");
 }
 
-export function runPointerTests() {
+export async function runPointerTests() {
+  // Load cat_3k image as bitmap
+  const response = await fetch("/cat_3k.jpg");
+  const blob = await response.blob();
+  const bitmap = await createImageBitmap(blob, {
+    imageOrientation: "flipY",
+    premultiplyAlpha: "premultiply",
+  });
+
+  uploadImage(bitmap);
+  toolManager.setLiquifyTool();
+  paintState.setBrushSize(2000);
+
   console.log("🧪 Running pointer tests...");
 
-  pointerDown(584.09765625, 685.30859375);
-  // pointerMove(579.3046875, 686.796875);
-  // pointerMove(566.98828125, 685.39453125);
-  // pointerMove(538.55859375, 673.07421875);
-  // pointerMove(494.55078125, 646.08984375);
-  // pointerMove(467.125, 614.92578125);
-  // pointerMove(464.84375, 580.56640625);
-  // pointerMove(481.59765625, 535.91796875);
-  // pointerMove(515.73828125, 504.7109375);
-  pointerMove(577.37109375, 489.99609375);
-  // pointerMove(637.54296875, 498.19140625);
-  // pointerMove(672.29296875, 522.9140625);
-  // pointerMove(683.953125, 560.24609375);
-  // pointerMove(657.390625, 599.6640625);
-  // pointerMove(605.984375, 620.859375);
-  // pointerMove(571.27734375, 622.03125);
-  // pointerMove(557.98828125, 614.50390625);
-  // pointerMove(554.6171875, 602.89453125);
-  // pointerMove(556.734375, 593.80078125);
-  // pointerMove(561.2734375, 587.80859375);
-  pointerUp(561.95703125, 587.578125);
+  pointerDown(584, 685);
+  pointerMove(561, 587);
+  pointerUp(561, 587);
+
+  pointerDown(561, 587);
+  pointerMove(584, 685);
+  pointerUp(584, 685);
 }

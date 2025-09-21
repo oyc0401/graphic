@@ -166,7 +166,7 @@ export function addClipboardEvent() {
   });
 }
 
-function uploadImage(bitmap: ImageBitmap) {
+export function uploadImage(bitmap: ImageBitmap) {
   toolManager.setBrushTool();
 
   console.log("uploadImage", position.bouncingRect.width, bitmap.width);
@@ -186,7 +186,7 @@ function uploadImage(bitmap: ImageBitmap) {
 
   const worker = getLayerWorker();
   worker.uploadImage(
-    bitmap
+    bitmap,
     // Comlink.transfer(bitmap, [bitmap])
   );
   let { undoCount, redoCount } = worker.getHistoryCount();
@@ -199,7 +199,7 @@ function uploadImage(bitmap: ImageBitmap) {
 export async function copyPixelsToClipboard(
   pixels: Uint8ClampedArray,
   width: number,
-  height: number
+  height: number,
 ) {
   // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
   const pngData = encode({ width, height, data: pixels });
@@ -286,7 +286,7 @@ export function resetImage() {
 export async function downloadPixels(
   pixels: Uint8ClampedArray,
   width: number,
-  height: number
+  height: number,
 ) {
   // 1. PNG 인코딩 (비프리멀티플라이드 알파 그대로)
   const pngData = encode({ width, height, data: pixels });

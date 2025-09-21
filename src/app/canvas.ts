@@ -1,16 +1,20 @@
 /** canvas.ts */
-import { els } from "./elements";
-import { getPixelRatio, position } from "../position";
-import { getApplication } from "../worker/workerPool";
-import * as Comlink from "comlink";
+import { els } from "./ui/elements";
+import { getPixelRatio, position } from "./position";
+import { getApplication, setApplication } from "./worker/workerPool";
+import { PaintApplication } from "@/core/PaintApplication";
 
 export async function tranferCanvas() {
-  const application = getApplication();
   const offscreen = els.canvas.transferControlToOffscreen();
 
   console.log("screenHeight", position.screenHeight);
 
   let dpr = getPixelRatio();
+  // setHeapSnapshotNearHeapLimit;
+
+  setApplication(new PaintApplication());
+  const application = getApplication();
+
   await application.install(
     offscreen,
     position.screenWidth,
@@ -20,7 +24,7 @@ export async function tranferCanvas() {
     position.height,
     position.x,
     position.y,
-    position.scale
+    position.scale,
   );
 
   // // 캔버스 렌더링

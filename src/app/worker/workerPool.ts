@@ -7,9 +7,9 @@ const workerPool: {
 } = {};
 
 function getWorkerObject() {
-  if (!workerPool["layer"]) {
-    workerPool["layer"] = new PaintApplication();
-  }
+  // if (!workerPool["layer"]) {
+  //   workerPool["layer"] = new PaintApplication();
+  // }
 
   return workerPool["layer"];
 }
@@ -20,4 +20,8 @@ export function getLayerWorker() {
 
 export function getApplication() {
   return getWorkerObject();
+}
+
+export function setApplication(application) {
+  workerPool["layer"] = application;
 }

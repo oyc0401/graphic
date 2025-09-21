@@ -18,7 +18,7 @@ import { addClipboardEvent } from "./file";
 import { bindView } from "./ui/view";
 import { getLayerWorker } from "./worker/workerPool";
 import { attachPointerEvents } from "./events/pointerEvents";
-import { tranferCanvas } from "./ui/canvas";
+import { tranferCanvas } from "./canvas";
 import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
@@ -78,7 +78,7 @@ async function main() {
   debugSetting();
 
   setTimeout(() => {
-    // runPointerTests();
+    runPointerTests();
   }, 200);
 
   // requestAnimationFrame(() => {
