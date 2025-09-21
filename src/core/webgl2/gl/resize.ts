@@ -4,7 +4,6 @@ import { getLiquifyManager } from "./tool/liquify/liquify";
 import { getBrushManager } from "./tool/brush/brushTool";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render/render";
-import { PixelReader } from "./history/PixelReader";
 import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
 import { PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
@@ -227,16 +226,19 @@ function createResizeManager(canvas, gl) {
     const bitmapManager = getBitmapManager();
     const renderRect = Rect.fromWidth(0, 0, oldWidth, oldHeight);
 
-    let beforePixel = new PixelStore(gl, () => {
-      const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtyRect(renderRect);
-      return pixelData;
-    });
+    let pixelData = bitmapManager.copyDirtyRect(renderRect);
+
+    let beforePixel = PixelStore.fromPixelData(
+      pixelData,
+      renderRect.width,
+      renderRect.height,
+    );
 
     const beforeSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
       pixelReader: beforePixel,
       rect: renderRect,
+
       async apply() {
         gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
         gl.bindTexture(gl.TEXTURE_2D, layerTex);
@@ -252,13 +254,11 @@ function createResizeManager(canvas, gl) {
           await this.pixelReader.getPixelData(),
         );
 
-        pushLowQueue(gl, async () => {
-          bitmapManager.applyResizeDirtyRect(
-            await beforePixel.getPixelData(true),
-            renderRect.width,
-            renderRect.height,
-          );
-        });
+        bitmapManager.applyResizeDirtyRect(
+          await beforePixel.getPixelData(true),
+          renderRect.width,
+          renderRect.height,
+        );
       },
     };
 
@@ -329,25 +329,39 @@ function createResizeManager(canvas, gl) {
       gl.NEAREST,
     );
 
-    let afterTex = copyTexture(layerTex, newWidth, newHeight);
+    // layerTex에서 직접 픽셀 데이터 읽기
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, mainFBO);
+    const afterPixels = new Uint8Array(newWidth * newHeight * 4); // RGBA, UNSIGNED_BYTE
 
-    const afterPixelReader = new PixelReader(
-      gl,
+    const sizeInBytes = afterPixels.byteLength;
+    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+    console.log(
+      `[Resize After] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${newWidth}x${newHeight}`,
+    );
+
+    gl.readPixels(
+      0,
+      0,
       newWidth,
       newHeight,
-      afterTex,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
+      afterPixels,
+    );
+
+    const afterPixelReader = PixelStore.fromPixelData(
+      afterPixels,
+      newWidth,
+      newHeight,
     );
 
     let newRect = Rect.fromWidth(0, 0, newWidth, newHeight);
-    pushLowQueue(gl, async () => {
-      bitmapManager.applyResizeDirtyRect(
-        await afterPixelReader.getPixelData(true),
-        newWidth,
-        newHeight,
-      );
-    });
+
+    bitmapManager.applyResizeDirtyRect(
+      afterPixelReader.getPixelData(true),
+      newWidth,
+      newHeight,
+    );
 
     const afterSnapshot: Snapshot = {
       layerId: paintOptions.layerId,

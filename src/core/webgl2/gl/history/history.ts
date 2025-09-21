@@ -72,7 +72,7 @@ export interface HistoryResponse {
 
 export interface Snapshot {
   layerId;
-  pixelReader?: PixelStorage<any> | PixelReader<any>;
+  pixelReader?: PixelStorage<any>;
   rect: Rect;
   apply: () => Promise<void>;
   selectionRect?: Rect;

@@ -19,6 +19,7 @@ import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 
 import colorFrag from "./color.frag?raw";
 import { DisplacementModifier } from "./DisplacementModifier";
+import { PixelStore } from "../../history/PixelStore";
 
 interface LiquifyManagerInterface {
   enter(): void;
@@ -291,9 +292,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
     // sourceDisplacementFBO에서 직접 픽셀 데이터 읽기
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
     const pixels = new Uint16Array(width * height * 2); // RG, HALF_FLOAT
+
+    const sizeInBytes = pixels.byteLength;
+    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+    console.log(
+      `[LiquifyManager] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${width}x${height}`,
+    );
+
     gl.readPixels(x, y, width, height, gl.RG, gl.HALF_FLOAT, pixels);
 
-    let beforePixelReader = PixelReader.fromPixelData(pixels, width, height);
+    let beforePixelReader = PixelStore.fromPixelData(pixels, width, height);
 
     let copiedChangedRect = this.changedRect?.copy();
 

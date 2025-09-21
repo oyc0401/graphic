@@ -4,6 +4,7 @@ import { PixelReader } from "./history/PixelReader";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { Snapshot } from "./history/history";
 import { Rect } from "@/core/utils/rect";
+import { PixelStore } from "./history/PixelStore";
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상
@@ -199,7 +200,7 @@ function makeSourceTextureManager(canvas, gl) {
     const bitmapManager = getBitmapManager();
     let pixelData = bitmapManager.copyDirtyRect(renderRect);
 
-    let beforePixel = PixelReader.fromPixelData(
+    let beforePixel = PixelStore.fromPixelData(
       pixelData,
       renderRect.width,
       renderRect.height,
@@ -319,6 +320,13 @@ function makeSourceTextureManager(canvas, gl) {
 
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
       const pixels = new Uint8Array(width * height * 4);
+
+      const sizeInBytes = pixels.byteLength;
+      const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+      console.log(
+        `[Layer] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${width}x${height}`,
+      );
+
       gl.readPixels(
         renderRect.x,
         renderRect.y,

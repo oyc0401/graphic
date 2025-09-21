@@ -1,7 +1,7 @@
 import { TEXTURE_UNIT, paintOptions } from "../texture";
 import { getLayerManager } from "../layer";
 
-import { getSelectionManager } from "../selection";
+import { getSelectionManager } from "../select/selection";
 
 import {
   getBufferManager,

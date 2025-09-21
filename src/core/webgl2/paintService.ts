@@ -7,7 +7,7 @@ import {
 import { paintOptions } from "./gl/texture";
 import { getRenderingManager } from "./gl/render/render";
 import { resizeLayer, resizeScreen } from "./gl/resize";
-import { getSelectionManager } from "./gl/selection";
+import { getSelectionManager } from "./gl/select/selection";
 import { getLayerManager } from "./gl/layer";
 import { getCanvasPixelManager, resetImage, uploadImage } from "./gl/file";
 import { getHistoryManager } from "./gl/history/history";

@@ -1,14 +1,18 @@
 import { paintConfig } from "@/paint.config";
-import { getHistoryManager, HistoryObject, Snapshot } from "./history/history";
-import { PixelReader } from "./history/PixelReader";
+import { getHistoryManager, HistoryObject, Snapshot } from "../history/history";
+import { PixelStore } from "../history/PixelStore";
 
-import { getLayerManager } from "./layer";
-import { getRenderingManager } from "./render/render";
-import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "./texture";
-import { getManager } from "../../utils/cachedManager";
-import { decodePremultAndFlip } from "../../utils/flipPixel";
-import { createProgram, createShader } from "./utils/glHelper";
-import { getBufferManager, getFullQuadShader } from "./vertexShader";
+import { getLayerManager } from "../layer";
+import { getRenderingManager } from "../render/render";
+import {
+  getSourceTextureManager,
+  paintOptions,
+  TEXTURE_UNIT,
+} from "../texture";
+import { getManager } from "../../../utils/cachedManager";
+import { decodePremultAndFlip } from "../../../utils/flipPixel";
+import { createProgram, createShader } from "../utils/glHelper";
+import { getBufferManager, getFullQuadShader } from "../vertexShader";
 import { Rect } from "@/core/utils/rect";
 
 export function getSelectionManager(canvas, gl) {
@@ -29,10 +33,6 @@ function createSelectionManager(canvas, gl) {
     width: 9,
     height: 9,
   };
-  // let selectionPos.x = 0;
-  // let selectionPos.y = 0;
-  // let selectionPos.width = 10;
-  // let selectionPos.height = 10;
 
   let originalWidth;
   let originalHeight;
@@ -68,6 +68,7 @@ function createSelectionManager(canvas, gl) {
 
     uniform vec2 u_selectionPos;    // 선택 영역 위치 (캔버스 내부 기준)
     uniform vec2 u_selectionSize;   // 선택 영역 크기
+    uniform float u_max_size;
 
     in vec2 v_texCoord;             // 풀스크린 정규화 좌표 (0~1)
     out vec4 outColor;
@@ -100,7 +101,7 @@ function createSelectionManager(canvas, gl) {
         // 화면이 엄청 크면 걍 근사로
         selectionColor = texture(u_selection_source, local);    // 프리
       } else {
-        vec2 newLocal = local * size / ${paintConfig.maxSize}.0;
+        vec2 newLocal = local * size / u_max_size;
         selectionColor = texture(u_selection, newLocal);    // 프리
       }
       
@@ -244,66 +245,35 @@ function createSelectionManager(canvas, gl) {
     );
   }
 
-  const fbo = gl.createFramebuffer();
-
-  function makeSelectionCopyTexture() {
-    const historyTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, historyTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      originalWidth,
-      originalHeight,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    ); // 빈 텍스처 생성
-
-    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
-
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      historyTex,
-      0,
-    );
-
-    // blit 좌표계는 0,0,1,1이 1칸임.
-    gl.blitFramebuffer(
-      0,
-      0,
-      originalWidth,
-      originalHeight,
-      0,
-      0,
-      originalWidth,
-      originalHeight, // 쓰기 버퍼의 영역 (텍스처 크기)
-      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST, // 필터링 옵션
-    );
-
-    return historyTex;
-  }
-
-  function selectionSnapshot() {
+  function createCurrentSnapshot() {
     const renderRect = Rect.fromWidth(0, 0, originalWidth, originalHeight);
 
-    const selectionCopyTex = makeSelectionCopyTexture();
+    // selectionCopyTex가 연결된 framebuffer에서 직접 픽셀 데이터 읽기
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, selectionFBO);
+    const pixels = new Uint8Array(originalWidth * originalHeight * 4); // RGBA, UNSIGNED_BYTE
 
-    let pixelReader = new PixelReader(
-      gl,
+    const sizeInBytes = pixels.byteLength;
+    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+    console.log(
+      `[SelectionManager] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${originalWidth}x${originalHeight}`,
+    );
+
+    gl.readPixels(
+      0,
+      0,
       originalWidth,
       originalHeight,
-      selectionCopyTex,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
+      pixels,
     );
+
+    let pixelReader = PixelStore.fromPixelData(
+      pixels,
+      originalWidth,
+      originalHeight,
+    );
+
     const selectionPosRect = Rect.fromWidth(
       selectionPos.x,
       selectionPos.y,
@@ -336,7 +306,7 @@ function createSelectionManager(canvas, gl) {
           0, // border
           gl.RGBA, // format
           gl.UNSIGNED_BYTE, // type
-          await this.pixelReader.getPixelData(),
+          this.pixelReader.getPixelData(),
         );
 
         paintOptions.showSelection = true;
@@ -415,7 +385,7 @@ function createSelectionManager(canvas, gl) {
 
     gl.disable(gl.SCISSOR_TEST);
 
-    let { show: after, hide: before } = selectionSnapshot();
+    let { show: after, hide: before } = createCurrentSnapshot();
 
     let { before: beforeSource, after: afterSource } =
       sourceTextureManager.upload(sx, sy, swidth, sheight);
@@ -484,12 +454,16 @@ function createSelectionManager(canvas, gl) {
       selectionPos.width,
       selectionPos.height,
     );
+    gl.uniform1f(
+      gl.getUniformLocation(selectionProgram, "u_max_size"),
+      paintConfig.maxSize,
+    );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, layerManager.layerFBO);
     gl.viewport(0, 0, paintOptions.width, paintOptions.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    let { show: before, hide: after } = selectionSnapshot();
+    let { show: before, hide: after } = createCurrentSnapshot();
 
     // sourceTextureManager rect는 꼭 캔버스 내부 영역으로 제한
     let dirty = Rect.fromWidth(
@@ -575,7 +549,7 @@ function createSelectionManager(canvas, gl) {
 
     uploadRenderedTex();
 
-    let { hide: before, show: after } = selectionSnapshot();
+    let { hide: before, show: after } = createCurrentSnapshot();
 
     const newHistory = new HistoryObject(gl, {
       undo: async () => {

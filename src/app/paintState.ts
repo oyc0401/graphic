@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
 
 type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
@@ -47,7 +47,9 @@ class PaintState {
   setCanTouch(val: boolean) {
     if (val) {
       setTimeout(() => {
-        this.canTouch = val;
+        runInAction(() => {
+          this.canTouch = val;
+        });
       });
     } else {
       this.canTouch = val;
