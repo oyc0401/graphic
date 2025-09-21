@@ -48,7 +48,7 @@ class PaintState {
     if (val) {
       setTimeout(() => {
         this.canTouch = val;
-      }, 3000);
+      });
     } else {
       this.canTouch = val;
     }
