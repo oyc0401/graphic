@@ -1,7 +1,7 @@
-import { paintOptions } from "./Canvas2DService";
-import { DirtyRectRecorder, Rect } from "../utils/rect";
+import { paintOptions } from "./Canvas2DService.js";
+import { DirtyRectRecorder, Rect } from "../utils/rect.js";
 import type { Pointer } from "../types.js";
-import { calculateTangents, hermite } from "../utils/spline";
+import { calculateTangents, hermite } from "../utils/spline.js";
 
 export class SplineTool {
   private points: Pointer[] = [];
@@ -45,7 +45,7 @@ export class SplineTool {
 
     // 알파 맵 초기화
     this.alphaMap = Array.from({ length: canvas.height }, () =>
-      Array.from({ length: canvas.width }, () => 0)
+      Array.from({ length: canvas.width }, () => 0),
     );
   }
 
@@ -76,7 +76,7 @@ export class SplineTool {
         this.tempCanvas,
         this.tempCtx,
         this.alphaMap,
-        dirtyRect
+        dirtyRect,
       );
       this.renderFromAlphaMap(this.alphaMap, dirtyRect);
 
@@ -89,7 +89,7 @@ export class SplineTool {
         0,
         0,
         this.drawCanvas.width,
-        this.drawCanvas.height
+        this.drawCanvas.height,
       );
     }
   }
@@ -117,7 +117,7 @@ export class SplineTool {
         this.tempCanvas,
         this.tempCtx,
         this.alphaMap,
-        dirtyRect
+        dirtyRect,
       );
 
       // alphaMap을 바탕으로 drawCanvas에 렌더링
@@ -148,7 +148,7 @@ export class SplineTool {
       0,
       0,
       this.canvas.width,
-      this.canvas.height
+      this.canvas.height,
     );
 
     if (slicedPoints.length == 1) {

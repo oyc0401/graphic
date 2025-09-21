@@ -1,8 +1,8 @@
-export class PixelStore<T extends PixelTypedArray> {
+export class PixelStore<T extends PixelTypedArray = any> {
   pixelData!: T;
   complete = false;
 
-  static fromPixelData<T extends PixelTypedArray>(
+  static fromPixelData<T extends PixelTypedArray = any>(
     pixelData: T,
     width: number,
     height: number,
