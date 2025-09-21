@@ -75,8 +75,8 @@ export interface Snapshot {
   selectionRect?: Rect;
 }
 
-// 6000x6000 이미지 일정분의 ㄷ바이트 크기를 최대 제한으로 설정
-const MAX_TOTAL_BYTES = 6000 * 6000 * 4 * 5; // RGBA, 10개
+// 4096 * 4096 이미지 일정분의 ㄷ바이트 크기를 최대 제한으로 설정
+const MAX_TOTAL_BYTES = 4096 * 4096 * 4 * 20; // RGBA, 10개
 
 function getTotalStackBytes(stack: HistoryObject[]): number {
   return stack.reduce((total, history) => total + history.byteSize, 0);
