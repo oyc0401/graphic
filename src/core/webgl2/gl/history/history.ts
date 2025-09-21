@@ -2,6 +2,7 @@ import { position } from "@/app/position";
 import { getManager } from "../../../utils/cachedManager";
 import { PixelStorage } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
+import { PixelReader } from "./PixelReader";
 
 export class HistoryObject {
   gl;
@@ -71,7 +72,7 @@ export interface HistoryResponse {
 
 export interface Snapshot {
   layerId;
-  pixelReader?: PixelStorage<Uint8Array | Uint16Array>;
+  pixelReader?: PixelStorage<any> | PixelReader<any>;
   rect: Rect;
   apply: () => Promise<void>;
   selectionRect?: Rect;

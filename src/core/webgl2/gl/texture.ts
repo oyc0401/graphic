@@ -1,8 +1,6 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../../utils/cachedManager";
-import { pushLowQueue } from "./history/workQueue";
 import { PixelReader } from "./history/PixelReader";
-import { PixelStorage, PixelStore } from "./history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { Snapshot } from "./history/history";
 import { Rect } from "@/core/utils/rect";
@@ -96,7 +94,7 @@ export let paintOptions = {
 
 export function getSourceTextureManager(canvas, gl) {
   const manager = getManager(gl, "sourceTexture", () =>
-    makeSourceTextureManager(canvas, gl)
+    makeSourceTextureManager(canvas, gl),
   );
   return manager;
 }
@@ -116,7 +114,7 @@ function makeSourceTextureManager(canvas, gl) {
     0,
     gl.RGBA,
     gl.UNSIGNED_BYTE,
-    null
+    null,
   );
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -131,7 +129,7 @@ function makeSourceTextureManager(canvas, gl) {
     gl.COLOR_ATTACHMENT0,
     gl.TEXTURE_2D,
     sourceTexture,
-    0
+    0,
   );
 
   function uploadFromLayer(layerId) {
@@ -150,10 +148,10 @@ function makeSourceTextureManager(canvas, gl) {
       paintOptions.width,
       paintOptions.height,
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
+      gl.NEAREST, // 필터링 옵션
     );
   }
-  async function applyHistory(layerId, pixelReader: PixelStorage, rect) {
+  async function applyHistory(layerId, pixelReader: PixelReader, rect) {
     // console.log(history)
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
     gl.bindTexture(gl.TEXTURE_2D, layerManager.getLayerTex(layerId));
@@ -168,7 +166,7 @@ function makeSourceTextureManager(canvas, gl) {
       rect.height, // height
       gl.RGBA, // format
       gl.UNSIGNED_BYTE, // type
-      await pixelReader.getPixelData() // 데이터
+      await pixelReader.getPixelData(), // 데이터
     );
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -185,73 +183,29 @@ function makeSourceTextureManager(canvas, gl) {
       rect.ex + 1,
       rect.ey + 1,
       gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
+      gl.NEAREST, // 필터링 옵션
     );
 
     // afterDirty를 bitmap에 업로드 해야하기 때문에 작업큐에 넣기.
     const bitmapManager = getBitmapManager();
 
-    pushLowQueue(gl, async () => {
-      bitmapManager.applyDirtyRect(await pixelReader.getPixelData(true), rect);
-    });
+    //pushLowQueue(gl, async () => {
+    bitmapManager.applyDirtyRect(await pixelReader.getPixelData(true), rect);
+    //});
   }
 
-  const fbo = gl.createFramebuffer();
-
-  function makeDirtyTexture(pathDirty) {
-    const historyTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, historyTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      pathDirty.width,
-      pathDirty.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    ); // 빈 텍스처 생성
-
-    // 4. blitFramebuffer를 사용하여 화면을 텍스처로 복사
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
-
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(
-      gl.DRAW_FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      historyTex,
-      0
-    );
-
-    // blit 좌표계는 0,0,1,1이 1칸임.
-    gl.blitFramebuffer(
-      pathDirty.x,
-      pathDirty.y,
-      pathDirty.ex + 1,
-      pathDirty.ey + 1,
-      0,
-      0,
-      pathDirty.width,
-      pathDirty.height, // 쓰기 버퍼의 영역 (텍스처 크기)
-      gl.COLOR_BUFFER_BIT, // 복사할 버퍼
-      gl.NEAREST // 필터링 옵션
-    );
-
-    return historyTex;
-  }
-
-  function getCurrentSnapshot(x, y, width, height) {
+  function createCurrentSnapshot(x, y, width, height) {
     let renderRect = Rect.fromWidth(x, y, width, height);
-    let beforePixel = new PixelStore(gl, () => {
-      const bitmapManager = getBitmapManager();
-      let pixelData = bitmapManager.copyDirtyRect(renderRect);
-      return pixelData;
-    });
+    const bitmapManager = getBitmapManager();
+    let pixelData = bitmapManager.copyDirtyRect(renderRect);
 
-    const beforeSnapshot: Snapshot = {
+    let beforePixel = PixelReader.fromPixelData(
+      pixelData,
+      renderRect.width,
+      renderRect.height,
+    );
+
+    const snapshot: Snapshot = {
       layerId: paintOptions.layerId,
       pixelReader: beforePixel,
       rect: renderRect,
@@ -259,94 +213,7 @@ function makeSourceTextureManager(canvas, gl) {
         await applyHistory(this.layerId, this.pixelReader, this.rect);
       },
     };
-    return beforeSnapshot;
-  }
-
-  function upload(x, y, width, height) {
-    const bitmapManager = getBitmapManager();
-
-    let renderRect = Rect.fromWidth(x, y, width, height);
-
-    if (renderRect.isEmpty()) {
-      const beforeSnapshot: Snapshot = {
-        layerId: paintOptions.layerId,
-        rect: renderRect,
-        async apply() {
-          // await applyHistory(this.layerId, this.pixelReader, this.rect);
-        },
-      };
-      const afterSnapshot: Snapshot = {
-        layerId: paintOptions.layerId,
-        rect: renderRect,
-        async apply() {
-          // await applyHistory(this.layerId, this.pixelReader, this.rect);
-        },
-      };
-
-      return {
-        before: beforeSnapshot,
-        after: afterSnapshot,
-      };
-    }
-
-    // 이전 큐에 쌓인 픽셀을 모두 읽어온 다음에 픽셀을 복사해야함.
-    // 그러면 리드픽셀프로세서를 큐로 먼들고.
-    // 큐에는 그냥 리드픽셀만 하는게 아니라 배열 복사도 이루어질 수 있게 해야함.
-    // 만약에 큐 작업이 시작되기 전에 그 픽셀이 필요하다고 해도. 강제로 작업을 완료시킬 수 없고.
-    // 그 픽셀이 필요하다는 명령도 큐에 넣어서 이전 작업이 모두 완료된 이후에 작업이 실행될 수 있게 해야한다.
-    // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
-    // getDirtyUnit8Array()
-
-    const beforeSnapshot: Snapshot = getCurrentSnapshot(x, y, width, height);
-
-    // sourceMap으로 업로드
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
-
-    gl.blitFramebuffer(
-      renderRect.x,
-      renderRect.y,
-      renderRect.ex + 1,
-      renderRect.ey + 1,
-      renderRect.x,
-      renderRect.y,
-      renderRect.ex + 1,
-      renderRect.ey + 1,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
-    );
-
-    const afterTex = makeDirtyTexture(renderRect);
-    const afterPixelReader = new PixelReader(
-      gl,
-      width,
-      height,
-      afterTex,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE
-    );
-
-    // afterDirty를 bitmap에 업로드 해야하기 때문에 작업큐에 넣기.
-    pushLowQueue(gl, async () => {
-      bitmapManager.applyDirtyRect(
-        await afterPixelReader.getPixelData(true),
-        renderRect
-      );
-    });
-
-    const afterSnapshot: Snapshot = {
-      layerId: paintOptions.layerId,
-      pixelReader: afterPixelReader,
-      rect: renderRect,
-      async apply() {
-        await applyHistory(this.layerId, this.pixelReader, this.rect);
-      },
-    };
-
-    return {
-      before: beforeSnapshot,
-      after: afterSnapshot,
-    };
+    return snapshot;
   }
 
   // 캔버스를 소스 텍스쳐로 돌려놓기
@@ -364,7 +231,7 @@ function makeSourceTextureManager(canvas, gl) {
       paintOptions.width,
       paintOptions.height,
       gl.COLOR_BUFFER_BIT,
-      gl.NEAREST
+      gl.NEAREST,
     );
   }
 
@@ -381,7 +248,7 @@ function makeSourceTextureManager(canvas, gl) {
       0,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      null
+      null,
     );
   }
 
@@ -390,12 +257,93 @@ function makeSourceTextureManager(canvas, gl) {
 
   let sourceTextureManager = {
     texture: sourceTexture,
-    upload,
+    upload(x, y, width, height) {
+      const bitmapManager = getBitmapManager();
+
+      let renderRect = Rect.fromWidth(x, y, width, height);
+
+      if (renderRect.isEmpty()) {
+        console.error("!!");
+        const beforeSnapshot: Snapshot = {
+          layerId: paintOptions.layerId,
+          rect: renderRect,
+          async apply() {
+            // await applyHistory(this.layerId, this.pixelReader, this.rect);
+          },
+        };
+        const afterSnapshot: Snapshot = {
+          layerId: paintOptions.layerId,
+          rect: renderRect,
+          async apply() {
+            // await applyHistory(this.layerId, this.pixelReader, this.rect);
+          },
+        };
+
+        return {
+          before: beforeSnapshot,
+          after: afterSnapshot,
+        };
+      }
+
+      // 이전 큐에 쌓인 픽셀을 모두 읽어온 다음에 픽셀을 복사해야함.
+      // 그러면 리드픽셀프로세서를 큐로 먼들고.
+      // 큐에는 그냥 리드픽셀만 하는게 아니라 배열 복사도 이루어질 수 있게 해야함.
+      // 만약에 큐 작업이 시작되기 전에 그 픽셀이 필요하다고 해도. 강제로 작업을 완료시킬 수 없고.
+      // 그 픽셀이 필요하다는 명령도 큐에 넣어서 이전 작업이 모두 완료된 이후에 작업이 실행될 수 있게 해야한다.
+      // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
+      // getDirtyUnit8Array()
+
+      const beforeSnapshot: Snapshot = createCurrentSnapshot(
+        x,
+        y,
+        width,
+        height,
+      );
+
+      // sourceMap으로 업로드
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, sourceFBO);
+
+      gl.blitFramebuffer(
+        renderRect.x,
+        renderRect.y,
+        renderRect.ex + 1,
+        renderRect.ey + 1,
+        renderRect.x,
+        renderRect.y,
+        renderRect.ex + 1,
+        renderRect.ey + 1,
+        gl.COLOR_BUFFER_BIT,
+        gl.NEAREST,
+      );
+
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceFBO);
+      const pixels = new Uint8Array(width * height * 4);
+      gl.readPixels(
+        renderRect.x,
+        renderRect.y,
+        renderRect.width,
+        renderRect.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      );
+
+      bitmapManager.applyDirtyRect(pixels, renderRect);
+
+      let afterSnapshot: Snapshot = createCurrentSnapshot(x, y, width, height);
+
+      return {
+        before: beforeSnapshot,
+        after: afterSnapshot,
+      };
+    },
     restore,
     sourceFBO,
     setSize,
     //getCurrentSnapshot,
     uploadFromLayer,
+    // uploadLater,
   };
 
   return sourceTextureManager;

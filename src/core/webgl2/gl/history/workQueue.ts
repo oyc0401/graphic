@@ -35,6 +35,7 @@ class LowWorkQueue {
     setDrawingFlag(false);
     this.queue.push(work);
     this.excute();
+    console.warn("pushed");
   }
 
   pushWorks(works: Function[]) {
@@ -62,7 +63,7 @@ class LowWorkQueue {
         if (!this.forceFlush) {
           await new Promise((r) => setTimeout(r, 32));
         }
-        console.log("queue size:", this.queue.length);
+        console.warn("queue size:", this.queue.length, this.queue);
         if (this.queue.length > 0 && !flags.drawing) {
           const work = this.queue.shift()!;
           await work();

@@ -17,11 +17,11 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
     private height: number,
     private texture: WebGLTexture,
     private format: number, // gl.RGBA …
-    private type: number // gl.UNSIGNED_BYTE …
+    private type: number, // gl.UNSIGNED_BYTE …
   ) {
     const info = getPixelFormatInfo(gl, format, type);
     this.pixelData = new (info.TypedArray as any)(
-      width * height * info.components
+      width * height * info.components,
     ) as T;
 
     /* FBO 초기화(싱글턴) */
@@ -39,7 +39,7 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
   static fromPixelData<T extends PixelTypedArray = Uint8Array>(
     pixelData: T,
     width: number,
-    height: number
+    height: number,
   ): PixelReader<T> {
     const instance = Object.create(PixelReader.prototype);
     instance.pixelData = pixelData;
@@ -49,12 +49,12 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
     return instance;
   }
 
-  async getPixelData(isQueue = false): Promise<T> {
-    if (isQueue && !this.complete) {
-      console.error("큐의 순서가 뒤집힘!");
-    }
+  getPixelData(isQueue = false): T {
+    // if (isQueue && !this.complete) {
+    //   console.error("큐의 순서가 뒤집힘!");
+    // }
     if (!this.complete) {
-      await lowQueue.finish();
+      lowQueue.finish();
     }
     return this.pixelData;
   }
@@ -72,7 +72,7 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
         const sub = new TypedArray(
           this.pixelData.buffer as ArrayBuffer,
           row * width * components * bytesPerComponent,
-          rows * width * components
+          rows * width * components,
         );
 
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, PixelReader.fbo);
@@ -81,7 +81,7 @@ export class PixelReader<T extends PixelTypedArray = Uint8Array>
           gl.COLOR_ATTACHMENT0,
           gl.TEXTURE_2D,
           texture,
-          0
+          0,
         );
         gl.readPixels(0, row, width, rows, this.format, this.type, sub);
 
@@ -113,7 +113,7 @@ type PixelFormatInfo = {
 function getPixelFormatInfo(
   gl: WebGL2RenderingContext,
   format: number,
-  type: number
+  type: number,
 ) {
   let components = 4; // default: RGBA
   switch (format) {

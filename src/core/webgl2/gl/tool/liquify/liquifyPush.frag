@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 uniform sampler2D u_displacement;
 uniform sampler2D u_ease_integral;
