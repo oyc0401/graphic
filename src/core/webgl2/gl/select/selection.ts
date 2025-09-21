@@ -197,7 +197,7 @@ function createSelectionManager(canvas, gl) {
     const sizeInBytes = pixels.byteLength;
     const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
     console.log(
-      `[SelectionManager] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${originalWidth}x${originalHeight}`,
+      `[SelectionManager] Pixel data size: (${sizeInMB} MB) - ${originalWidth}x${originalHeight}`,
     );
 
     gl.readPixels(

@@ -323,7 +323,7 @@ function makeSourceTextureManager(canvas, gl) {
       const sizeInBytes = pixels.byteLength;
       const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
       console.log(
-        `[Layer] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${width}x${height}`,
+        `[Layer] Pixel data size: (${sizeInMB} MB) - ${width}x${height}`,
       );
 
       gl.readPixels(

@@ -345,7 +345,7 @@ function createResizeManager(canvas, gl) {
     const sizeInBytes = afterPixels.byteLength;
     const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
     console.log(
-      `[Resize After] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${newWidth}x${newHeight}`,
+      `[Resize After] Pixel data size: (${sizeInMB} MB) - ${newWidth}x${newHeight}`,
     );
 
     gl.readPixels(

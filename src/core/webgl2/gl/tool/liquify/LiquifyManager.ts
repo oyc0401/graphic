@@ -246,7 +246,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const sizeInBytes = pixels.byteLength;
     const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
     console.log(
-      `[LiquifyManager] Pixel data size: ${sizeInBytes} bytes (${sizeInMB} MB) - ${width}x${height}`,
+      `[LiquifyManager] Pixel data size: (${sizeInMB} MB) - ${width}x${height}`,
     );
 
     gl.readPixels(x, y, width, height, gl.RG, gl.FLOAT, pixels);
