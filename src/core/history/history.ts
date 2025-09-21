@@ -1,6 +1,7 @@
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
+import { paintOptions } from "../webgl2/gl/texture";
 
 export class HistoryObject {
   id;
@@ -74,6 +75,30 @@ export interface Snapshot {
 const MAX_UNDO_SIZE = 5;
 const MAX_REDO_SIZE = 5;
 
+function getMaxUndoSize(width: number, height: number): number {
+  return MAX_UNDO_SIZE;
+  const totalPixels = width * height;
+  // 6000x6000 = 36,000,000 pixels -> 5개
+  // 3000x6000 = 18,000,000 pixels -> 10개
+  // 1000x1000 = 1,000,000 pixels -> 50개 (최대값 제한)
+  const basePixels = 36_000_000; // 6000x6000
+  const baseHistorySize = 5;
+  const maxHistorySize = 50;
+
+  if (totalPixels >= basePixels) {
+    return baseHistorySize;
+  } else {
+    // 픽셀 수가 적을수록 더 많은 히스토리
+    const calculated = Math.round(baseHistorySize * (basePixels / totalPixels));
+    return Math.min(calculated, maxHistorySize);
+  }
+}
+
+function getMaxRedoSize(width: number, height: number): number {
+  return MAX_REDO_SIZE;
+  return getMaxUndoSize(width, height); // 동일한 로직 사용
+}
+
 let undoStack: HistoryObject[] = [];
 let redoStack: HistoryObject[] = [];
 
@@ -99,7 +124,10 @@ function createHistoryManager() {
     undoStack.push(newHistory);
 
     // 최대 제한 (overflow가 true가 아닌 경우)
-    if (!overflow && undoStack.length > MAX_UNDO_SIZE) {
+    if (
+      !overflow &&
+      undoStack.length > getMaxUndoSize(paintOptions.width, paintOptions.height)
+    ) {
       undoStack.shift(); // 가장 오래된 항목 제거
     }
 
@@ -117,7 +145,10 @@ function createHistoryManager() {
     redoStack.push(newHistory);
 
     // 최대 제한 (overflow가 true가 아닌 경우)
-    if (!overflow && redoStack.length > MAX_REDO_SIZE) {
+    if (
+      !overflow &&
+      redoStack.length > getMaxRedoSize(paintOptions.width, paintOptions.height)
+    ) {
       redoStack.shift(); // 가장 오래된 항목 제거
     }
 

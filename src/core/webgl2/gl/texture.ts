@@ -263,7 +263,7 @@ function makeSourceTextureManager(canvas, gl) {
       let renderRect = Rect.fromWidth(x, y, width, height);
 
       if (renderRect.isEmpty()) {
-        console.error("!!");
+        console.warn("비었네");
         const beforeSnapshot: Snapshot = {
           layerId: paintOptions.layerId,
           rect: renderRect,
