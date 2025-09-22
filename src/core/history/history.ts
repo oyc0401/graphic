@@ -1,3 +1,4 @@
+import { getUndoByte, paintConfig } from "@/paint.config";
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
@@ -76,7 +77,7 @@ export interface Snapshot {
 }
 
 // 4096 * 4096 이미지 일정분의 ㄷ바이트 크기를 최대 제한으로 설정
-const MAX_TOTAL_BYTES = 4096 * 4096 * 4 * 20; // RGBA, 10개
+const MAX_TOTAL_BYTES = getUndoByte(); // RGBA, 10개
 
 function getTotalStackBytes(stack: HistoryObject[]): number {
   return stack.reduce((total, history) => total + history.byteSize, 0);
@@ -85,6 +86,20 @@ function getTotalStackBytes(stack: HistoryObject[]): number {
 function trimStackByBytes(stack: HistoryObject[], maxBytes: number): void {
   while (stack.length > 0 && getTotalStackBytes(stack) > maxBytes) {
     stack.shift(); // 가장 오래된 항목 제거
+  }
+}
+
+function trimStackByCount(stack: HistoryObject[], maxCount: number): void {
+  while (stack.length > maxCount) {
+    stack.shift(); // 가장 오래된 항목 제거
+  }
+}
+
+function trimStack(stack: HistoryObject[], overflow: boolean): void {
+  if (!overflow) {
+    // 바이트 제한과 개수 제한 모두 적용
+    trimStackByBytes(stack, MAX_TOTAL_BYTES);
+    trimStackByCount(stack, paintConfig.maxHistoryItems);
   }
 }
 
@@ -112,10 +127,8 @@ function createHistoryManager() {
     const { resetRedo = true, overflow = false } = options;
     undoStack.push(newHistory);
 
-    // 바이트 크기 기반 제한 (overflow가 true가 아닌 경우)
-    if (!overflow) {
-      trimStackByBytes(undoStack, MAX_TOTAL_BYTES);
-    }
+    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
+    trimStack(undoStack, overflow);
 
     if (resetRedo && redoStack.length != 0) {
       // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
@@ -130,10 +143,8 @@ function createHistoryManager() {
   function addRedo(newHistory: HistoryObject, overflow: boolean = false) {
     redoStack.push(newHistory);
 
-    // 바이트 크기 기반 제한 (overflow가 true가 아닌 경우)
-    if (!overflow) {
-      trimStackByBytes(redoStack, MAX_TOTAL_BYTES);
-    }
+    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
+    trimStack(redoStack, overflow);
 
     logCurrent();
   }
@@ -181,8 +192,8 @@ function createHistoryManager() {
     const redoMB = (redoBytes / (1024 * 1024)).toFixed(2);
 
     console.warn(
-      `undo: ${undoStack.length} (${undoMB} MB)`,
-      `redo: ${redoStack.length} (${redoMB} MB)`,
+      `undo: ${undoStack.length}/${paintConfig.maxHistoryItems} (${undoMB} MB)`,
+      `redo: ${redoStack.length}/${paintConfig.maxHistoryItems} (${redoMB} MB)`,
     );
   }
 
