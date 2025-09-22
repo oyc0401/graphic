@@ -1,7 +1,7 @@
 /** canvas.ts */
 import { els } from "./ui/elements";
 import { getPixelRatio, position } from "./position";
-import { getApplication, setApplication } from "./worker/workerPool";
+import { getApplication, initApplication } from "./worker/workerPool";
 import { PaintApplication } from "@/core/PaintApplication";
 
 export async function tranferCanvas() {
@@ -11,8 +11,8 @@ export async function tranferCanvas() {
 
   let dpr = getPixelRatio();
   // setHeapSnapshotNearHeapLimit;
+  initApplication();
 
-  setApplication(new PaintApplication());
   const application = getApplication();
 
   await application.install(

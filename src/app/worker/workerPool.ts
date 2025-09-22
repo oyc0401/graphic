@@ -22,6 +22,6 @@ export function getApplication() {
   return getWorkerObject();
 }
 
-export function setApplication(application) {
-  workerPool["layer"] = application;
+export function initApplication() {
+  workerPool["layer"] = new PaintApplication();
 }
