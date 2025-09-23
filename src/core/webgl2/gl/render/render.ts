@@ -3,11 +3,7 @@ import { getLayerManager } from "../layer";
 
 import { getSelectionManager } from "../select/selection";
 
-import {
-  getBufferManager,
-  getFullQuadShader,
-  getVertexManager,
-} from "../vertexShader";
+import { getBufferManager, getFullQuadShader, getVertexManager } from "../vertexShader";
 
 import * as twgl from "twgl.js";
 import { getManager } from "../../../utils/cachedManager";
@@ -21,9 +17,7 @@ import gridFrag from "./grid.frag?raw";
 import selectionFrag from "./selection.frag?raw";
 
 export function getRenderingManager(canvas, gl) {
-  const manager = getManager(gl, "rendering", () =>
-    makeRenderingManager(canvas, gl),
-  );
+  const manager = getManager(gl, "rendering", () => makeRenderingManager(canvas, gl));
   return manager;
 }
 
@@ -33,16 +27,9 @@ function makeRenderingManager(canvas, gl) {
 
   const vertexManager = getVertexManager(gl);
 
-  const displayProgramInfo = twgl.createProgramInfo(gl, [
-    vertexManager.vsSource,
-    displayFrag,
-  ]);
+  const displayProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, displayFrag]);
 
-  twgl.setBuffersAndAttributes(
-    gl,
-    displayProgramInfo,
-    vertexManager.quadBufferInfo,
-  );
+  twgl.setBuffersAndAttributes(gl, displayProgramInfo, vertexManager.quadBufferInfo);
 
   function renderDisplay() {
     gl.useProgram(displayProgramInfo.program);
@@ -61,16 +48,9 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  const backgroundProgramInfo = twgl.createProgramInfo(gl, [
-    vertexManager.vsSource,
-    backgroundFrag,
-  ]);
+  const backgroundProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, backgroundFrag]);
 
-  twgl.setBuffersAndAttributes(
-    gl,
-    backgroundProgramInfo,
-    vertexManager.quadBufferInfo,
-  );
+  twgl.setBuffersAndAttributes(gl, backgroundProgramInfo, vertexManager.quadBufferInfo);
 
   function renderBackground() {
     gl.useProgram(backgroundProgramInfo.program);
@@ -87,22 +67,12 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  const renderProgramInfo = twgl.createProgramInfo(gl, [
-    vertexManager.vsSource,
-    renderFrag,
-  ]);
+  const renderProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, renderFrag]);
 
-  twgl.setBuffersAndAttributes(
-    gl,
-    renderProgramInfo,
-    vertexManager.quadBufferInfo,
-  );
+  twgl.setBuffersAndAttributes(gl, renderProgramInfo, vertexManager.quadBufferInfo);
   gl.useProgram(renderProgramInfo.program);
 
-  gl.uniform1i(
-    gl.getUniformLocation(renderProgramInfo.program, "u_source"),
-    TEXTURE_UNIT.LAYER,
-  );
+  gl.uniform1i(gl.getUniformLocation(renderProgramInfo.program, "u_source"), TEXTURE_UNIT.LAYER);
 
   function renderTexture() {
     gl.useProgram(renderProgramInfo.program);
@@ -124,16 +94,9 @@ function makeRenderingManager(canvas, gl) {
    * 격자무늬 렌더링
    */
 
-  const gridProgramInfo = twgl.createProgramInfo(gl, [
-    vertexManager.vsSource,
-    gridFrag,
-  ]);
+  const gridProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, gridFrag]);
 
-  twgl.setBuffersAndAttributes(
-    gl,
-    gridProgramInfo,
-    vertexManager.quadBufferInfo,
-  );
+  twgl.setBuffersAndAttributes(gl, gridProgramInfo, vertexManager.quadBufferInfo);
   gl.useProgram(gridProgramInfo.program);
 
   function renderGrid() {
@@ -159,30 +122,17 @@ function makeRenderingManager(canvas, gl) {
    * 선택창 렌더링
    */
 
-  const selectionProgramInfo = twgl.createProgramInfo(gl, [
-    vertexManager.vsSource,
-    selectionFrag,
-  ]);
+  const selectionProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, selectionFrag]);
 
-  twgl.setBuffersAndAttributes(
-    gl,
-    selectionProgramInfo,
-    vertexManager.quadBufferInfo,
-  );
+  twgl.setBuffersAndAttributes(gl, selectionProgramInfo, vertexManager.quadBufferInfo);
   gl.useProgram(selectionProgramInfo.program);
 
-  gl.uniform1i(
-    gl.getUniformLocation(selectionProgramInfo.program, "u_selection"),
-    TEXTURE_UNIT.RENDERED_SELECTION,
-  );
+  gl.uniform1i(gl.getUniformLocation(selectionProgramInfo.program, "u_selection"), TEXTURE_UNIT.RENDERED_SELECTION);
   gl.uniform1i(
     gl.getUniformLocation(selectionProgramInfo.program, "u_selection_source"),
     TEXTURE_UNIT.SOURCE_SELECTION,
   );
-  gl.uniform1f(
-    gl.getUniformLocation(selectionProgramInfo.program, "u_max_size"),
-    paintConfig.maxSize,
-  );
+  gl.uniform1f(gl.getUniformLocation(selectionProgramInfo.program, "u_max_size"), paintConfig.maxSize);
 
   function renderSelection() {
     let selectionManager = getSelectionManager(canvas, gl);
@@ -196,8 +146,8 @@ function makeRenderingManager(canvas, gl) {
       u_magnification: paintOptions.magnification,
       u_selectionPos: [selectionPos.x, selectionPos.y],
       u_selectionSize: [selectionPos.width, selectionPos.height],
-      u_flipH: paintOptions.selectionFlipH ? 1.0 : 0.0,
-      u_flipV: paintOptions.selectionFlipV ? 1.0 : 0.0,
+      u_flipH: selectionPos.flipH ? 1.0 : 0.0,
+      u_flipV: selectionPos.flipV ? 1.0 : 0.0,
     });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
@@ -296,12 +246,7 @@ function makeRenderingManager(canvas, gl) {
       //console.log("calculated:", calX, calY, calW, calH);
       newRect = Rect.fromWidth(calX, calY, calW, calH);
     } else {
-      newRect = Rect.fromWidth(
-        0,
-        0,
-        paintOptions.screenWidth,
-        paintOptions.screenHeight,
-      );
+      newRect = Rect.fromWidth(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
     }
 
     // if (!scheduled) {
@@ -318,9 +263,7 @@ function makeRenderingManager(canvas, gl) {
 }
 
 export function getOffscreenManager(canvas, gl) {
-  const manager = getManager(gl, "offscreen", () =>
-    createOffscreenManager(canvas, gl),
-  );
+  const manager = getManager(gl, "offscreen", () => createOffscreenManager(canvas, gl));
   return manager;
 }
 function createOffscreenManager(canvas, gl) {
@@ -343,28 +286,12 @@ function createOffscreenManager(canvas, gl) {
 
   const offscreenFBO = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenFBO);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    offscreenTex,
-    0,
-  );
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, offscreenTex, 0);
 
   function resize(newWidth, newHeight) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.OFFSCREEN);
     // temp 크기 설정
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      newWidth,
-      newHeight,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null,
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, newWidth, newHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   }
 
   return {

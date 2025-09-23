@@ -134,17 +134,13 @@ export class PaintService {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
   }
-  endMove() {
+  endSelection() {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.endMove();
+    selectionManager.endSelection();
   }
   moveSelection(x, y, width, height, flipH = false, flipV = false) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.moveSelection(x, y, width, height, flipH, flipV);
-  }
-  resizeFromCorner(corner, newX, newY) {
-    let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.resizeFromCorner(corner, newX, newY);
   }
   applySelection() {
     if (paintOptions.showSelection) {

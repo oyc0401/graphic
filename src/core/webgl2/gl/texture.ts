@@ -68,8 +68,6 @@ export let paintOptions = {
 
   showSelection: false,
   selectionAntialias: true,
-  selectionFlipH: false,
-  selectionFlipV: false,
   layerId: 0,
   selectionLayerId: 0,
 
@@ -95,9 +93,7 @@ export let paintOptions = {
  */
 
 export function getSourceTextureManager(canvas, gl) {
-  const manager = getManager(gl, "sourceTexture", () =>
-    makeSourceTextureManager(canvas, gl),
-  );
+  const manager = getManager(gl, "sourceTexture", () => makeSourceTextureManager(canvas, gl));
   return manager;
 }
 
@@ -107,17 +103,7 @@ function makeSourceTextureManager(canvas, gl) {
   const sourceTexture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
   gl.bindTexture(gl.TEXTURE_2D, sourceTexture);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    paintOptions.width,
-    paintOptions.height,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    null,
-  );
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, paintOptions.width, paintOptions.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -126,13 +112,7 @@ function makeSourceTextureManager(canvas, gl) {
 
   let sourceFBO = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, sourceFBO);
-  gl.framebufferTexture2D(
-    gl.FRAMEBUFFER,
-    gl.COLOR_ATTACHMENT0,
-    gl.TEXTURE_2D,
-    sourceTexture,
-    0,
-  );
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sourceTexture, 0);
 
   function uploadFromLayer(layerId) {
     console.log("uploadFromLayer");
@@ -201,11 +181,7 @@ function makeSourceTextureManager(canvas, gl) {
     const bitmapManager = getBitmapManager();
     let pixelData = bitmapManager.copyDirtyRect(renderRect);
 
-    let beforePixel = PixelStore.fromPixelData(
-      pixelData,
-      renderRect.width,
-      renderRect.height,
-    );
+    let beforePixel = PixelStore.fromPixelData(pixelData, renderRect.width, renderRect.height);
 
     const snapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -295,12 +271,7 @@ function makeSourceTextureManager(canvas, gl) {
       // 그리고 중간에 필요하다는 명령을 받으면 큐 가속을 통해서 큐 작업이 빨리 완료되게 한다.
       // getDirtyUnit8Array()
 
-      const beforeSnapshot: Snapshot = createCurrentSnapshot(
-        x,
-        y,
-        width,
-        height,
-      );
+      const beforeSnapshot: Snapshot = createCurrentSnapshot(x, y, width, height);
 
       // sourceMap으로 업로드
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
@@ -324,19 +295,9 @@ function makeSourceTextureManager(canvas, gl) {
 
       const sizeInBytes = pixels.byteLength;
       const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-      console.log(
-        `[Layer] Pixel data size: (${sizeInMB} MB) - ${width}x${height}`,
-      );
+      console.log(`[Layer] Pixel data size: (${sizeInMB} MB) - ${width}x${height}`);
 
-      gl.readPixels(
-        renderRect.x,
-        renderRect.y,
-        renderRect.width,
-        renderRect.height,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        pixels,
-      );
+      gl.readPixels(renderRect.x, renderRect.y, renderRect.width, renderRect.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 
       bitmapManager.applyDirtyRect(pixels, renderRect);
 

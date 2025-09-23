@@ -18,15 +18,7 @@ export class WebGL2Controller {
     py: number,
     scale: number,
   ): Promise<void> {
-    let { x, y } = toWebglCoord3(
-      px,
-      py,
-      width,
-      height,
-      screenWidth,
-      screenHeight,
-      scale,
-    );
+    let { x, y } = toWebglCoord3(px, py, width, height, screenWidth, screenHeight, scale);
 
     paintOptions.screenWidth = screenWidth;
     paintOptions.screenHeight = screenHeight;
@@ -109,7 +101,7 @@ export class WebGL2Controller {
     paint.select(x, y, w, h);
   }
   endMove(): void {
-    paint.endMove();
+    paint.endSelection();
   }
   moveSelection(px: number, py: number, width: number, height: number, flipH = false, flipV = false): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
@@ -122,13 +114,7 @@ export class WebGL2Controller {
   selectionDelete(): void {
     paint.selectionDelete();
   }
-  paste(
-    px: number,
-    py: number,
-    width: number,
-    height: number,
-    imageBitmap: ImageBitmap,
-  ): void {
+  paste(px: number, py: number, width: number, height: number, imageBitmap: ImageBitmap): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
     paint.paste(x, y, width, height, imageBitmap);
   }
@@ -182,12 +168,7 @@ function toWebglCoord(pointer: Pointer): { x: number; y: number } {
   };
 }
 
-function toWebglCoord2(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): { x: number; y: number; w: number; h: number } {
+function toWebglCoord2(x: number, y: number, w: number, h: number): { x: number; y: number; w: number; h: number } {
   return {
     x,
     y: paintOptions.height - y - h,

@@ -26,6 +26,8 @@ export class SelectionManager {
     y: 0,
     width: 0,
     height: 0,
+    flipH: false,
+    flipV: false,
   };
 
   private originalWidth: number;
@@ -36,8 +38,6 @@ export class SelectionManager {
   private selectionFBO: WebGLFramebuffer;
   private renderedSelectionFBO: WebGLFramebuffer;
   private beforePos: any;
-  private beforeFlipH: boolean = false;
-  private beforeFlipV: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
     this.canvas = canvas;
@@ -187,6 +187,9 @@ export class SelectionManager {
       this.selectionPos.height,
     );
 
+    selectionPosRect.flipH = this.selectionPos.flipH;
+    selectionPosRect.flipV = this.selectionPos.flipV;
+
     let showSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
       pixelReader: pixelReader,
@@ -198,6 +201,8 @@ export class SelectionManager {
         self.selectionPos.y = this.selectionRect.y;
         self.selectionPos.width = this.selectionRect.width;
         self.selectionPos.height = this.selectionRect.height;
+        self.selectionPos.flipH = this.selectionRect.flipH;
+        self.selectionPos.flipV = this.selectionRect.flipV;
         self.originalWidth = this.rect.width;
         self.originalHeight = this.rect.height;
 
@@ -245,11 +250,11 @@ export class SelectionManager {
     this.selectionPos.y = sy;
     this.selectionPos.width = swidth;
     this.selectionPos.height = sheight;
+    this.selectionPos.flipH = false;
+    this.selectionPos.flipV = false;
     this.originalWidth = swidth;
     this.originalHeight = sheight;
     this.beforePos = structuredClone(this.selectionPos);
-    this.beforeFlipH = paintOptions.selectionFlipH;
-    this.beforeFlipV = paintOptions.selectionFlipV;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, this.selectionTex);
@@ -315,8 +320,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -335,8 +340,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -360,11 +365,11 @@ export class SelectionManager {
     this.selectionPos.y = newy;
     this.selectionPos.width = newwidth;
     this.selectionPos.height = newheight;
+    this.selectionPos.flipH = false;
+    this.selectionPos.flipV = false;
     this.originalWidth = newwidth;
     this.originalHeight = newheight;
     this.beforePos = structuredClone(this.selectionPos);
-    this.beforeFlipH = paintOptions.selectionFlipH;
-    this.beforeFlipV = paintOptions.selectionFlipV;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
@@ -390,8 +395,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -409,8 +414,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -435,8 +440,8 @@ export class SelectionManager {
       u_selectionPos: [this.selectionPos.x, this.selectionPos.y],
       u_selectionSize: [this.selectionPos.width, this.selectionPos.height],
       u_max_size: paintConfig.maxSize,
-      u_flipH: paintOptions.selectionFlipH ? 1.0 : 0.0,
-      u_flipV: paintOptions.selectionFlipV ? 1.0 : 0.0,
+      u_flipH: this.selectionPos.flipH ? 1.0 : 0.0,
+      u_flipV: this.selectionPos.flipV ? 1.0 : 0.0,
     });
 
     twgl.setBuffersAndAttributes(gl, this.selectionProgramInfo, vertexManager.quadBufferInfo);
@@ -481,8 +486,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -501,8 +506,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
-            flipH: paintOptions.selectionFlipH,
-            flipV: paintOptions.selectionFlipV,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
           },
         };
       },
@@ -513,10 +518,6 @@ export class SelectionManager {
     historyManager.addUndo(newHistory);
 
     this.closeTexture();
-
-    // apply 후 flip 상태 초기화
-    paintOptions.selectionFlipH = false;
-    paintOptions.selectionFlipV = false;
 
     this.renderingManager.render();
   }
@@ -551,68 +552,6 @@ export class SelectionManager {
     this.renderingManager.render();
   }
 
-  endMove() {
-    let historyManager = getHistoryManager(this.canvas, this.gl);
-    let beforePosition = structuredClone(this.beforePos);
-    let afterPosition = structuredClone(this.selectionPos);
-    let beforeFlipH = this.beforeFlipH;
-    let beforeFlipV = this.beforeFlipV;
-    let afterFlipH = paintOptions.selectionFlipH;
-    let afterFlipV = paintOptions.selectionFlipV;
-
-    const byteSize = 0;
-
-    const newHistory = new HistoryObject({
-      undo: async () => {
-        this.moveSelection(beforePosition.x, beforePosition.y, beforePosition.width, beforePosition.height, beforeFlipH, beforeFlipV);
-
-        this.beforePos = structuredClone(this.selectionPos);
-        this.beforeFlipH = paintOptions.selectionFlipH;
-        this.beforeFlipV = paintOptions.selectionFlipV;
-
-        return {
-          tool: "selection",
-          selection: {
-            show: paintOptions.showSelection,
-            x: this.selectionPos.x,
-            y: this.selectionPos.y,
-            width: this.selectionPos.width,
-            height: this.selectionPos.height,
-            flipH: beforeFlipH,
-            flipV: beforeFlipV,
-          },
-        };
-      },
-      redo: async () => {
-        this.moveSelection(afterPosition.x, afterPosition.y, afterPosition.width, afterPosition.height, afterFlipH, afterFlipV);
-
-        this.beforePos = structuredClone(this.selectionPos);
-        this.beforeFlipH = paintOptions.selectionFlipH;
-        this.beforeFlipV = paintOptions.selectionFlipV;
-
-        return {
-          tool: "selection",
-          selection: {
-            show: paintOptions.showSelection,
-            x: this.selectionPos.x,
-            y: this.selectionPos.y,
-            width: this.selectionPos.width,
-            height: this.selectionPos.height,
-            flipH: afterFlipH,
-            flipV: afterFlipV,
-          },
-        };
-      },
-      byteSize,
-    });
-
-    this.beforePos = structuredClone(this.selectionPos);
-    this.beforeFlipH = paintOptions.selectionFlipH;
-    this.beforeFlipV = paintOptions.selectionFlipV;
-
-    historyManager.addUndo(newHistory);
-  }
-
   moveSelection(newX: number, newY: number, newWidth: number, newHeight: number, flipH = false, flipV = false) {
     this.selectionPos.x = newX;
     this.selectionPos.y = newY;
@@ -624,62 +563,79 @@ export class SelectionManager {
 
       this.selectionPos.width = newWidth;
       this.selectionPos.height = newHeight;
+      this.selectionPos.flipH = flipH;
+      this.selectionPos.flipV = flipV;
 
       this.uploadRenderedTex();
     }
 
-    // paintOptions에 flip 상태 저장
-    paintOptions.selectionFlipH = flipH;
-    paintOptions.selectionFlipV = flipV;
-
     this.renderingManager.render();
   }
 
-  resizeFromCorner(corner: "top-left" | "top-right" | "bottom-left" | "bottom-right", newX: number, newY: number) {
-    const current = this.selectionPos;
+  endSelection() {
+    let historyManager = getHistoryManager(this.canvas, this.gl);
+    let beforePosition = structuredClone(this.beforePos);
+    let afterPosition = structuredClone(this.selectionPos);
 
-    let finalX: number, finalY: number, finalWidth: number, finalHeight: number;
-    let flipH = false, flipV = false;
+    const byteSize = 0;
 
-    switch (corner) {
-      case "top-left":
-        flipH = newX > current.x + current.width;
-        flipV = newY > current.y + current.height;
-        finalX = Math.min(newX, current.x + current.width);
-        finalY = Math.min(newY, current.y + current.height);
-        finalWidth = Math.abs(current.x + current.width - newX);
-        finalHeight = Math.abs(current.y + current.height - newY);
-        break;
+    const newHistory = new HistoryObject({
+      undo: async () => {
+        this.moveSelection(
+          beforePosition.x,
+          beforePosition.y,
+          beforePosition.width,
+          beforePosition.height,
+          beforePosition.flipH,
+          beforePosition.flipV,
+        );
 
-      case "top-right":
-        flipH = newX < current.x;
-        flipV = newY > current.y + current.height;
-        finalX = Math.min(current.x, newX);
-        finalY = Math.min(newY, current.y + current.height);
-        finalWidth = Math.abs(newX - current.x);
-        finalHeight = Math.abs(current.y + current.height - newY);
-        break;
+        this.beforePos = structuredClone(this.selectionPos);
 
-      case "bottom-left":
-        flipH = newX > current.x + current.width;
-        flipV = newY < current.y;
-        finalX = Math.min(newX, current.x + current.width);
-        finalY = Math.min(current.y, newY);
-        finalWidth = Math.abs(current.x + current.width - newX);
-        finalHeight = Math.abs(newY - current.y);
-        break;
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: this.selectionPos.x,
+            y: this.selectionPos.y,
+            width: this.selectionPos.width,
+            height: this.selectionPos.height,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
+          },
+        };
+      },
+      redo: async () => {
+        this.moveSelection(
+          afterPosition.x,
+          afterPosition.y,
+          afterPosition.width,
+          afterPosition.height,
+          afterPosition.flipH,
+          afterPosition.flipV,
+        );
 
-      case "bottom-right":
-        flipH = newX < current.x;
-        flipV = newY < current.y;
-        finalX = Math.min(current.x, newX);
-        finalY = Math.min(current.y, newY);
-        finalWidth = Math.abs(newX - current.x);
-        finalHeight = Math.abs(newY - current.y);
-        break;
-    }
+        this.beforePos = structuredClone(this.selectionPos);
 
-    this.moveSelection(finalX, finalY, finalWidth, finalHeight, flipH, flipV);
+        return {
+          tool: "selection",
+          selection: {
+            show: paintOptions.showSelection,
+            x: this.selectionPos.x,
+            y: this.selectionPos.y,
+            width: this.selectionPos.width,
+            height: this.selectionPos.height,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
+          },
+        };
+      },
+      byteSize,
+    });
+
+    this.beforePos = structuredClone(this.selectionPos);
+
+    historyManager.addUndo(newHistory);
   }
 
   getPosition() {
@@ -688,6 +644,8 @@ export class SelectionManager {
       y: this.selectionPos.y,
       width: this.selectionPos.width,
       height: this.selectionPos.height,
+      flipH: this.selectionPos.flipH,
+      flipV: this.selectionPos.flipV,
     };
   }
 
