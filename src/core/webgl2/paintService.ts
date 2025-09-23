@@ -1,9 +1,4 @@
-import {
-  BrushTool,
-  EraserTool,
-  installTools,
-  LiquifyTool,
-} from "./gl/tool/tool";
+import { BrushTool, EraserTool, installTools, LiquifyTool } from "./gl/tool/tool";
 import { paintOptions } from "./gl/texture";
 import { getRenderingManager } from "./gl/render/render";
 import { resizeLayer, resizeScreen } from "./gl/resize";
@@ -145,7 +140,7 @@ export class PaintService {
   }
   moveSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
-    selectionManager.setSize(x, y, width, height);
+    selectionManager.moveSelection(x, y, width, height);
   }
   applySelection() {
     if (paintOptions.showSelection) {
