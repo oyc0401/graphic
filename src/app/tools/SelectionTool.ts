@@ -227,25 +227,11 @@ export class SelectionTool {
             w = Math.floor(Math.abs(h) * ratio);
           }
         } else {
-          // 코너 핸들: 사용자 의도 방향을 유지하면서 비율 조정
-          const wChange = Math.abs(w - this.start.w);
-          const hChange = Math.abs(h - this.start.h);
-
+          // 코너 핸들: 기존 로직 유지
+          const curRatio = w / h;
           console.log("before:", w, h);
-
-          // 더 큰 변화량을 기준으로 스케일 팩터 계산
-          let scaleFactor;
-          if (wChange >= hChange) {
-            scaleFactor = Math.abs(w) / this.start.w;
-            // width 기준으로 height 조정하되, height의 부호는 유지
-            const newAbsH = Math.floor(this.start.h * scaleFactor);
-            h = h < 0 ? -newAbsH : newAbsH;
-          } else {
-            scaleFactor = Math.abs(h) / this.start.h;
-            // height 기준으로 width 조정하되, width의 부호는 유지
-            const newAbsW = Math.floor(this.start.w * scaleFactor);
-            w = w < 0 ? -newAbsW : newAbsW;
-          }
+          if (curRatio < ratio) w = Math.floor(h * ratio);
+          else h = Math.floor(w / ratio);
         }
 
         if (["L", "LT", "LB"].includes(this.activeHandle)) x = this.start.x + this.start.w - w;

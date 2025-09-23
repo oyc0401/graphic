@@ -187,8 +187,8 @@ export class SelectionManager {
       this.selectionPos.height,
     );
 
-    selectionPosRect.flipH = this.selectionPos.flipH;
-    selectionPosRect.flipV = this.selectionPos.flipV;
+    let flip_h = this.selectionPos.flipH;
+    let flip_y = this.selectionPos.flipV;
 
     let showSnapshot: Snapshot = {
       layerId: paintOptions.layerId,
@@ -201,8 +201,8 @@ export class SelectionManager {
         self.selectionPos.y = this.selectionRect.y;
         self.selectionPos.width = this.selectionRect.width;
         self.selectionPos.height = this.selectionRect.height;
-        self.selectionPos.flipH = this.selectionRect.flipH;
-        self.selectionPos.flipV = this.selectionRect.flipV;
+        self.selectionPos.flipH = flip_h;
+        self.selectionPos.flipV = flip_y;
         self.originalWidth = this.rect.width;
         self.originalHeight = this.rect.height;
 
