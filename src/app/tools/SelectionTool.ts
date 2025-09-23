@@ -11,14 +11,13 @@ import { Pointer } from "@/core/types";
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
   private dragOffset = { x: 0, y: 0 };
-  private start = { x: 0, y: 0, w: 0, h: 0 };
-  private startFlipH = false;
-  private startFlipV = false;
+  private start = { x: 0, y: 0, w: 0, h: 0, flipH: false, flipV: false };
+
   private startTime;
 
   // // 이건 exclusive 좌표계를 사용.
-  // private startPoint: Pointer; // 좌상단
-  // private endPoint: Pointer; // 우하단
+  private startPoint: Pointer; // 좌상단
+  private endPoint: Pointer; // 우하단
 
   down(e: PointerEvent) {
     if (paintState.toolId !== "selection" || paintState.action !== "BRUSH") return;
@@ -40,9 +39,10 @@ export class SelectionTool {
       y: selection.y,
       w: selection.width,
       h: selection.height,
+      flipH: selection.flipH,
+      flipV: selection.flipV,
     };
-    this.startFlipH = selection.flipH;
-    this.startFlipV = selection.flipV;
+
     console.log("handle:", handle);
     if (handle === "INSIDE") {
       const point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -117,9 +117,10 @@ export class SelectionTool {
       );
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
+      let finalFlipH = this.start.flipH,
+        finalFlipV = this.start.flipV;
+
       const p = point;
-      let finalFlipH = this.startFlipH,
-        finalFlipV = this.startFlipV;
 
       switch (this.activeHandle) {
         case "RB":
@@ -128,8 +129,8 @@ export class SelectionTool {
           h = p.y - y + 1;
           if (h <= 0) h = p.y - y;
 
-          if (w < 0) finalFlipH = !this.startFlipH;
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (w < 0) finalFlipH = !this.start.flipH;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
 
         case "RT":
@@ -141,8 +142,8 @@ export class SelectionTool {
             h = this.start.y + this.start.h - p.y - 1;
             y = p.y + 1;
           }
-          if (w < 0) finalFlipH = !this.startFlipH;
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (w < 0) finalFlipH = !this.start.flipH;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
 
         case "LB":
@@ -154,8 +155,8 @@ export class SelectionTool {
             x = p.x + 1;
           }
           if (h <= 0) h = p.y - y;
-          if (w < 0) finalFlipH = !this.startFlipH;
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (w < 0) finalFlipH = !this.start.flipH;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
 
         case "LT":
@@ -172,15 +173,15 @@ export class SelectionTool {
             h = this.start.y + this.start.h - p.y - 1;
             y = p.y + 1;
           }
-          if (w < 0) finalFlipH = !this.startFlipH;
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (w < 0) finalFlipH = !this.start.flipH;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
 
         case "R":
           w = p.x - x + 1;
           if (w <= 0) w = p.x - x;
 
-          if (w < 0) finalFlipH = !this.startFlipH;
+          if (w < 0) finalFlipH = !this.start.flipH;
 
           break;
 
@@ -192,14 +193,13 @@ export class SelectionTool {
             x = p.x + 1;
           }
 
-          console.log("R:", p, w, x);
-          if (w < 0) finalFlipH = !this.startFlipH;
+          if (w < 0) finalFlipH = !this.start.flipH;
           break;
 
         case "B":
           h = p.y - y + 1;
           if (h <= 0) h = p.y - y;
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
 
         case "T":
@@ -210,8 +210,47 @@ export class SelectionTool {
             h = this.start.y + this.start.h - p.y - 1;
             y = p.y + 1;
           }
-          if (h < 0) finalFlipV = !this.startFlipV;
+          if (h < 0) finalFlipV = !this.start.flipV;
           break;
+      }
+
+      if (e.shiftKey) {
+        const ratio = this.start.w / this.start.h;
+
+        if (["L", "R", "T", "B"].includes(this.activeHandle)) {
+          // LRTB 핸들: 변경된 방향에 따라 다른 방향도 비례적으로 조정
+          if (["L", "R"].includes(this.activeHandle)) {
+            // L, R 핸들: width 변경에 따라 height 조정
+            h = Math.floor(Math.abs(w) / ratio);
+          } else if (["T", "B"].includes(this.activeHandle)) {
+            // T, B 핸들: height 변경에 따라 width 조정
+            w = Math.floor(Math.abs(h) * ratio);
+          }
+        } else {
+          // 코너 핸들: 사용자 의도 방향을 유지하면서 비율 조정
+          const wChange = Math.abs(w - this.start.w);
+          const hChange = Math.abs(h - this.start.h);
+
+          console.log("before:", w, h);
+
+          // 더 큰 변화량을 기준으로 스케일 팩터 계산
+          let scaleFactor;
+          if (wChange >= hChange) {
+            scaleFactor = Math.abs(w) / this.start.w;
+            // width 기준으로 height 조정하되, height의 부호는 유지
+            const newAbsH = Math.floor(this.start.h * scaleFactor);
+            h = h < 0 ? -newAbsH : newAbsH;
+          } else {
+            scaleFactor = Math.abs(h) / this.start.h;
+            // height 기준으로 width 조정하되, width의 부호는 유지
+            const newAbsW = Math.floor(this.start.w * scaleFactor);
+            w = w < 0 ? -newAbsW : newAbsW;
+          }
+        }
+
+        if (["L", "LT", "LB"].includes(this.activeHandle)) x = this.start.x + this.start.w - w;
+        if (["T", "LT", "RT"].includes(this.activeHandle)) y = this.start.y + this.start.h - h;
+        console.log("after:", w, h);
       }
 
       // flip이 발생하면 좌표 정규화
@@ -224,15 +263,6 @@ export class SelectionTool {
         const newY = y + h;
         y = newY;
         h = -h; // Math.abs(h) 대신 -h 사용
-      }
-
-      if (e.shiftKey) {
-        const ratio = this.start.w / this.start.h;
-        const curRatio = w / h;
-        if (curRatio < ratio) w = Math.floor(h * ratio);
-        else h = Math.floor(w / ratio);
-        if (["L", "LT", "LB"].includes(this.activeHandle)) x = this.start.x + this.start.w - w;
-        if (["T", "LT", "RT"].includes(this.activeHandle)) y = this.start.y + this.start.h - h;
       }
 
       const min = 1,
