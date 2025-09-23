@@ -140,12 +140,12 @@ export function setDefaultPosition() {
   let x = (position.screenWidth - width) / 2;
   let y = (position.screenHeight - height) / 2;
 
-  // // //디버깅용!
-  // width = 20;
-  // height = 20;
-  // scale = 60;
-  // x = 10;
-  // y = 10;
+  // //디버깅용!
+  width = 20;
+  height = 20;
+  scale = 60;
+  x = 10;
+  y = 10;
 
   position.setScale(scale);
   position.setWidth(Math.floor(width));
@@ -172,10 +172,8 @@ export function setMagification(new_scale, anchor_point) {
   //   (anchor + oldPos) * old_scale  ==  (anchor + newPos) * new_scale
   //
   // 풀어서 새 newPos를 구하면 아래와 같은 공식이 됩니다.
-  let newX =
-    ((anchor_point.x + old_x) * old_scale) / new_scale - anchor_point.x;
-  let newY =
-    ((anchor_point.y + old_y) * old_scale) / new_scale - anchor_point.y;
+  let newX = ((anchor_point.x + old_x) * old_scale) / new_scale - anchor_point.x;
+  let newY = ((anchor_point.y + old_y) * old_scale) / new_scale - anchor_point.y;
   position.setX(newX);
   position.setY(newY);
 }
@@ -190,10 +188,8 @@ export function to_canvas_coord(x, y) {
 }
 
 function to_world_coord(screenX, screenY) {
-  let worldX =
-    (screenX + position.x) * position.scale + position.bouncingRect.x;
-  let worldY =
-    (screenY + position.y) * position.scale + position.bouncingRect.y;
+  let worldX = (screenX + position.x) * position.scale + position.bouncingRect.x;
+  let worldY = (screenY + position.y) * position.scale + position.bouncingRect.y;
   return { x: worldX, y: worldY };
 }
 // 캔버스 픽셀 좌표 → 스크린 좌표로 역변환 함수
@@ -211,12 +207,8 @@ export function canvas_coord_to_css_coord({ x, y }) {
 
 // 스크롤시의 좌표로 변환.
 export function to_screen_coord(x, y) {
-  let px =
-    ((x - position.bouncingRect.x) / position.scale) * getPixelRatio() -
-    position.x;
-  let py =
-    ((y - position.bouncingRect.y) / position.scale) * getPixelRatio() -
-    position.y;
+  let px = ((x - position.bouncingRect.x) / position.scale) * getPixelRatio() - position.x;
+  let py = ((y - position.bouncingRect.y) / position.scale) * getPixelRatio() - position.y;
   return { x: px, y: py };
 }
 

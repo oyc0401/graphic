@@ -1,14 +1,12 @@
 // tools/SelectionTool.ts
 import { paintState } from "../paintState";
 import { selection, beforeSelectionPos, applySelection } from "../selection";
-import {
-  getSelectionHandleAtPoint,
-  HandleType,
-} from "../utils/selectionHitTest";
+import { getSelectionHandleAtPoint, HandleType } from "../utils/selectionHitTest";
 import { to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
+import { Pointer } from "@/core/types";
 
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
@@ -18,10 +16,15 @@ export class SelectionTool {
   private startFlipV = false;
   private startTime;
 
+  // // 이건 exclusive 좌표계를 사용.
+  // private startPoint: Pointer; // 좌상단
+  // private endPoint: Pointer; // 우하단
+
   down(e: PointerEvent) {
-    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
-      return;
+    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH") return;
     if (!paintState.pointerdown) return;
+
+    // console.log("point!!:", this.startPoint, this.endPoint);
 
     const rect = {
       x: selection.x,
@@ -115,12 +118,16 @@ export class SelectionTool {
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
       const p = point;
-      let finalFlipH = this.startFlipH, finalFlipV = this.startFlipV;
+      let finalFlipH = this.startFlipH,
+        finalFlipV = this.startFlipV;
 
       switch (this.activeHandle) {
         case "RB":
           w = p.x - x + 1;
+          if (w <= 0) w = p.x - x;
           h = p.y - y + 1;
+          if (h <= 0) h = p.y - y;
+
           if (w < 0) finalFlipH = !this.startFlipH;
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
@@ -129,6 +136,11 @@ export class SelectionTool {
           h = y + h - p.y;
           y = p.y;
           w = p.x - x + 1;
+          if (w <= 0) w = p.x - x;
+          if (h <= 0) {
+            h = this.start.y + this.start.h - p.y - 1;
+            y = p.y + 1;
+          }
           if (w < 0) finalFlipH = !this.startFlipH;
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
@@ -137,6 +149,11 @@ export class SelectionTool {
           w = x + w - p.x;
           x = p.x;
           h = p.y - y + 1;
+          if (w <= 0) {
+            w = this.start.x + this.start.w - p.x - 1;
+            x = p.x + 1;
+          }
+          if (h <= 0) h = p.y - y;
           if (w < 0) finalFlipH = !this.startFlipH;
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
@@ -146,29 +163,53 @@ export class SelectionTool {
           h = y + h - p.y;
           x = p.x;
           y = p.y;
+
+          if (w <= 0) {
+            w = this.start.x + this.start.w - p.x - 1;
+            x = p.x + 1;
+          }
+          if (h <= 0) {
+            h = this.start.y + this.start.h - p.y - 1;
+            y = p.y + 1;
+          }
           if (w < 0) finalFlipH = !this.startFlipH;
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "R":
           w = p.x - x + 1;
+          if (w <= 0) w = p.x - x;
+
           if (w < 0) finalFlipH = !this.startFlipH;
+
           break;
 
         case "L":
-          w = x + w - p.x;
+          w = this.start.x + this.start.w - p.x;
           x = p.x;
+          if (w <= 0) {
+            w = this.start.x + this.start.w - p.x - 1;
+            x = p.x + 1;
+          }
+
+          console.log("R:", p, w, x);
           if (w < 0) finalFlipH = !this.startFlipH;
           break;
 
         case "B":
           h = p.y - y + 1;
+          if (h <= 0) h = p.y - y;
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "T":
-          h = y + h - p.y;
+          h = this.start.y + this.start.h - p.y;
           y = p.y;
+
+          if (h <= 0) {
+            h = this.start.y + this.start.h - p.y - 1;
+            y = p.y + 1;
+          }
           if (h < 0) finalFlipV = !this.startFlipV;
           break;
       }
@@ -190,28 +231,14 @@ export class SelectionTool {
         const curRatio = w / h;
         if (curRatio < ratio) w = Math.floor(h * ratio);
         else h = Math.floor(w / ratio);
-        if (["L", "LT", "LB"].includes(this.activeHandle))
-          x = this.start.x + this.start.w - w;
-        if (["T", "LT", "RT"].includes(this.activeHandle))
-          y = this.start.y + this.start.h - h;
+        if (["L", "LT", "LB"].includes(this.activeHandle)) x = this.start.x + this.start.w - w;
+        if (["T", "LT", "RT"].includes(this.activeHandle)) y = this.start.y + this.start.h - h;
       }
 
       const min = 1,
         max = paintConfig.maxSize;
-      selection.setX(
-        clamp(
-          x,
-          beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min,
-        ),
-      );
-      selection.setY(
-        clamp(
-          y,
-          beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min,
-        ),
-      );
+      selection.setX(x);
+      selection.setY(y);
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
 
