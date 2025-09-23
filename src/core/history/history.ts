@@ -40,6 +40,8 @@ interface HistoryCommand {
     y: number;
     width: number;
     height: number;
+    flipH?: boolean;
+    flipV?: boolean;
   };
 }
 
@@ -57,6 +59,8 @@ export interface HistoryResponse {
     y: number;
     width: number;
     height: number;
+    flipH?: boolean;
+    flipV?: boolean;
   };
   undoCount: number;
   redoCount: number;

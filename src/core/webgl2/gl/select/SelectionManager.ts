@@ -36,6 +36,8 @@ export class SelectionManager {
   private selectionFBO: WebGLFramebuffer;
   private renderedSelectionFBO: WebGLFramebuffer;
   private beforePos: any;
+  private beforeFlipH: boolean = false;
+  private beforeFlipV: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
     this.canvas = canvas;
@@ -165,6 +167,7 @@ export class SelectionManager {
   private createCurrentSnapshot() {
     const gl = this.gl;
     const renderRect = Rect.fromWidth(0, 0, this.originalWidth, this.originalHeight);
+    const self = this;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.selectionFBO);
     const pixels = new Uint8Array(this.originalWidth * this.originalHeight * 4);
@@ -190,7 +193,6 @@ export class SelectionManager {
       rect: renderRect,
       selectionRect: selectionPosRect,
       async apply() {
-        const self = this;
         self.openTexture();
         self.selectionPos.x = this.selectionRect.x;
         self.selectionPos.y = this.selectionRect.y;
@@ -221,7 +223,6 @@ export class SelectionManager {
       layerId: paintOptions.layerId,
       rect: renderRect,
       async apply() {
-        const self = this;
         paintOptions.showSelection = false;
         self.closeTexture();
       },
@@ -247,6 +248,8 @@ export class SelectionManager {
     this.originalWidth = swidth;
     this.originalHeight = sheight;
     this.beforePos = structuredClone(this.selectionPos);
+    this.beforeFlipH = paintOptions.selectionFlipH;
+    this.beforeFlipV = paintOptions.selectionFlipV;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.bindTexture(gl.TEXTURE_2D, this.selectionTex);
@@ -312,6 +315,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -330,6 +335,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -356,6 +363,8 @@ export class SelectionManager {
     this.originalWidth = newwidth;
     this.originalHeight = newheight;
     this.beforePos = structuredClone(this.selectionPos);
+    this.beforeFlipH = paintOptions.selectionFlipH;
+    this.beforeFlipV = paintOptions.selectionFlipV;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
@@ -381,6 +390,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -398,6 +409,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -468,6 +481,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -486,6 +501,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: paintOptions.selectionFlipH,
+            flipV: paintOptions.selectionFlipV,
           },
         };
       },
@@ -538,14 +555,20 @@ export class SelectionManager {
     let historyManager = getHistoryManager(this.canvas, this.gl);
     let beforePosition = structuredClone(this.beforePos);
     let afterPosition = structuredClone(this.selectionPos);
+    let beforeFlipH = this.beforeFlipH;
+    let beforeFlipV = this.beforeFlipV;
+    let afterFlipH = paintOptions.selectionFlipH;
+    let afterFlipV = paintOptions.selectionFlipV;
 
     const byteSize = 0;
 
     const newHistory = new HistoryObject({
       undo: async () => {
-        this.moveSelection(beforePosition.x, beforePosition.y, beforePosition.width, beforePosition.height);
+        this.moveSelection(beforePosition.x, beforePosition.y, beforePosition.width, beforePosition.height, beforeFlipH, beforeFlipV);
 
         this.beforePos = structuredClone(this.selectionPos);
+        this.beforeFlipH = paintOptions.selectionFlipH;
+        this.beforeFlipV = paintOptions.selectionFlipV;
 
         return {
           tool: "selection",
@@ -555,13 +578,17 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: beforeFlipH,
+            flipV: beforeFlipV,
           },
         };
       },
       redo: async () => {
-        this.moveSelection(afterPosition.x, afterPosition.y, afterPosition.width, afterPosition.height);
+        this.moveSelection(afterPosition.x, afterPosition.y, afterPosition.width, afterPosition.height, afterFlipH, afterFlipV);
 
         this.beforePos = structuredClone(this.selectionPos);
+        this.beforeFlipH = paintOptions.selectionFlipH;
+        this.beforeFlipV = paintOptions.selectionFlipV;
 
         return {
           tool: "selection",
@@ -571,6 +598,8 @@ export class SelectionManager {
             y: this.selectionPos.y,
             width: this.selectionPos.width,
             height: this.selectionPos.height,
+            flipH: afterFlipH,
+            flipV: afterFlipV,
           },
         };
       },
@@ -578,6 +607,8 @@ export class SelectionManager {
     });
 
     this.beforePos = structuredClone(this.selectionPos);
+    this.beforeFlipH = paintOptions.selectionFlipH;
+    this.beforeFlipV = paintOptions.selectionFlipV;
 
     historyManager.addUndo(newHistory);
   }

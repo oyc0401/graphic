@@ -64,14 +64,6 @@ export class SelectionState {
     this.hover = pos;
   }
 
-  setFlipH(flipH: boolean) {
-    this.flipH = flipH;
-  }
-
-  setFlipV(flipV: boolean) {
-    this.flipV = flipV;
-  }
-
   setFlip(flipH: boolean, flipV: boolean) {
     this.flipH = flipH;
     this.flipV = flipV;
