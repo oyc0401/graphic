@@ -14,6 +14,8 @@ export class SelectionTool {
   private activeHandle: HandleType | null = null;
   private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0 };
+  private startFlipH = false;
+  private startFlipV = false;
   private startTime;
 
   down(e: PointerEvent) {
@@ -36,6 +38,8 @@ export class SelectionTool {
       w: selection.width,
       h: selection.height,
     };
+    this.startFlipH = selection.flipH;
+    this.startFlipV = selection.flipV;
     console.log("handle:", handle);
     if (handle === "INSIDE") {
       const point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -105,27 +109,36 @@ export class SelectionTool {
         selection.y,
         selection.width,
         selection.height,
+        selection.flipH,
+        selection.flipV,
       );
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
       let { x, y, w, h } = this.start;
       const p = point;
+      let finalFlipH = this.startFlipH, finalFlipV = this.startFlipV;
 
       switch (this.activeHandle) {
         case "RB":
           w = p.x - x + 1;
           h = p.y - y + 1;
+          if (w < 0) finalFlipH = !this.startFlipH;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "RT":
           h = y + h - p.y;
           y = p.y;
           w = p.x - x + 1;
+          if (w < 0) finalFlipH = !this.startFlipH;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "LB":
           w = x + w - p.x;
           x = p.x;
           h = p.y - y + 1;
+          if (w < 0) finalFlipH = !this.startFlipH;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "LT":
@@ -133,25 +146,43 @@ export class SelectionTool {
           h = y + h - p.y;
           x = p.x;
           y = p.y;
+          if (w < 0) finalFlipH = !this.startFlipH;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "R":
           w = p.x - x + 1;
+          if (w < 0) finalFlipH = !this.startFlipH;
           break;
 
         case "L":
           w = x + w - p.x;
           x = p.x;
+          if (w < 0) finalFlipH = !this.startFlipH;
           break;
 
         case "B":
           h = p.y - y + 1;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
 
         case "T":
           h = y + h - p.y;
           y = p.y;
+          if (h < 0) finalFlipV = !this.startFlipV;
           break;
+      }
+
+      // flip이 발생하면 좌표 정규화
+      if (w < 0) {
+        const newX = x + w;
+        x = newX;
+        w = -w; // Math.abs(w) 대신 -w 사용
+      }
+      if (h < 0) {
+        const newY = y + h;
+        y = newY;
+        h = -h; // Math.abs(h) 대신 -h 사용
       }
 
       if (e.shiftKey) {
@@ -184,11 +215,16 @@ export class SelectionTool {
       selection.setWidth(clamp(w, min, max));
       selection.setHeight(clamp(h, min, max));
 
+      // flip 상태 업데이트
+      selection.setFlip(finalFlipH, finalFlipV);
+
       getLayerWorker().moveSelection(
         selection.x,
         selection.y,
         selection.width,
         selection.height,
+        finalFlipH,
+        finalFlipV,
       );
     }
   }

@@ -15,6 +15,8 @@ export class SelectionState {
   showHandle = false;
   active = false; // 작동중인지 확인. 작동중이면 캔슬할 때 돌아감
   hover = "";
+  flipH = false; // 수평 flip
+  flipV = false; // 수직 flip
 
   constructor() {
     makeAutoObservable(this);
@@ -61,6 +63,19 @@ export class SelectionState {
   setHover(pos) {
     this.hover = pos;
   }
+
+  setFlipH(flipH: boolean) {
+    this.flipH = flipH;
+  }
+
+  setFlipV(flipV: boolean) {
+    this.flipV = flipV;
+  }
+
+  setFlip(flipH: boolean, flipV: boolean) {
+    this.flipH = flipH;
+    this.flipV = flipV;
+  }
 }
 
 export const selection = new SelectionState();
@@ -88,11 +103,9 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   let newHeight = bitmap.height;
 
   // 선택 영역 설정
-  selection.setPosition(
-    Math.ceil(Math.max(0, -position.x)),
-    Math.ceil(Math.max(0, -position.y))
-  );
+  selection.setPosition(Math.ceil(Math.max(0, -position.x)), Math.ceil(Math.max(0, -position.y)));
   selection.setSize(newWidth, newHeight);
+  selection.setFlip(false, false);
 
   beforeSelectionPos = {
     x: selection.x,
@@ -107,7 +120,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     selection.y,
     selection.width,
     selection.height,
-    bitmap
+    bitmap,
     //Comlink.transfer(bitmap, [bitmap]),
   );
 
@@ -123,6 +136,7 @@ export function canvasSelect(x, y, width, height) {
 
   selection.setPosition(x, y);
   selection.setSize(width, height);
+  selection.setFlip(false, false);
 
   worker.select(selection.x, selection.y, selection.width, selection.height);
 
@@ -151,6 +165,7 @@ export function applySelection() {
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
+  selection.setFlip(false, false);
 
   paintState.changed = true;
 }
@@ -161,6 +176,7 @@ export function cutSelection() {
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
+  selection.setFlip(false, false);
 }
 
 export function selectionDelete() {
@@ -168,6 +184,7 @@ export function selectionDelete() {
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
+  selection.setFlip(false, false);
 
   let worker = getLayerWorker();
   worker.selectionDelete();
@@ -191,7 +208,9 @@ export function selectionCancel() {
         selection.x,
         selection.y,
         selection.width,
-        selection.height
+        selection.height,
+        selection.flipH,
+        selection.flipV,
       );
 
       activeHandle = null;

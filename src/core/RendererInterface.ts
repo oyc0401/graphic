@@ -33,7 +33,7 @@ export interface RendererInterface {
   // === 선택 영역 ===
   select(px: number, py: number, w: number, h: number): void;
   endMove(): void;
-  moveSelection(px: number, py: number, width: number, height: number): void;
+  moveSelection(px: number, py: number, width: number, height: number, flipH?: boolean, flipV?: boolean): void;
   applySelection(): void;
 
   // === 클립보드 ===

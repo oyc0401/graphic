@@ -196,6 +196,8 @@ function makeRenderingManager(canvas, gl) {
       u_magnification: paintOptions.magnification,
       u_selectionPos: [selectionPos.x, selectionPos.y],
       u_selectionSize: [selectionPos.width, selectionPos.height],
+      u_flipH: paintOptions.selectionFlipH ? 1.0 : 0.0,
+      u_flipV: paintOptions.selectionFlipV ? 1.0 : 0.0,
     });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);

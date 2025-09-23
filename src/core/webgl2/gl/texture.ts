@@ -68,6 +68,8 @@ export let paintOptions = {
 
   showSelection: false,
   selectionAntialias: true,
+  selectionFlipH: false,
+  selectionFlipV: false,
   layerId: 0,
   selectionLayerId: 0,
 

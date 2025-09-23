@@ -422,6 +422,8 @@ export class SelectionManager {
       u_selectionPos: [this.selectionPos.x, this.selectionPos.y],
       u_selectionSize: [this.selectionPos.width, this.selectionPos.height],
       u_max_size: paintConfig.maxSize,
+      u_flipH: paintOptions.selectionFlipH ? 1.0 : 0.0,
+      u_flipV: paintOptions.selectionFlipV ? 1.0 : 0.0,
     });
 
     twgl.setBuffersAndAttributes(gl, this.selectionProgramInfo, vertexManager.quadBufferInfo);
@@ -494,6 +496,10 @@ export class SelectionManager {
     historyManager.addUndo(newHistory);
 
     this.closeTexture();
+
+    // apply 후 flip 상태 초기화
+    paintOptions.selectionFlipH = false;
+    paintOptions.selectionFlipV = false;
 
     this.renderingManager.render();
   }
@@ -576,12 +582,14 @@ export class SelectionManager {
     historyManager.addUndo(newHistory);
   }
 
-  moveSelection(newX: number, newY: number, newWidth: number, newHeight: number) {
+  moveSelection(newX: number, newY: number, newWidth: number, newHeight: number, flipH = false, flipV = false) {
     this.selectionPos.x = newX;
     this.selectionPos.y = newY;
 
-    if (this.selectionPos.width != newWidth || this.selectionPos.height != newHeight) {
-      console.log("selection size:", newWidth, newHeight);
+    const sizeChanged = this.selectionPos.width != newWidth || this.selectionPos.height != newHeight;
+
+    if (sizeChanged) {
+      console.log("selection change:", newWidth, newHeight);
 
       this.selectionPos.width = newWidth;
       this.selectionPos.height = newHeight;
@@ -589,7 +597,58 @@ export class SelectionManager {
       this.uploadRenderedTex();
     }
 
+    // paintOptions에 flip 상태 저장
+    paintOptions.selectionFlipH = flipH;
+    paintOptions.selectionFlipV = flipV;
+
     this.renderingManager.render();
+  }
+
+  resizeFromCorner(corner: "top-left" | "top-right" | "bottom-left" | "bottom-right", newX: number, newY: number) {
+    const current = this.selectionPos;
+
+    let finalX: number, finalY: number, finalWidth: number, finalHeight: number;
+    let flipH = false, flipV = false;
+
+    switch (corner) {
+      case "top-left":
+        flipH = newX > current.x + current.width;
+        flipV = newY > current.y + current.height;
+        finalX = Math.min(newX, current.x + current.width);
+        finalY = Math.min(newY, current.y + current.height);
+        finalWidth = Math.abs(current.x + current.width - newX);
+        finalHeight = Math.abs(current.y + current.height - newY);
+        break;
+
+      case "top-right":
+        flipH = newX < current.x;
+        flipV = newY > current.y + current.height;
+        finalX = Math.min(current.x, newX);
+        finalY = Math.min(newY, current.y + current.height);
+        finalWidth = Math.abs(newX - current.x);
+        finalHeight = Math.abs(current.y + current.height - newY);
+        break;
+
+      case "bottom-left":
+        flipH = newX > current.x + current.width;
+        flipV = newY < current.y;
+        finalX = Math.min(newX, current.x + current.width);
+        finalY = Math.min(current.y, newY);
+        finalWidth = Math.abs(current.x + current.width - newX);
+        finalHeight = Math.abs(newY - current.y);
+        break;
+
+      case "bottom-right":
+        flipH = newX < current.x;
+        flipV = newY < current.y;
+        finalX = Math.min(current.x, newX);
+        finalY = Math.min(current.y, newY);
+        finalWidth = Math.abs(newX - current.x);
+        finalHeight = Math.abs(newY - current.y);
+        break;
+    }
+
+    this.moveSelection(finalX, finalY, finalWidth, finalHeight, flipH, flipV);
   }
 
   getPosition() {

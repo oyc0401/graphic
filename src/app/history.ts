@@ -53,6 +53,7 @@ export async function undo() {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
+    selection.setFlip(false, false);
   } else if (tool == "brush") {
     paintState.setToolId("brush");
     paintState.setBrushId("brush");
@@ -126,6 +127,7 @@ export async function redo() {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
+    selection.setFlip(false, false);
   } else if (tool == "brush") {
     paintState.setToolId("brush");
     paintState.setBrushId("brush");

@@ -111,9 +111,9 @@ export class WebGL2Controller {
   endMove(): void {
     paint.endMove();
   }
-  moveSelection(px: number, py: number, width: number, height: number): void {
+  moveSelection(px: number, py: number, width: number, height: number, flipH = false, flipV = false): void {
     let { x, y } = toWebglCoord2(px, py, width, height);
-    paint.moveSelection(x, y, width, height);
+    paint.moveSelection(x, y, width, height, flipH, flipV);
   }
   applySelection(): void {
     paint.applySelection();

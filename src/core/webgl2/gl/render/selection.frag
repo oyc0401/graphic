@@ -13,6 +13,8 @@ uniform float u_magnification;
 uniform float u_max_size;
 uniform vec2 u_selectionPos; // 선택 영역 위치 (캔버스 내부 기준)
 uniform vec2 u_selectionSize; // 선택 영역 크기
+uniform float u_flipH; // 수평 flip (0.0 또는 1.0)
+uniform float u_flipV; // 수직 flip (0.0 또는 1.0)
 
 in vec2 v_texCoord; // 풀스크린 정규화 좌표 (0~1)
 out vec4 outColor;
@@ -61,6 +63,14 @@ void main() {
 
   // 선택영역 내에 있으면 텍스처 좌표 계산
   vec2 local = (scaledFragCoord - minSelPos) / u_selectionSize;
+
+  // flip 적용
+  if (u_flipH > 0.5) {
+    local.x = 1.0 - local.x;
+  }
+  if (u_flipV > 0.5) {
+    local.y = 1.0 - local.y;
+  }
 
   if (u_selectionSize.x > 2048.0 || u_selectionSize.y > 2048.0) {
     // 화면이 엄청 크면 걍 근사로
