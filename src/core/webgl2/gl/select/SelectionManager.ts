@@ -5,7 +5,7 @@ import { PixelStore } from "../../../history/PixelStore";
 import { getLayerManager } from "../layer";
 import { getRenderingManager } from "../render/render";
 import { getSourceTextureManager, paintOptions, TEXTURE_UNIT } from "../texture";
-import { decodePremultAndFlip } from "../../../utils/flipPixel";
+import { decodePremultAndFlipWithFlags } from "../../../utils/flipPixel";
 import { getVertexManager } from "../vertexShader";
 import { Rect } from "@/core/utils/rect";
 import * as twgl from "twgl.js";
@@ -538,7 +538,13 @@ export class SelectionManager {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.renderedSelectionFBO);
     gl.readPixels(0, 0, this.selectionPos.width, this.selectionPos.height, gl.RGBA, gl.UNSIGNED_BYTE, flippedPixel);
 
-    const pixels = decodePremultAndFlip(flippedPixel, this.selectionPos.width, this.selectionPos.height);
+    const pixels = decodePremultAndFlipWithFlags(
+      flippedPixel,
+      this.selectionPos.width,
+      this.selectionPos.height,
+      this.selectionPos.flipH,
+      this.selectionPos.flipV,
+    );
 
     return {
       pixels,
