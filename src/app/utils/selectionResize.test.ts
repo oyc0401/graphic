@@ -436,6 +436,229 @@ describe("keepRatio=false일 때", () => {
       });
     });
   });
+  describe("도형을 뒤집으면 flip이 된다. (기본 상태)", () => {
+    describe("L 핸들", () => {
+      it("포인터가 기존 오른쪽 변을 지나가면 flipH가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "L",
+            pointer: { x: 7, y: 4 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 7, y: 2, width: 1, height: 5, flipH: true, flipV: false });
+      });
+    });
+
+    describe("R 핸들", () => {
+      it("포인터가 기존 왼쪽 변을 지나가면 flipH가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "R",
+            pointer: { x: 1, y: 4 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 1, y: 2, width: 1, height: 5, flipH: true, flipV: false });
+      });
+    });
+
+    describe("T 핸들", () => {
+      it("포인터가 기존 아래쪽 변을 지나가면 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "T",
+            pointer: { x: 4, y: 7 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 2, y: 7, width: 5, height: 1, flipH: false, flipV: true });
+      });
+    });
+
+    describe("B 핸들", () => {
+      it("포인터가 기존 위쪽 변을 지나가면 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "B",
+            pointer: { x: 4, y: 1 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 2, y: 1, width: 5, height: 1, flipH: false, flipV: true });
+      });
+    });
+
+    describe("LT 핸들", () => {
+      it("포인터가 기존 오른쪽 아래 끝을 지나가면 flipH와 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "LT",
+            pointer: { x: 7, y: 7 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 7, y: 7, width: 1, height: 1, flipH: true, flipV: true });
+      });
+    });
+
+    describe("RT 핸들", () => {
+      it("포인터가 기존 왼쪽 아래 끝을 지나가면 flipH와 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RT",
+            pointer: { x: 1, y: 7 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 1, y: 7, width: 1, height: 1, flipH: true, flipV: true });
+      });
+    });
+
+    describe("LB 핸들", () => {
+      it("포인터가 기존 오른쪽 위 끝을 지나가면 flipH와 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "LB",
+            pointer: { x: 7, y: 1 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 7, y: 1, width: 1, height: 1, flipH: true, flipV: true });
+      });
+    });
+
+    describe("RB 핸들", () => {
+      it("포인터가 기존 왼쪽 위 끝을 지나가면 flipH와 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RB",
+            pointer: { x: 1, y: 1 },
+            keepRatio: false,
+          }),
+        ).toEqual({ x: 1, y: 1, width: 1, height: 1, flipH: true, flipV: true });
+      });
+    });
+  });
+
+  describe("도형을 뒤집으면 flip이 된다. (초기 flip 상태)", () => {
+    describe("L 핸들", () => {
+      it("flipH가 켜진 상태에서 포인터가 기존 오른쪽 변을 지나가면 flipH가 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "L",
+            pointer: { x: 7, y: 4 },
+            keepRatio: false,
+            startFlipH: true,
+          }),
+        ).toEqual({ x: 7, y: 2, width: 1, height: 5, flipH: false, flipV: false });
+      });
+    });
+
+    describe("R 핸들", () => {
+      it("flipH가 켜진 상태에서 포인터가 기존 왼쪽 변을 지나가면 flipH가 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "R",
+            pointer: { x: 1, y: 4 },
+            keepRatio: false,
+            startFlipH: true,
+          }),
+        ).toEqual({ x: 1, y: 2, width: 1, height: 5, flipH: false, flipV: false });
+      });
+    });
+
+    describe("T 핸들", () => {
+      it("flipV가 켜진 상태에서 포인터가 기존 아래쪽 변을 지나가면 flipV가 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "T",
+            pointer: { x: 4, y: 7 },
+            keepRatio: false,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 7, width: 5, height: 1, flipH: false, flipV: false });
+      });
+    });
+
+    describe("B 핸들", () => {
+      it("flipV가 켜진 상태에서 포인터가 기존 위쪽 변을 지나가면 flipV가 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "B",
+            pointer: { x: 4, y: 1 },
+            keepRatio: false,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 1, width: 5, height: 1, flipH: false, flipV: false });
+      });
+    });
+
+    describe("LT 핸들", () => {
+      it("flipH와 flipV가 켜진 상태에서 포인터가 기존 오른쪽 아래 끝을 지나가면 둘 다 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "LT",
+            pointer: { x: 7, y: 7 },
+            keepRatio: false,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 7, y: 7, width: 1, height: 1, flipH: false, flipV: false });
+      });
+    });
+
+    describe("RT 핸들", () => {
+      it("flipH와 flipV가 켜진 상태에서 포인터가 기존 왼쪽 아래 끝을 지나가면 둘 다 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RT",
+            pointer: { x: 1, y: 7 },
+            keepRatio: false,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 1, y: 7, width: 1, height: 1, flipH: false, flipV: false });
+      });
+    });
+
+    describe("LB 핸들", () => {
+      it("flipH와 flipV가 켜진 상태에서 포인터가 기존 오른쪽 위 끝을 지나가면 둘 다 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "LB",
+            pointer: { x: 7, y: 1 },
+            keepRatio: false,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 7, y: 1, width: 1, height: 1, flipH: false, flipV: false });
+      });
+    });
+
+    describe("RB 핸들", () => {
+      it("flipH와 flipV가 켜진 상태에서 포인터가 기존 왼쪽 위 끝을 지나가면 둘 다 꺼진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RB",
+            pointer: { x: 1, y: 1 },
+            keepRatio: false,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 1, y: 1, width: 1, height: 1, flipH: false, flipV: false });
+      });
+    });
+  });
 });
 
 describe("keepRatio=true일 때", () => {
