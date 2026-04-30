@@ -102,7 +102,7 @@ describe("keepRatio=false일 때", () => {
             pointer: { x: 3, y: 3 },
             keepRatio: false,
           }),
-        ).toEqual({ x: 4, y: 3, width: 3, height: 4, flipH: true, flipV: true });
+        ).toEqual({ x: 3, y: 3, width: 4, height: 4, flipH: true, flipV: true });
       });
     });
   });

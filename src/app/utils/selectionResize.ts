@@ -48,12 +48,6 @@ export type SelectionResizeResult = SelectionResizeRect & {
   flipV: boolean;
 };
 
-type AxisResizeResult = {
-  start: number;
-  size: number;
-  flipped: boolean;
-};
-
 type RatioResizeState = SelectionResizeRect & {
   crossedH: boolean;
   crossedV: boolean;
@@ -61,51 +55,65 @@ type RatioResizeState = SelectionResizeRect & {
   flipV: boolean;
 };
 
-function resizeAxisFromStartEdge(
-  fixedStart: number,
-  pointerPosition: number,
-): AxisResizeResult {
-  if (pointerPosition >= fixedStart) {
-    return {
-      start: fixedStart,
-      size: pointerPosition - fixedStart + 1,
-      flipped: false,
-    };
-  }
-
+function normalizeInclusiveRange(
+  a: number,
+  b: number,
+): Pick<SelectionResizeRect, "x" | "width"> {
   return {
-    start: pointerPosition,
-    size: fixedStart - pointerPosition + 1,
-    flipped: true,
+    x: Math.min(a, b),
+    width: Math.abs(a - b) + 1,
   };
 }
 
-function resizeAxisFromEndEdge(
-  fixedEnd: number,
-  pointerPosition: number,
-): AxisResizeResult {
-  if (pointerPosition <= fixedEnd) {
-    return {
-      start: pointerPosition,
-      size: fixedEnd - pointerPosition + 1,
-      flipped: false,
-    };
-  }
-
+function normalizeInclusiveVerticalRange(
+  a: number,
+  b: number,
+): Pick<SelectionResizeRect, "y" | "height"> {
   return {
-    start: fixedEnd + 1,
-    size: pointerPosition - fixedEnd,
-    flipped: true,
+    y: Math.min(a, b),
+    height: Math.abs(a - b) + 1,
   };
 }
 
-function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
+function resizeCornerFree(
+  input: SelectionResizeInput,
+  startFlipH: boolean,
+  startFlipV: boolean,
+): SelectionResizeResult {
   const { startRect, handle, pointer } = input;
-  const startFlipH = input.startFlipH ?? false;
-  const startFlipV = input.startFlipV ?? false;
   const right = startRect.x + startRect.width - 1;
   const bottom = startRect.y + startRect.height - 1;
+  const anchor = {
+    x: handle.includes("L") ? right : startRect.x,
+    y: handle.includes("T") ? bottom : startRect.y,
+  };
+  const horizontal = normalizeInclusiveRange(anchor.x, pointer.x);
+  const vertical = normalizeInclusiveVerticalRange(anchor.y, pointer.y);
+  const crossedH = handle.includes("L")
+    ? pointer.x > anchor.x
+    : pointer.x < anchor.x;
+  const crossedV = handle.includes("T")
+    ? pointer.y > anchor.y
+    : pointer.y < anchor.y;
 
+  return {
+    x: horizontal.x,
+    y: vertical.y,
+    width: horizontal.width,
+    height: vertical.height,
+    flipH: crossedH ? !startFlipH : startFlipH,
+    flipV: crossedV ? !startFlipV : startFlipV,
+  };
+}
+
+function resizeEdgeFree(
+  input: SelectionResizeInput,
+  startFlipH: boolean,
+  startFlipV: boolean,
+): SelectionResizeResult {
+  const { startRect, handle, pointer } = input;
+  const right = startRect.x + startRect.width - 1;
+  const bottom = startRect.y + startRect.height - 1;
   let x = startRect.x;
   let y = startRect.y;
   let width = startRect.width;
@@ -113,47 +121,32 @@ function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
   let crossedH = false;
   let crossedV = false;
 
-  if (handle.includes("R")) {
-    const resized = resizeAxisFromStartEdge(startRect.x, pointer.x);
-    x = resized.start;
-    width = resized.size;
-    crossedH = resized.flipped;
+  if (handle === "L") {
+    const horizontal = normalizeInclusiveRange(right, pointer.x);
+    x = horizontal.x;
+    width = horizontal.width;
+    crossedH = pointer.x > right;
   }
 
-  if (handle.includes("L")) {
-    const resized = resizeAxisFromEndEdge(right, pointer.x);
-    x = resized.start;
-    width = resized.size;
-    crossedH = resized.flipped;
-
-    if (startFlipH && crossedH) {
-      x = right;
-      width = pointer.x - right + 1;
-    }
+  if (handle === "R") {
+    const horizontal = normalizeInclusiveRange(startRect.x, pointer.x);
+    x = horizontal.x;
+    width = horizontal.width;
+    crossedH = pointer.x < startRect.x;
   }
 
-  if (handle.includes("B")) {
-    const resized = resizeAxisFromStartEdge(startRect.y, pointer.y);
-    y = resized.start;
-    height = resized.size;
-    crossedV = resized.flipped;
+  if (handle === "T") {
+    const vertical = normalizeInclusiveVerticalRange(bottom, pointer.y);
+    y = vertical.y;
+    height = vertical.height;
+    crossedV = pointer.y > bottom;
   }
 
-  if (handle.includes("T")) {
-    const resized = resizeAxisFromEndEdge(bottom, pointer.y);
-    y = resized.start;
-    height = resized.size;
-    crossedV = resized.flipped;
-
-    if (startFlipV && crossedV) {
-      y = bottom;
-      height = pointer.y - bottom + 1;
-    }
-  }
-
-  if (handle === "RB" && crossedH && crossedV) {
-    x += 1;
-    width -= 1;
+  if (handle === "B") {
+    const vertical = normalizeInclusiveVerticalRange(startRect.y, pointer.y);
+    y = vertical.y;
+    height = vertical.height;
+    crossedV = pointer.y < startRect.y;
   }
 
   return {
@@ -164,6 +157,18 @@ function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
     flipH: crossedH ? !startFlipH : startFlipH,
     flipV: crossedV ? !startFlipV : startFlipV,
   };
+}
+
+function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
+  const { handle } = input;
+  const startFlipH = input.startFlipH ?? false;
+  const startFlipV = input.startFlipV ?? false;
+
+  if (handle.length === 2) {
+    return resizeCornerFree(input, startFlipH, startFlipV);
+  }
+
+  return resizeEdgeFree(input, startFlipH, startFlipV);
 }
 
 function ceilHeightForWidth(width: number, ratio: number): number {
