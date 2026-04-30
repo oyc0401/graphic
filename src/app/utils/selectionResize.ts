@@ -48,12 +48,7 @@ export type SelectionResizeResult = SelectionResizeRect & {
   flipV: boolean;
 };
 
-type RatioResizeState = SelectionResizeRect & {
-  crossedH: boolean;
-  crossedV: boolean;
-  flipH: boolean;
-  flipV: boolean;
-};
+type ResizeResultWithoutFlip = SelectionResizeRect;
 
 function normalizeInclusiveRange(
   a: number,
@@ -75,20 +70,42 @@ function normalizeInclusiveVerticalRange(
   };
 }
 
+function getOppositeCornerAnchor(
+  startRect: SelectionResizeRect,
+  handle: SelectionResizeHandle,
+): SelectionResizePoint {
+  const right = startRect.x + startRect.width - 1;
+  const bottom = startRect.y + startRect.height - 1;
+
+  return {
+    x: handle.includes("L") ? right : startRect.x,
+    y: handle.includes("T") ? bottom : startRect.y,
+  };
+}
+
+function rectFromInclusiveCorners(
+  a: SelectionResizePoint,
+  b: SelectionResizePoint,
+): ResizeResultWithoutFlip {
+  const horizontal = normalizeInclusiveRange(a.x, b.x);
+  const vertical = normalizeInclusiveVerticalRange(a.y, b.y);
+
+  return {
+    x: horizontal.x,
+    y: vertical.y,
+    width: horizontal.width,
+    height: vertical.height,
+  };
+}
+
 function resizeCornerFree(
   input: SelectionResizeInput,
   startFlipH: boolean,
   startFlipV: boolean,
 ): SelectionResizeResult {
   const { startRect, handle, pointer } = input;
-  const right = startRect.x + startRect.width - 1;
-  const bottom = startRect.y + startRect.height - 1;
-  const anchor = {
-    x: handle.includes("L") ? right : startRect.x,
-    y: handle.includes("T") ? bottom : startRect.y,
-  };
-  const horizontal = normalizeInclusiveRange(anchor.x, pointer.x);
-  const vertical = normalizeInclusiveVerticalRange(anchor.y, pointer.y);
+  const anchor = getOppositeCornerAnchor(startRect, handle);
+  const rect = rectFromInclusiveCorners(anchor, pointer);
   const crossedH = handle.includes("L")
     ? pointer.x > anchor.x
     : pointer.x < anchor.x;
@@ -97,10 +114,7 @@ function resizeCornerFree(
     : pointer.y < anchor.y;
 
   return {
-    x: horizontal.x,
-    y: vertical.y,
-    width: horizontal.width,
-    height: vertical.height,
+    ...rect,
     flipH: crossedH ? !startFlipH : startFlipH,
     flipV: crossedV ? !startFlipV : startFlipV,
   };
@@ -199,21 +213,13 @@ function fitCornerSizeToRatio(
 
 function resizeCornerWithRatio(
   input: SelectionResizeInput,
-  state: RatioResizeState,
+  free: SelectionResizeResult,
 ): SelectionResizeResult {
   const { startRect, handle, pointer } = input;
-  const right = startRect.x + startRect.width - 1;
-  const bottom = startRect.y + startRect.height - 1;
   const ratio = startRect.width / startRect.height;
-  const anchor = {
-    x: handle.includes("L") ? right : startRect.x,
-    y: handle.includes("T") ? bottom : startRect.y,
-  };
+  const anchor = getOppositeCornerAnchor(startRect, handle);
   const rawWidth = Math.abs(pointer.x - anchor.x) + 1;
-  const rawHeight =
-    handle.includes("B") && pointer.y < anchor.y && ratio !== 1
-      ? Math.abs(pointer.y - anchor.y) + 2
-      : Math.abs(pointer.y - anchor.y) + 1;
+  const rawHeight = Math.abs(pointer.y - anchor.y) + 1;
   const fitted = fitCornerSizeToRatio(rawWidth, rawHeight, ratio);
   const x = pointer.x < anchor.x ? anchor.x - fitted.width + 1 : anchor.x;
   const y = pointer.y < anchor.y ? anchor.y - fitted.height + 1 : anchor.y;
@@ -223,8 +229,8 @@ function resizeCornerWithRatio(
     y,
     width: fitted.width,
     height: fitted.height,
-    flipH: state.flipH,
-    flipV: state.flipV,
+    flipH: free.flipH,
+    flipV: free.flipV,
   };
 }
 
@@ -234,44 +240,34 @@ function resizeWithRatio(
 ): SelectionResizeResult {
   const { startRect, handle } = input;
   const ratio = startRect.width / startRect.height;
-  const startFlipH = input.startFlipH ?? false;
-  const startFlipV = input.startFlipV ?? false;
-  const crossedH = free.flipH !== startFlipH;
-  const crossedV = free.flipV !== startFlipV;
-
-  const state: RatioResizeState = {
-    ...free,
-    crossedH,
-    crossedV,
-  };
 
   if (handle === "L" || handle === "R") {
     return {
-      x: state.x,
-      y: state.y,
-      width: state.width,
-      height: ceilHeightForWidth(state.width, ratio),
-      flipH: state.flipH,
-      flipV: state.flipV,
+      x: free.x,
+      y: free.y,
+      width: free.width,
+      height: ceilHeightForWidth(free.width, ratio),
+      flipH: free.flipH,
+      flipV: free.flipV,
     };
   }
 
   if (handle === "T" || handle === "B") {
     return {
-      x: state.x,
-      y: state.y,
-      width: ceilWidthForHeight(state.height, ratio),
-      height: state.height,
-      flipH: state.flipH,
-      flipV: state.flipV,
+      x: free.x,
+      y: free.y,
+      width: ceilWidthForHeight(free.height, ratio),
+      height: free.height,
+      flipH: free.flipH,
+      flipV: free.flipV,
     };
   }
 
   if (handle.length === 2) {
-    return resizeCornerWithRatio(input, state);
+    return resizeCornerWithRatio(input, free);
   }
 
-  return state;
+  return free;
 }
 
 export function resizeSelectionFromHandle(

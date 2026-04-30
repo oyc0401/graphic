@@ -172,7 +172,7 @@ describe("keepRatio=true일 때", () => {
             pointer: { x: 11, y: 4 },
             keepRatio: true,
           }), // 올림정책
-        ).toEqual({ x: 9, y: 3, width: 6, height: 4, flipH: true, flipV: true });
+        ).toEqual({ x: 9, y: 4, width: 3, height: 3, flipH: true, flipV: true });
       });
     });
 
