@@ -68,7 +68,7 @@ function resizeAxisFromStartEdge(
 
   return {
     start: pointerPosition,
-    size: fixedStart - pointerPosition,
+    size: fixedStart - pointerPosition + 1,
     flipped: true,
   };
 }
@@ -118,6 +118,11 @@ function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
     x = resized.start;
     width = resized.size;
     crossedH = resized.flipped;
+
+    if (startFlipH && crossedH) {
+      x = right;
+      width = pointer.x - right + 1;
+    }
   }
 
   if (handle.includes("B")) {
@@ -132,6 +137,16 @@ function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
     y = resized.start;
     height = resized.size;
     crossedV = resized.flipped;
+
+    if (startFlipV && crossedV) {
+      y = bottom;
+      height = pointer.y - bottom + 1;
+    }
+  }
+
+  if (handle === "RB" && crossedH && crossedV) {
+    x += 1;
+    width -= 1;
   }
 
   return {
@@ -185,41 +200,38 @@ function resizeWithRatio(
   if (crossedH) {
     if (handle.includes("R")) {
       x = pointer.x;
-      width = startRect.x - pointer.x + 2;
+      width = startRect.x - pointer.x + 1;
     } else if (handle.includes("L")) {
       x = right + 1;
-      width = pointer.x - right + 2;
+      width = pointer.x - right + 1;
     }
   }
 
   if (crossedV) {
     if (handle.includes("B")) {
       y = pointer.y;
-      height = startRect.y - pointer.y + 2;
+      height = startRect.y - pointer.y + (ratio === 1 ? 1 : 2);
     } else if (handle.includes("T")) {
       y = bottom + 1;
-      height = pointer.y - bottom + 2;
+      height = pointer.y - bottom + 1;
     }
   }
 
   if (input.keepRatio && (crossedH || crossedV)) {
-    if (width / height < ratio) {
-      width = Math.max(1, Math.ceil(height * ratio));
-    } else {
-      height = Math.max(1, Math.ceil(width / ratio));
-    }
+    height = Math.max(height, Math.ceil(width / ratio));
+    width = Math.max(width, Math.ceil(height * ratio));
 
     if (crossedH && handle.includes("L")) {
-      x = right + 1;
+      x = right;
     }
     if (crossedV && handle.includes("T")) {
-      y = bottom + 1;
+      y = pointer.y - height + 2;
     }
     if (crossedH && handle.includes("R")) {
-      x = startRect.x - width + 2;
+      x = startRect.x - width + 1;
     }
     if (crossedV && handle.includes("B")) {
-      y = startRect.y - height + 2;
+      y = startRect.y - height + 1;
     }
   }
 
