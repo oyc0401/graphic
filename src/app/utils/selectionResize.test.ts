@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { resizeSelectionFromHandle } from "./selectionResize";
 
 /**
+ * selectionResize의 좌표계와 핸들별 리사이즈 정책을 문서화하는 테스트.
+ *
+ * 이 테스트는 SelectionTool, DOM PointerEvent, worker를 거치지 않고
+ * resizeSelectionFromHandle 순수 함수만 검증한다. 선택창 리사이즈에서 가장 중요한 계약은
+ * "포인터가 위치한 칸은 결과 선택창 안에 포함된다"는 inclusive 좌표 규칙이다.
+ *
+ * keepRatio=false는 포인터 칸까지 자유롭게 리사이즈하고,
+ * keepRatio=true는 포인터 칸을 포함하면서 시작 선택창의 width/height 비율을 유지한다.
+ *
  * describe 순서
  * keepRatio여부
  * ├── 정책
@@ -523,6 +532,17 @@ describe("keepRatio=true일 때", () => {
     });
 
     describe("RB 핸들", () => {
+      it("정사각형에서 포인터가 안쪽 칸으로 이동하면 포인터를 포함하면서 정사각형 비율을 유지한다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RB",
+            pointer: { x: 5, y: 4 },
+            keepRatio: true,
+          }),
+        ).toEqual({ x: 2, y: 2, width: 4, height: 4, flipH: false, flipV: false });
+      });
+
       it("포인터가 만든 영역보다 세로가 부족하면 높이를 키워 비율을 유지한다", () => {
         expect(
           resizeSelectionFromHandle({
@@ -534,171 +554,5 @@ describe("keepRatio=true일 때", () => {
         ).toEqual({ x: 2, y: 2, width: 8, height: 4, flipH: false, flipV: false });
       });
     });
-  });
-});
-
-// AI가 짠 테스트들
-describe("resizeSelectionFromHandle keepRatio=false", () => {
-  it("RB 핸들을 움직이면 LT 꼭짓점은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "RB",
-        pointer: { x: 24, y: 18 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 10, y: 10, width: 15, height: 9, flipH: false, flipV: false });
-  });
-
-  it("RT 핸들을 움직이면 LB 꼭짓점은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "RT",
-        pointer: { x: 24, y: 6 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 10, y: 6, width: 15, height: 10, flipH: false, flipV: false });
-  });
-
-  it("LB 핸들을 움직이면 RT 꼭짓점은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "LB",
-        pointer: { x: 6, y: 18 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 6, y: 10, width: 14, height: 9, flipH: false, flipV: false });
-  });
-
-  it("LT 핸들을 움직이면 RB 꼭짓점은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "LT",
-        pointer: { x: 6, y: 6 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 6, y: 6, width: 14, height: 10, flipH: false, flipV: false });
-  });
-
-  it("R 핸들을 움직이면 왼쪽 변은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "R",
-        pointer: { x: 24, y: 30 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 10, y: 10, width: 15, height: 6, flipH: false, flipV: false });
-  });
-
-  it("L 핸들을 움직이면 오른쪽 변은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "L",
-        pointer: { x: 6, y: 30 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 6, y: 10, width: 14, height: 6, flipH: false, flipV: false });
-  });
-
-  it("B 핸들을 움직이면 위쪽 변은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "B",
-        pointer: { x: 30, y: 18 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 10, y: 10, width: 10, height: 9, flipH: false, flipV: false });
-  });
-
-  it("T 핸들을 움직이면 아래쪽 변은 고정된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "T",
-        pointer: { x: 30, y: 6 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 10, y: 6, width: 10, height: 10, flipH: false, flipV: false });
-  });
-
-  it("포인터가 고정된 가로 기준선을 넘으면 flipH가 토글된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "R",
-        pointer: { x: 6, y: 30 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 6, y: 10, width: 4, height: 6, flipH: true, flipV: false });
-  });
-
-  it("포인터가 고정된 두 기준선을 모두 넘으면 flipH와 flipV가 토글된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "LT",
-        pointer: { x: 24, y: 18 },
-        keepRatio: false,
-      }),
-    ).toEqual({ x: 20, y: 16, width: 5, height: 3, flipH: true, flipV: true });
-  });
-
-  it("시작 flip 상태를 기준으로 토글된다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "RB",
-        pointer: { x: 6, y: 6 },
-        keepRatio: false,
-        startFlipH: true,
-        startFlipV: true,
-      }),
-    ).toEqual({ x: 6, y: 6, width: 4, height: 4, flipH: false, flipV: false });
-  });
-
-  it("가로 crossing 경계에서 width는 1보다 작아지지 않는다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "R",
-        pointer: { x: 9, y: 30 },
-        keepRatio: false,
-      }),
-    ).toMatchObject({ width: 1, flipH: true });
-
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "L",
-        pointer: { x: 20, y: 30 },
-        keepRatio: false,
-      }),
-    ).toMatchObject({ width: 1, flipH: true });
-  });
-
-  it("세로 crossing 경계에서 height는 1보다 작아지지 않는다", () => {
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "B",
-        pointer: { x: 30, y: 9 },
-        keepRatio: false,
-      }),
-    ).toMatchObject({ height: 1, flipV: true });
-
-    expect(
-      resizeSelectionFromHandle({
-        startRect: { x: 10, y: 10, width: 10, height: 6 },
-        handle: "T",
-        pointer: { x: 30, y: 16 },
-        keepRatio: false,
-      }),
-    ).toMatchObject({ height: 1, flipV: true });
   });
 });

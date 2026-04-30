@@ -1,3 +1,17 @@
+/**
+ * 선택창 핸들 드래그 결과를 계산하는 순수 함수 모듈.
+ *
+ * SelectionTool의 PointerEvent, MobX selection 상태, worker 호출과 분리해서
+ * 드래그 시작 시점의 선택창(startRect), 잡은 핸들(handle), 현재 포인터 칸(pointer)만으로
+ * 다음 선택창의 x, y, width, height, flipH, flipV를 계산한다.
+ *
+ * 좌표계 규칙:
+ * - x/y는 선택창의 왼쪽 위 칸이다.
+ * - width/height는 inclusive 픽셀 칸 개수다.
+ * - 포인터가 위치한 칸은 결과 선택창 안에 반드시 포함된다.
+ * - 포인터가 고정 변/고정점을 넘어가면 선택창 위치를 정규화하고 flip 값을 토글한다.
+ * - keepRatio=true이면 포인터 칸을 포함한 뒤 시작 선택창 비율을 유지하도록 부족한 축을 확장한다.
+ */
 export type SelectionResizeHandle =
   | "LT"
   | "T"
