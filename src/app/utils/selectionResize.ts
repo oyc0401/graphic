@@ -48,25 +48,15 @@ export type SelectionResizeResult = SelectionResizeRect & {
   flipV: boolean;
 };
 
-type ResizeResultWithoutFlip = SelectionResizeRect;
+type InclusiveRange = {
+  start: number;
+  size: number;
+};
 
-function normalizeInclusiveRange(
-  a: number,
-  b: number,
-): Pick<SelectionResizeRect, "x" | "width"> {
+function inclusiveRange(a: number, b: number): InclusiveRange {
   return {
-    x: Math.min(a, b),
-    width: Math.abs(a - b) + 1,
-  };
-}
-
-function normalizeInclusiveVerticalRange(
-  a: number,
-  b: number,
-): Pick<SelectionResizeRect, "y" | "height"> {
-  return {
-    y: Math.min(a, b),
-    height: Math.abs(a - b) + 1,
+    start: Math.min(a, b),
+    size: Math.abs(a - b) + 1,
   };
 }
 
@@ -86,15 +76,15 @@ function getOppositeCornerAnchor(
 function rectFromInclusiveCorners(
   a: SelectionResizePoint,
   b: SelectionResizePoint,
-): ResizeResultWithoutFlip {
-  const horizontal = normalizeInclusiveRange(a.x, b.x);
-  const vertical = normalizeInclusiveVerticalRange(a.y, b.y);
+): SelectionResizeRect {
+  const horizontal = inclusiveRange(a.x, b.x);
+  const vertical = inclusiveRange(a.y, b.y);
 
   return {
-    x: horizontal.x,
-    y: vertical.y,
-    width: horizontal.width,
-    height: vertical.height,
+    x: horizontal.start,
+    y: vertical.start,
+    width: horizontal.size,
+    height: vertical.size,
   };
 }
 
@@ -136,30 +126,30 @@ function resizeEdgeFree(
   let crossedV = false;
 
   if (handle === "L") {
-    const horizontal = normalizeInclusiveRange(right, pointer.x);
-    x = horizontal.x;
-    width = horizontal.width;
+    const horizontal = inclusiveRange(right, pointer.x);
+    x = horizontal.start;
+    width = horizontal.size;
     crossedH = pointer.x > right;
   }
 
   if (handle === "R") {
-    const horizontal = normalizeInclusiveRange(startRect.x, pointer.x);
-    x = horizontal.x;
-    width = horizontal.width;
+    const horizontal = inclusiveRange(startRect.x, pointer.x);
+    x = horizontal.start;
+    width = horizontal.size;
     crossedH = pointer.x < startRect.x;
   }
 
   if (handle === "T") {
-    const vertical = normalizeInclusiveVerticalRange(bottom, pointer.y);
-    y = vertical.y;
-    height = vertical.height;
+    const vertical = inclusiveRange(bottom, pointer.y);
+    y = vertical.start;
+    height = vertical.size;
     crossedV = pointer.y > bottom;
   }
 
   if (handle === "B") {
-    const vertical = normalizeInclusiveVerticalRange(startRect.y, pointer.y);
-    y = vertical.y;
-    height = vertical.height;
+    const vertical = inclusiveRange(startRect.y, pointer.y);
+    y = vertical.start;
+    height = vertical.size;
     crossedV = pointer.y < startRect.y;
   }
 
