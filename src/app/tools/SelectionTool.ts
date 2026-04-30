@@ -121,7 +121,6 @@ export class SelectionTool {
         finalFlipV = this.start.flipV;
 
       const p = point;
-
       switch (this.activeHandle) {
         case "RB":
           w = p.x - x + 1;
@@ -214,6 +213,20 @@ export class SelectionTool {
           break;
       }
 
+      if (!e.shiftKey) {
+        // flip이 발생하면 좌표 정규화
+        if (w < 0) {
+          const newX = x + w;
+          x = newX;
+          w = -w;
+        }
+        if (h < 0) {
+          const newY = y + h;
+          y = newY;
+          h = -h;
+        }
+      }
+
       if (e.shiftKey) {
         const ratio = this.start.w / this.start.h;
 
@@ -229,30 +242,33 @@ export class SelectionTool {
         } else {
           // 코너 핸들: 기존 로직 유지
           const curRatio = w / h;
-          console.log("before:", w, h);
-          if (curRatio < ratio) w = Math.floor(h * ratio);
-          else h = Math.floor(w / ratio);
+          console.log("before:", x, y, w, h);
+          if (curRatio < ratio) {
+            w = Math.floor(h * ratio);
+          } else {
+            h = Math.floor(w / ratio);
+          }
         }
 
-        if (["L", "LT", "LB"].includes(this.activeHandle)) x = this.start.x + this.start.w - w;
-        if (["T", "LT", "RT"].includes(this.activeHandle)) y = this.start.y + this.start.h - h;
-        console.log("after:", w, h);
+      
+
+        console.log("after:", x, y, w, h);
+
+        // flip이 발생하면 좌표 정규화
+        if (w < 0) {
+          const newX = x + w;
+          x = newX;
+          w = Math.abs(w);
+        }
+        if (h < 0) {
+          const newY = y + h;
+          y = newY;
+          h = Math.abs(h);
+        }
       }
 
-      // flip이 발생하면 좌표 정규화
-      if (w < 0) {
-        const newX = x + w;
-        x = newX;
-        w = -w; // Math.abs(w) 대신 -w 사용
-      }
-      if (h < 0) {
-        const newY = y + h;
-        y = newY;
-        h = -h; // Math.abs(h) 대신 -h 사용
-      }
-
-      const min = 1,
-        max = paintConfig.maxSize;
+      const min = 1;
+      const max = paintConfig.maxSize;
       selection.setX(x);
       selection.setY(y);
       selection.setWidth(clamp(w, min, max));
