@@ -240,7 +240,7 @@ describe("keepRatio=true일 때", () => {
             startFlipH: true,
             startFlipV: true,
           }),
-        ).toEqual({ x: 2, y: 3, width: 5, height: 7, flipH: true, flipV: true });
+        ).toEqual({ x: 2, y: 1, width: 5, height: 7, flipH: true, flipV: true });
       });
 
       it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 왼쪽 안쪽으로 움직이면 비율 확장 높이는 기존 위쪽에 고정된다", () => {
@@ -253,7 +253,19 @@ describe("keepRatio=true일 때", () => {
             startFlipH: true,
             startFlipV: true,
           }),
-        ).toEqual({ x: 2, y: 3, width: 5, height: 7, flipH: true, flipV: true });
+        ).toEqual({ x: 2, y: 1, width: 5, height: 7, flipH: true, flipV: true });
+      });
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 왼쪽 안쪽으로 움직이면 비율 확장 높이는 기존 위쪽에 고정된다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 2, y: 8 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 6, width: 5, height: 7, flipH: true, flipV: false });
       });
     });
   });

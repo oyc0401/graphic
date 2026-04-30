@@ -54,6 +54,13 @@ type AxisResizeResult = {
   flipped: boolean;
 };
 
+type RatioResizeState = SelectionResizeRect & {
+  crossedH: boolean;
+  crossedV: boolean;
+  flipH: boolean;
+  flipV: boolean;
+};
+
 function resizeAxisFromStartEdge(
   fixedStart: number,
   pointerPosition: number,
@@ -159,99 +166,117 @@ function resizeFree(input: SelectionResizeInput): SelectionResizeResult {
   };
 }
 
-function resizeWithRatio(
-  input: SelectionResizeInput,
-  free: SelectionResizeResult,
-): SelectionResizeResult {
-  const { startRect, handle, pointer } = input;
-  const right = startRect.x + startRect.width - 1;
-  const bottom = startRect.y + startRect.height - 1;
-  const ratio = startRect.width / startRect.height;
-  const startFlipH = input.startFlipH ?? false;
-  const startFlipV = input.startFlipV ?? false;
-  const crossedH = free.flipH !== startFlipH;
-  const crossedV = free.flipV !== startFlipV;
+function ceilHeightForWidth(width: number, ratio: number): number {
+  return Math.max(1, Math.ceil(width / ratio));
+}
 
-  let { x, y, width, height } = free;
+function ceilWidthForHeight(height: number, ratio: number): number {
+  return Math.max(1, Math.ceil(height * ratio));
+}
 
-  if (handle === "L" || handle === "R") {
-    height = Math.max(1, Math.ceil(width / ratio));
-  }
-
-  if (handle === "T" || handle === "B") {
-    width = Math.max(1, Math.ceil(height * ratio));
-  }
-
-  if (handle === "LT" && startFlipH && startFlipV && !crossedH && !crossedV) {
-    if (height > Math.ceil(width / ratio)) {
-      width = Math.max(1, Math.ceil(height * ratio));
-      x = right - width + 1;
-    } else {
-      height = Math.max(1, Math.ceil(width / ratio));
-      if (pointer.y >= startRect.y && pointer.x < startRect.x) {
-        y = startRect.y;
-      }
-    }
+function fitCornerSizeToRatio(
+  width: number,
+  height: number,
+  ratio: number,
+): Pick<SelectionResizeRect, "width" | "height"> {
+  if (height > ceilHeightForWidth(width, ratio)) {
     return {
-      x,
-      y,
-      width,
+      width: ceilWidthForHeight(height, ratio),
       height,
-      flipH: free.flipH,
-      flipV: free.flipV,
     };
   }
 
+  return {
+    width,
+    height: ceilHeightForWidth(width, ratio),
+  };
+}
+
+function crossedBottomMinHeight(
+  input: SelectionResizeInput,
+  ratio: number,
+): number {
+  const baseHeight = input.startRect.y - input.pointer.y + 1;
+
+  if (ratio === 1) {
+    return baseHeight;
+  }
+
+  return baseHeight + 1;
+}
+
+function resizeInitiallyFlippedLtWithRatio(
+  input: SelectionResizeInput,
+  state: RatioResizeState,
+  ratio: number,
+): SelectionResizeResult {
+  const right = input.startRect.x + input.startRect.width - 1;
+  const bottom = input.startRect.y + input.startRect.height - 1;
+  let { x, y, width, height } = state;
+  const fitted = fitCornerSizeToRatio(width, height, ratio);
+
+  if (fitted.width > width) {
+    x = right - fitted.width + 1;
+  }
+
+  if (fitted.height > height) {
+    y = bottom - fitted.height + 2;
+  }
+
+  width = fitted.width;
+  height = fitted.height;
+
+  return {
+    x,
+    y,
+    width,
+    height,
+    flipH: state.flipH,
+    flipV: state.flipV,
+  };
+}
+
+function placeRatioResizedRect(
+  input: SelectionResizeInput,
+  state: RatioResizeState,
+): SelectionResizeResult {
+  const { startRect, handle, pointer } = input;
+  const right = startRect.x + startRect.width - 1;
+  const ratio = startRect.width / startRect.height;
+  let { x, y, width, height } = state;
+
   if (handle.length === 2) {
-    if (width / height < ratio) {
-      width = Math.max(1, Math.ceil(height * ratio));
-    } else {
-      height = Math.max(1, Math.ceil(width / ratio));
+    const fitted = fitCornerSizeToRatio(width, height, ratio);
+    width = fitted.width;
+    height = fitted.height;
+
+    if (handle.includes("L") && !state.crossedH) {
+      x = right - width + 1;
     }
 
-    if (handle.includes("L") && !startFlipH) {
-      x = free.flipH ? right + 1 : right - width + 1;
-    }
-    if (handle.includes("T") && !startFlipV) {
-      y = free.flipV ? bottom + 1 : bottom - height + 1;
+    if (handle.includes("T") && !state.crossedV) {
+      const bottom = startRect.y + startRect.height - 1;
+      y = bottom - height + 1;
     }
   }
 
-  if (crossedH) {
+  if (state.crossedH) {
     if (handle.includes("R")) {
-      x = pointer.x;
-      width = startRect.x - pointer.x + 1;
+      x = startRect.x - width + 1;
     } else if (handle.includes("L")) {
-      x = right + 1;
-      width = pointer.x - right + 1;
-    }
-  }
-
-  if (crossedV) {
-    if (handle.includes("B")) {
-      y = pointer.y;
-      height = startRect.y - pointer.y + (ratio === 1 ? 1 : 2);
-    } else if (handle.includes("T")) {
-      y = bottom + 1;
-      height = pointer.y - bottom + 1;
-    }
-  }
-
-  if (input.keepRatio && (crossedH || crossedV)) {
-    height = Math.max(height, Math.ceil(width / ratio));
-    width = Math.max(width, Math.ceil(height * ratio));
-
-    if (crossedH && handle.includes("L")) {
       x = right;
     }
-    if (crossedV && handle.includes("T")) {
-      y = pointer.y - height + 2;
-    }
-    if (crossedH && handle.includes("R")) {
-      x = startRect.x - width + 1;
-    }
-    if (crossedV && handle.includes("B")) {
+  }
+
+  if (state.crossedV) {
+    if (handle.includes("B")) {
       y = startRect.y - height + 1;
+    } else if (handle.includes("T")) {
+      if ((input.startFlipV ?? false) && handle === "LT") {
+        y = startRect.y + startRect.height - 1;
+      } else {
+        y = pointer.y - height + 2;
+      }
     }
   }
 
@@ -260,9 +285,72 @@ function resizeWithRatio(
     y,
     width,
     height,
-    flipH: free.flipH,
-    flipV: free.flipV,
+    flipH: state.flipH,
+    flipV: state.flipV,
   };
+}
+
+function resizeWithRatio(
+  input: SelectionResizeInput,
+  free: SelectionResizeResult,
+): SelectionResizeResult {
+  const { startRect, handle } = input;
+  const ratio = startRect.width / startRect.height;
+  const startFlipH = input.startFlipH ?? false;
+  const startFlipV = input.startFlipV ?? false;
+  const crossedH = free.flipH !== startFlipH;
+  const crossedV = free.flipV !== startFlipV;
+
+  const state: RatioResizeState = {
+    ...free,
+    crossedH,
+    crossedV,
+  };
+
+  if (handle === "L" || handle === "R") {
+    return {
+      x: state.x,
+      y: state.y,
+      width: state.width,
+      height: ceilHeightForWidth(state.width, ratio),
+      flipH: state.flipH,
+      flipV: state.flipV,
+    };
+  }
+
+  if (handle === "T" || handle === "B") {
+    return {
+      x: state.x,
+      y: state.y,
+      width: ceilWidthForHeight(state.height, ratio),
+      height: state.height,
+      flipH: state.flipH,
+      flipV: state.flipV,
+    };
+  }
+
+  if (handle === "LT" && startFlipH && startFlipV && !crossedH && !crossedV) {
+    return resizeInitiallyFlippedLtWithRatio(input, state, ratio);
+  }
+
+  if (crossedH) {
+    if (handle.includes("R")) {
+      state.width = startRect.x - input.pointer.x + 1;
+    } else if (handle.includes("L")) {
+      state.width = input.pointer.x - (startRect.x + startRect.width - 1) + 1;
+    }
+  }
+
+  if (crossedV) {
+    if (handle.includes("B")) {
+      state.height = crossedBottomMinHeight(input, ratio);
+    } else if (handle.includes("T")) {
+      const bottom = startRect.y + startRect.height - 1;
+      state.height = input.pointer.y - bottom + 1;
+    }
+  }
+
+  return placeRatioResizedRect(input, state);
 }
 
 export function resizeSelectionFromHandle(
