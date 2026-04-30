@@ -148,10 +148,14 @@ function resizeWithRatio(
   input: SelectionResizeInput,
   free: SelectionResizeResult,
 ): SelectionResizeResult {
-  const { startRect, handle } = input;
+  const { startRect, handle, pointer } = input;
   const right = startRect.x + startRect.width - 1;
   const bottom = startRect.y + startRect.height - 1;
   const ratio = startRect.width / startRect.height;
+  const startFlipH = input.startFlipH ?? false;
+  const startFlipV = input.startFlipV ?? false;
+  const crossedH = free.flipH !== startFlipH;
+  const crossedV = free.flipV !== startFlipV;
 
   let { x, y, width, height } = free;
 
@@ -175,6 +179,47 @@ function resizeWithRatio(
     }
     if (handle.includes("T")) {
       y = free.flipV ? bottom + 1 : bottom - height + 1;
+    }
+  }
+
+  if (crossedH) {
+    if (handle.includes("R")) {
+      x = pointer.x;
+      width = startRect.x - pointer.x + 2;
+    } else if (handle.includes("L")) {
+      x = right + 1;
+      width = pointer.x - right + 2;
+    }
+  }
+
+  if (crossedV) {
+    if (handle.includes("B")) {
+      y = pointer.y;
+      height = startRect.y - pointer.y + 2;
+    } else if (handle.includes("T")) {
+      y = bottom + 1;
+      height = pointer.y - bottom + 2;
+    }
+  }
+
+  if (input.keepRatio && (crossedH || crossedV)) {
+    if (width / height < ratio) {
+      width = Math.max(1, Math.ceil(height * ratio));
+    } else {
+      height = Math.max(1, Math.ceil(width / ratio));
+    }
+
+    if (crossedH && handle.includes("L")) {
+      x = right + 1;
+    }
+    if (crossedV && handle.includes("T")) {
+      y = bottom + 1;
+    }
+    if (crossedH && handle.includes("R")) {
+      x = startRect.x - width + 2;
+    }
+    if (crossedV && handle.includes("B")) {
+      y = startRect.y - height + 2;
     }
   }
 

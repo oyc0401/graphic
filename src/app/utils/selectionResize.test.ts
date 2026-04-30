@@ -778,4 +778,19 @@ describe("keepRatio=true일 때", () => {
       });
     });
   });
+
+  describe("도형을 뒤집으면 flip이 된다. (기본 상태)", () => {
+    describe("RB 핸들", () => {
+      it("정사각형에서 포인터가 기존 왼쪽 위 끝을 지나가면 이전 시작 칸을 포함하면서 flipH와 flipV가 켜진다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 5, height: 5 },
+            handle: "RB",
+            pointer: { x: 0, y: 1 },
+            keepRatio: true,
+          }),
+        ).toEqual({ x: 0, y: 0, width: 4, height: 4, flipH: true, flipV: true });
+      });
+    });
+  });
 });
