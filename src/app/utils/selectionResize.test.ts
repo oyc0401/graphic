@@ -127,6 +127,32 @@ describe("keepRatio=false일 때", () => {
 
 describe("keepRatio=true일 때", () => {
   describe("포인터가 위치한 칸을 포함하면서 시작 선택창의 비율을 유지해야 한다", () => {
+    describe("R 핸들", () => {
+      it("너비가 늘어나면 세로 중심을 유지하면서 높이도 비율에 맞게 늘어난다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 6, height: 3 },
+            handle: "R",
+            pointer: { x: 9, y: 3 },
+            keepRatio: true,
+          }),
+        ).toEqual({ x: 2, y: 2, width: 8, height: 4, flipH: false, flipV: false });
+      });
+    });
+
+    describe("B 핸들", () => {
+      it("높이가 늘어나면 가로 중심을 유지하면서 너비도 비율에 맞게 늘어난다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 2, y: 2, width: 6, height: 3 },
+            handle: "B",
+            pointer: { x: 4, y: 6 },
+            keepRatio: true,
+          }),
+        ).toEqual({ x: 0, y: 2, width: 10, height: 5, flipH: false, flipV: false });
+      });
+    });
+
     describe("RB 핸들", () => {
       it("정사각형에서 포인터가 안쪽 칸으로 이동하면 포인터를 포함하면서 정사각형 비율을 유지한다", () => {
         expect(

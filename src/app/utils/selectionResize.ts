@@ -193,6 +193,12 @@ function ceilWidthForHeight(height: number, ratio: number): number {
   return Math.max(1, Math.ceil(height * ratio));
 }
 
+function centeredStart(start: number, size: number, nextSize: number): number {
+  const center = start + (size - 1) / 2;
+
+  return Math.round(center - (nextSize - 1) / 2);
+}
+
 function fitCornerSizeToRatio(
   width: number,
   height: number,
@@ -242,21 +248,25 @@ function resizeWithRatio(
   const ratio = startRect.width / startRect.height;
 
   if (handle === "L" || handle === "R") {
+    const height = ceilHeightForWidth(free.width, ratio);
+
     return {
       x: free.x,
-      y: free.y,
+      y: centeredStart(startRect.y, startRect.height, height),
       width: free.width,
-      height: ceilHeightForWidth(free.width, ratio),
+      height,
       flipH: free.flipH,
       flipV: free.flipV,
     };
   }
 
   if (handle === "T" || handle === "B") {
+    const width = ceilWidthForHeight(free.height, ratio);
+
     return {
-      x: free.x,
+      x: centeredStart(startRect.x, startRect.width, width),
       y: free.y,
-      width: ceilWidthForHeight(free.height, ratio),
+      width,
       height: free.height,
       flipH: free.flipH,
       flipV: free.flipV,
