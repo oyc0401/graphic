@@ -182,6 +182,26 @@ function resizeWithRatio(
     width = Math.max(1, Math.ceil(height * ratio));
   }
 
+  if (handle === "LT" && startFlipH && startFlipV && !crossedH && !crossedV) {
+    if (height > Math.ceil(width / ratio)) {
+      width = Math.max(1, Math.ceil(height * ratio));
+      x = right - width + 1;
+    } else {
+      height = Math.max(1, Math.ceil(width / ratio));
+      if (pointer.y >= startRect.y && pointer.x < startRect.x) {
+        y = startRect.y;
+      }
+    }
+    return {
+      x,
+      y,
+      width,
+      height,
+      flipH: free.flipH,
+      flipV: free.flipV,
+    };
+  }
+
   if (handle.length === 2) {
     if (width / height < ratio) {
       width = Math.max(1, Math.ceil(height * ratio));
@@ -189,10 +209,10 @@ function resizeWithRatio(
       height = Math.max(1, Math.ceil(width / ratio));
     }
 
-    if (handle.includes("L")) {
+    if (handle.includes("L") && !startFlipH) {
       x = free.flipH ? right + 1 : right - width + 1;
     }
-    if (handle.includes("T")) {
+    if (handle.includes("T") && !startFlipV) {
       y = free.flipV ? bottom + 1 : bottom - height + 1;
     }
   }

@@ -189,4 +189,72 @@ describe("keepRatio=true일 때", () => {
       });
     });
   });
+
+  describe("도형을 뒤집으면 flip이 된다. (초기 flip 상태)", () => {
+    describe("LT 핸들", () => {
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 제자리에 두면 위치와 크기와 flip이 유지된다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 4, y: 3 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 4, y: 3, width: 3, height: 4, flipH: true, flipV: true });
+      });
+
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 안쪽으로 조금 움직이면 비율을 유지하며 줄어든다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 5, y: 4 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 5, y: 4, width: 2, height: 3, flipH: true, flipV: true });
+      });
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 안쪽으로 조금 움직이면 비율을 유지하며 줄어든다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 4, y: 1 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 1, width: 5, height: 6, flipH: true, flipV: true });
+      });
+
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 왼쪽으로 늘리면 올림 정책으로 비율을 유지한다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 2, y: 3 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 3, width: 5, height: 7, flipH: true, flipV: true });
+      });
+
+      it("flipH와 flipV가 켜진 상태에서 쉬프트를 누르고 왼쪽 안쪽으로 움직이면 비율 확장 높이는 기존 위쪽에 고정된다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 4, y: 3, width: 3, height: 4 },
+            handle: "LT",
+            pointer: { x: 2, y: 4 },
+            keepRatio: true,
+            startFlipH: true,
+            startFlipV: true,
+          }),
+        ).toEqual({ x: 2, y: 3, width: 5, height: 7, flipH: true, flipV: true });
+      });
+    });
+  });
 });
