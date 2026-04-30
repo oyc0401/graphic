@@ -192,99 +192,32 @@ function fitCornerSizeToRatio(
   };
 }
 
-function crossedBottomMinHeight(
-  input: SelectionResizeInput,
-  ratio: number,
-): number {
-  const baseHeight = input.startRect.y - input.pointer.y + 1;
-
-  if (ratio === 1) {
-    return baseHeight;
-  }
-
-  return baseHeight + 1;
-}
-
-function resizeInitiallyFlippedLtWithRatio(
-  input: SelectionResizeInput,
-  state: RatioResizeState,
-  ratio: number,
-): SelectionResizeResult {
-  const right = input.startRect.x + input.startRect.width - 1;
-  const bottom = input.startRect.y + input.startRect.height - 1;
-  let { x, y, width, height } = state;
-  const fitted = fitCornerSizeToRatio(width, height, ratio);
-
-  if (fitted.width > width) {
-    x = right - fitted.width + 1;
-  }
-
-  if (fitted.height > height) {
-    y = bottom - fitted.height + 2;
-  }
-
-  width = fitted.width;
-  height = fitted.height;
-
-  return {
-    x,
-    y,
-    width,
-    height,
-    flipH: state.flipH,
-    flipV: state.flipV,
-  };
-}
-
-function placeRatioResizedRect(
+function resizeCornerWithRatio(
   input: SelectionResizeInput,
   state: RatioResizeState,
 ): SelectionResizeResult {
   const { startRect, handle, pointer } = input;
   const right = startRect.x + startRect.width - 1;
+  const bottom = startRect.y + startRect.height - 1;
   const ratio = startRect.width / startRect.height;
-  let { x, y, width, height } = state;
-
-  if (handle.length === 2) {
-    const fitted = fitCornerSizeToRatio(width, height, ratio);
-    width = fitted.width;
-    height = fitted.height;
-
-    if (handle.includes("L") && !state.crossedH) {
-      x = right - width + 1;
-    }
-
-    if (handle.includes("T") && !state.crossedV) {
-      const bottom = startRect.y + startRect.height - 1;
-      y = bottom - height + 1;
-    }
-  }
-
-  if (state.crossedH) {
-    if (handle.includes("R")) {
-      x = startRect.x - width + 1;
-    } else if (handle.includes("L")) {
-      x = right;
-    }
-  }
-
-  if (state.crossedV) {
-    if (handle.includes("B")) {
-      y = startRect.y - height + 1;
-    } else if (handle.includes("T")) {
-      if ((input.startFlipV ?? false) && handle === "LT") {
-        y = startRect.y + startRect.height - 1;
-      } else {
-        y = pointer.y - height + 2;
-      }
-    }
-  }
+  const anchor = {
+    x: handle.includes("L") ? right : startRect.x,
+    y: handle.includes("T") ? bottom : startRect.y,
+  };
+  const rawWidth = Math.abs(pointer.x - anchor.x) + 1;
+  const rawHeight =
+    handle.includes("B") && pointer.y < anchor.y && ratio !== 1
+      ? Math.abs(pointer.y - anchor.y) + 2
+      : Math.abs(pointer.y - anchor.y) + 1;
+  const fitted = fitCornerSizeToRatio(rawWidth, rawHeight, ratio);
+  const x = pointer.x < anchor.x ? anchor.x - fitted.width + 1 : anchor.x;
+  const y = pointer.y < anchor.y ? anchor.y - fitted.height + 1 : anchor.y;
 
   return {
     x,
     y,
-    width,
-    height,
+    width: fitted.width,
+    height: fitted.height,
     flipH: state.flipH,
     flipV: state.flipV,
   };
@@ -329,28 +262,11 @@ function resizeWithRatio(
     };
   }
 
-  if (handle === "LT" && startFlipH && startFlipV && !crossedH && !crossedV) {
-    return resizeInitiallyFlippedLtWithRatio(input, state, ratio);
+  if (handle.length === 2) {
+    return resizeCornerWithRatio(input, state);
   }
 
-  if (crossedH) {
-    if (handle.includes("R")) {
-      state.width = startRect.x - input.pointer.x + 1;
-    } else if (handle.includes("L")) {
-      state.width = input.pointer.x - (startRect.x + startRect.width - 1) + 1;
-    }
-  }
-
-  if (crossedV) {
-    if (handle.includes("B")) {
-      state.height = crossedBottomMinHeight(input, ratio);
-    } else if (handle.includes("T")) {
-      const bottom = startRect.y + startRect.height - 1;
-      state.height = input.pointer.y - bottom + 1;
-    }
-  }
-
-  return placeRatioResizedRect(input, state);
+  return state;
 }
 
 export function resizeSelectionFromHandle(
