@@ -1,12 +1,18 @@
 // tools/SelectionTool.ts
-import { paintState } from "../paintState";
-import { selection, beforeSelectionPos, applySelection } from "../selection";
-import { getSelectionHandleAtPoint, HandleType } from "../utils/selectionHitTest";
-import { to_pixel_canvas_coord } from "../position";
-import { getLayerWorker } from "../worker/workerPool";
-import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
-import { Pointer } from "@/core/types";
+import { paintState } from "../paintState";
+import { to_pixel_canvas_coord } from "../position";
+import { applySelection, beforeSelectionPos, selection } from "../selection";
+import { clamp } from "../utils/math";
+import {
+  getSelectionHandleAtPoint,
+  type HandleType,
+} from "../utils/selectionHitTest";
+import {
+  resizeSelectionFromHandle,
+  type SelectionResizeHandle,
+} from "../utils/selectionResize";
+import { getLayerWorker } from "../worker/workerPool";
 
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
@@ -15,12 +21,9 @@ export class SelectionTool {
 
   private startTime;
 
-  // // 이건 exclusive 좌표계를 사용.
-  private startPoint: Pointer; // 좌상단
-  private endPoint: Pointer; // 우하단
-
   down(e: PointerEvent) {
-    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH") return;
+    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
+      return;
     if (!paintState.pointerdown) return;
 
     // console.log("point!!:", this.startPoint, this.endPoint);
@@ -116,174 +119,34 @@ export class SelectionTool {
         selection.flipV,
       );
     } else if (this.activeHandle && this.activeHandle !== "OUTSIDE") {
-      let { x, y, w, h } = this.start;
-      let finalFlipH = this.start.flipH,
-        finalFlipV = this.start.flipV;
-
-      const p = point;
-      switch (this.activeHandle) {
-        case "RB":
-          w = p.x - x + 1;
-          if (w <= 0) w = p.x - x;
-          h = p.y - y + 1;
-          if (h <= 0) h = p.y - y;
-
-          if (w < 0) finalFlipH = !this.start.flipH;
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-
-        case "RT":
-          h = y + h - p.y;
-          y = p.y;
-          w = p.x - x + 1;
-          if (w <= 0) w = p.x - x;
-          if (h <= 0) {
-            h = this.start.y + this.start.h - p.y - 1;
-            y = p.y + 1;
-          }
-          if (w < 0) finalFlipH = !this.start.flipH;
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-
-        case "LB":
-          w = x + w - p.x;
-          x = p.x;
-          h = p.y - y + 1;
-          if (w <= 0) {
-            w = this.start.x + this.start.w - p.x - 1;
-            x = p.x + 1;
-          }
-          if (h <= 0) h = p.y - y;
-          if (w < 0) finalFlipH = !this.start.flipH;
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-
-        case "LT":
-          w = x + w - p.x;
-          h = y + h - p.y;
-          x = p.x;
-          y = p.y;
-
-          if (w <= 0) {
-            w = this.start.x + this.start.w - p.x - 1;
-            x = p.x + 1;
-          }
-          if (h <= 0) {
-            h = this.start.y + this.start.h - p.y - 1;
-            y = p.y + 1;
-          }
-          if (w < 0) finalFlipH = !this.start.flipH;
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-
-        case "R":
-          w = p.x - x + 1;
-          if (w <= 0) w = p.x - x;
-
-          if (w < 0) finalFlipH = !this.start.flipH;
-
-          break;
-
-        case "L":
-          w = this.start.x + this.start.w - p.x;
-          x = p.x;
-          if (w <= 0) {
-            w = this.start.x + this.start.w - p.x - 1;
-            x = p.x + 1;
-          }
-
-          if (w < 0) finalFlipH = !this.start.flipH;
-          break;
-
-        case "B":
-          h = p.y - y + 1;
-          if (h <= 0) h = p.y - y;
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-
-        case "T":
-          h = this.start.y + this.start.h - p.y;
-          y = p.y;
-
-          if (h <= 0) {
-            h = this.start.y + this.start.h - p.y - 1;
-            y = p.y + 1;
-          }
-          if (h < 0) finalFlipV = !this.start.flipV;
-          break;
-      }
-
-      if (!e.shiftKey) {
-        // flip이 발생하면 좌표 정규화
-        if (w < 0) {
-          const newX = x + w;
-          x = newX;
-          w = -w;
-        }
-        if (h < 0) {
-          const newY = y + h;
-          y = newY;
-          h = -h;
-        }
-      }
-
-      if (e.shiftKey) {
-        const ratio = this.start.w / this.start.h;
-
-        if (["L", "R", "T", "B"].includes(this.activeHandle)) {
-          // LRTB 핸들: 변경된 방향에 따라 다른 방향도 비례적으로 조정
-          if (["L", "R"].includes(this.activeHandle)) {
-            // L, R 핸들: width 변경에 따라 height 조정
-            h = Math.floor(Math.abs(w) / ratio);
-          } else if (["T", "B"].includes(this.activeHandle)) {
-            // T, B 핸들: height 변경에 따라 width 조정
-            w = Math.floor(Math.abs(h) * ratio);
-          }
-        } else {
-          // 코너 핸들: 기존 로직 유지
-          const curRatio = w / h;
-          console.log("before:", x, y, w, h);
-          if (curRatio < ratio) {
-            w = Math.floor(h * ratio);
-          } else {
-            h = Math.floor(w / ratio);
-          }
-        }
-
-      
-
-        console.log("after:", x, y, w, h);
-
-        // flip이 발생하면 좌표 정규화
-        if (w < 0) {
-          const newX = x + w;
-          x = newX;
-          w = Math.abs(w);
-        }
-        if (h < 0) {
-          const newY = y + h;
-          y = newY;
-          h = Math.abs(h);
-        }
-      }
-
+      const resized = resizeSelectionFromHandle({
+        startRect: {
+          x: this.start.x,
+          y: this.start.y,
+          width: this.start.w,
+          height: this.start.h,
+        },
+        handle: this.activeHandle as SelectionResizeHandle,
+        pointer: point,
+        keepRatio: e.shiftKey,
+        startFlipH: this.start.flipH,
+        startFlipV: this.start.flipV,
+      });
       const min = 1;
       const max = paintConfig.maxSize;
-      selection.setX(x);
-      selection.setY(y);
-      selection.setWidth(clamp(w, min, max));
-      selection.setHeight(clamp(h, min, max));
-
-      // flip 상태 업데이트
-      selection.setFlip(finalFlipH, finalFlipV);
+      selection.setX(resized.x);
+      selection.setY(resized.y);
+      selection.setWidth(clamp(resized.width, min, max));
+      selection.setHeight(clamp(resized.height, min, max));
+      selection.setFlip(resized.flipH, resized.flipV);
 
       getLayerWorker().moveSelection(
         selection.x,
         selection.y,
         selection.width,
         selection.height,
-        finalFlipH,
-        finalFlipV,
+        resized.flipH,
+        resized.flipV,
       );
     }
   }
@@ -297,8 +160,8 @@ export class SelectionTool {
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
     }
-    if (!paintState.pointerdown && this.activeHandle == "OUTSIDE") {
-      let now = performance.now();
+    if (!paintState.pointerdown && this.activeHandle === "OUTSIDE") {
+      const now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");
 
@@ -307,7 +170,7 @@ export class SelectionTool {
       }
     }
 
-    if (this.activeHandle != "OUTSIDE") {
+    if (this.activeHandle !== "OUTSIDE") {
       const worker = getLayerWorker();
       worker.endMove();
     }
