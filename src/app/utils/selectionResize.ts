@@ -214,9 +214,8 @@ function resizeCornerWithRatio(
   const { startRect, handle, pointer } = input;
   const ratio = startRect.width / startRect.height;
   const anchor = getOppositeCornerAnchor(startRect, handle);
-  const rawWidth = Math.abs(pointer.x - anchor.x) + 1;
-  const rawHeight = Math.abs(pointer.y - anchor.y) + 1;
-  const fitted = fitCornerSizeToRatio(rawWidth, rawHeight, ratio);
+  const raw = rectFromInclusiveCorners(anchor, pointer);
+  const fitted = fitCornerSizeToRatio(raw.width, raw.height, ratio);
   const x = pointer.x < anchor.x ? anchor.x - fitted.width + 1 : anchor.x;
   const y = pointer.y < anchor.y ? anchor.y - fitted.height + 1 : anchor.y;
 
