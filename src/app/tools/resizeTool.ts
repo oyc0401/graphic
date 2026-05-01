@@ -1,14 +1,16 @@
 // tools/SelectionTool.ts
 import { paintState } from "../paintState";
-import { selection, beforeSelectionPos, setBefore } from "../selection";
+import { selection, setBefore } from "../selection";
 import {
   getSelectionHandleAtPoint,
   HandleType,
 } from "../utils/selectionHitTest";
 import {
+  resizeSelectionFromHandle,
+  type SelectionResizeHandle,
+} from "../utils/selectionResize";
+import {
   changeCanvasSize,
-  getPixelRatio,
-  position,
   to_pixel_canvas_coord,
 } from "../position";
 
@@ -100,82 +102,33 @@ export class ResizeTool {
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     if (this.activeHandle) {
-      let { x, y, w, h } = this.start;
-      const p = point;
-
-      switch (this.activeHandle) {
-        case "RB":
-          w = p.x - x + 1;
-          h = p.y - y + 1;
-          break;
-
-        case "RT":
-          h = y + h - p.y;
-          y = p.y;
-          w = p.x - x + 1;
-          break;
-
-        case "LB":
-          w = x + w - p.x;
-          x = p.x;
-          h = p.y - y + 1;
-          break;
-
-        case "LT":
-          w = x + w - p.x;
-          h = y + h - p.y;
-          x = p.x;
-          y = p.y;
-          break;
-
-        case "R":
-          w = p.x - x + 1;
-          break;
-
-        case "L":
-          w = x + w - p.x;
-          x = p.x;
-          break;
-
-        case "B":
-          h = p.y - y + 1;
-          break;
-
-        case "T":
-          h = y + h - p.y;
-          y = p.y;
-          break;
-      }
-
-      if (e.shiftKey) {
-        const ratio = this.start.w / this.start.h;
-        const curRatio = w / h;
-        if (curRatio < ratio) w = Math.floor(h * ratio);
-        else h = Math.floor(w / ratio);
-        if (["L", "LT", "LB"].includes(this.activeHandle))
-          x = this.start.x + this.start.w - w;
-        if (["T", "LT", "RT"].includes(this.activeHandle))
-          y = this.start.y + this.start.h - h;
-      }
-
       const min = 1,
         max = paintConfig.maxSize;
-      selection.setX(
-        clamp(
-          x,
-          beforeSelectionPos.x + beforeSelectionPos.width - max,
-          beforeSelectionPos.x + beforeSelectionPos.width - min,
-        ),
-      );
-      selection.setY(
-        clamp(
-          y,
-          beforeSelectionPos.y + beforeSelectionPos.height - max,
-          beforeSelectionPos.y + beforeSelectionPos.height - min,
-        ),
-      );
-      selection.setWidth(clamp(w, min, max));
-      selection.setHeight(clamp(h, min, max));
+      const resized = resizeSelectionFromHandle({
+        startRect: {
+          x: this.start.x,
+          y: this.start.y,
+          width: this.start.w,
+          height: this.start.h,
+        },
+        handle: this.activeHandle as SelectionResizeHandle,
+        pointer: point,
+        keepRatio: e.shiftKey,
+        allowFlip: false,
+      });
+      const width = clamp(resized.width, min, max);
+      const height = clamp(resized.height, min, max);
+      const x = this.activeHandle.includes("L")
+        ? this.start.x + this.start.w - width
+        : resized.x;
+      const y = this.activeHandle.includes("T")
+        ? this.start.y + this.start.h - height
+        : resized.y;
+
+      selection.setX(x);
+      selection.setY(y);
+      selection.setWidth(width);
+      selection.setHeight(height);
     }
   }
 

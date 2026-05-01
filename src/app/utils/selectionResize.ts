@@ -10,6 +10,7 @@
  * - width/height는 inclusive 픽셀 칸 개수다.
  * - 포인터가 위치한 칸은 결과 선택창 안에 반드시 포함된다.
  * - 포인터가 고정 변/고정점을 넘어가면 선택창 위치를 정규화하고 flip 값을 토글한다.
+ * - allowFlip=false이면 포인터를 고정 변/고정점까지만 허용해 flip을 막는다.
  * - keepRatio=true이면 포인터 칸을 포함한 뒤 시작 선택창 비율을 유지하도록 부족한 축을 확장한다.
  */
 export type SelectionResizeHandle =
@@ -39,6 +40,7 @@ export type SelectionResizeInput = {
   handle: SelectionResizeHandle;
   pointer: SelectionResizePoint;
   keepRatio: boolean;
+  allowFlip?: boolean;
   startFlipH?: boolean;
   startFlipV?: boolean;
 };
@@ -86,6 +88,34 @@ function rectFromInclusiveCorners(
     width: horizontal.size,
     height: vertical.size,
   };
+}
+
+function clampPointerToPreventFlip(
+  input: SelectionResizeInput,
+): SelectionResizePoint {
+  const { startRect, handle, pointer } = input;
+  const right = startRect.x + startRect.width - 1;
+  const bottom = startRect.y + startRect.height - 1;
+  let x = pointer.x;
+  let y = pointer.y;
+
+  if (handle.includes("L")) {
+    x = Math.min(x, right);
+  }
+
+  if (handle.includes("R")) {
+    x = Math.max(x, startRect.x);
+  }
+
+  if (handle.includes("T")) {
+    y = Math.min(y, bottom);
+  }
+
+  if (handle.includes("B")) {
+    y = Math.max(y, startRect.y);
+  }
+
+  return { x, y };
 }
 
 function resizeCornerFree(
@@ -272,11 +302,15 @@ function resizeWithRatio(
 export function resizeSelectionFromHandle(
   input: SelectionResizeInput,
 ): SelectionResizeResult {
-  const free = resizeFree(input);
+  const resizeInput =
+    input.allowFlip === false
+      ? { ...input, pointer: clampPointerToPreventFlip(input) }
+      : input;
+  const free = resizeFree(resizeInput);
 
-  if (!input.keepRatio) {
+  if (!resizeInput.keepRatio) {
     return free;
   }
 
-  return resizeWithRatio(input, free);
+  return resizeWithRatio(resizeInput, free);
 }

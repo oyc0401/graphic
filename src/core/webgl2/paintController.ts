@@ -54,14 +54,7 @@ export class WebGL2Controller {
     paint.setCameraPosition(x, y, magnification);
   }
   resizeLayer(px: number, py: number, width: number, height: number): void {
-    const diffH = paintOptions.height - height;
-    let newY;
-
-    if (py !== 0) {
-      newY = 0;
-    } else {
-      newY = py + diffH;
-    }
+    const newY = paintOptions.height - height - py;
     paint.resizeLayer(px, newY, width, height);
   }
   resizeScreenSize(screenWidth: number, screenHeight: number): void {

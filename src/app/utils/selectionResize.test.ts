@@ -123,6 +123,22 @@ describe("keepRatio=false일 때", () => {
       });
     });
   });
+
+  describe("allowFlip=false일 때", () => {
+    describe("RB 핸들", () => {
+      it("포인터가 반대 anchor를 지나가도 flip하지 않고 1칸 크기에서 멈춘다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 6, y: 6, width: 5, height: 5 },
+            handle: "RB",
+            pointer: { x: 3, y: 3 },
+            keepRatio: false,
+            allowFlip: false,
+          }),
+        ).toEqual({ x: 6, y: 6, width: 1, height: 1, flipH: false, flipV: false });
+      });
+    });
+  });
 });
 
 describe("keepRatio=true일 때", () => {
@@ -307,6 +323,22 @@ describe("keepRatio=true일 때", () => {
             startFlipV: true,
           }),
         ).toEqual({ x: 4, y: 6, width: 5, height: 7, flipH: true, flipV: false });
+      });
+    });
+  });
+
+  describe("allowFlip=false일 때", () => {
+    describe("LB 핸들", () => {
+      it("쉬프트를 누른 상태에서도 포인터가 반대 anchor를 지나가면 flip하지 않고 비율 계산 전에 멈춘다", () => {
+        expect(
+          resizeSelectionFromHandle({
+            startRect: { x: 6, y: 6, width: 4, height: 3 },
+            handle: "LB",
+            pointer: { x: 11, y: 4 },
+            keepRatio: true,
+            allowFlip: false,
+          }),
+        ).toEqual({ x: 9, y: 6, width: 1, height: 1, flipH: false, flipV: false });
       });
     });
   });
