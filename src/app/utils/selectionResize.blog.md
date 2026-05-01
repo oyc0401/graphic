@@ -235,3 +235,143 @@ flip을 막아야 하면 포인터를 먼저 clamp한다. 그러면 crossing 자
 `SelectionTool`은 포인터를 캔버스 좌표로 바꾼다. 그리고 `resizeSelectionFromHandle`을 호출한다. 결과를 `selection` 상태에 넣고 worker에 전달한다.
 
 즉, `SelectionTool`은 도구 역할만 하고, 리사이즈 수학은 테스트 가능한 함수가 담당한다.
+
+## 2026-05-01 17:04 KST 추가 메모
+
+오늘 작업에서 중요한 흐름은 "테스트를 맞춘다"에서 끝나지 않고, 코드가 바늘처럼 특수 케이스만 통과하고 있지 않은지 계속 의심했다는 점이다.
+
+처음에는 특정 실패 케이스를 맞추려고 조건을 덧붙이고 싶은 유혹이 있었다. 예를 들어 특정 핸들, 특정 ratio, 특정 flip 상태에서만 보정하는 식이다. 하지만 그런 코드는 나중에 다른 핸들에서 바로 깨진다. 그래서 중간에 방향을 바꿨다. 기대값 하나를 위한 보정이 아니라, 모든 코너 리사이즈가 공유할 수 있는 규칙을 찾아야 했다.
+
+그때 잡은 생각이 anchor와 pointer였다.
+
+코너 핸들을 잡으면 반대쪽 꼭짓점은 anchor가 된다. LT를 잡으면 오른쪽 아래, RB를 잡으면 왼쪽 위가 anchor다. 포인터와 anchor는 결과 사각형 안에 반드시 들어가야 하고, flip이 허용되는 상태에서는 둘이 만든 inclusive rect가 자유 리사이즈의 raw rect가 된다.
+
+이 관점으로 보니 `keepRatio=false`와 `keepRatio=true`가 완전히 다른 문제가 아니었다. 둘 다 먼저 anchor와 pointer로 raw rect를 만든다. free resize는 그 raw rect를 그대로 쓰고, ratio resize는 그 raw rect를 시작 비율에 맞게 확장한다. 이때 부족한 축은 올림으로 키운다. 포인터가 있는 칸을 놓치면 안 되기 때문이다.
+
+이 리팩터링에서 마음에 들었던 점은 특수한 `+1`, `+2` 보정이 줄었다는 것이다. inclusive 좌표계에서 끝 칸을 포함하기 위한 `+1`은 규칙이다. 하지만 기대값 하나를 맞추기 위한 `+2` 같은 보정은 냄새였다. 코드를 보면서 "이 숫자가 좌표계에서 나온 건가, 아니면 테스트 하나를 통과시키려고 붙인 건가"를 계속 확인했다.
+
+## flip된 시작 상태에서 다시 리사이즈하기
+
+초기 `flipH=true`, `flipV=true` 상태가 특히 중요했다.
+
+기본 상태에서 crossing이 발생하면 flip이 켜지는 것은 상대적으로 쉽다. 그런데 이미 뒤집힌 도형에서 다시 crossing이 발생하면 flip이 꺼져야 한다. 그래서 flip은 결과 rect의 방향만 보고 정하는 값이 아니라, 시작 flip 상태에서 crossing 여부를 XOR처럼 적용하는 값이라고 볼 수 있다.
+
+대표 케이스는 이것이었다.
+
+```ts
+resizeSelectionFromHandle({
+  startRect: { x: 4, y: 3, width: 3, height: 4 },
+  handle: "LT",
+  pointer: { x: 10, y: 10 },
+  keepRatio: false,
+  startFlipH: true,
+  startFlipV: true,
+})
+```
+
+기대값은 `{ x: 6, y: 6, width: 5, height: 5, flipH: false, flipV: false }`다. LT를 잡고 오른쪽 아래 anchor를 지나가면 두 축 모두 다시 crossing이 발생한다. 시작 flip이 켜져 있었기 때문에 결과 flip은 꺼진다.
+
+이 케이스는 "flip 상태는 rect의 x/y/width/height와 별개의 상태"라는 점을 잘 보여준다. rect는 항상 정규화된 양수 크기이고, flip은 픽셀 내용을 어느 방향으로 뒤집어 보여줄지에 대한 상태다.
+
+## Shift + 직사각형 + 올림 정책
+
+정사각형보다 직사각형에서 더 많은 실수가 나왔다.
+
+예를 들어 시작 rect가 `{ x: 6, y: 6, width: 4, height: 3 }`이고, LB 핸들을 잡고 Shift를 누른 상태에서 pointer가 `{ x: 11, y: 4 }`로 가는 케이스가 있었다.
+
+한때 기대값을 크게 잡기도 했지만, 최종적으로는 이 값이 맞았다.
+
+```ts
+{ x: 9, y: 4, width: 3, height: 3, flipH: true, flipV: true }
+```
+
+여기서 중요한 것은 "비율 유지"가 항상 더 크게 확장한다는 뜻이 아니라는 점이다. anchor와 pointer가 만든 raw rect를 기준으로 시작 비율을 만족하는 최소 크기를 찾는다. 부족한 축을 채울 때는 올림을 쓴다. 포인터 칸 포함이 최우선이고, 그 다음이 비율이다.
+
+중간에 "가로 4, 높이 3이었는데 높이가 4가 되어야 한다면 너비는 몇인가" 같은 질문을 던졌다. 정책은 반올림이나 내림이 아니라 올림이었다. 비율을 그대로 유지하려고 계산했을 때 소수점이 나오면, 내림은 포인터 칸을 빠뜨릴 위험이 있다. 그래서 올림이 맞다.
+
+## 단일축 Shift 리사이즈
+
+엣지 핸들에서도 Shift를 누를 수 있다. L/R은 사용자가 가로만 직접 움직이지만, 비율을 유지하려면 세로도 같이 바뀐다. T/B는 반대로 높이를 직접 움직이고 너비가 따라온다.
+
+처음에는 이전 구현처럼 L/R에서 top을 고정하고 높이를 늘리는 방식이 있었다. 그런데 일반적인 그래픽 툴 감각으로 보면 L이나 R을 잡고 Shift를 누르면 세로 중심을 기준으로 비율이 맞춰지는 편이 자연스럽다. 그래서 단일축 Shift 리사이즈를 center 기준으로 바꿨다.
+
+테스트도 이 정책을 문서화했다.
+
+R 핸들에서 시작 rect가 `{ x: 2, y: 2, width: 6, height: 3 }`, pointer가 `{ x: 9, y: 3 }`이면 width는 8이 된다. 시작 비율은 2:1이므로 height는 4가 된다. 기존 height 3에서 4로 늘어났으니 y는 중심을 유지해 그대로 2가 된다.
+
+B 핸들에서는 height가 5가 되고, ratio 때문에 width는 10이 된다. 기존 width 6에서 10으로 늘어났기 때문에 x는 중심을 유지하려고 0으로 이동한다.
+
+```ts
+{ x: 0, y: 2, width: 10, height: 5, flipH: false, flipV: false }
+```
+
+이 부분은 나중에 블로그에서 "그래픽 툴 감각과 내부 좌표계가 충돌하는 지점"으로 쓰기 좋다.
+
+## ResizeTool에도 같은 계산을 쓰기
+
+처음에는 `SelectionTool`만 `resizeSelectionFromHandle`을 사용했다. 그런데 `src/app/tools/resizeTool.ts`에도 별도의 핸들 리사이즈 switch 문이 남아 있었다.
+
+이건 위험했다. 선택창 리사이즈와 캔버스 리사이즈가 비슷한 수학을 서로 다른 코드로 갖고 있으면, 한쪽에서 고친 inclusive 규칙이나 Shift 정책이 다른 쪽에는 반영되지 않는다.
+
+그래서 `ResizeTool`도 같은 순수 함수를 쓰도록 바꿨다. 다만 캔버스 리사이즈에서는 flip을 허용하면 안 된다. 캔버스 크기를 줄이다가 반대쪽으로 넘어갔다고 캔버스가 뒤집히면 이상하다. 여기서 `allowFlip: false`가 필요해졌다.
+
+`allowFlip=false`의 핵심은 flip 플래그만 false로 만드는 것이 아니다. 그렇게 하면 rect는 이미 반대쪽으로 넘어간 상태인데 표시만 flip이 안 된 이상한 결과가 된다. 올바른 방법은 리사이즈 계산 전에 pointer를 anchor까지만 clamp해서 crossing 자체를 막는 것이다.
+
+예를 들어 RB 핸들에서 시작 rect가 `{ x: 6, y: 6, width: 5, height: 5 }`이고 pointer가 `{ x: 3, y: 3 }`으로 넘어가도, `allowFlip=false`라면 결과는 `{ x: 6, y: 6, width: 1, height: 1, flipH: false, flipV: false }`여야 한다.
+
+이 케이스를 테스트로 추가했다. `allowFlip=false`는 옵션이지만, 옵션의 의미가 코드에만 있으면 나중에 잊기 쉽다. 테스트가 문서 역할을 한다.
+
+## maxSize clamp와 고정 변
+
+`ResizeTool`에서 `resizeSelectionFromHandle` 결과를 그대로 쓰면 대부분 맞지만, maxSize clamp가 끼어들면 L/T 계열에서 조심해야 한다.
+
+예를 들어 L 핸들을 잡고 왼쪽으로 크게 늘렸는데 width가 `paintConfig.maxSize`로 잘리면, x도 그 잘린 width에 맞게 다시 계산해야 한다. 그래야 오른쪽 고정 변이 유지된다.
+
+그래서 `resizeTool.ts`에서는 순수 함수 결과의 width/height를 clamp한 뒤, L 계열이면 `x = start.x + start.w - width`, T 계열이면 `y = start.y + start.h - height`로 다시 맞춘다.
+
+이건 순수 함수의 책임이 아니다. 순수 함수는 주어진 포인터와 정책으로 이상적인 rect를 계산한다. `paintConfig.maxSize` 같은 앱 제한은 도구 레이어의 책임이다.
+
+## WebGL core와 시각적 불일치
+
+가장 마지막에 중요한 문제가 나왔다.
+
+단일축 Shift를 center 기준으로 바꾸자 선택창 상태에서는 x/y가 바뀌었다. 하지만 WebGL core 쪽에서는 여전히 top이 anchor라고 가정하는 듯한 시각적 불일치가 생겼다.
+
+처음에는 단일축 Shift 정책을 다시 top/left 고정으로 돌려야 하나 생각했다. 실제로 잠깐 그렇게 판단했다. 하지만 다시 보니 문제는 정책이 아니라 core에 변경된 x/y가 제대로 전달되지 않는 쪽이었다.
+
+`ResizeTool.up()`에서는 이미 `changeCanvasSize(x, y, selection.width, selection.height)`로 selection의 x/y를 넘기고 있었다. 그런데 core 입구인 `WebGL2Controller.resizeLayer()`에서 y를 변환하는 코드가 이상했다.
+
+기존 코드는 대략 이런 의미였다.
+
+```ts
+if (py !== 0) {
+  newY = 0;
+} else {
+  newY = py + diffH;
+}
+```
+
+즉 app 쪽에서 y가 0이 아니면 WebGL 쪽 y를 무조건 0으로 덮어버렸다. 그래서 center 기준으로 y가 바뀌어도 core는 그 y를 반영하지 못했다.
+
+수정은 이랬다.
+
+```ts
+const newY = paintOptions.height - height - py;
+paint.resizeLayer(px, newY, width, height);
+```
+
+app 좌표계는 top-left 기준이고, WebGL은 bottom-left 기준이다. 새 캔버스 안에서 기존 이미지를 어디서부터 샘플링할지를 WebGL 좌표로 바꿔야 한다. 그래서 `oldHeight - newHeight - py` 형태가 된다.
+
+이 수정 후에는 단일축 Shift의 center 기준 x/y가 core resize에도 반영된다. 즉 UI selection rect와 실제 WebGL resize 결과가 같은 rect를 바라보게 된다.
+
+## 오늘 작업에서 남긴 교훈
+
+첫째, 기대값이 맞는지 먼저 확정해야 한다. 테스트가 틀린 상태에서 구현을 고치면, 코드는 점점 이상한 특수 케이스를 품게 된다.
+
+둘째, "포인터와 anchor가 결과 사각형 안에 있어야 한다"는 식의 기하 규칙은 특수 케이스보다 강하다. 숫자 보정을 덧붙이기 전에 이런 규칙으로 설명되는지 봐야 한다.
+
+셋째, 순수 함수로 분리해도 실제 앱에 다시 연결할 때 좌표계 변환 문제가 남는다. app은 top-left, WebGL은 bottom-left다. selection 상태가 맞아도 core 변환이 틀리면 사용자는 버그로 본다.
+
+넷째, 옵션은 플래그만 바꾸는 것이 아니라 동작의 원인을 바꿔야 할 때가 있다. `allowFlip=false`는 flip 결과를 억지로 false로 만드는 옵션이 아니라, crossing이 일어나지 않게 pointer를 clamp하는 옵션이었다.
+
+다섯째, 같은 리사이즈 수학은 한 곳에 있어야 한다. `SelectionTool`과 `ResizeTool`에 비슷한 switch 문이 따로 있으면 언젠가 반드시 정책이 갈라진다.
