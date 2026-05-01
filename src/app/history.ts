@@ -29,6 +29,25 @@ class HistoryState {
 
 export const historyState = new HistoryState();
 
+function applyHistoryPosition({
+  x,
+  y,
+  width,
+  height,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const appY = position.screenHeight / position.scale - height - y;
+
+  position.setX(x);
+  position.setY(appY);
+  position.setWidth(width);
+  position.setHeight(height);
+}
+
 export async function undo() {
   if (paintState.pointerdown) return;
 
@@ -71,13 +90,7 @@ export async function undo() {
   }
 
   if (historyResponse.position) {
-    let { x, y, width, height } = historyResponse.position;
-    let newY = position.screenHeight / position.scale - height - y;
-
-    position.setX(x);
-    position.setY(newY);
-    position.setWidth(width);
-    position.setHeight(height);
+    applyHistoryPosition(historyResponse.position);
   }
 
   if (historyResponse.selection) {
@@ -143,13 +156,7 @@ export async function redo() {
   }
 
   if (historyResponse.position) {
-    let { x, y, width, height } = position;
-    let newY = position.screenHeight / position.scale - height - y;
-
-    position.setX(x);
-    position.setY(newY);
-    position.setWidth(width);
-    position.setHeight(height);
+    applyHistoryPosition(historyResponse.position);
   }
 
   if (historyResponse.selection) {
