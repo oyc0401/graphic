@@ -2,13 +2,15 @@ import { makeAutoObservable, runInAction } from "mobx";
 import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
-type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
-type ToolId = "brush" | "select" | "selection"; // 선택창 풀면 brush로 됌
+type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
+type ToolId = "brush" | "select" | "selection" | "zoom";
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";
+  selectedToolId: ToolId = "brush";
   coreTool: CoreTool = "brush";
   activeSessionTool: CoreTool | null = null;
+  sessionReturnTool: CoreTool | null = null;
   brushSize = { brush: 5, eraser: 10, liquify: 50 };
   brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
 
@@ -30,22 +32,31 @@ class PaintState {
   setInputMode(val: InputMode) {
     this.inputMode = val;
   }
+  setSelectedToolId(toolId: ToolId) {
+    this.selectedToolId = toolId;
+    this.inputMode = toolId === "zoom" ? "ZOOM" : "BRUSH";
+  }
+  restoreSelectedToolMode() {
+    this.inputMode = this.selectedToolId === "zoom" ? "ZOOM" : "BRUSH";
+  }
   setCoreTool(coreTool: CoreTool) {
     this.coreTool = coreTool;
   }
   setActiveSessionTool(tool: CoreTool | null) {
     this.activeSessionTool = tool;
   }
+  setSessionReturnTool(tool: CoreTool | null) {
+    this.sessionReturnTool = tool;
+  }
   get toolId(): ToolId {
-    switch (this.coreTool) {
-      case "brush":
-      case "eraser":
-      case "liquify":
-        return "brush";
-      case "select":
-      case "selection":
-        return this.coreTool;
+    return this.selectedToolId;
+  }
+  get activeToolId(): ToolId {
+    if (this.inputMode === "ZOOM") {
+      return "zoom";
     }
+
+    return this.selectedToolId;
   }
   get brushId(): BrushId {
     switch (this.coreTool) {

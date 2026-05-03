@@ -12,13 +12,28 @@ function confirmLiquifyApply() {
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
+function toolIdForCoreTool(tool: CoreTool) {
+  switch (tool) {
+    case "select":
+    case "selection":
+      return tool;
+    case "brush":
+    case "eraser":
+    case "liquify":
+      return "brush";
+  }
+}
+
 function requestToolChange(
   tool: CoreTool,
   options: { applyCurrentSelection?: boolean } = {},
 ) {
   const { applyCurrentSelection = true } = options;
   if (paintState.pointerdown) return false;
-  if (paintState.coreTool === tool) return false;
+  if (paintState.coreTool === tool) {
+    paintState.setSelectedToolId(toolIdForCoreTool(tool));
+    return false;
+  }
 
   if (!confirmLiquifyApply()) return false;
 
@@ -30,6 +45,7 @@ function requestToolChange(
   }
 
   setCoreTool(tool);
+  paintState.setSelectedToolId(toolIdForCoreTool(tool));
   syncCoreState();
   return true;
 }
@@ -44,10 +60,18 @@ export const toolManager = {
     requestToolChange("eraser");
   },
   setLiquifyTool() {
-    requestToolChange("liquify");
+    const returnTool =
+      paintState.coreTool === "selection" ? "select" : paintState.coreTool;
+    if (requestToolChange("liquify")) {
+      paintState.setSessionReturnTool(returnTool);
+    }
   },
   setSelectTool() {
     requestToolChange("select");
+  },
+  setZoomTool() {
+    if (paintState.pointerdown) return;
+    paintState.setSelectedToolId("zoom");
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });
@@ -56,18 +80,26 @@ export const toolManager = {
     if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
       return;
 
+    const returnTool = paintState.sessionReturnTool ?? "brush";
+    const nextTool = returnTool === "liquify" ? "brush" : returnTool;
     getLayerWorker().applyActiveSession();
     syncCoreState();
-    setCoreTool("brush");
+    setCoreTool(nextTool);
+    paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
+    paintState.setSessionReturnTool(null);
     syncCoreState();
   },
   discardActiveSession() {
     if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
       return;
 
+    const returnTool = paintState.sessionReturnTool ?? "brush";
+    const nextTool = returnTool === "liquify" ? "brush" : returnTool;
     getLayerWorker().discardActiveSession();
     syncCoreState();
-    setCoreTool("brush");
+    setCoreTool(nextTool);
+    paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
+    paintState.setSessionReturnTool(null);
     syncCoreState();
   },
 };

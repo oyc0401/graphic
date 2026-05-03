@@ -197,7 +197,7 @@ export function addGestureEvent() {
       if (paintState.inputMode !== "PINCH") return;
 
       if (pointers.size == 0) {
-        paintState.setInputMode("BRUSH");
+        paintState.restoreSelectedToolMode();
         moved = false;
       }
     },

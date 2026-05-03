@@ -1,7 +1,6 @@
 import { paintState } from "../paintState";
 import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
-import { zoomTool } from "../tools/ZoomTool";
 import { resizeTool } from "../tools/resizeTool";
 import { syncCoreState } from "../history";
 
@@ -18,14 +17,10 @@ export function dispatch(e: PointerEvent, phase: Phase) {
     e.preventDefault();
   }
 
-  // 1. 모드(inputMode)가 PAN, ZOOM이면 우선 분기
+  // 1. 임시 PAN 모드는 현재 선택된 도구보다 우선한다.
   switch (paintState.inputMode) {
     case "PAN":
       panTool[phase]?.(e);
-      syncCoreStateAfterPointerEnd(phase);
-      return;
-    case "ZOOM":
-      zoomTool[phase]?.(e);
       syncCoreStateAfterPointerEnd(phase);
       return;
   }
@@ -46,7 +41,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   }
 
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
-  const tool = toolRegistry[paintState.toolId];
+  const tool = toolRegistry[paintState.activeToolId];
   tool?.[phase]?.(e);
   syncCoreStateAfterPointerEnd(phase);
 }

@@ -17,7 +17,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX } from "lucide-react";
+import { CircleCheck, CircleX, Search } from "lucide-react";
 
 const hexColors = [
   "#000000",
@@ -65,6 +65,7 @@ function AppBarDesktop() {
             <div className="div-bar"></div>
             <div className="mini-buttons">
               <LiquifyToolButton />
+              <ZoomToolButton />
             </div>
             <div className="div-bar"></div>
 
@@ -162,7 +163,7 @@ const HistoryButtons = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "select" || paintState.toolId === "selection";
+    (paintState.toolId === "select" || paintState.toolId === "selection");
 
   return (
     <button
@@ -178,7 +179,8 @@ const SelectionToolButton = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" && paintState.brushId === "brush";
+    paintState.toolId === "brush" &&
+    paintState.brushId === "brush";
 
   return (
     <button
@@ -194,7 +196,8 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" && paintState.brushId === "eraser";
+    paintState.toolId === "brush" &&
+    paintState.brushId === "eraser";
 
   return (
     <button
@@ -210,7 +213,8 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" && paintState.brushId === "liquify";
+    paintState.toolId === "brush" &&
+    paintState.brushId === "liquify";
 
   return (
     <button
@@ -219,6 +223,25 @@ const LiquifyToolButton = observer(() => {
       onClick={() => toolManager.setLiquifyTool()}
     >
       <LiquifyIcon width={20} height={20} />
+    </button>
+  );
+});
+
+const ZoomToolButton = observer(() => {
+  const isSelected = paintState.toolId === "zoom";
+
+  return (
+    <button
+      id="select-zoom"
+      className={`select-mini ${isSelected ? "selected" : ""}`}
+      aria-label="zoom"
+      onClick={() => toolManager.setZoomTool()}
+    >
+      <Search
+        color={isSelected ? "#3587ff" : "#222222"}
+        size={20}
+        strokeWidth={2.2}
+      />
     </button>
   );
 });
