@@ -11,20 +11,7 @@ export function applyCoreToolState(
   options: { syncWorker?: boolean; doExit?: boolean } = {},
 ) {
   const { syncWorker = true, doExit = true } = options;
-
-  switch (coreState.tool) {
-    case "brush":
-    case "eraser":
-    case "liquify":
-      paintState.setToolId("brush");
-      paintState.setBrushId(coreState.tool);
-      break;
-    case "select":
-    case "selection":
-    case "resize":
-      paintState.setToolId(coreState.tool);
-      break;
-  }
+  paintState.setCoreTool(coreState.tool);
 
   if (syncWorker) {
     return getLayerWorker().setTool(coreState.tool, doExit);

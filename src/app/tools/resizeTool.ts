@@ -17,6 +17,7 @@ import {
 import { clamp } from "../utils/math";
 import { dispatch } from "../events/pointerEvents";
 import { paintConfig } from "@/paint.config";
+import { setCoreTool } from "../coreToolState";
 
 export class ResizeTool {
   private activeHandle: HandleType | null = null;
@@ -24,7 +25,7 @@ export class ResizeTool {
   private startTime = 0;
 
   down(e: PointerEvent) {
-    if (paintState.toolId !== "resize" || paintState.action !== "BRUSH") return;
+    if (paintState.toolId !== "resize" || paintState.inputMode !== "BRUSH") return;
 
     const rect = {
       x: selection.x,
@@ -92,7 +93,7 @@ export class ResizeTool {
 
     // 크기 조정 안하려고 하면 브러시로 이동
     if (this.activeHandle === "OUTSIDE" || this.activeHandle === "INSIDE") {
-      paintState.setToolId("brush");
+      setCoreTool("brush");
       selection.setShowHint(false);
       selection.setShowHandle(false);
       this.activeHandle = null;
@@ -147,7 +148,7 @@ export class ResizeTool {
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");
 
-        paintState.setToolId("brush");
+        setCoreTool("brush");
         selection.setShowHint(false);
         selection.setShowHandle(false);
       }

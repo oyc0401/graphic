@@ -11,7 +11,7 @@ export class SelectTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.action !== "BRUSH" || paintState.toolId !== "select") return;
+    if (paintState.inputMode !== "BRUSH" || paintState.toolId !== "select") return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);
@@ -24,7 +24,7 @@ export class SelectTool {
 
   move(e: PointerEvent) {
     if (!this.active || !paintState.pointerdown) return;
-    if (paintState.action !== "BRUSH" || paintState.toolId !== "select") return;
+    if (paintState.inputMode !== "BRUSH" || paintState.toolId !== "select") return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);

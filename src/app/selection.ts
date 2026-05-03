@@ -4,6 +4,7 @@ import { position } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
+import { setCoreTool } from "./coreToolState";
 
 export class SelectionState {
   x = 0;
@@ -116,7 +117,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     //Comlink.transfer(bitmap, [bitmap]),
   );
 
-  paintState.setToolId("selection");
+  setCoreTool("selection");
   selection.setVisible(true);
   selection.setShowHint(true);
   selection.setShowHandle(true);
@@ -139,7 +140,7 @@ export function canvasSelect(x, y, width, height) {
     height: selection.height,
   };
 
-  paintState.setToolId("selection");
+  setCoreTool("selection");
 
   console.log("선택:", x, y, width, height);
   selection.setVisible(true);
@@ -164,7 +165,7 @@ export function applySelection() {
 
 // 자르기 한 이후에
 export function cutSelection() {
-  paintState.setToolId("select");
+  setCoreTool("select");
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
@@ -172,7 +173,7 @@ export function cutSelection() {
 }
 
 export function selectionDelete() {
-  paintState.setToolId("select");
+  setCoreTool("select");
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
@@ -208,6 +209,6 @@ export function selectionCancel() {
     selection.active = false;
   } else {
     applySelection();
-    paintState.setToolId("select");
+    setCoreTool("select");
   }
 }

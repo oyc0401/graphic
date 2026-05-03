@@ -20,25 +20,25 @@ function bindCursorUI() {
 
   // 1. PAN
   autorun(() => {
-    const isPan = paintState.action === "PAN";
+    const isPan = paintState.inputMode === "PAN";
     container.classList.toggle("grab", isPan && !paintState.pointerdown);
     container.classList.toggle("grabbing", isPan && paintState.pointerdown);
   });
 
   // 2. ZOOM
   autorun(() => {
-    container.classList.toggle("zoom", paintState.action === "ZOOM");
+    container.classList.toggle("zoom", paintState.inputMode === "ZOOM");
   });
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
-    const isBrush = paintState.action === "BRUSH";
+    const isBrush = paintState.inputMode === "BRUSH";
     const isSelectTool = paintState.toolId === "select";
     container.classList.toggle("select", isBrush && isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
-      (paintState.action === "BRUSH" && paintState.toolId === "selection") ||
+      (paintState.inputMode === "BRUSH" && paintState.toolId === "selection") ||
       paintState.toolId === "resize";
     container.classList.toggle(
       "nwse-resize",
@@ -65,7 +65,7 @@ function bindCursorUI() {
   autorun(() => {
     const cursor = els.brushCursor;
 
-    const isBrush = paintState.action === "BRUSH";
+    const isBrush = paintState.inputMode === "BRUSH";
 
     const isDrawingTool = paintState.toolId == "brush";
     const isValid = isBrush && isDrawingTool;
@@ -185,7 +185,7 @@ function bindCursorPositionUI() {
 
 function bindZoomAreaUI() {
   autorun(() => {
-    const isZooming = paintState.action === "ZOOM";
+    const isZooming = paintState.inputMode === "ZOOM";
 
     if (!isZooming) {
       els.zoomArea.style.visibility = "hidden";

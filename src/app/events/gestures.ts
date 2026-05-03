@@ -94,7 +94,7 @@ export function addGestureEvent() {
         paintState.setDrawing(false);
 
         console.log("두 손가락 감지됨, 핀치 줌 시작");
-        paintState.setAction("PINCH");
+        paintState.setInputMode("PINCH");
 
         lastPinchCenterPos = averageTouches();
         const points = Array.from(pointers.values());
@@ -134,7 +134,7 @@ export function addGestureEvent() {
       });
 
       // 핀치 줌
-      if (paintState.action !== "PINCH") return;
+      if (paintState.inputMode !== "PINCH") return;
       if (pointers.size < 2) return; // 두 손가락이 없으면 무시
 
       const pinchCenterPos = averageTouches();
@@ -194,10 +194,10 @@ export function addGestureEvent() {
       }
 
       // 핀치 줌
-      if (paintState.action !== "PINCH") return;
+      if (paintState.inputMode !== "PINCH") return;
 
       if (pointers.size == 0) {
-        paintState.setAction("BRUSH");
+        paintState.setInputMode("BRUSH");
         moved = false;
       }
     },

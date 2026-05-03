@@ -1,13 +1,13 @@
 import { makeAutoObservable, runInAction } from "mobx";
+import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
-type Action = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
+type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
 type ToolId = "brush" | "select" | "selection" | "resize"; // 선택창 풀면 brush로 됌
-type BrushId = "brush" | "eraser" | "liquify";
+type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
-  action: Action = "BRUSH";
-  toolId: ToolId = "brush";
-  brushId: BrushId = "brush";
+  inputMode: InputMode = "BRUSH";
+  coreTool: CoreTool = "brush";
   brushSize = { brush: 5, eraser: 10, liquify: 50 };
   brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
 
@@ -18,8 +18,6 @@ class PaintState {
   drawing = false;
   canTouch = true;
 
-  targetId = "brush";
-
   changed = false;
   showCircle = false;
   showSizeHandle = false;
@@ -28,15 +26,35 @@ class PaintState {
     makeAutoObservable(this);
   }
 
-  setAction(val: Action) {
-    this.action = val;
+  setInputMode(val: InputMode) {
+    this.inputMode = val;
   }
-  setToolId(toolId: ToolId) {
-    this.toolId = toolId;
+  setCoreTool(coreTool: CoreTool) {
+    this.coreTool = coreTool;
   }
-  setBrushId(brushId: BrushId) {
-    this.brushId = brushId;
-    this.targetId = brushId;
+  get toolId(): ToolId {
+    switch (this.coreTool) {
+      case "brush":
+      case "eraser":
+      case "liquify":
+        return "brush";
+      case "select":
+      case "selection":
+      case "resize":
+        return this.coreTool;
+    }
+  }
+  get brushId(): BrushId {
+    switch (this.coreTool) {
+      case "eraser":
+      case "liquify":
+        return this.coreTool;
+      case "brush":
+      case "select":
+      case "selection":
+      case "resize":
+        return "brush";
+    }
   }
   setPointerdown(val: boolean) {
     this.pointerdown = val;
@@ -60,12 +78,12 @@ class PaintState {
     this.cursorY = y;
   }
   setBrushSize(size: number) {
-    this.brushSize[this.targetId] = size;
+    this.brushSize[this.brushId] = size;
     const worker = getLayerWorker();
     worker.setStrokeSize(size);
   }
   setBrushAlpha(alpha: number) {
-    this.brushAlpha[this.targetId] = alpha;
+    this.brushAlpha[this.brushId] = alpha;
   }
   setShowCircle(value) {
     this.showCircle = value;
@@ -76,10 +94,10 @@ class PaintState {
   }
 
   getBrushSize() {
-    return this.brushSize[this.targetId];
+    return this.brushSize[this.brushId];
   }
   getBrushAlpha() {
-    return this.brushAlpha[this.targetId];
+    return this.brushAlpha[this.brushId];
   }
   moved = true;
 

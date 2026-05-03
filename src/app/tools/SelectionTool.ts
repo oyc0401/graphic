@@ -13,6 +13,7 @@ import {
   type SelectionResizeHandle,
 } from "../utils/selectionResize";
 import { getLayerWorker } from "../worker/workerPool";
+import { setCoreTool } from "../coreToolState";
 
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
@@ -22,7 +23,7 @@ export class SelectionTool {
   private startTime;
 
   down(e: PointerEvent) {
-    if (paintState.toolId !== "selection" || paintState.action !== "BRUSH")
+    if (paintState.toolId !== "selection" || paintState.inputMode !== "BRUSH")
       return;
     if (!paintState.pointerdown) return;
 
@@ -174,7 +175,7 @@ export class SelectionTool {
         console.log("cancel Selection!");
 
         applySelection();
-        paintState.setToolId("select");
+        setCoreTool("select");
       }
     }
 

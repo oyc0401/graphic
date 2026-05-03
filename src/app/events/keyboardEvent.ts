@@ -193,15 +193,15 @@ function applyKeyAction() {
   if (paintState.pointerdown) {
     return;
   }
-  paintState.setAction("BRUSH");
+  paintState.setInputMode("BRUSH");
 
   // 이전에 뭔가 작동중이면 안바꿈
   if (pressedKeys.Space) {
-    paintState.setAction("PAN");
+    paintState.setInputMode("PAN");
   }
   if (pressedKeys.KeyZ) {
     console.log("zoom 누르는중");
-    paintState.setAction("ZOOM");
+    paintState.setInputMode("ZOOM");
   }
 }
 

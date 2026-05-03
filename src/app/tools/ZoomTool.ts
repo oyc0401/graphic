@@ -16,7 +16,7 @@ export class ZoomTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.action !== "ZOOM" || !paintState.pointerdown || this.active)
+    if (paintState.inputMode !== "ZOOM" || !paintState.pointerdown || this.active)
       return;
 
     this.active = true;
@@ -24,14 +24,14 @@ export class ZoomTool {
   }
 
   move(e: PointerEvent) {
-    if (paintState.action !== "ZOOM" || !paintState.pointerdown || !this.active)
+    if (paintState.inputMode !== "ZOOM" || !paintState.pointerdown || !this.active)
       return;
 
     zoomRect.updateEnd(e.clientX, e.clientY);
   }
 
   up(e: PointerEvent) {
-    if (paintState.action !== "ZOOM" || !this.active) return;
+    if (paintState.inputMode !== "ZOOM" || !this.active) return;
 
     this.active = false;
 

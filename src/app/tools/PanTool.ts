@@ -8,7 +8,7 @@ export class PanTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.action !== "PAN" || !paintState.pointerdown) return;
+    if (paintState.inputMode !== "PAN" || !paintState.pointerdown) return;
     this.active = true;
 
     this.lastClientX = e.clientX;
@@ -16,7 +16,7 @@ export class PanTool {
   }
 
   move(e: PointerEvent) {
-    if (paintState.action !== "PAN" || !paintState.pointerdown || !this.active)
+    if (paintState.inputMode !== "PAN" || !paintState.pointerdown || !this.active)
       return;
 
     const dx = (this.lastClientX - e.clientX) * getPixelRatio();
@@ -36,7 +36,7 @@ export class PanTool {
 
   up(_: PointerEvent) {
     // No-op for pan
-    if (paintState.action !== "PAN") return;
+    if (paintState.inputMode !== "PAN") return;
     this.active = false;
   }
 
