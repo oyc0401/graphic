@@ -25,6 +25,7 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef } from "react";
 import { getLetter } from "../i18n/language";
+import { CircleCheck, CircleX } from "lucide-react";
 
 const hexColors = [
   "#000000",
@@ -37,7 +38,7 @@ const hexColors = [
   "#E5B5FF",
 ];
 
-export default function AppBarMobile() {
+function AppBarMobile() {
   /** 색상 팔레트 콜백 */
   const chooseColor = (hex) => {
     const { r, g, b } = hexToRgb(hex);
@@ -55,22 +56,57 @@ export default function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        <div className="mobile-appbar">
-          <MainMenuToggleButton />
-          <ToolsToggleButton />
+        {paintState.coreTool === "liquify" ? (
+          <LiquifyMobileAppBar />
+        ) : (
+          <div className="mobile-appbar">
+            <MainMenuToggleButton />
+            <ToolsToggleButton />
 
-          <div style={{ flex: 1 }} />
+            <div style={{ flex: 1 }} />
 
-          <SizeToggleButton />
-          <BrushToolButton />
-          <EraserToolButton />
+            <SizeToggleButton />
+            <BrushToolButton />
+            <EraserToolButton />
 
-          <MobileColorIndicatorButton />
-        </div>
+            <MobileColorIndicatorButton />
+          </div>
+        )}
       </div>
     </>
   );
 }
+
+export default observer(AppBarMobile);
+
+const LiquifyMobileAppBar = observer(() => {
+  return (
+    <div className="mobile-appbar">
+      <button
+        className="header-button"
+        aria-label={getLetter("apply")}
+        onClick={() => toolManager.applyLiquify()}
+      >
+        <CircleCheck color="#16a34a" size={24} strokeWidth={2.4} />
+      </button>
+      <button
+        className="header-button"
+        aria-label={getLetter("cancel")}
+        onClick={() => toolManager.cancelLiquify()}
+      >
+        <CircleX color="#dc2626" size={24} strokeWidth={2.4} />
+      </button>
+      <div className="mobile-div-bar"></div>
+      <button
+        className="header-button selected"
+        aria-label={getLetter("liquify_push")}
+      >
+        <LiquifyIcon />
+      </button>
+      <SizeToggleButton />
+    </div>
+  );
+});
 
 const ToolsToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -284,9 +320,14 @@ const BrushSizeSlider = observer(() => {
 });
 
 const BrushAlphaSlider = observer(() => {
+  const label =
+    paintState.coreTool === "liquify"
+      ? getLetter("liquify_strength")
+      : getLetter("opacity");
+
   return (
     <label className="brush-control">
-      <p className="label">{getLetter("opacity")}</p>
+      <p className="label">{label}</p>
       <p className="value">{paintState.getBrushAlpha()}%</p>
       <div className="slider-area">
         <input

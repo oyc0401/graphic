@@ -17,6 +17,7 @@ interface liquifyManager {
   getHistoryCount(): { undoCount: number; redoCount: number };
 
   exit(): void;
+  cancelExit(): void;
 
   setSize: () => void;
 }

@@ -115,6 +115,14 @@ export class PaintService {
     paintOptions.toolId = toolId;
     return { tool: toolId };
   }
+  applyLiquify() {
+    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
+    liquifyManager.exit();
+  }
+  cancelLiquify() {
+    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
+    liquifyManager.cancelExit();
+  }
   getTool() {
     return this.tools[paintOptions.toolId];
   }

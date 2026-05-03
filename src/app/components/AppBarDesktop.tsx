@@ -17,6 +17,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
+import { CircleCheck, CircleX } from "lucide-react";
 
 const hexColors = [
   "#000000",
@@ -29,7 +30,7 @@ const hexColors = [
   "#E5B5FF",
 ];
 
-export default function AppBarDesktop() {
+function AppBarDesktop() {
   /** 색상 팔레트 콜백 */
   const chooseColor = (hex) => {
     const { r, g, b } = hexToRgb(hex);
@@ -55,51 +56,96 @@ export default function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        <div id="menu-bar">
-          <SelectionToolButton />
+        {paintState.coreTool === "liquify" ? (
+          <LiquifyMenuBar />
+        ) : (
+          <div id="menu-bar">
+            <SelectionToolButton />
 
-          <div className="div-bar"></div>
-          <div className="mini-buttons">
-            <LiquifyToolButton />
-          </div>
-          <div className="div-bar"></div>
-
-          <BrushToolButton />
-          <EraserToolButton />
-          <div className="div-bar"></div>
-          {/* ===== 슬라이더 ===== */}
-          <div className="brush-control-group">
-            <BrushSizeSlider />
-
-            <BrushAlphaSlider />
-          </div>
-
-          <div className="div-bar"></div>
-          {/* ===== 색상 팔레트 ===== */}
-          <div className="flex flex-row items-center">
-            <div id="color-box">
-              {hexColors.map((hex) => (
-                <div
-                  key={hex}
-                  className="select-color"
-                  onClick={() => chooseColor(hex)}
-                >
-                  <div
-                    className="circle-shape"
-                    style={{
-                      background: hex,
-                    }}
-                  />
-                </div>
-              ))}
+            <div className="div-bar"></div>
+            <div className="mini-buttons">
+              <LiquifyToolButton />
             </div>
+            <div className="div-bar"></div>
+
+            <BrushToolButton />
+            <EraserToolButton />
+            <div className="div-bar"></div>
+            {/* ===== 슬라이더 ===== */}
+            <div className="brush-control-group">
+              <BrushSizeSlider />
+
+              <BrushAlphaSlider />
+            </div>
+
+            <div className="div-bar"></div>
+            {/* ===== 색상 팔레트 ===== */}
+            <div className="flex flex-row items-center">
+              <div id="color-box">
+                {hexColors.map((hex) => (
+                  <div
+                    key={hex}
+                    className="select-color"
+                    onClick={() => chooseColor(hex)}
+                  >
+                    <div
+                      className="circle-shape"
+                      style={{
+                        background: hex,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ColorIndicatorButton />
           </div>
-          <ColorIndicatorButton />
-        </div>
+        )}
       </div>
     </>
   );
 }
+
+export default observer(AppBarDesktop);
+
+const LiquifyMenuBar = observer(() => {
+  return (
+    <div id="menu-bar">
+      <button
+        className="select-button"
+        aria-label={getLetter("apply")}
+        onClick={() => toolManager.applyLiquify()}
+      >
+        <CircleCheck color="#16a34a" size={32} strokeWidth={2.4} />
+        <p>{getLetter("apply")}</p>
+      </button>
+      <button
+        className="select-button"
+        aria-label={getLetter("cancel")}
+        onClick={() => toolManager.cancelLiquify()}
+      >
+        <CircleX color="#dc2626" size={32} strokeWidth={2.4} />
+        <p>{getLetter("cancel")}</p>
+      </button>
+
+      <div className="div-bar"></div>
+
+      <button
+        className="select-button selected"
+        aria-label={getLetter("liquify_push")}
+      >
+        <LiquifyIcon width={32} height={32} />
+        <p>{getLetter("liquify_push")}</p>
+      </button>
+
+      <div className="div-bar"></div>
+      <div className="brush-control-group">
+        <BrushSizeSlider />
+        <BrushAlphaSlider label={getLetter("liquify_strength")} />
+      </div>
+    </div>
+  );
+});
 
 const HistoryButtons = observer(() => {
   return (
@@ -209,10 +255,10 @@ const BrushSizeSlider = observer(() => {
   );
 });
 
-const BrushAlphaSlider = observer(() => {
+const BrushAlphaSlider = observer(({ label = getLetter("opacity") }) => {
   return (
     <label className="brush-control">
-      <p className="label">{getLetter("opacity")}</p>
+      <p className="label">{label}</p>
       <p className="value">{paintState.getBrushAlpha()}%</p>
       <div className="slider-area">
         <input

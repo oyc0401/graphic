@@ -63,6 +63,12 @@
   border-bottom: 1px solid #E8E8E8;
 }
 
+.mobile-div-bar {
+  height: 28px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
 #navigation {
   position: absolute;
   z-index: 100000;

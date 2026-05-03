@@ -32,6 +32,7 @@ interface LiquifyManagerInterface {
   redo(): Promise<any>;
   getHistoryCount(): { undoCount: number; redoCount: number };
   exit(): void;
+  cancelExit(): void;
   setSize: () => void;
 }
 
@@ -509,6 +510,17 @@ export class LiquifyManager implements LiquifyManagerInterface {
       historyManager.addUndo(newHistory);
     }
 
+    this.closeTexture();
+    this.active = false;
+    this.changedRect = null;
+    this.historyStack.clear();
+  }
+
+  cancelExit() {
+    if (!this.active) return;
+
+    this.sourceTextureManager.restore();
+    this.renderingManager.render();
     this.closeTexture();
     this.active = false;
     this.changedRect = null;
