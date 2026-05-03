@@ -52,6 +52,11 @@ export class SelectTool {
     if (!this.active) return;
     this.active = false;
 
+    const point = to_pixel_canvas_coord(e.clientX, e.clientY);
+    const px = clamp(point.x, 0, position.width - 1);
+    const py = clamp(point.y, 0, position.height - 1);
+    this.endPoint = { x: px, y: py };
+
     const sp = this.startPoint;
     const ep = this.endPoint;
 

@@ -186,8 +186,6 @@ export function selectionDelete() {
 export function selectionCancel() {
   // 핀치줌으로 인한 캔슬이면 선택창 안 끄기
   if (paintState.pointerdown) {
-    selection.active = false;
-
     if (selection.active) {
       selection.setX(beforeSelectionPos.x);
       selection.setY(beforeSelectionPos.y);
@@ -207,6 +205,7 @@ export function selectionCancel() {
 
       activeHandle = null;
     }
+    selection.active = false;
   } else {
     applySelection();
     paintState.setToolId("select");

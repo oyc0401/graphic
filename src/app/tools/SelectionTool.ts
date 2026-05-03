@@ -100,6 +100,10 @@ export class SelectionTool {
 
     if (!paintState.pointerdown) return;
 
+    this.applySelectionDrag(e);
+  }
+
+  private applySelectionDrag(e: PointerEvent) {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
 
     if (this.activeHandle === "INSIDE") {
@@ -151,8 +155,12 @@ export class SelectionTool {
     }
   }
 
-  up() {
+  up(e: PointerEvent) {
     if (!this.activeHandle) return;
+    if (this.activeHandle !== "OUTSIDE") {
+      this.applySelectionDrag(e);
+    }
+
     if (this.activeHandle === "INSIDE") {
       beforeSelectionPos.x = selection.x;
       beforeSelectionPos.y = selection.y;

@@ -100,6 +100,10 @@ export class ResizeTool {
       return;
     }
 
+    this.updateResizeFromPointer(e);
+  }
+
+  private updateResizeFromPointer(e: PointerEvent) {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     if (this.activeHandle) {
       const min = 1,
@@ -132,7 +136,7 @@ export class ResizeTool {
     }
   }
 
-  up() {
+  up(e: PointerEvent) {
     if (!this.activeHandle) {
     } else if (
       !paintState.pointerdown &&
@@ -148,6 +152,7 @@ export class ResizeTool {
         selection.setShowHandle(false);
       }
     } else {
+      this.updateResizeFromPointer(e);
       let x = selection.x;
       let y = selection.y;
 
