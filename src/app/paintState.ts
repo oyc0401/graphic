@@ -8,6 +8,7 @@ type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";
   coreTool: CoreTool = "brush";
+  activeSessionTool: CoreTool | null = null;
   brushSize = { brush: 5, eraser: 10, liquify: 50 };
   brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
 
@@ -31,6 +32,9 @@ class PaintState {
   }
   setCoreTool(coreTool: CoreTool) {
     this.coreTool = coreTool;
+  }
+  setActiveSessionTool(tool: CoreTool | null) {
+    this.activeSessionTool = tool;
   }
   get toolId(): ToolId {
     switch (this.coreTool) {

@@ -2,7 +2,6 @@ import { LiquifyManager } from "./LiquifyManager";
 
 interface liquifyManager {
   enter(): void;
-  isActive(): boolean;
 
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
@@ -17,7 +16,8 @@ interface liquifyManager {
   getHistoryCount(): { undoCount: number; redoCount: number };
 
   exit(): void;
-  cancelExit(): void;
+  applySession(): void;
+  discardSession(): void;
 
   setSize: () => void;
 }

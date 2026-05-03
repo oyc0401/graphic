@@ -14,6 +14,10 @@ function syncHistoryCountAfterPointerEnd(phase: Phase) {
 }
 
 export function dispatch(e: PointerEvent, phase: Phase) {
+  if ((phase === "down" || phase === "move") && e.cancelable) {
+    e.preventDefault();
+  }
+
   // 1. 모드(inputMode)가 PAN, ZOOM이면 우선 분기
   switch (paintState.inputMode) {
     case "PAN":

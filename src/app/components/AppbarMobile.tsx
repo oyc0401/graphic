@@ -56,7 +56,7 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.coreTool === "liquify" ? (
+        {paintState.activeSessionTool === "liquify" ? (
           <LiquifyMobileAppBar />
         ) : (
           <div className="mobile-appbar">
@@ -85,14 +85,14 @@ const LiquifyMobileAppBar = observer(() => {
       <button
         className="header-button"
         aria-label={getLetter("apply")}
-        onClick={() => toolManager.applyLiquify()}
+        onClick={() => toolManager.applyActiveSession()}
       >
         <CircleCheck color="#16a34a" size={24} strokeWidth={2.4} />
       </button>
       <button
         className="header-button"
         aria-label={getLetter("cancel")}
-        onClick={() => toolManager.cancelLiquify()}
+        onClick={() => toolManager.discardActiveSession()}
       >
         <CircleX color="#dc2626" size={24} strokeWidth={2.4} />
       </button>
@@ -321,7 +321,7 @@ const BrushSizeSlider = observer(() => {
 
 const BrushAlphaSlider = observer(() => {
   const label =
-    paintState.coreTool === "liquify"
+    paintState.activeSessionTool === "liquify"
       ? getLetter("liquify_strength")
       : getLetter("opacity");
 

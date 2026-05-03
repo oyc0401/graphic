@@ -56,7 +56,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.coreTool === "liquify" ? (
+        {paintState.activeSessionTool === "liquify" ? (
           <LiquifyMenuBar />
         ) : (
           <div id="menu-bar">
@@ -114,7 +114,7 @@ const LiquifyMenuBar = observer(() => {
       <button
         className="select-button"
         aria-label={getLetter("apply")}
-        onClick={() => toolManager.applyLiquify()}
+        onClick={() => toolManager.applyActiveSession()}
       >
         <CircleCheck color="#16a34a" size={32} strokeWidth={2.4} />
         <p>{getLetter("apply")}</p>
@@ -122,7 +122,7 @@ const LiquifyMenuBar = observer(() => {
       <button
         className="select-button"
         aria-label={getLetter("cancel")}
-        onClick={() => toolManager.cancelLiquify()}
+        onClick={() => toolManager.discardActiveSession()}
       >
         <CircleX color="#dc2626" size={32} strokeWidth={2.4} />
         <p>{getLetter("cancel")}</p>

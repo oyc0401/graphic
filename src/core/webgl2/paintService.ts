@@ -10,7 +10,7 @@ import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
 import type { CoreTool, CoreToolState } from "../types";
-import { getLiquifyManager } from "./gl/tool/liquify/liquify";
+import { getSessionManager } from "./session/session";
 
 interface Pointer {
   x: number;
@@ -87,7 +87,12 @@ export class PaintService {
   }
   setLayerId(layerId) {
     // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
-    this.getTool()?.exit();
+    const sessionManager = getSessionManager(this.canvas, this.gl);
+    if (sessionManager.hasActiveSession()) {
+      sessionManager.applyActiveSession();
+    } else {
+      this.getTool()?.exit();
+    }
     this.getTool()?.enter();
 
     let layerManager = getLayerManager(this.canvas, this.gl);
@@ -108,20 +113,27 @@ export class PaintService {
   }
   setTool(toolId: CoreTool, doExit): CoreToolState {
     if (paintOptions.toolId != toolId && doExit) {
-      this.getTool()?.exit();
+      const sessionManager = getSessionManager(this.canvas, this.gl);
+      if (sessionManager.hasActiveSession()) {
+        sessionManager.applyActiveSession();
+      } else {
+        this.getTool()?.exit();
+      }
       paintOptions.toolId = toolId;
-      this.getTool()?.enter();
+      if (toolId === "liquify") {
+        sessionManager.start(toolId);
+      } else {
+        this.getTool()?.enter();
+      }
     }
     paintOptions.toolId = toolId;
     return { tool: toolId };
   }
-  applyLiquify() {
-    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
-    liquifyManager.exit();
+  applyActiveSession() {
+    getSessionManager(this.canvas, this.gl).applyActiveSession();
   }
-  cancelLiquify() {
-    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
-    liquifyManager.cancelExit();
+  discardActiveSession() {
+    getSessionManager(this.canvas, this.gl).discardActiveSession();
   }
   getTool() {
     return this.tools[paintOptions.toolId];
@@ -194,27 +206,30 @@ export class PaintService {
   }
 
   undo() {
-    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
-    if (liquifyManager.isActive()) {
-      return liquifyManager.undo();
+    const sessionManager = getSessionManager(this.canvas, this.gl);
+    if (sessionManager.hasActiveSession()) {
+      return sessionManager.undo();
     }
 
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.undo();
   }
   redo() {
-    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
-    if (liquifyManager.isActive()) {
-      return liquifyManager.redo();
+    const sessionManager = getSessionManager(this.canvas, this.gl);
+    if (sessionManager.hasActiveSession()) {
+      return sessionManager.redo();
     }
 
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.redo();
   }
   getHistoryCount() {
-    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
-    if (liquifyManager.isActive()) {
-      return liquifyManager.getHistoryCount();
+    const sessionHistoryCount = getSessionManager(
+      this.canvas,
+      this.gl,
+    ).getHistoryCount();
+    if (sessionHistoryCount) {
+      return sessionHistoryCount;
     }
 
     let historyManager = getHistoryManager(this.canvas, this.gl);

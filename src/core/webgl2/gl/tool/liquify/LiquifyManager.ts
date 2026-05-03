@@ -22,7 +22,6 @@ import { PixelStore } from "../../../../history/PixelStore";
 
 interface LiquifyManagerInterface {
   enter(): void;
-  isActive(): boolean;
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
   render: () => void;
@@ -32,7 +31,8 @@ interface LiquifyManagerInterface {
   redo(): Promise<any>;
   getHistoryCount(): { undoCount: number; redoCount: number };
   exit(): void;
-  cancelExit(): void;
+  applySession(): void;
+  discardSession(): void;
   setSize: () => void;
 }
 
@@ -369,10 +369,6 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.active = true;
   }
 
-  isActive() {
-    return this.active;
-  }
-
   start(pointer: any) {
     let ceiledRadius = Math.ceil(paintOptions.radius);
     this.displacementModifier.start(pointer);
@@ -473,6 +469,10 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   exit() {
+    this.applySession();
+  }
+
+  applySession() {
     if (!this.active) return;
 
     const gl = this.gl;
@@ -516,7 +516,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.historyStack.clear();
   }
 
-  cancelExit() {
+  discardSession() {
     if (!this.active) return;
 
     this.sourceTextureManager.restore();

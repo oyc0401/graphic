@@ -29,8 +29,8 @@ export interface RendererInterface {
 
   // === 도구 관리 ===
   setTool(toolId: CoreTool, doExit?: boolean): CoreToolState;
-  applyLiquify(): void;
-  cancelLiquify(): void;
+  applyActiveSession(): void;
+  discardActiveSession(): void;
 
   // === 선택 영역 ===
   select(px: number, py: number, w: number, h: number): void;

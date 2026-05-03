@@ -4,6 +4,11 @@ import { toolManager } from "../draw";
 import { els } from "./elements";
 
 export function addClickEvent() {
+    const preventDefaultIfCancelable = (event: Event) => {
+        if (event.cancelable) {
+            event.preventDefault();
+        }
+    };
 
     // 커서 위치 이벤트
     window.addEventListener(
@@ -20,7 +25,7 @@ export function addClickEvent() {
     document.addEventListener(
         "gesturestart",
         (e) => {
-            e.preventDefault(); // Safari 방지
+            preventDefaultIfCancelable(e); // Safari 방지
         },
         { passive: false },
     );
@@ -29,7 +34,7 @@ export function addClickEvent() {
         "touchstart",
         (e) => {
             // prevent swipe to navigate gesture
-            e.preventDefault();
+            preventDefaultIfCancelable(e);
         },
         { passive: false },
     );
@@ -37,9 +42,9 @@ export function addClickEvent() {
         "touchmove",
         (e) => {
             // prevent swipe to navigate gesture
-            e.preventDefault();
+            preventDefaultIfCancelable(e);
         },
         { passive: false },
     );
-    window.addEventListener("contextmenu", (event) => event.preventDefault());
+    window.addEventListener("contextmenu", preventDefaultIfCancelable);
 }

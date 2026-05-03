@@ -8,7 +8,7 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmLiquifyApply() {
-  if (paintState.coreTool !== "liquify") return true;
+  if (paintState.activeSessionTool !== "liquify") return true;
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
@@ -22,8 +22,9 @@ function setToolWithLiquifyConfirm(
 
   if (!confirmLiquifyApply()) return false;
 
-  if (paintState.coreTool === "liquify") {
-    getLayerWorker().applyLiquify();
+  if (paintState.activeSessionTool === "liquify") {
+    getLayerWorker().applyActiveSession();
+    paintState.setActiveSessionTool(null);
   } else if (applyCurrentSelection) {
     applySelection();
   }
@@ -44,10 +45,11 @@ export const toolManager = {
   },
   setLiquifyTool() {
     if (paintState.pointerdown) return;
-    if (paintState.coreTool === "liquify") return;
+    if (paintState.activeSessionTool === "liquify") return;
 
     applySelection();
     setCoreTool("liquify");
+    paintState.setActiveSessionTool("liquify");
     syncHistoryCount();
   },
   setSelectTool() {
@@ -56,17 +58,21 @@ export const toolManager = {
   setSelection() {
     setToolWithLiquifyConfirm("selection", { applyCurrentSelection: false });
   },
-  applyLiquify() {
-    if (paintState.pointerdown || paintState.coreTool !== "liquify") return;
+  applyActiveSession() {
+    if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
+      return;
 
-    getLayerWorker().applyLiquify();
+    getLayerWorker().applyActiveSession();
+    paintState.setActiveSessionTool(null);
     setCoreTool("brush");
     syncHistoryCount();
   },
-  cancelLiquify() {
-    if (paintState.pointerdown || paintState.coreTool !== "liquify") return;
+  discardActiveSession() {
+    if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
+      return;
 
-    getLayerWorker().cancelLiquify();
+    getLayerWorker().discardActiveSession();
+    paintState.setActiveSessionTool(null);
     setCoreTool("brush");
     syncHistoryCount();
   },

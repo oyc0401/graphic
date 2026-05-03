@@ -75,11 +75,11 @@ export class WebGL2Controller {
   setTool(toolId: CoreTool, doExit: boolean = true): CoreToolState {
     return paint.setTool(toolId, doExit);
   }
-  applyLiquify(): void {
-    paint.applyLiquify();
+  applyActiveSession(): void {
+    paint.applyActiveSession();
   }
-  cancelLiquify(): void {
-    paint.cancelLiquify();
+  discardActiveSession(): void {
+    paint.discardActiveSession();
   }
   start(p: Pointer): void {
     let pointer = toWebglCoord(p);
