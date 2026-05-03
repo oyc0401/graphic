@@ -422,28 +422,23 @@ export class LiquifyManager implements LiquifyManagerInterface {
       strokeRect.height,
     );
 
-    let after: Snapshot;
+    const after = this.createCurrentSnapshot(
+      renderRect.x,
+      renderRect.y,
+      renderRect.width,
+      renderRect.height,
+    );
 
     // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
 
     const displacePageSize = strokeRect.width * strokeRect.height * 2 * 4;
-    const byteSize = displacePageSize;
+    const byteSize = displacePageSize * 2;
 
     const self = this;
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
         self.render();
-        if (!after) {
-          after = this.createCurrentSnapshot(
-            renderRect.x,
-            renderRect.y,
-            renderRect.width,
-            renderRect.height,
-          );
-          newHistory.byteSize += displacePageSize;
-        }
-
         return { tool: "liquify" };
       },
       redo: async () => {

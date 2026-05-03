@@ -49,4 +49,8 @@ export function attachPointerEvents(root: HTMLElement) {
   window.addEventListener("pointerup", (e) => dispatch(e, "up"), {
     passive: false,
   });
+
+  window.addEventListener("pointercancel", (e) => dispatch(e, "up"), {
+    passive: false,
+  });
 }
