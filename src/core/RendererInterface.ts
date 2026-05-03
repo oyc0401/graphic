@@ -6,6 +6,14 @@ interface HistoryResponse {
   redoCount: number;
 }
 
+interface CoreState {
+  activeSessionTool: CoreTool | null;
+  history: {
+    undoCount: number;
+    redoCount: number;
+  };
+}
+
 export interface RendererInterface {
   // === 입력(브러시) ===
   start(pointer: Pointer): void;
@@ -31,6 +39,7 @@ export interface RendererInterface {
   setTool(toolId: CoreTool, doExit?: boolean): CoreToolState;
   applyActiveSession(): void;
   discardActiveSession(): void;
+  getState(): CoreState;
 
   // === 선택 영역 ===
   select(px: number, py: number, w: number, h: number): void;

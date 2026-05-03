@@ -46,9 +46,7 @@ class SessionManager {
     private gl,
   ) {}
 
-  start(tool: CoreTool): EditSession | null {
-    if (tool !== "liquify") return null;
-
+  startLiquifySession(): EditSession {
     const liquifyManager = getLiquifyManager(this.canvas, this.gl);
     liquifyManager.enter();
     this.activeSession = new LiquifySession(liquifyManager);
@@ -61,6 +59,10 @@ class SessionManager {
 
   hasActiveSession() {
     return this.activeSession !== null;
+  }
+
+  getActiveSessionTool(): CoreTool | null {
+    return this.activeSession?.tool ?? null;
   }
 
   applyActiveSession() {

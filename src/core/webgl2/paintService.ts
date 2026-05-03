@@ -86,14 +86,11 @@ export class PaintService {
     renderingManager.render();
   }
   setLayerId(layerId) {
-    // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
+    // 레이어 바꾸기 전에 진행 중인 세션을 먼저 적용한다.
     const sessionManager = getSessionManager(this.canvas, this.gl);
     if (sessionManager.hasActiveSession()) {
       sessionManager.applyActiveSession();
-    } else {
-      this.getTool()?.exit();
     }
-    this.getTool()?.enter();
 
     let layerManager = getLayerManager(this.canvas, this.gl);
     layerManager.setLayerId(layerId);
@@ -116,14 +113,10 @@ export class PaintService {
       const sessionManager = getSessionManager(this.canvas, this.gl);
       if (sessionManager.hasActiveSession()) {
         sessionManager.applyActiveSession();
-      } else {
-        this.getTool()?.exit();
       }
       paintOptions.toolId = toolId;
       if (toolId === "liquify") {
-        sessionManager.start(toolId);
-      } else {
-        this.getTool()?.enter();
+        sessionManager.startLiquifySession();
       }
     }
     paintOptions.toolId = toolId;
@@ -134,6 +127,13 @@ export class PaintService {
   }
   discardActiveSession() {
     getSessionManager(this.canvas, this.gl).discardActiveSession();
+  }
+  getState() {
+    const sessionManager = getSessionManager(this.canvas, this.gl);
+    return {
+      activeSessionTool: sessionManager.getActiveSessionTool(),
+      history: this.getHistoryCount(),
+    };
   }
   getTool() {
     return this.tools[paintOptions.toolId];

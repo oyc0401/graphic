@@ -7,12 +7,10 @@ interface Pointer {
 }
 
 interface Tool {
-  enter(): void;
   start(pointer: Pointer): void;
   stroke(p1: Pointer, p2: Pointer): void;
   end(): void;
   cancel(): void;
-  exit(): void;
 }
 
 export async function installTools(canvas, gl) {
@@ -25,10 +23,6 @@ export class BrushTool implements Tool {
 
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
-  }
-  enter() {
-    // console.log("brush enter");
-    this.drawManager.enter();
   }
   start(pointer: Pointer) {
     this.drawManager.start(pointer);
@@ -44,18 +38,12 @@ export class BrushTool implements Tool {
   cancel() {
     this.drawManager.cancel();
   }
-  exit() {
-    // console.log("brush exit");
-  }
 }
 
 export class EraserTool implements Tool {
   drawManager;
   constructor(canvas, gl) {
     this.drawManager = getBrushManager(canvas, gl);
-  }
-  enter() {
-    this.drawManager.enter();
   }
   start(pointer: Pointer) {
     this.drawManager.start(pointer);
@@ -70,17 +58,12 @@ export class EraserTool implements Tool {
   cancel() {
     this.drawManager.cancel();
   }
-  exit() {}
 }
 
 export class LiquifyTool implements Tool {
   liquifyManager;
   constructor(canvas, gl) {
     this.liquifyManager = getLiquifyManager(canvas, gl);
-  }
-  enter() {
-    //console.log("liquify enter");
-    this.liquifyManager.enter();
   }
   start(pointer: Pointer) {
     // console.log("liquify start");
@@ -101,9 +84,5 @@ export class LiquifyTool implements Tool {
   }
   cancel() {
     this.liquifyManager.cancel();
-  }
-  exit() {
-    //console.log("liquify exit");
-    this.liquifyManager.exit();
   }
 }

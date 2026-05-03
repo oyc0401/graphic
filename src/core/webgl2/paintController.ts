@@ -81,6 +81,9 @@ export class WebGL2Controller {
   discardActiveSession(): void {
     paint.discardActiveSession();
   }
+  getState(): CoreState {
+    return paint.getState();
+  }
   start(p: Pointer): void {
     let pointer = toWebglCoord(p);
     paint.start(pointer);
@@ -195,6 +198,11 @@ function toWebglCoord3(
 interface HistoryCount {
   undoCount: number;
   redoCount: number;
+}
+
+interface CoreState {
+  activeSessionTool: CoreTool | null;
+  history: HistoryCount;
 }
 
 interface PixelData {

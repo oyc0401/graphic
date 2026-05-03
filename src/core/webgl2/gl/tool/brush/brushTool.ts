@@ -94,7 +94,6 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const FALLBACK_SIZE = 1024;
 
   let brushManager = {
-    enter() {},
     start(pointer: Pointer) {
       if (paintOptions.radius < FALLBACK_SIZE) {
         pathRenderer = splinePathRenderer;
@@ -212,7 +211,6 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
       scissorRect = null;
       renderingManager.render();
     },
-    exit() {},
     setSize() {
       const width = paintOptions.width;
       const height = paintOptions.height;

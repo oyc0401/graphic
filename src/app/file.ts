@@ -18,7 +18,7 @@ import {
 } from "./position";
 import { paintState } from "./paintState";
 import { toolManager } from "./draw";
-import { historyState } from "./history";
+import { syncCoreState } from "./history";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -189,9 +189,7 @@ export function uploadImage(bitmap: ImageBitmap) {
     bitmap,
     // Comlink.transfer(bitmap, [bitmap])
   );
-  let { undoCount, redoCount } = worker.getHistoryCount();
-  historyState.setUndoCount(undoCount);
-  historyState.setRedoCount(redoCount);
+  syncCoreState();
 
   renderChangedPosition();
 }
@@ -277,9 +275,7 @@ export function resetImage() {
   const worker = getLayerWorker();
   worker.resetImage(position.width, position.height);
 
-  let { undoCount, redoCount } = worker.getHistoryCount();
-  historyState.setUndoCount(undoCount);
-  historyState.setRedoCount(redoCount);
+  syncCoreState();
   renderChangedPosition();
 }
 

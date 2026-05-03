@@ -29,8 +29,10 @@ class HistoryState {
 
 export const historyState = new HistoryState();
 
-export function syncHistoryCount() {
-  let { undoCount, redoCount } = getLayerWorker().getHistoryCount();
+export function syncCoreState() {
+  const coreState = getLayerWorker().getState();
+  const { undoCount, redoCount } = coreState.history;
+  paintState.setActiveSessionTool(coreState.activeSessionTool);
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 }
