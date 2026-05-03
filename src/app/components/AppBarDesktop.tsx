@@ -12,7 +12,6 @@ import BrushIcon from "../assets/brush.svg?react";
 import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
-import ResizeIcon from "../assets/resize.svg?react";
 
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
@@ -62,7 +61,6 @@ export default function AppBarDesktop() {
           <div className="div-bar"></div>
           <div className="mini-buttons">
             <LiquifyToolButton />
-            <ResizeButton />
           </div>
           <div className="div-bar"></div>
 
@@ -175,21 +173,6 @@ const LiquifyToolButton = observer(() => {
       onClick={() => toolManager.setLiquifyTool()}
     >
       <LiquifyIcon width={20} height={20} />
-    </button>
-  );
-});
-
-const ResizeButton = observer(() => {
-  const isSelected = paintState.toolId === "resize";
-
-  return (
-    <button
-      className={`select-mini ${isSelected ? "selected" : ""}`}
-      onClick={() => {
-        toolManager.setResizeTool();
-      }}
-    >
-      <ResizeIcon width={20} height={20} />
     </button>
   );
 });

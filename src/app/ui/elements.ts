@@ -25,6 +25,10 @@ function elements() {
     handleRT: $id("handle-rt"),
     handleRB: $id("handle-rb"),
     handleLB: $id("handle-lb"),
+    resizeHandleLT: $id("resize-handle-lt"),
+    resizeHandleRT: $id("resize-handle-rt"),
+    resizeHandleRB: $id("resize-handle-rb"),
+    resizeHandleLB: $id("resize-handle-lb"),
 
     selectionSizeBox: $id("selection-size"),
     selectionText: $id("selection-text"),

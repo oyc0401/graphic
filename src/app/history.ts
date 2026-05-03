@@ -1,6 +1,5 @@
 import { makeAutoObservable } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
-import { toolManager } from "./draw";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
@@ -52,10 +51,6 @@ function applyHistoryPosition({
 export async function undo() {
   if (paintState.pointerdown) return;
 
-  if (paintState.toolId == "resize") {
-    toolManager.setBrushTool();
-  }
-
   let worker = getLayerWorker();
   let historyResponse = await worker.undo();
   if (!historyResponse) return;
@@ -99,10 +94,6 @@ export async function undo() {
 
 export async function redo() {
   if (paintState.pointerdown) return;
-
-  if (paintState.toolId == "resize") {
-    toolManager.setBrushTool();
-  }
   let worker = getLayerWorker();
   let historyResponse = await worker.redo();
   if (!historyResponse) return;

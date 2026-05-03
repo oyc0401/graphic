@@ -8,8 +8,7 @@ export type CoreTool =
   | "eraser"
   | "liquify"
   | "select"
-  | "selection"
-  | "resize";
+  | "selection";
 
 export interface CoreToolState {
   tool: CoreTool;

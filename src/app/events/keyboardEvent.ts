@@ -165,9 +165,6 @@ export function addKeyboardEvent() {
       if (event.code === "KeyS") {
         toolManager.setSelectTool();
       }
-      if (event.code === "KeyR") {
-        toolManager.setResizeTool();
-      }
     });
 
     document.addEventListener("keyup", (event) => {

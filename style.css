@@ -144,6 +144,10 @@ canvas {
   transform: translate(0, -1px);
 }
 
+.resize-handle {
+  z-index: 2902;
+}
+
 #selection-size {
   display: flex;
   flex-direction: row;

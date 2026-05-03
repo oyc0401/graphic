@@ -3,7 +3,7 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN"; // 키보드 떼면 brush로 됌
-type ToolId = "brush" | "select" | "selection" | "resize"; // 선택창 풀면 brush로 됌
+type ToolId = "brush" | "select" | "selection"; // 선택창 풀면 brush로 됌
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";
@@ -40,7 +40,6 @@ class PaintState {
         return "brush";
       case "select":
       case "selection":
-      case "resize":
         return this.coreTool;
     }
   }
@@ -52,7 +51,6 @@ class PaintState {
       case "brush":
       case "select":
       case "selection":
-      case "resize":
         return "brush";
     }
   }

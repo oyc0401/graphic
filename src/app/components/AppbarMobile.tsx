@@ -13,7 +13,6 @@ import BrushIcon from "../assets/brush.svg?react";
 import EraserIcon from "../assets/eraser.svg?react";
 import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
-import ResizeIcon from "../assets/resize.svg?react";
 
 import {
   ColorIndicatorButton,
@@ -102,7 +101,6 @@ const ToolsToggleButton = observer(() => {
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <LiquifyToolButton />
-          <ResizeButton />
           <div style={{ flex: 1 }} />
           <HistoryButtons />
         </div>
@@ -249,21 +247,6 @@ const LiquifyToolButton = observer(() => {
       onClick={onClick}
     >
       <LiquifyIcon />
-    </button>
-  );
-});
-
-const ResizeButton = observer(() => {
-  const isSelected = paintState.toolId === "resize";
-
-  return (
-    <button
-      className={`header-button ${isSelected ? "selected" : ""}`}
-      onClick={() => {
-        toolManager.setResizeTool();
-      }}
-    >
-      <ResizeIcon />
     </button>
   );
 });
