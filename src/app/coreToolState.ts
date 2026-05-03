@@ -21,6 +21,7 @@ export function applyCoreToolState(
       break;
     case "select":
     case "selection":
+    case "resize":
       paintState.setToolId(coreState.tool);
       break;
   }

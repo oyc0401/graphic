@@ -28,7 +28,7 @@ export interface RendererInterface {
   render(): void;
 
   // === 도구 관리 ===
-  setTool(toolId: CoreTool, doExit?: boolean): { tool: CoreTool };
+  setTool(toolId: CoreTool, doExit?: boolean): CoreToolState;
 
   // === 선택 영역 ===
   select(px: number, py: number, w: number, h: number): void;

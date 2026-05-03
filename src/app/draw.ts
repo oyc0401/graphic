@@ -38,8 +38,6 @@ export const toolManager = {
   setResizeTool() {
     if (paintState.pointerdown) return;
 
-    setCoreTool("brush");
-
     applySelection();
     selection.setWidth(position.width);
     selection.setHeight(position.height);
@@ -47,7 +45,7 @@ export const toolManager = {
     selection.setY(0);
     selection.setShowHint(true);
     selection.setShowHandle(true);
-    paintState.setToolId("resize");
+    setCoreTool("resize");
   },
 };
 

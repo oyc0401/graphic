@@ -86,8 +86,8 @@ export class PaintService {
   }
   setLayerId(layerId) {
     // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
-    this.getTool().exit();
-    this.getTool().enter();
+    this.getTool()?.exit();
+    this.getTool()?.enter();
 
     let layerManager = getLayerManager(this.canvas, this.gl);
     layerManager.setLayerId(layerId);
@@ -118,18 +118,18 @@ export class PaintService {
     return this.tools[paintOptions.toolId];
   }
   start(pointer: Pointer) {
-    this.getTool().start(pointer);
+    this.getTool()?.start(pointer);
     this.lastPointer = pointer;
   }
   strokeTo(pointer: Pointer) {
-    this.getTool().stroke(this.lastPointer, pointer);
+    this.getTool()?.stroke(this.lastPointer, pointer);
     this.lastPointer = pointer;
   }
   end() {
-    this.getTool().end();
+    this.getTool()?.end();
   }
   cancel() {
-    this.getTool().cancel();
+    this.getTool()?.cancel();
   }
   select(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
