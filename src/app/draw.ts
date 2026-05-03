@@ -3,6 +3,14 @@ import { paintState } from "./paintState";
 import { applySelection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { setCoreTool } from "./coreToolState";
+import { historyState } from "./history";
+import { getLayerWorker } from "./worker/workerPool";
+
+function syncHistoryCount() {
+  let { undoCount, redoCount } = getLayerWorker().getHistoryCount();
+  historyState.setUndoCount(undoCount);
+  historyState.setRedoCount(redoCount);
+}
 
 export const toolManager = {
   async setBrushTool() {
@@ -10,6 +18,7 @@ export const toolManager = {
 
     applySelection();
     setCoreTool("brush");
+    syncHistoryCount();
 
     console.log("brush");
   },
@@ -18,21 +27,25 @@ export const toolManager = {
 
     applySelection();
     setCoreTool("eraser");
+    syncHistoryCount();
   },
   setLiquifyTool() {
     if (paintState.pointerdown) return;
 
     applySelection();
     setCoreTool("liquify");
+    syncHistoryCount();
   },
   setSelectTool() {
     if (paintState.pointerdown) return;
     applySelection();
     setCoreTool("select");
+    syncHistoryCount();
   },
   setSelection() {
     if (paintState.pointerdown) return;
     setCoreTool("selection");
+    syncHistoryCount();
   },
 };
 

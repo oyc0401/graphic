@@ -21,11 +21,15 @@ import { PixelStore } from "../../../../history/PixelStore";
 
 interface LiquifyManagerInterface {
   enter(): void;
+  isActive(): boolean;
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
   render: () => void;
   end(): void;
   cancel(): void;
+  undo(): Promise<any>;
+  redo(): Promise<any>;
+  getHistoryCount(): { undoCount: number; redoCount: number };
   exit(): void;
   setSize: () => void;
 }
@@ -49,6 +53,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
   // enter ~ exit동안 변경된 범위
   private changeDirtyRecorder: DirtyRectRecorder;
   private changedRect: Rect | null = null;
+  private active = false;
+  private undoStack: HistoryObject[] = [];
+  private redoStack: HistoryObject[] = [];
 
   private scissorRect: Rect;
 
@@ -272,6 +279,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
         if (copiedChangedRect) {
           self.changeDirtyRecorder.updateRect(copiedChangedRect);
         }
+        self.changedRect = copiedChangedRect ?? null;
       },
     };
 
@@ -346,31 +354,24 @@ export class LiquifyManager implements LiquifyManagerInterface {
       paintOptions.height,
     );
     this.changedRect = null;
+    this.undoStack = [];
+    this.redoStack = [];
     this.openTexture();
+  }
+
+  private addUndo(history: HistoryObject) {
+    this.undoStack.push(history);
+    this.redoStack = [];
   }
 
   // Public interface methods
   enter() {
-    const gl = this.gl;
     this.enterLogic();
+    this.active = true;
+  }
 
-    // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-    const byteSize = 0;
-
-    const newHistory = new HistoryObject({
-      undo: async () => {
-        this.closeTexture();
-        return { toolState: { tool: "brush" } };
-      },
-      redo: async () => {
-        this.enterLogic();
-        return { toolState: { tool: "liquify" } };
-      },
-      byteSize,
-    });
-
-    let historyManager = getHistoryManager(this.canvas, gl);
-    historyManager.addUndo(newHistory);
+  isActive() {
+    return this.active;
   }
 
   start(pointer: any) {
@@ -402,7 +403,6 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   end() {
-    const gl = this.gl;
     let strokeRect = this.displacementModifier.getStrokeDirtyRect();
     let renderRect = Rect.fromWidth(
       strokeRect.x,
@@ -438,19 +438,20 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const newHistory = new HistoryObject({
       undo: async () => {
         await before.apply();
+        self.scissorRect = before.rect;
         self.render();
         return { toolState: { tool: "liquify" } };
       },
       redo: async () => {
         await after.apply();
+        self.scissorRect = after.rect;
         self.render();
         return { toolState: { tool: "liquify" } };
       },
       byteSize,
     });
 
-    let historyManager = getHistoryManager(this.canvas, gl);
-    historyManager.addUndo(newHistory);
+    this.addUndo(newHistory);
 
     this.changedRect = this.changeDirtyRecorder.generateRect();
   }
@@ -460,6 +461,45 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.render();
   }
 
+  async undo() {
+    if (this.undoStack.length === 0) return null;
+
+    const history = this.undoStack.pop()!;
+    const response = await history.undo();
+    this.redoStack.push(history);
+
+    return {
+      toolState: response.toolState,
+      selection: response.selection,
+      position: response.position,
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
+  async redo() {
+    if (this.redoStack.length === 0) return null;
+
+    const history = this.redoStack.pop()!;
+    const response = await history.redo();
+    this.undoStack.push(history);
+
+    return {
+      toolState: response.toolState,
+      selection: response.selection,
+      position: response.position,
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
+  getHistoryCount() {
+    return {
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
   exit() {
     const gl = this.gl;
 
@@ -467,60 +507,39 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     const self = this;
     if (this.changedRect) {
-      const displaceSnapshot = this.createCurrentSnapshot(
-        this.changedRect.x,
-        this.changedRect.y,
-        this.changedRect.width,
-        this.changedRect.height,
-      );
+      const changedRect = this.changedRect.copy();
       let { before: beforeSource, after: afterSource } =
         this.sourceTextureManager.upload(
-          this.changedRect.x,
-          this.changedRect.y,
-          this.changedRect.width,
-          this.changedRect.height,
+          changedRect.x,
+          changedRect.y,
+          changedRect.width,
+          changedRect.height,
         );
 
-      // 바이트 크기 계산 (RG 2채널 하나, HALF_FLOAT 2바이트 + RGBA 4바이트, undo용과 redo용 두 개)
-      const displacementBytes =
-        this.changedRect.width * this.changedRect.height * 2 * 4;
-      const sourceBytes =
-        this.changedRect.width * this.changedRect.height * 4 * 2;
-      const byteSize = displacementBytes + sourceBytes;
+      const sourceBytes = changedRect.width * changedRect.height * 4 * 2;
+      const byteSize = sourceBytes;
 
       const newHistory = new HistoryObject({
         undo: async () => {
-          self.enterLogic();
-          await displaceSnapshot.apply();
           await beforeSource.apply();
-          self.render(); // 지금 상태는 scissorTest를 안 켰기 때문에 전체가 렌더링 됌.
-          return { toolState: { tool: "liquify" } };
+          self.renderingManager.render(changedRect);
+          return { toolState: { tool: "brush" } };
         },
         redo: async () => {
           await afterSource.apply();
-          self.closeTexture();
+          self.renderingManager.render(changedRect);
           return { toolState: { tool: "brush" } };
         },
         byteSize,
       });
 
       historyManager.addUndo(newHistory);
-    } else {
-      const newHistory = new HistoryObject({
-        undo: async () => {
-          self.enterLogic();
-          return { toolState: { tool: "liquify" } };
-        },
-        redo: async () => {
-          self.closeTexture();
-          return { toolState: { tool: "brush" } };
-        },
-      });
-
-      historyManager.addUndo(newHistory);
     }
 
     this.closeTexture();
+    this.active = false;
+    this.undoStack = [];
+    this.redoStack = [];
   }
 
   setSize: () => void = () => {};

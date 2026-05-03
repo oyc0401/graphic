@@ -2,6 +2,7 @@ import { LiquifyManager } from "./LiquifyManager";
 
 interface liquifyManager {
   enter(): void;
+  isActive(): boolean;
 
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
@@ -10,6 +11,10 @@ interface liquifyManager {
   end(): void;
 
   cancel(): void;
+
+  undo(): Promise<any>;
+  redo(): Promise<any>;
+  getHistoryCount(): { undoCount: number; redoCount: number };
 
   exit(): void;
 

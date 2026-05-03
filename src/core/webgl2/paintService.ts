@@ -10,6 +10,7 @@ import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
 import type { CoreTool, CoreToolState } from "../types";
+import { getLiquifyManager } from "./gl/tool/liquify/liquify";
 
 interface Pointer {
   x: number;
@@ -185,14 +186,29 @@ export class PaintService {
   }
 
   undo() {
+    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
+    if (liquifyManager.isActive()) {
+      return liquifyManager.undo();
+    }
+
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.undo();
   }
   redo() {
+    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
+    if (liquifyManager.isActive()) {
+      return liquifyManager.redo();
+    }
+
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.redo();
   }
   getHistoryCount() {
+    const liquifyManager = getLiquifyManager(this.canvas, this.gl);
+    if (liquifyManager.isActive()) {
+      return liquifyManager.getHistoryCount();
+    }
+
     let historyManager = getHistoryManager(this.canvas, this.gl);
     return historyManager.getHistoryCount();
   }
