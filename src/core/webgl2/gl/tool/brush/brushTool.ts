@@ -192,12 +192,12 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
         undo: async () => {
           await before.apply();
           await renderingManager.render();
-          return { tool: "brush" };
+          return { toolState: { tool: "brush" } };
         },
         redo: async () => {
           await after.apply();
           await renderingManager.render();
-          return { tool: "brush" };
+          return { toolState: { tool: "brush" } };
         },
         byteSize,
       });

@@ -9,6 +9,7 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
+import type { CoreTool, CoreToolState } from "../types";
 
 interface Pointer {
   x: number;
@@ -104,14 +105,14 @@ export class PaintService {
   setAlpha(alpha) {
     paintOptions.setAlpha(alpha);
   }
-  setTool(toolId, doExit) {
+  setTool(toolId: CoreTool, doExit): CoreToolState {
     if (paintOptions.toolId != toolId && doExit) {
       this.getTool()?.exit();
       paintOptions.toolId = toolId;
       this.getTool()?.enter();
     }
     paintOptions.toolId = toolId;
-    if (toolId == "select") return;
+    return { tool: toolId };
   }
   getTool() {
     return this.tools[paintOptions.toolId];

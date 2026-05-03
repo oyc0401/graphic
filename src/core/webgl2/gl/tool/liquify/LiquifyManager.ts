@@ -360,11 +360,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const newHistory = new HistoryObject({
       undo: async () => {
         this.closeTexture();
-        return { tool: "brush" };
+        return { toolState: { tool: "brush" } };
       },
       redo: async () => {
         this.enterLogic();
-        return { tool: "liquify" };
+        return { toolState: { tool: "liquify" } };
       },
       byteSize,
     });
@@ -439,12 +439,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
       undo: async () => {
         await before.apply();
         self.render();
-        return { tool: "liquify" };
+        return { toolState: { tool: "liquify" } };
       },
       redo: async () => {
         await after.apply();
         self.render();
-        return { tool: "liquify" };
+        return { toolState: { tool: "liquify" } };
       },
       byteSize,
     });
@@ -494,12 +494,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
           await displaceSnapshot.apply();
           await beforeSource.apply();
           self.render(); // 지금 상태는 scissorTest를 안 켰기 때문에 전체가 렌더링 됌.
-          return { tool: "liquify" };
+          return { toolState: { tool: "liquify" } };
         },
         redo: async () => {
           await afterSource.apply();
           self.closeTexture();
-          return { tool: "brush" };
+          return { toolState: { tool: "brush" } };
         },
         byteSize,
       });
@@ -509,11 +509,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
       const newHistory = new HistoryObject({
         undo: async () => {
           self.enterLogic();
-          return { tool: "liquify" };
+          return { toolState: { tool: "liquify" } };
         },
         redo: async () => {
           self.closeTexture();
-          return { tool: "brush" };
+          return { toolState: { tool: "brush" } };
         },
       });
 

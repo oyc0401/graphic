@@ -1,7 +1,7 @@
-import type { Pointer } from "./types.js";
+import type { CoreTool, CoreToolState, Pointer } from "./types.js";
 
 interface HistoryResponse {
-  tool: string;
+  toolState: CoreToolState;
   undoCount: number;
   redoCount: number;
 }
@@ -28,7 +28,7 @@ export interface RendererInterface {
   render(): void;
 
   // === 도구 관리 ===
-  setTool(toolId: string | number, doExit?: boolean): void;
+  setTool(toolId: CoreTool, doExit?: boolean): { tool: CoreTool };
 
   // === 선택 영역 ===
   select(px: number, py: number, w: number, h: number): void;

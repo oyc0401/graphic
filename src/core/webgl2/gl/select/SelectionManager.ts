@@ -313,7 +313,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "select",
+          toolState: { tool: "select" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -333,7 +333,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "selection",
+          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -388,7 +388,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "select",
+          toolState: { tool: "select" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -407,7 +407,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "selection",
+          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -479,7 +479,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "selection",
+          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -499,7 +499,7 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          tool: "brush",
+          toolState: { tool: "brush" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -599,7 +599,7 @@ export class SelectionManager {
         this.beforePos = structuredClone(this.selectionPos);
 
         return {
-          tool: "selection",
+          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -624,7 +624,7 @@ export class SelectionManager {
         this.beforePos = structuredClone(this.selectionPos);
 
         return {
-          tool: "selection",
+          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,

@@ -1,62 +1,44 @@
 /** draw.ts */
 import { paintState } from "./paintState";
-import { getLayerWorker } from "./worker/workerPool";
 import { applySelection, selection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { position } from "./position";
+import { setCoreTool } from "./coreToolState";
 
 export const toolManager = {
   async setBrushTool() {
     if (paintState.pointerdown) return;
-    paintState.setToolId("brush");
-    paintState.setBrushId("brush");
 
-    const worker = getLayerWorker();
     applySelection();
-    worker.setTool(paintState.brushId);
+    setCoreTool("brush");
 
     console.log("brush");
   },
   setEraserTool() {
     if (paintState.pointerdown) return;
-    paintState.setToolId("brush");
-    paintState.setBrushId("eraser");
 
-    const worker = getLayerWorker();
     applySelection();
-    worker.setTool(paintState.brushId);
+    setCoreTool("eraser");
   },
   setLiquifyTool() {
     if (paintState.pointerdown) return;
-    paintState.setToolId("brush");
-    paintState.setBrushId("liquify");
 
-    const worker = getLayerWorker();
     applySelection();
-    worker.setTool(paintState.brushId);
+    setCoreTool("liquify");
   },
   setSelectTool() {
     if (paintState.pointerdown) return;
     applySelection();
-    paintState.setToolId("select");
-
-    const worker = getLayerWorker();
-    worker.setTool("select");
+    setCoreTool("select");
   },
   setSelection() {
     if (paintState.pointerdown) return;
-    paintState.setToolId("selection");
-
-    const worker = getLayerWorker();
-    worker.setTool("selection");
+    setCoreTool("selection");
   },
   setResizeTool() {
     if (paintState.pointerdown) return;
 
-    paintState.setToolId("brush");
-    paintState.setBrushId("brush");
-    const worker = getLayerWorker();
-    worker.setTool(paintState.brushId);
+    setCoreTool("brush");
 
     applySelection();
     selection.setWidth(position.width);

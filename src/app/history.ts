@@ -4,6 +4,7 @@ import { toolManager } from "./draw";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
+import { applyCoreToolState, toCoreToolState } from "./coreToolState";
 
 class HistoryState {
   undoCount = 0;
@@ -58,35 +59,18 @@ export async function undo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.undo();
   if (!historyResponse) return;
-  let { tool, undoCount, redoCount } = historyResponse;
+  let { toolState, undoCount, redoCount } = historyResponse;
+  const tool = toolState.tool;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 
-  // console.warn("change tool:", msg);
-  if (tool == "select") {
-    paintState.setToolId("select");
-    const worker = getLayerWorker();
-    worker.setTool("select", false);
-  } else if (tool == "selection") {
-    paintState.setToolId("selection");
+  applyCoreToolState(toolState, { doExit: false });
+
+  if (tool == "selection") {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
     selection.setFlip(false, false);
-  } else if (tool == "brush") {
-    paintState.setToolId("brush");
-    paintState.setBrushId("brush");
-    const worker = getLayerWorker();
-    worker.setTool(paintState.brushId, false);
-  } else if (tool == "liquify") {
-    // 이때 liquify -> brush로 가면 liquify의 exit안해도 됌.
-
-    paintState.setToolId("brush");
-    paintState.setBrushId("liquify");
-    const worker = getLayerWorker();
-    worker.setTool(paintState.brushId, false);
-  } else {
-    console.warn("허용되지 않은 tool", tool);
   }
 
   if (historyResponse.position) {
@@ -104,14 +88,11 @@ export async function undo() {
     selection.setShowHandle(show);
     selection.setShowHint(show);
     selection.setVisible(show);
-    let worker = getLayerWorker();
 
     if (show) {
-      paintState.setToolId("selection");
-      worker.setTool("selection");
+      applyCoreToolState(toCoreToolState("selection"));
     } else {
-      paintState.setToolId("select");
-      worker.setTool("select");
+      applyCoreToolState(toCoreToolState("select"));
     }
   }
 }
@@ -125,34 +106,19 @@ export async function redo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.redo();
   if (!historyResponse) return;
-  let { tool, undoCount, redoCount } = historyResponse;
+  let { toolState, undoCount, redoCount } = historyResponse;
+  const tool = toolState.tool;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 
   if (!tool) return;
-  // console.warn("change tool:", msg);
-  if (tool == "select") {
-    paintState.setToolId("select");
-    const worker = getLayerWorker();
-    worker.setTool("select", false);
-  } else if (tool == "selection") {
-    paintState.setToolId("selection");
+  applyCoreToolState(toolState, { doExit: false });
+
+  if (tool == "selection") {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
     selection.setFlip(false, false);
-  } else if (tool == "brush") {
-    paintState.setToolId("brush");
-    paintState.setBrushId("brush");
-    const worker = getLayerWorker();
-    worker.setTool(paintState.brushId, false);
-  } else if (tool == "liquify") {
-    paintState.setToolId("brush");
-    paintState.setBrushId("liquify");
-    const worker = getLayerWorker();
-    worker.setTool(paintState.brushId, false);
-  } else {
-    console.warn("허용되지 않은 tool", tool);
   }
 
   if (historyResponse.position) {
@@ -170,14 +136,11 @@ export async function redo() {
     selection.setShowHandle(show);
     selection.setShowHint(show);
     selection.setVisible(show);
-    let worker = getLayerWorker();
 
     if (show) {
-      paintState.setToolId("selection");
-      worker.setTool("selection");
+      applyCoreToolState(toCoreToolState("selection"));
     } else {
-      paintState.setToolId("select");
-      worker.setTool("select");
+      applyCoreToolState(toCoreToolState("select"));
     }
   }
 }

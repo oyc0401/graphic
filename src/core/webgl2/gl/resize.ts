@@ -87,7 +87,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       renderingManager.render();
 
       return {
-        tool: "brush",
+        toolState: { tool: "brush" },
         position: {
           x: paintOptions.x,
           y: paintOptions.y,
@@ -115,7 +115,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       renderingManager.render();
 
       return {
-        tool: "brush",
+        toolState: { tool: "brush" },
         position: {
           x: paintOptions.x,
           y: paintOptions.y,

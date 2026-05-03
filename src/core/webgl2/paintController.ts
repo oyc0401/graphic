@@ -1,7 +1,7 @@
 import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
-import type { Pointer } from "../types.js";
+import type { CoreTool, CoreToolState, Pointer } from "../types.js";
 import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
@@ -72,8 +72,8 @@ export class WebGL2Controller {
   setAlpha(alpha: number): void {
     paint.setAlpha(alpha / 100);
   }
-  setTool(toolId: string | number, doExit: boolean = true): void {
-    paint.setTool(toolId, doExit);
+  setTool(toolId: CoreTool, doExit: boolean = true): CoreToolState {
+    return paint.setTool(toolId, doExit);
   }
   start(p: Pointer): void {
     let pointer = toWebglCoord(p);

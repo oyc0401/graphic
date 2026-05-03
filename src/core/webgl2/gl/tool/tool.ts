@@ -1,6 +1,5 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify/liquify";
 import { getBrushManager } from "./brush/brushTool";
-import { paintState } from "@/app/paintState";
 
 interface Pointer {
   x: number;
