@@ -295,11 +295,16 @@ function bindCanvasResizeUI() {
 
     setVisibility(resizeHandles, showHandles);
     els.resizeArea.style.visibility = showPreview ? "visible" : "hidden";
+    els.resizeSizeBox.style.visibility = showPreview ? "visible" : "hidden";
 
     if (!showHandles && !showPreview) return;
 
     if (showPreview) {
       setResizeArea(rect);
+      els.resizeSizeBox.style.left = `${rect.x}px`;
+      els.resizeSizeBox.style.top = `${rect.y + rect.height}px`;
+      els.resizeSizeBox.style.width = `${rect.width}px`;
+      els.resizeText.innerText = `${canvasResizeState.rect.width} x ${canvasResizeState.rect.height}`;
     }
 
     if (showHandles) {

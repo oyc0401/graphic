@@ -33,6 +33,8 @@ function elements() {
 
     selectionSizeBox: $id("selection-size"),
     selectionText: $id("selection-text"),
+    resizeSizeBox: $id("resize-size"),
+    resizeText: $id("resize-text"),
 
     positionBox: $id("cursor-position"),
     positionText: $id("cursor-position-text"),

@@ -153,7 +153,8 @@ canvas {
   background: #b0b0b0;
 }
 
-#selection-size {
+#selection-size,
+#resize-size {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -162,7 +163,8 @@ canvas {
   z-index: 2900;
 }
 
-#selection-text {
+#selection-text,
+#resize-text {
   background: rgba(200, 200, 200, 0.5);
   margin-top: 16px;
   padding: 4px 8px;
