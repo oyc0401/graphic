@@ -6,11 +6,18 @@ import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
 import { isSmallSize } from "../utils/screen";
-import { RESIZE_HANDLE_SIZE_PX, resizeTool } from "../tools/resizeTool";
+import { resizeTool } from "../tools/resizeTool";
+import { canvasResizeState } from "../canvasResizeState";
+import {
+  RESIZE_HANDLE_SIZE_PX,
+  getCanvasResizeRect,
+  toContainerRect,
+} from "../utils/resizeGeometry";
 
 export function bindView() {
   bindCursorUI();
   bindSelectionUI();
+  bindCanvasResizeUI();
   bindCursorPositionUI();
   bindZoomAreaUI();
   bindLoadingIndicatorUI();
@@ -39,16 +46,18 @@ function bindCursorUI() {
   });
   autorun(() => {
     const isSelectionTool =
-      (paintState.inputMode === "BRUSH" && paintState.toolId === "selection") ||
-      resizeTool.isVisible();
-    container.classList.toggle(
-      "nwse-resize",
-      isSelectionTool && selection.hover == "nwse-resize",
-    );
-    container.classList.toggle(
-      "nesw-resize",
-      isSelectionTool && selection.hover == "nesw-resize",
-    );
+      paintState.inputMode === "BRUSH" && paintState.toolId === "selection";
+    const isCanvasResize = resizeTool.isVisible();
+    const resizeHover = canvasResizeState.hover;
+    const nwse =
+      (isSelectionTool && selection.hover == "nwse-resize") ||
+      (isCanvasResize && resizeHover === "nwse-resize");
+    const nesw =
+      (isSelectionTool && selection.hover == "nesw-resize") ||
+      (isCanvasResize && resizeHover === "nesw-resize");
+
+    container.classList.toggle("nwse-resize", nwse);
+    container.classList.toggle("nesw-resize", nesw);
     container.classList.toggle(
       "ns-resize",
       isSelectionTool && selection.hover == "ns-resize",
@@ -139,63 +148,6 @@ function bindSelectionUI() {
     setPos(handles.lb, sLeft, sTop + sHeight);
   };
 
-  const positionResizeHandles = (
-    handles: {
-      lt: HTMLElement;
-      rt: HTMLElement;
-      rb: HTMLElement;
-      lb: HTMLElement;
-    },
-    rect: { x: number; y: number; width: number; height: number },
-  ) => {
-    const dpr = getPixelRatio();
-    const left = ((rect.x + position.x) * position.scale) / dpr;
-    const top = ((rect.y + position.y) * position.scale) / dpr;
-    const width = (rect.width * position.scale) / dpr;
-    const height = (rect.height * position.scale) / dpr;
-    const right = left + width;
-    const bottom = top + height;
-
-    handles.lt.style.left = `${left - RESIZE_HANDLE_SIZE_PX}px`;
-    handles.lt.style.top = `${top - RESIZE_HANDLE_SIZE_PX}px`;
-    handles.rt.style.left = `${right}px`;
-    handles.rt.style.top = `${top - RESIZE_HANDLE_SIZE_PX}px`;
-    handles.rb.style.left = `${right}px`;
-    handles.rb.style.top = `${bottom}px`;
-    handles.lb.style.left = `${left - RESIZE_HANDLE_SIZE_PX}px`;
-    handles.lb.style.top = `${bottom}px`;
-  };
-
-  const positionActiveResizeHandleAtPointer = () => {
-    const handle = resizeTool.getActiveHandle();
-    if (!handle) return;
-
-    const pointer = resizeTool.getPointer();
-    const half = Math.floor(RESIZE_HANDLE_SIZE_PX / 2);
-    const containerRect = els.container.getBoundingClientRect();
-    const left = `${pointer.clientX - containerRect.left - half}px`;
-    const top = `${pointer.clientY - containerRect.top - half}px`;
-
-    switch (handle) {
-      case "LT":
-        els.resizeHandleLT.style.left = left;
-        els.resizeHandleLT.style.top = top;
-        break;
-      case "RT":
-        els.resizeHandleRT.style.left = left;
-        els.resizeHandleRT.style.top = top;
-        break;
-      case "RB":
-        els.resizeHandleRB.style.left = left;
-        els.resizeHandleRB.style.top = top;
-        break;
-      case "LB":
-        els.resizeHandleLB.style.left = left;
-        els.resizeHandleLB.style.top = top;
-        break;
-    }
-  };
-
   const setHandleVisibility = (handles: HTMLElement[], visible: boolean) => {
     for (const h of handles) {
       h.style.visibility = visible ? "visible" : "hidden";
@@ -242,16 +194,8 @@ function bindSelectionUI() {
       els.handleRB,
       els.handleLB,
     ];
-    const resizeHandles = [
-      els.resizeHandleLT,
-      els.resizeHandleRT,
-      els.resizeHandleRB,
-      els.resizeHandleLB,
-    ];
-    const showResizeHandles = resizeTool.isVisible();
 
     setHandleVisibility(selectionHandles, selection.showHandle);
-    setHandleVisibility(resizeHandles, showResizeHandles);
 
     if (selection.showHandle) {
       positionHandles(
@@ -264,17 +208,102 @@ function bindSelectionUI() {
         selection,
       );
     }
+  });
+}
 
-    if (showResizeHandles) {
-      positionResizeHandles(
-        {
-          lt: els.resizeHandleLT,
-          rt: els.resizeHandleRT,
-          rb: els.resizeHandleRB,
-          lb: els.resizeHandleLB,
-        },
-        resizeTool.getHandleRect(),
-      );
+function bindCanvasResizeUI() {
+  const resizeHandles = [
+    els.resizeHandleLT,
+    els.resizeHandleRT,
+    els.resizeHandleRB,
+    els.resizeHandleLB,
+  ];
+
+  const setVisibility = (elements: HTMLElement[], visible: boolean) => {
+    for (const element of elements) {
+      element.style.visibility = visible ? "visible" : "hidden";
+    }
+  };
+
+  const setResizeArea = (rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => {
+    els.resizeArea.style.left = `${rect.x}px`;
+    els.resizeArea.style.top = `${rect.y}px`;
+    els.resizeArea.style.width = `${rect.width}px`;
+    els.resizeArea.style.height = `${rect.height}px`;
+  };
+
+  const positionResizeHandles = (rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => {
+    const right = rect.x + rect.width;
+    const bottom = rect.y + rect.height;
+
+    els.resizeHandleLT.style.left = `${rect.x - RESIZE_HANDLE_SIZE_PX}px`;
+    els.resizeHandleLT.style.top = `${rect.y - RESIZE_HANDLE_SIZE_PX}px`;
+    els.resizeHandleRT.style.left = `${right}px`;
+    els.resizeHandleRT.style.top = `${rect.y - RESIZE_HANDLE_SIZE_PX}px`;
+    els.resizeHandleRB.style.left = `${right}px`;
+    els.resizeHandleRB.style.top = `${bottom}px`;
+    els.resizeHandleLB.style.left = `${rect.x - RESIZE_HANDLE_SIZE_PX}px`;
+    els.resizeHandleLB.style.top = `${bottom}px`;
+  };
+
+  const positionActiveResizeHandleAtPointer = () => {
+    const handle = canvasResizeState.activeHandle;
+    if (!handle) return;
+
+    const pointer = canvasResizeState.pointer;
+    const half = Math.floor(RESIZE_HANDLE_SIZE_PX / 2);
+    const containerRect = els.container.getBoundingClientRect();
+    const left = `${pointer.clientX - containerRect.left - half}px`;
+    const top = `${pointer.clientY - containerRect.top - half}px`;
+
+    switch (handle) {
+      case "LT":
+        els.resizeHandleLT.style.left = left;
+        els.resizeHandleLT.style.top = top;
+        break;
+      case "RT":
+        els.resizeHandleRT.style.left = left;
+        els.resizeHandleRT.style.top = top;
+        break;
+      case "RB":
+        els.resizeHandleRB.style.left = left;
+        els.resizeHandleRB.style.top = top;
+        break;
+      case "LB":
+        els.resizeHandleLB.style.left = left;
+        els.resizeHandleLB.style.top = top;
+        break;
+    }
+  };
+
+  autorun(() => {
+    const showHandles = resizeTool.isVisible();
+    const showPreview = canvasResizeState.active;
+    const rect = toContainerRect(
+      showPreview ? canvasResizeState.rect : getCanvasResizeRect(),
+    );
+
+    setVisibility(resizeHandles, showHandles);
+    els.resizeArea.style.visibility = showPreview ? "visible" : "hidden";
+
+    if (!showHandles && !showPreview) return;
+
+    if (showPreview) {
+      setResizeArea(rect);
+    }
+
+    if (showHandles) {
+      positionResizeHandles(rect);
       positionActiveResizeHandleAtPointer();
     }
   });

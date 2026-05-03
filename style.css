@@ -111,7 +111,8 @@ canvas {
 
 /* 선택창 ui */
 
-#selection-area {
+#selection-area,
+#resize-area {
   border: 1px dashed rgba(255, 255, 255, 0.5);
   position: absolute;
   z-index: 2900;

@@ -21,6 +21,7 @@ function elements() {
     zoomArea: $id("zoom-area"),
 
     selectionArea: $id("selection-area"),
+    resizeArea: $id("resize-area"),
     handleLT: $id("handle-lt"),
     handleRT: $id("handle-rt"),
     handleRB: $id("handle-rb"),
