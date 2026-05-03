@@ -146,6 +146,7 @@ canvas {
 
 .resize-handle {
   z-index: 2902;
+  background: #b0b0b0;
 }
 
 #selection-size {

@@ -6,6 +6,7 @@ import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
 import { isSmallSize } from "../utils/screen";
+import { RESIZE_HANDLE_SIZE_PX, resizeTool } from "../tools/resizeTool";
 
 export function bindView() {
   bindCursorUI();
@@ -39,7 +40,7 @@ function bindCursorUI() {
   autorun(() => {
     const isSelectionTool =
       (paintState.inputMode === "BRUSH" && paintState.toolId === "selection") ||
-      paintState.toolId === "resize";
+      resizeTool.isVisible();
     container.classList.toggle(
       "nwse-resize",
       isSelectionTool && selection.hover == "nwse-resize",
@@ -111,18 +112,113 @@ function bindCursorUI() {
 }
 
 function bindSelectionUI() {
+  const positionHandles = (
+    handles: {
+      lt: HTMLElement;
+      rt: HTMLElement;
+      rb: HTMLElement;
+      lb: HTMLElement;
+    },
+    rect: { x: number; y: number; width: number; height: number },
+  ) => {
+    const dpr = getPixelRatio();
+    const sLeft = ((rect.x + position.x) * position.scale) / dpr;
+    const sTop = ((rect.y + position.y) * position.scale) / dpr;
+    const sWidth = (rect.width * position.scale) / dpr;
+    const sHeight = (rect.height * position.scale) / dpr;
+
+    const offset = 3;
+    const setPos = (handle: HTMLElement, left: number, top: number) => {
+      handle.style.left = `${left - offset}px`;
+      handle.style.top = `${top - offset}px`;
+    };
+
+    setPos(handles.lt, sLeft, sTop);
+    setPos(handles.rt, sLeft + sWidth, sTop);
+    setPos(handles.rb, sLeft + sWidth, sTop + sHeight);
+    setPos(handles.lb, sLeft, sTop + sHeight);
+  };
+
+  const positionResizeHandles = (
+    handles: {
+      lt: HTMLElement;
+      rt: HTMLElement;
+      rb: HTMLElement;
+      lb: HTMLElement;
+    },
+    rect: { x: number; y: number; width: number; height: number },
+  ) => {
+    const dpr = getPixelRatio();
+    const left = ((rect.x + position.x) * position.scale) / dpr;
+    const top = ((rect.y + position.y) * position.scale) / dpr;
+    const width = (rect.width * position.scale) / dpr;
+    const height = (rect.height * position.scale) / dpr;
+    const right = left + width;
+    const bottom = top + height;
+
+    handles.lt.style.left = `${left - RESIZE_HANDLE_SIZE_PX}px`;
+    handles.lt.style.top = `${top - RESIZE_HANDLE_SIZE_PX}px`;
+    handles.rt.style.left = `${right}px`;
+    handles.rt.style.top = `${top - RESIZE_HANDLE_SIZE_PX}px`;
+    handles.rb.style.left = `${right}px`;
+    handles.rb.style.top = `${bottom}px`;
+    handles.lb.style.left = `${left - RESIZE_HANDLE_SIZE_PX}px`;
+    handles.lb.style.top = `${bottom}px`;
+  };
+
+  const positionActiveResizeHandleAtPointer = () => {
+    const handle = resizeTool.getActiveHandle();
+    if (!handle) return;
+
+    const pointer = resizeTool.getPointer();
+    const half = Math.floor(RESIZE_HANDLE_SIZE_PX / 2);
+    const containerRect = els.container.getBoundingClientRect();
+    const left = `${pointer.clientX - containerRect.left - half}px`;
+    const top = `${pointer.clientY - containerRect.top - half}px`;
+
+    switch (handle) {
+      case "LT":
+        els.resizeHandleLT.style.left = left;
+        els.resizeHandleLT.style.top = top;
+        break;
+      case "RT":
+        els.resizeHandleRT.style.left = left;
+        els.resizeHandleRT.style.top = top;
+        break;
+      case "RB":
+        els.resizeHandleRB.style.left = left;
+        els.resizeHandleRB.style.top = top;
+        break;
+      case "LB":
+        els.resizeHandleLB.style.left = left;
+        els.resizeHandleLB.style.top = top;
+        break;
+    }
+  };
+
+  const setHandleVisibility = (handles: HTMLElement[], visible: boolean) => {
+    for (const h of handles) {
+      h.style.visibility = visible ? "visible" : "hidden";
+    }
+  };
+
   // 1) selectionArea 스타일 갱신
   autorun(() => {
     const visible = selection.showHint;
+    const showSizeBox = selection.showHint;
 
     els.selectionArea.style.visibility = visible ? "visible" : "hidden";
-    els.selectionSizeBox.style.visibility = visible ? "visible" : "hidden";
+    els.selectionSizeBox.style.visibility = showSizeBox ? "visible" : "hidden";
+
+    const rect = selection.showHint
+      ? selection
+      : { x: 0, y: 0, width: position.width, height: position.height };
 
     const dpr = getPixelRatio();
-    const scaledLeft = ((selection.x + position.x) * position.scale) / dpr;
-    const scaledTop = ((selection.y + position.y) * position.scale) / dpr;
-    const scaledWidth = (selection.width * position.scale) / dpr;
-    const scaledHeight = (selection.height * position.scale) / dpr;
+    const scaledLeft = ((rect.x + position.x) * position.scale) / dpr;
+    const scaledTop = ((rect.y + position.y) * position.scale) / dpr;
+    const scaledWidth = (rect.width * position.scale) / dpr;
+    const scaledHeight = (rect.height * position.scale) / dpr;
 
     if (visible) {
       els.selectionArea.style.left = `${scaledLeft}px`;
@@ -134,38 +230,52 @@ function bindSelectionUI() {
       els.selectionSizeBox.style.top = `${scaledTop + scaledHeight}px`;
       els.selectionSizeBox.style.width = `${scaledWidth}px`;
 
-      els.selectionText.innerText = `${selection.width} x ${selection.height}`;
+      els.selectionText.innerText = `${rect.width} x ${rect.height}`;
     }
   });
 
   // 2) 핸들 위치 및 표시
   autorun(() => {
-    const visible = selection.showHandle;
-    const dpr = getPixelRatio();
-    let sLeft = ((selection.x + position.x) * position.scale) / dpr;
-    let sTop = ((selection.y + position.y) * position.scale) / dpr;
-    let sWidth = (selection.width * position.scale) / dpr;
-    let sHeight = (selection.height * position.scale) / dpr;
+    const selectionHandles = [
+      els.handleLT,
+      els.handleRT,
+      els.handleRB,
+      els.handleLB,
+    ];
+    const resizeHandles = [
+      els.resizeHandleLT,
+      els.resizeHandleRT,
+      els.resizeHandleRB,
+      els.resizeHandleLB,
+    ];
+    const showResizeHandles = resizeTool.isVisible();
 
-    // 핸들 표시/숨김
-    const handles = [els.handleLT, els.handleRT, els.handleRB, els.handleLB];
+    setHandleVisibility(selectionHandles, selection.showHandle);
+    setHandleVisibility(resizeHandles, showResizeHandles);
 
-    for (const h of handles) {
-      h.style.visibility = visible ? "visible" : "hidden";
+    if (selection.showHandle) {
+      positionHandles(
+        {
+          lt: els.handleLT,
+          rt: els.handleRT,
+          rb: els.handleRB,
+          lb: els.handleLB,
+        },
+        selection,
+      );
     }
 
-    // 위치 계산
-    const offset = 3;
-    const setPos = (handle: HTMLElement, left: number, top: number) => {
-      handle.style.left = `${left - offset}px`;
-      handle.style.top = `${top - offset}px`;
-    };
-
-    if (visible) {
-      setPos(els.handleLT, sLeft, sTop);
-      setPos(els.handleRT, sLeft + sWidth, sTop);
-      setPos(els.handleRB, sLeft + sWidth, sTop + sHeight);
-      setPos(els.handleLB, sLeft, sTop + sHeight);
+    if (showResizeHandles) {
+      positionResizeHandles(
+        {
+          lt: els.resizeHandleLT,
+          rt: els.resizeHandleRT,
+          rb: els.resizeHandleRB,
+          lb: els.resizeHandleLB,
+        },
+        resizeTool.getHandleRect(),
+      );
+      positionActiveResizeHandleAtPointer();
     }
   });
 }

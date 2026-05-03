@@ -2,6 +2,7 @@ import { paintState } from "../paintState";
 import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { zoomTool } from "../tools/ZoomTool";
+import { resizeTool } from "../tools/resizeTool";
 
 type Phase = "down" | "move" | "up" | "cancel";
 
@@ -14,6 +15,20 @@ export function dispatch(e: PointerEvent, phase: Phase) {
     case "ZOOM":
       zoomTool[phase]?.(e);
       return;
+  }
+
+  if (paintState.inputMode === "BRUSH") {
+    if (phase === "down" && resizeTool.canStart(e)) {
+      resizeTool.down(e);
+      return;
+    }
+    if (resizeTool.isActive()) {
+      resizeTool[phase]?.(e);
+      return;
+    }
+    if (phase === "move" && !paintState.pointerdown) {
+      resizeTool.move(e);
+    }
   }
 
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
