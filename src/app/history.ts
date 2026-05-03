@@ -29,6 +29,12 @@ class HistoryState {
 
 export const historyState = new HistoryState();
 
+export function syncHistoryCount() {
+  let { undoCount, redoCount } = getLayerWorker().getHistoryCount();
+  historyState.setUndoCount(undoCount);
+  historyState.setRedoCount(redoCount);
+}
+
 function applyHistoryPosition({
   x,
   y,

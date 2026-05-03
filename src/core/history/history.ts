@@ -108,12 +108,114 @@ function trimStack(stack: HistoryObject[], overflow: boolean): void {
   }
 }
 
-let undoStack: HistoryObject[] = [];
-let redoStack: HistoryObject[] = [];
+export interface HistoryCount {
+  undoCount: number;
+  redoCount: number;
+}
+
+export class HistoryStack {
+  private undoStack: HistoryObject[] = [];
+  private redoStack: HistoryObject[] = [];
+
+  constructor(private label = "history") {}
+
+  addUndo(
+    newHistory: HistoryObject,
+    options: {
+      resetRedo?: boolean;
+      overflow?: boolean;
+    } = {},
+  ) {
+    const { resetRedo = true, overflow = false } = options;
+    this.undoStack.push(newHistory);
+
+    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
+    trimStack(this.undoStack, overflow);
+
+    if (resetRedo && this.redoStack.length != 0) {
+      // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
+      // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
+      // 객체 안에서 readPixel하게!
+      this.redoStack = [];
+    }
+
+    this.logCurrent();
+  }
+
+  private addRedo(newHistory: HistoryObject, overflow: boolean = false) {
+    this.redoStack.push(newHistory);
+
+    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
+    trimStack(this.redoStack, overflow);
+
+    this.logCurrent();
+  }
+
+  async undo(): Promise<HistoryResponse | null> {
+    if (this.undoStack.length == 0) return null;
+
+    let history = this.undoStack[this.undoStack.length - 1];
+    this.undoStack.pop();
+
+    let response = await history.undo();
+    this.addRedo(history);
+
+    return {
+      toolState: response.toolState,
+      selection: response.selection,
+      position: response.position,
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
+  async redo(): Promise<HistoryResponse | null> {
+    if (this.redoStack.length == 0) return null;
+
+    let history = this.redoStack[this.redoStack.length - 1];
+    this.redoStack.pop();
+
+    let response = await history.redo();
+    this.addUndo(history, { resetRedo: false });
+
+    return {
+      toolState: response.toolState,
+      selection: response.selection,
+      position: response.position,
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
+  getHistoryCount(): HistoryCount {
+    return {
+      undoCount: this.undoStack.length,
+      redoCount: this.redoStack.length,
+    };
+  }
+
+  clear() {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
+  private logCurrent() {
+    const undoBytes = getTotalStackBytes(this.undoStack);
+    const redoBytes = getTotalStackBytes(this.redoStack);
+    const undoMB = (undoBytes / (1024 * 1024)).toFixed(2);
+    const redoMB = (redoBytes / (1024 * 1024)).toFixed(2);
+
+    console.warn(
+      `${this.label} undo: ${this.undoStack.length}/${paintConfig.maxHistoryItems} (${undoMB} MB)`,
+      `redo: ${this.redoStack.length}/${paintConfig.maxHistoryItems} (${redoMB} MB)`,
+    );
+  }
+}
+
+const globalHistoryStack = new HistoryStack();
 
 export function resetHisory() {
-  undoStack = [];
-  redoStack = [];
+  globalHistoryStack.clear();
 }
 
 export function getHistoryManager(canvas, gl) {
@@ -122,96 +224,10 @@ export function getHistoryManager(canvas, gl) {
 }
 
 function createHistoryManager() {
-  function addUndo(
-    newHistory: HistoryObject,
-    options: {
-      resetRedo?: boolean;
-      overflow?: boolean;
-    } = {},
-  ) {
-    const { resetRedo = true, overflow = false } = options;
-    undoStack.push(newHistory);
-
-    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
-    trimStack(undoStack, overflow);
-
-    if (resetRedo && redoStack.length != 0) {
-      // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
-      // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
-      // 객체 안에서 readPixel하게!
-      redoStack = [];
-    }
-
-    logCurrent();
-  }
-
-  function addRedo(newHistory: HistoryObject, overflow: boolean = false) {
-    redoStack.push(newHistory);
-
-    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
-    trimStack(redoStack, overflow);
-
-    logCurrent();
-  }
-
-  async function undo(): Promise<HistoryResponse | null> {
-    if (undoStack.length == 0) return null;
-
-    let history = undoStack[undoStack.length - 1];
-    undoStack.pop();
-
-    let response = await history.undo();
-    addRedo(history);
-
-    return {
-      toolState: response.toolState,
-      selection: response.selection,
-      position: response.position,
-      undoCount: undoStack.length,
-      redoCount: redoStack.length,
-    };
-  }
-
-  async function redo(): Promise<HistoryResponse | null> {
-    if (redoStack.length == 0) return null;
-
-    let history = redoStack[redoStack.length - 1];
-    redoStack.pop();
-
-    let response = await history.redo();
-    addUndo(history, { resetRedo: false });
-
-    return {
-      toolState: response.toolState,
-      selection: response.selection,
-      position: response.position,
-      undoCount: undoStack.length,
-      redoCount: redoStack.length,
-    };
-  }
-
-  function logCurrent() {
-    const undoBytes = getTotalStackBytes(undoStack);
-    const redoBytes = getTotalStackBytes(redoStack);
-    const undoMB = (undoBytes / (1024 * 1024)).toFixed(2);
-    const redoMB = (redoBytes / (1024 * 1024)).toFixed(2);
-
-    console.warn(
-      `undo: ${undoStack.length}/${paintConfig.maxHistoryItems} (${undoMB} MB)`,
-      `redo: ${redoStack.length}/${paintConfig.maxHistoryItems} (${redoMB} MB)`,
-    );
-  }
-
-  function getHistoryCount() {
-    return {
-      undoCount: undoStack.length,
-      redoCount: redoStack.length,
-    };
-  }
   return {
-    addUndo,
-    undo,
-    redo,
-    getHistoryCount,
+    addUndo: globalHistoryStack.addUndo.bind(globalHistoryStack),
+    undo: globalHistoryStack.undo.bind(globalHistoryStack),
+    redo: globalHistoryStack.redo.bind(globalHistoryStack),
+    getHistoryCount: globalHistoryStack.getHistoryCount.bind(globalHistoryStack),
   };
 }

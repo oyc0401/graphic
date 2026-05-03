@@ -10,6 +10,7 @@ import { createShader, createProgram } from "../../utils/glHelper";
 import { getRenderingManager } from "../../render/render";
 import {
   getHistoryManager,
+  HistoryStack,
   HistoryObject,
   Snapshot,
 } from "../../../../history/history";
@@ -54,8 +55,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
   private changeDirtyRecorder: DirtyRectRecorder;
   private changedRect: Rect | null = null;
   private active = false;
-  private undoStack: HistoryObject[] = [];
-  private redoStack: HistoryObject[] = [];
+  private historyStack = new HistoryStack("liquify");
 
   private scissorRect: Rect;
 
@@ -354,14 +354,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
       paintOptions.height,
     );
     this.changedRect = null;
-    this.undoStack = [];
-    this.redoStack = [];
+    this.historyStack.clear();
     this.openTexture();
   }
 
   private addUndo(history: HistoryObject) {
-    this.undoStack.push(history);
-    this.redoStack = [];
+    this.historyStack.addUndo(history);
   }
 
   // Public interface methods
@@ -462,45 +460,20 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   async undo() {
-    if (this.undoStack.length === 0) return null;
-
-    const history = this.undoStack.pop()!;
-    const response = await history.undo();
-    this.redoStack.push(history);
-
-    return {
-      toolState: response.toolState,
-      selection: response.selection,
-      position: response.position,
-      undoCount: this.undoStack.length,
-      redoCount: this.redoStack.length,
-    };
+    return this.historyStack.undo();
   }
 
   async redo() {
-    if (this.redoStack.length === 0) return null;
-
-    const history = this.redoStack.pop()!;
-    const response = await history.redo();
-    this.undoStack.push(history);
-
-    return {
-      toolState: response.toolState,
-      selection: response.selection,
-      position: response.position,
-      undoCount: this.undoStack.length,
-      redoCount: this.redoStack.length,
-    };
+    return this.historyStack.redo();
   }
 
   getHistoryCount() {
-    return {
-      undoCount: this.undoStack.length,
-      redoCount: this.redoStack.length,
-    };
+    return this.historyStack.getHistoryCount();
   }
 
   exit() {
+    if (!this.active) return;
+
     const gl = this.gl;
 
     let historyManager = getHistoryManager(this.canvas, gl);
@@ -538,8 +511,8 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.closeTexture();
     this.active = false;
-    this.undoStack = [];
-    this.redoStack = [];
+    this.changedRect = null;
+    this.historyStack.clear();
   }
 
   setSize: () => void = () => {};

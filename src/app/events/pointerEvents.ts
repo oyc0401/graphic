@@ -3,17 +3,26 @@ import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { zoomTool } from "../tools/ZoomTool";
 import { resizeTool } from "../tools/resizeTool";
+import { syncHistoryCount } from "../history";
 
 type Phase = "down" | "move" | "up" | "cancel";
+
+function syncHistoryCountAfterPointerEnd(phase: Phase) {
+  if (phase === "up" || phase === "cancel") {
+    syncHistoryCount();
+  }
+}
 
 export function dispatch(e: PointerEvent, phase: Phase) {
   // 1. 모드(inputMode)가 PAN, ZOOM이면 우선 분기
   switch (paintState.inputMode) {
     case "PAN":
       panTool[phase]?.(e);
+      syncHistoryCountAfterPointerEnd(phase);
       return;
     case "ZOOM":
       zoomTool[phase]?.(e);
+      syncHistoryCountAfterPointerEnd(phase);
       return;
   }
 
@@ -24,6 +33,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
     }
     if (resizeTool.isActive()) {
       resizeTool[phase]?.(e);
+      syncHistoryCountAfterPointerEnd(phase);
       return;
     }
     if (phase === "move" && !paintState.pointerdown) {
@@ -34,6 +44,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
   const tool = toolRegistry[paintState.toolId];
   tool?.[phase]?.(e);
+  syncHistoryCountAfterPointerEnd(phase);
 }
 
 // 프레임당 1회 move 디스패치 제어용 변수

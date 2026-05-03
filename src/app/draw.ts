@@ -3,14 +3,7 @@ import { paintState } from "./paintState";
 import { applySelection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { setCoreTool } from "./coreToolState";
-import { historyState } from "./history";
-import { getLayerWorker } from "./worker/workerPool";
-
-function syncHistoryCount() {
-  let { undoCount, redoCount } = getLayerWorker().getHistoryCount();
-  historyState.setUndoCount(undoCount);
-  historyState.setRedoCount(redoCount);
-}
+import { syncHistoryCount } from "./history";
 
 export const toolManager = {
   async setBrushTool() {
