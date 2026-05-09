@@ -1,0 +1,26 @@
+flowchart TD
+    %% 사각형 = 상태
+    %% 육각형 이벤트 = 화살표 라벨로 표현
+    %% 마름모 = 분기
+
+    Start((●)) --> Ready[Ready]
+
+    Ready -- down --> Draw[Draw]
+    Draw -- down --> CheckDraw{"d ≤ 150"}
+
+   
+
+    CheckDraw -- Y --> Cancel((Cancel))
+    CheckDraw -- Y --> Pinch[Pinch]
+
+    Pinch -- up --> PinchFinish[PinchFinish]
+    PinchFinish -- up --> CheckUndo{"d ≤ 150"}
+    CheckUndo -- Y --> Undo((Undo))
+    CheckUndo --> EndUndo(((●)))
+
+    Pinch -- down --> PinchOver[PinchOver]
+    PinchOver -- up --> PinchFinish2[PinchFinish2]
+    PinchFinish2 -- up --> PinchFinish2_1[PinchFinish2-1]
+    PinchFinish2_1 -- up --> CheckRedo{"d ≤ 150"}
+    CheckRedo -- Y --> Redo((Redo))
+    CheckRedo --> EndRedo(((●)))
