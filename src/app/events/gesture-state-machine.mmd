@@ -20,7 +20,7 @@ flowchart TD
 
     Pinch -- down --> PinchOver[PinchOver]
     PinchOver -- up --> PinchFinish2[PinchFinish2]
-    PinchFinish2 -- up --> PinchFinish2_1[PinchFinish2-1]
-    PinchFinish2_1 -- up --> CheckRedo{"d ≤ 150"}
+    PinchFinish2 -- up --> PinchFinish3[PinchFinish3]
+    PinchFinish3 -- up --> CheckRedo{"d ≤ 150"}
     CheckRedo -- Y --> Redo((Redo))
     CheckRedo --> EndRedo(((●)))
