@@ -7,22 +7,30 @@ flowchart TD
 
     Ready -- down --> Draw[Draw]
     Draw -- up --> Ready
-    Draw -- down --> CheckDraw{"d <= 150"}
+    Draw -- cancel --> Ready
+    Draw -- down --> CheckDraw{"d ≤ 150"}
 
    
 
     CheckDraw -- Y --> Cancel((Cancel))
-    CheckDraw -- Y --> Pinch[Pinch]
+    Cancel --> Pinch[Pinch]
+    CheckDraw -- N --> EndDraw((Dispatch Up))
+    EndDraw --> Pinch
 
+    Pinch -- cancel --> PinchFinish
     Pinch -- up --> PinchFinish[PinchFinish]
-    PinchFinish -- up --> CheckUndo{"d <= 150"}
+    PinchFinish -- cancel --> EndUndo
+    PinchFinish -- up --> CheckUndo{"d ≤ 150"}
     CheckUndo -- Y --> Undo((Undo))
     CheckUndo --> EndUndo(((●)))
 
-    Pinch -- down --> CheckPinchOver{"d <= 150"}
+    Pinch -- down --> CheckPinchOver{"d ≤ 150"}
     CheckPinchOver -- Y --> PinchOver[PinchOver]
+    PinchOver -- cancel --> PinchFinish2
     PinchOver -- up --> PinchFinish2[PinchFinish2]
+    PinchFinish2 -- cancel --> PinchFinish3
     PinchFinish2 -- up --> PinchFinish3[PinchFinish3]
-    PinchFinish3 -- up --> CheckRedo{"d <= 150"}
+    PinchFinish3 -- cancel --> EndRedo
+    PinchFinish3 -- up --> CheckRedo{"d ≤ 200"}
     CheckRedo -- Y --> Redo((Redo))
     CheckRedo --> EndRedo(((●)))

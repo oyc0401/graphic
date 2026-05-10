@@ -46,30 +46,31 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   syncCoreStateAfterPointerEnd(phase);
 }
 
-// 프레임당 1회 move 디스패치 제어용 변수
-let moveQueued = false;
-//let lastMoveEvent: PointerEvent | null = null;
-
-function throttledMove(e: PointerEvent) {
-  // console.log('move')
-  if (moveQueued) return;
-
-  moveQueued = true;
-  dispatch(e, "move");
-
-  requestAnimationFrame(() => {
-    moveQueued = false;
-  });
-}
-
 export function attachPointerEvents(root: HTMLElement) {
   root.addEventListener("pointerdown", (e) => dispatch(e, "down"), {
     passive: false,
   });
 
-  window.addEventListener("pointermove", throttledMove, {
-    passive: false,
-  });
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      console.log("[pointerEvents move]", {
+        pointerId: e.pointerId,
+        pointerType: e.pointerType,
+        isPrimary: e.isPrimary,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        buttons: e.buttons,
+        pointerdown: paintState.pointerdown,
+        inputMode: paintState.inputMode,
+        toolId: paintState.toolId,
+      });
+      dispatch(e, "move");
+    },
+    {
+      passive: false,
+    },
+  );
 
   window.addEventListener("pointerup", (e) => dispatch(e, "up"), {
     passive: false,

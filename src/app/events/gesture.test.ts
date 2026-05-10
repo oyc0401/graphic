@@ -82,6 +82,12 @@ describe("GestureMachine", () => {
 
     machine.input({ time: 151, type: "down", pointerId: 2, x: 200, y: 100 });
     expect(machine.currentState()).toBe("Draw");
+
+    machine.input({ time: 170, type: "up", pointerId: 2, x: 200, y: 100 });
+    expect(machine.currentState()).toBe("Draw");
+
+    machine.input({ time: 180, type: "up", pointerId: 1, x: 100, y: 100 });
+    expect(machine.currentState()).toBe("Ready");
   });
 
   it("Pinch에서 세 번째 down이 150ms를 넘으면 무시하고 Pinch 유지", () => {
@@ -94,6 +100,9 @@ describe("GestureMachine", () => {
     expect(machine.currentState()).toBe("Pinch");
 
     machine.input({ time: 191, type: "down", pointerId: 3, x: 150, y: 200 });
+    expect(machine.currentState()).toBe("Pinch");
+
+    machine.input({ time: 210, type: "up", pointerId: 3, x: 150, y: 200 });
     expect(machine.currentState()).toBe("Pinch");
   });
 
@@ -221,5 +230,86 @@ describe("GestureMachine 무시 이벤트들", () => {
 
     expect(machine.input({ time: 130, type: "move", pointerId: 3, x: 150, y: 1200 })).toEqual([]);
     expect(machine.currentState()).toBe("PinchFinish3");
+  });
+});
+
+describe("GestureMachine cancel 입력", () => {
+  it("Ready에서 cancel은 무시", () => {
+    const machine = new GestureMachine();
+
+    expect(machine.input({ time: 0, type: "cancel", pointerId: 1, x: 100, y: 100 })).toEqual([]);
+    expect(machine.currentState()).toBe("Ready");
+  });
+
+  it("Draw에서 cancel은 이벤트 없이 Ready로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    expect(machine.currentState()).toBe("Draw");
+
+    expect(machine.input({ time: 10, type: "cancel", pointerId: 1, x: 100, y: 100 })).toEqual([]);
+    expect(machine.currentState()).toBe("Ready");
+  });
+
+  it("Pinch에서 cancel은 up처럼 PinchFinish로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 80, type: "down", pointerId: 2, x: 200, y: 100 });
+    expect(machine.currentState()).toBe("Pinch");
+
+    expect(machine.input({ time: 100, type: "cancel", pointerId: 2, x: 200, y: 100 })).toEqual([]);
+    expect(machine.currentState()).toBe("PinchFinish");
+  });
+
+  it("PinchFinish에서 cancel은 undo 없이 Ready로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 80, type: "down", pointerId: 2, x: 200, y: 100 });
+    machine.input({ time: 100, type: "up", pointerId: 1, x: 100, y: 100 });
+    expect(machine.currentState()).toBe("PinchFinish");
+
+    expect(machine.input({ time: 110, type: "cancel", pointerId: 2, x: 200, y: 100 })).toEqual([]);
+    expect(machine.currentState()).toBe("Ready");
+  });
+
+  it("PinchOver에서 cancel은 up처럼 PinchFinish2로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 40, type: "down", pointerId: 2, x: 200, y: 100 });
+    machine.input({ time: 70, type: "down", pointerId: 3, x: 150, y: 200 });
+    expect(machine.currentState()).toBe("PinchOver");
+
+    expect(machine.input({ time: 90, type: "cancel", pointerId: 3, x: 150, y: 200 })).toEqual([]);
+    expect(machine.currentState()).toBe("PinchFinish2");
+  });
+
+  it("PinchFinish2에서 cancel은 up처럼 PinchFinish3로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 40, type: "down", pointerId: 2, x: 200, y: 100 });
+    machine.input({ time: 70, type: "down", pointerId: 3, x: 150, y: 200 });
+    machine.input({ time: 100, type: "up", pointerId: 1, x: 100, y: 100 });
+    expect(machine.currentState()).toBe("PinchFinish2");
+
+    expect(machine.input({ time: 110, type: "cancel", pointerId: 2, x: 200, y: 100 })).toEqual([]);
+    expect(machine.currentState()).toBe("PinchFinish3");
+  });
+
+  it("PinchFinish3에서 cancel은 redo 없이 Ready로 이동", () => {
+    const machine = new GestureMachine();
+
+    machine.input({ time: 0, type: "down", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 40, type: "down", pointerId: 2, x: 200, y: 100 });
+    machine.input({ time: 70, type: "down", pointerId: 3, x: 150, y: 200 });
+    machine.input({ time: 100, type: "up", pointerId: 1, x: 100, y: 100 });
+    machine.input({ time: 120, type: "up", pointerId: 2, x: 200, y: 100 });
+    expect(machine.currentState()).toBe("PinchFinish3");
+
+    expect(machine.input({ time: 130, type: "cancel", pointerId: 3, x: 150, y: 200 })).toEqual([]);
+    expect(machine.currentState()).toBe("Ready");
   });
 });
