@@ -54,17 +54,6 @@ export function attachPointerEvents(root: HTMLElement) {
   window.addEventListener(
     "pointermove",
     (e) => {
-      console.log("[pointerEvents move]", {
-        pointerId: e.pointerId,
-        pointerType: e.pointerType,
-        isPrimary: e.isPrimary,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        buttons: e.buttons,
-        pointerdown: paintState.pointerdown,
-        inputMode: paintState.inputMode,
-        toolId: paintState.toolId,
-      });
       dispatch(e, "move");
     },
     {

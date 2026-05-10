@@ -73,6 +73,21 @@ export const toolManager = {
     if (paintState.pointerdown) return;
     paintState.setSelectedToolId("zoom");
   },
+  setEyedropperTool() {
+    if (paintState.pointerdown) return;
+    if (!confirmLiquifyApply()) return;
+
+    if (paintState.activeSessionTool === "liquify") {
+      getLayerWorker().applyActiveSession();
+      syncCoreState();
+    } else {
+      applySelection();
+    }
+
+    setCoreTool("brush");
+    syncCoreState();
+    paintState.setSelectedToolId("eyedropper");
+  },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });
   },

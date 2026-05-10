@@ -108,6 +108,25 @@ export class PaintService {
   setAlpha(alpha) {
     paintOptions.setAlpha(alpha);
   }
+  sampleColor(x: number, y: number) {
+    const layerManager = getLayerManager(this.canvas, this.gl);
+    const gl = this.gl;
+    const px = Math.max(0, Math.min(paintOptions.width - 1, Math.floor(x)));
+    const py = Math.max(0, Math.min(paintOptions.height - 1, Math.floor(y)));
+    const pixel = new Uint8Array(4);
+    const previousReadFramebuffer = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
+    gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, previousReadFramebuffer);
+
+    const alpha = pixel[3];
+    return {
+      r: Math.min(255, pixel[0] + 255 - alpha),
+      g: Math.min(255, pixel[1] + 255 - alpha),
+      b: Math.min(255, pixel[2] + 255 - alpha),
+    };
+  }
   setTool(toolId: CoreTool, doExit): CoreToolState {
     if (paintOptions.toolId != toolId && doExit) {
       const sessionManager = getSessionManager(this.canvas, this.gl);

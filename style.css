@@ -206,6 +206,10 @@ canvas {
   cursor: crosshair;
 }
 
+#container.eyedropper {
+  cursor: crosshair;
+}
+
 #container.largeBrush {
   cursor: crosshair;
 }

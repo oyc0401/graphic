@@ -25,7 +25,7 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Search } from "lucide-react";
+import { CircleCheck, CircleX, Pipette, Search } from "lucide-react";
 
 const hexColors = [
   "#000000",
@@ -138,6 +138,7 @@ const ToolsToggleButton = observer(() => {
           <SelectionToolButton />
           <LiquifyToolButton />
           <ZoomToolButton />
+          <EyedropperToolButton />
           <div style={{ flex: 1 }} />
           <HistoryButtons />
         </div>
@@ -305,6 +306,28 @@ const ZoomToolButton = observer(() => {
       }}
     >
       <Search
+        color={isSelected ? "#3587ff" : "#222222"}
+        size={24}
+        strokeWidth={2.2}
+      />
+    </button>
+  );
+});
+
+const EyedropperToolButton = observer(() => {
+  const isSelected = paintState.toolId === "eyedropper";
+
+  return (
+    <button
+      id="select-eyedropper"
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      aria-label={getLetter("eyedropper")}
+      onClick={() => {
+        toolManager.setEyedropperTool();
+        menuState.setShowTools(false);
+      }}
+    >
+      <Pipette
         color={isSelected ? "#3587ff" : "#222222"}
         size={24}
         strokeWidth={2.2}

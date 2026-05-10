@@ -119,8 +119,10 @@
 }
 
 .mini-buttons {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: repeat(2, 40px);
+  grid-auto-flow: column;
+  grid-auto-columns: 40px;
 }
 
 .select-mini {

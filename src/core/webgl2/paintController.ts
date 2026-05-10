@@ -72,6 +72,11 @@ export class WebGL2Controller {
   setAlpha(alpha: number): void {
     paint.setAlpha(alpha / 100);
   }
+  sampleColor(px: number, py: number): { r: number; g: number; b: number } {
+    const x = Math.floor(px);
+    const y = paintOptions.height - Math.floor(py) - 1;
+    return paint.sampleColor(x, y);
+  }
   setTool(toolId: CoreTool, doExit: boolean = true): CoreToolState {
     return paint.setTool(toolId, doExit);
   }

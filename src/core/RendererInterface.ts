@@ -25,6 +25,7 @@ export interface RendererInterface {
   setStrokeColor(r: number, g: number, b: number): void;
   setStrokeSize(size: number): void;
   setAlpha(alpha: number): void;
+  sampleColor(px: number, py: number): { r: number; g: number; b: number };
 
   // === 레이어 ===
   setLayerId(layerId: string | number): void;

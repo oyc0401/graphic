@@ -33,6 +33,13 @@ function bindCursorUI() {
     container.classList.toggle("grabbing", isPan && paintState.pointerdown);
   });
 
+  autorun(() => {
+    container.classList.toggle(
+      "eyedropper",
+      paintState.inputMode === "BRUSH" && paintState.toolId === "eyedropper",
+    );
+  });
+
   // 2. ZOOM
   autorun(() => {
     container.classList.toggle("zoom", paintState.inputMode === "ZOOM");

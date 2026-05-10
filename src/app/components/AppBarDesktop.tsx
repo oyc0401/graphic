@@ -17,7 +17,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Search } from "lucide-react";
+import { CircleCheck, CircleX, Pipette, Search } from "lucide-react";
 
 const hexColors = [
   "#000000",
@@ -66,6 +66,7 @@ function AppBarDesktop() {
             <div className="mini-buttons">
               <LiquifyToolButton />
               <ZoomToolButton />
+              <EyedropperToolButton />
             </div>
             <div className="div-bar"></div>
 
@@ -238,6 +239,25 @@ const ZoomToolButton = observer(() => {
       onClick={() => toolManager.setZoomTool()}
     >
       <Search
+        color={isSelected ? "#3587ff" : "#222222"}
+        size={20}
+        strokeWidth={2.2}
+      />
+    </button>
+  );
+});
+
+const EyedropperToolButton = observer(() => {
+  const isSelected = paintState.toolId === "eyedropper";
+
+  return (
+    <button
+      id="select-eyedropper"
+      className={`select-mini ${isSelected ? "selected" : ""}`}
+      aria-label={getLetter("eyedropper")}
+      onClick={() => toolManager.setEyedropperTool()}
+    >
+      <Pipette
         color={isSelected ? "#3587ff" : "#222222"}
         size={20}
         strokeWidth={2.2}
