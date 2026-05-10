@@ -4,8 +4,9 @@ import { paintState } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 
-export class EyedropperTool {
+export class ColorPickerTool {
   private active = false;
+  private shouldReturnToBrush = false;
 
   private sampleFromEvent(e: PointerEvent) {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -24,8 +25,9 @@ export class EyedropperTool {
   }
 
   down(e: PointerEvent) {
-    if (!paintState.pointerdown || paintState.toolId !== "eyedropper") return;
+    if (!paintState.pointerdown || paintState.toolId !== "colorPicker") return;
     this.active = true;
+    this.shouldReturnToBrush = true;
 
     if (!this.sampleFromEvent(e)) {
       this.active = false;
@@ -34,17 +36,24 @@ export class EyedropperTool {
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.active || paintState.toolId !== "eyedropper") return;
+    if (!this.active || paintState.toolId !== "colorPicker") return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.active || paintState.toolId !== "eyedropper") return;
+    if (!this.shouldReturnToBrush || paintState.toolId !== "colorPicker") return;
     this.active = false;
-    toolManager.setBrushTool();
+    this.shouldReturnToBrush = false;
+
+    setTimeout(() => {
+      if (paintState.toolId === "colorPicker") {
+        toolManager.setBrushTool();
+      }
+    }, 0);
   }
 
   cancel() {
     this.active = false;
+    this.shouldReturnToBrush = false;
   }
 }

@@ -25,7 +25,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
       return;
   }
 
-  if (paintState.inputMode === "BRUSH") {
+  if (paintState.inputMode === "BRUSH" && paintState.toolId !== "colorPicker") {
     if (phase === "down" && resizeTool.canStart(e)) {
       resizeTool.down(e);
       return;

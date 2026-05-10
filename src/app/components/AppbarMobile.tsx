@@ -138,7 +138,7 @@ const ToolsToggleButton = observer(() => {
           <SelectionToolButton />
           <LiquifyToolButton />
           <ZoomToolButton />
-          <EyedropperToolButton />
+          <ColorPickerToolButton />
           <div style={{ flex: 1 }} />
           <HistoryButtons />
         </div>
@@ -314,16 +314,16 @@ const ZoomToolButton = observer(() => {
   );
 });
 
-const EyedropperToolButton = observer(() => {
-  const isSelected = paintState.toolId === "eyedropper";
+const ColorPickerToolButton = observer(() => {
+  const isSelected = paintState.toolId === "colorPicker";
 
   return (
     <button
-      id="select-eyedropper"
+      id="select-color-picker"
       className={`header-button ${isSelected ? "selected" : ""}`}
-      aria-label={getLetter("eyedropper")}
+      aria-label={getLetter("color_picker")}
       onClick={() => {
-        toolManager.setEyedropperTool();
+        toolManager.setColorPickerTool();
         menuState.setShowTools(false);
       }}
     >

@@ -66,7 +66,7 @@ function AppBarDesktop() {
             <div className="mini-buttons">
               <LiquifyToolButton />
               <ZoomToolButton />
-              <EyedropperToolButton />
+              <ColorPickerToolButton />
             </div>
             <div className="div-bar"></div>
 
@@ -247,15 +247,15 @@ const ZoomToolButton = observer(() => {
   );
 });
 
-const EyedropperToolButton = observer(() => {
-  const isSelected = paintState.toolId === "eyedropper";
+const ColorPickerToolButton = observer(() => {
+  const isSelected = paintState.toolId === "colorPicker";
 
   return (
     <button
-      id="select-eyedropper"
+      id="select-color-picker"
       className={`select-mini ${isSelected ? "selected" : ""}`}
-      aria-label={getLetter("eyedropper")}
-      onClick={() => toolManager.setEyedropperTool()}
+      aria-label={getLetter("color_picker")}
+      onClick={() => toolManager.setColorPickerTool()}
     >
       <Pipette
         color={isSelected ? "#3587ff" : "#222222"}

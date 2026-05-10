@@ -3,7 +3,7 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
-type ToolId = "brush" | "select" | "selection" | "zoom" | "eyedropper";
+type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";

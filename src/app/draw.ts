@@ -73,7 +73,7 @@ export const toolManager = {
     if (paintState.pointerdown) return;
     paintState.setSelectedToolId("zoom");
   },
-  setEyedropperTool() {
+  setColorPickerTool() {
     if (paintState.pointerdown) return;
     if (!confirmLiquifyApply()) return;
 
@@ -86,7 +86,7 @@ export const toolManager = {
 
     setCoreTool("brush");
     syncCoreState();
-    paintState.setSelectedToolId("eyedropper");
+    paintState.setSelectedToolId("colorPicker");
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });

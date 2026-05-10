@@ -78,6 +78,7 @@ export class ResizeTool {
 
     return (
       paintState.inputMode === "BRUSH" &&
+      paintState.toolId !== "colorPicker" &&
       (paintState.coreTool === "brush" ||
         paintState.coreTool === "eraser" ||
         (paintState.coreTool === "select" && !hasSelection))

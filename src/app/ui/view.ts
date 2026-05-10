@@ -35,8 +35,8 @@ function bindCursorUI() {
 
   autorun(() => {
     container.classList.toggle(
-      "eyedropper",
-      paintState.inputMode === "BRUSH" && paintState.toolId === "eyedropper",
+      "colorPicker",
+      paintState.inputMode === "BRUSH" && paintState.toolId === "colorPicker",
     );
   });
 
