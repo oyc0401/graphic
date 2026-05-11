@@ -4,7 +4,6 @@ import { position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 
 export class ColorPickerTool {
-  private active = false;
   private pointerStarted = false;
 
   private sampleFromEvent(e: PointerEvent) {
@@ -24,34 +23,31 @@ export class ColorPickerTool {
   }
 
   down(e: PointerEvent) {
-    if (!paintState.pointerdown || paintState.inputMode !== "COLOR_PICKER")
+    if (!paintState.pointerdown || paintState.activeToolId !== "colorPicker")
       return;
-    this.active = true;
     this.pointerStarted = true;
 
-    if (!this.sampleFromEvent(e)) {
-      this.active = false;
-    }
+    this.sampleFromEvent(e);
   }
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.active || paintState.inputMode !== "COLOR_PICKER") return;
+    if (!this.pointerStarted || paintState.activeToolId !== "colorPicker")
+      return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.pointerStarted || paintState.inputMode !== "COLOR_PICKER") return;
-    this.active = false;
+    if (!this.pointerStarted || paintState.activeToolId !== "colorPicker")
+      return;
     this.pointerStarted = false;
 
-    if (paintState.colorPickerModeSource === "button") {
+    if (paintState.temporaryTool?.restoreOn === "pointerup") {
       paintState.restoreSelectedToolMode();
     }
   }
 
   cancel() {
-    this.active = false;
     this.pointerStarted = false;
   }
 }

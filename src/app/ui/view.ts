@@ -42,8 +42,8 @@ function bindCursorUI() {
     for (const cursorClass of getToolCursorClasses()) {
       container.classList.toggle(
         cursorClass,
-        (paintState.inputMode === "BRUSH" ||
-          paintState.inputMode === "COLOR_PICKER") &&
+        paintState.inputMode !== "PAN" &&
+          paintState.inputMode !== "PINCH" &&
           cursorClass === activeCursorClass,
       );
     }
@@ -51,18 +51,19 @@ function bindCursorUI() {
 
   // 2. ZOOM
   autorun(() => {
-    container.classList.toggle("zoom", paintState.inputMode === "ZOOM");
+    container.classList.toggle("zoom", paintState.activeToolId === "zoom");
   });
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
     const isBrush = paintState.inputMode === "BRUSH";
-    const isSelectTool = paintState.toolId === "select";
+    const isSelectTool = paintState.activeToolId === "select";
     container.classList.toggle("select", isBrush && isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
-      paintState.inputMode === "BRUSH" && paintState.toolId === "selection";
+      paintState.inputMode === "BRUSH" &&
+      paintState.activeToolId === "selection";
     const isCanvasResize = resizeTool.isVisible();
     const resizeHover = canvasResizeState.hover;
     const nwse =
@@ -93,7 +94,7 @@ function bindCursorUI() {
 
     const isBrush = paintState.inputMode === "BRUSH";
 
-    const isDrawingTool = paintState.toolId == "brush";
+    const isDrawingTool = paintState.activeToolId == "brush";
     const isValid = isBrush && isDrawingTool;
 
     const isDesktop = !("ontouchstart" in window);
@@ -345,7 +346,7 @@ function bindCursorPositionUI() {
 
 function bindZoomAreaUI() {
   autorun(() => {
-    const isZooming = paintState.inputMode === "ZOOM";
+    const isZooming = paintState.activeToolId === "zoom";
 
     if (!isZooming) {
       els.zoomArea.style.visibility = "hidden";

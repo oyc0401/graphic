@@ -82,14 +82,30 @@ export const toolManager = {
     if (!confirmLiquifyApply()) return;
 
     if (paintState.activeSessionTool === "liquify") {
+      const returnTool = paintState.sessionReturnTool ?? "brush";
+      const nextTool = returnTool === "liquify" ? "brush" : returnTool;
       getLayerWorker().applyActiveSession();
       syncCoreState();
+      setCoreTool(nextTool);
+      paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
+      paintState.setSessionReturnTool(null);
+      syncCoreState();
     } else {
+      const shouldReturnToSelect =
+        paintState.coreTool === "selection" || paintState.toolId === "selection";
       applySelection();
+      if (shouldReturnToSelect) {
+        setCoreTool("select");
+        paintState.setSelectedToolId("select");
+        syncCoreState();
+      }
     }
 
-    paintState.setColorPickerModeSource("button");
-    paintState.setInputMode("COLOR_PICKER");
+    paintState.setTemporaryTool({
+      id: "colorPicker",
+      source: "button",
+      restoreOn: "pointerup",
+    });
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });

@@ -164,7 +164,8 @@ const HistoryButtons = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    (paintState.toolId === "select" || paintState.toolId === "selection");
+    paintState.activeToolId === "select" ||
+    paintState.activeToolId === "selection";
 
   return (
     <button
@@ -180,7 +181,7 @@ const SelectionToolButton = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" &&
+    paintState.activeToolId === "brush" &&
     paintState.brushId === "brush";
 
   return (
@@ -197,7 +198,7 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" &&
+    paintState.activeToolId === "brush" &&
     paintState.brushId === "eraser";
 
   return (
@@ -214,7 +215,7 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === "brush" &&
+    paintState.activeToolId === "brush" &&
     paintState.brushId === "liquify";
 
   return (
@@ -229,7 +230,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const ZoomToolButton = observer(() => {
-  const isSelected = paintState.toolId === "zoom";
+  const isSelected = paintState.activeToolId === "zoom";
 
   return (
     <button
