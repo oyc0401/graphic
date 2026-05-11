@@ -3,19 +3,16 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
-export type ToolId =
-  | "brush"
-  | "select"
-  | "selection"
-  | "zoom"
-  | "colorPicker";
+export type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";
   selectedToolId: ToolId = "brush";
   coreTool: CoreTool = "brush";
+
   activeSessionTool: CoreTool | null = null;
   sessionReturnTool: CoreTool | null = null;
+
   brushSize = { brush: 5, eraser: 10, liquify: 50 };
   brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
 
