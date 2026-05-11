@@ -55,14 +55,20 @@ export const MainMenuToggleButton = observer(() => {
       {menuState.showMenu && (
         <div id="main-menu" ref={menuRef}>
           <button id="new-button" onClick={resetImage}>
-            <NewIcon /> <p>{getLetter("new")}</p>
+            <div className="menu-button-content">
+              <NewIcon /> <p>{getLetter("new")}</p>
+            </div>
           </button>
           <button id="open-button" onClick={openFile}>
-            <OpenIcon /> <p>{getLetter("open")}</p>
+            <div className="menu-button-content">
+              <OpenIcon /> <p>{getLetter("open")}</p>
+            </div>
           </button>
           <button id="save-button" onClick={downloadImage}>
-            <SaveIcon />
-            <p>{getLetter("save")}</p>
+            <div className="menu-button-content">
+              <SaveIcon />
+              <p>{getLetter("save")}</p>
+            </div>
           </button>
           <LanguageMenuToggleButton />
         </div>
@@ -94,8 +100,10 @@ export const LanguageMenuToggleButton = observer(() => {
   return (
     <>
       <button id="language-button" onClick={toggleMenu} ref={buttonRef}>
-        <TranslateIcon />
-        <p>Language</p>
+        <div className="menu-button-content">
+          <TranslateIcon />
+          <p>Language</p>
+        </div>
       </button>
 
       {open && (
@@ -111,18 +119,20 @@ export const LanguageMenuToggleButton = observer(() => {
                 window.location.href = path;
               }}
             >
-              <p>
-                {{
-                  en: "English",
-                  ko: "한국어",
-                  ja: "日本語",
-                  es: "Español",
-                  fr: "Français",
-                  de: "Deutsch",
-                  zh: "中文",
-                  ru: "Русский"
-                }[lang]}
-              </p>
+              <div className="menu-button-content">
+                <p>
+                  {{
+                    en: "English",
+                    ko: "한국어",
+                    ja: "日本語",
+                    es: "Español",
+                    fr: "Français",
+                    de: "Deutsch",
+                    zh: "中文",
+                    ru: "Русский",
+                  }[lang]}
+                </p>
+              </div>
             </button>
           ))}
         </div>

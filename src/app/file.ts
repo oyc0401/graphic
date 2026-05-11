@@ -18,7 +18,7 @@ import {
 } from "./position";
 import { paintState } from "./paintState";
 import { toolManager } from "./draw";
-import { syncCoreState } from "./history";
+import { historyState, syncCoreState } from "./history";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -44,7 +44,7 @@ export function addClipboardEvent() {
           });
           console.log("드래그 앤 드롭으로 가져온 이미지:", file.name);
 
-          if (false && paintState.changed) {
+          if (historyState.getUndoCount() + historyState.getRedoCount() > 0) {
             makeSelectionFromBitmap(bitmap);
           } else {
             uploadImage(bitmap);
