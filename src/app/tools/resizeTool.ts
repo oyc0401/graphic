@@ -9,6 +9,7 @@ import { changeCanvasSize } from "../position";
 import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
 import { canvasResizeState, type CanvasResizeRect } from "../canvasResizeState";
+import { getToolMetadata } from "./toolRegistry";
 import {
   cursorForResizeHandle,
   getCanvasResizeRect,
@@ -78,7 +79,7 @@ export class ResizeTool {
 
     return (
       paintState.inputMode === "BRUSH" &&
-      paintState.toolId !== "colorPicker" &&
+      getToolMetadata(paintState.activeToolId).allowCanvasResizeHandle &&
       (paintState.coreTool === "brush" ||
         paintState.coreTool === "eraser" ||
         (paintState.coreTool === "select" && !hasSelection))

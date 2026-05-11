@@ -72,12 +72,17 @@ function addWheelListener() {
 const pressedKeys = {
   Space: false,
   KeyZ: false,
+  KeyC: false,
   setSpace(value) {
     this.Space = value;
     applyKeyAction();
   },
   setKeyZ(value) {
     this.KeyZ = value;
+    applyKeyAction();
+  },
+  setKeyC(value) {
+    this.KeyC = value;
     applyKeyAction();
   },
 };
@@ -128,6 +133,10 @@ export function addKeyboardEvent() {
         event.preventDefault();
         pressedKeys.setKeyZ(true);
       }
+      if (event.code == "KeyC") {
+        event.preventDefault();
+        pressedKeys.setKeyC(true);
+      }
 
       //console.log("키다운");
       if (event.repeat) return; // OS 기본 딜레이 방지
@@ -172,6 +181,10 @@ export function addKeyboardEvent() {
         event.preventDefault();
         pressedKeys.setKeyZ(false);
       }
+      if (event.code == "KeyC") {
+        event.preventDefault();
+        pressedKeys.setKeyC(false);
+      }
       if (event.code === "Space") {
         event.preventDefault();
         pressedKeys.setSpace(false);
@@ -198,6 +211,18 @@ function applyKeyAction() {
   if (pressedKeys.KeyZ) {
     console.log("zoom 누르는중");
     paintState.setInputMode("ZOOM");
+    return;
+  }
+  if (pressedKeys.KeyC) {
+    paintState.setColorPickerModeSource("keyboard");
+    paintState.setInputMode("COLOR_PICKER");
+    return;
+  }
+
+  if (
+    paintState.inputMode === "COLOR_PICKER" &&
+    paintState.colorPickerModeSource === "button"
+  ) {
     return;
   }
 

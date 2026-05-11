@@ -315,7 +315,7 @@ const ZoomToolButton = observer(() => {
 });
 
 const ColorPickerToolButton = observer(() => {
-  const isSelected = paintState.toolId === "colorPicker";
+  const isSelected = paintState.activeToolId === "colorPicker";
 
   return (
     <button

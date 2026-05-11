@@ -1,5 +1,5 @@
 import { paintState } from "../paintState";
-import { toolRegistry } from "../tools/toolRegistry";
+import { getToolMetadata, toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { resizeTool } from "../tools/resizeTool";
 import { syncCoreState } from "../history";
@@ -25,7 +25,12 @@ export function dispatch(e: PointerEvent, phase: Phase) {
       return;
   }
 
-  if (paintState.inputMode === "BRUSH" && paintState.toolId !== "colorPicker") {
+  const activeToolMetadata = getToolMetadata(paintState.activeToolId);
+
+  if (
+    paintState.inputMode === "BRUSH" &&
+    activeToolMetadata.allowCanvasResizeHandle
+  ) {
     if (phase === "down" && resizeTool.canStart(e)) {
       resizeTool.down(e);
       return;

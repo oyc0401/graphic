@@ -8,6 +8,7 @@ import { zoomRect } from "./zoomState";
 import { isSmallSize } from "../utils/screen";
 import { resizeTool } from "../tools/resizeTool";
 import { canvasResizeState } from "../canvasResizeState";
+import { getToolCursorClasses, getToolMetadata } from "../tools/toolRegistry";
 import {
   RESIZE_HANDLE_SIZE_PX,
   getCanvasResizeRect,
@@ -34,10 +35,18 @@ function bindCursorUI() {
   });
 
   autorun(() => {
-    container.classList.toggle(
-      "colorPicker",
-      paintState.inputMode === "BRUSH" && paintState.toolId === "colorPicker",
-    );
+    const activeCursorClass = getToolMetadata(
+      paintState.activeToolId,
+    ).cursorClass;
+
+    for (const cursorClass of getToolCursorClasses()) {
+      container.classList.toggle(
+        cursorClass,
+        (paintState.inputMode === "BRUSH" ||
+          paintState.inputMode === "COLOR_PICKER") &&
+          cursorClass === activeCursorClass,
+      );
+    }
   });
 
   // 2. ZOOM

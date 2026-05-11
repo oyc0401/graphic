@@ -1,12 +1,11 @@
 import { colorState } from "../colorState";
-import { toolManager } from "../draw";
 import { paintState } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 
 export class ColorPickerTool {
   private active = false;
-  private shouldReturnToBrush = false;
+  private pointerStarted = false;
 
   private sampleFromEvent(e: PointerEvent) {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -25,9 +24,10 @@ export class ColorPickerTool {
   }
 
   down(e: PointerEvent) {
-    if (!paintState.pointerdown || paintState.toolId !== "colorPicker") return;
+    if (!paintState.pointerdown || paintState.inputMode !== "COLOR_PICKER")
+      return;
     this.active = true;
-    this.shouldReturnToBrush = true;
+    this.pointerStarted = true;
 
     if (!this.sampleFromEvent(e)) {
       this.active = false;
@@ -36,24 +36,22 @@ export class ColorPickerTool {
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.active || paintState.toolId !== "colorPicker") return;
+    if (!this.active || paintState.inputMode !== "COLOR_PICKER") return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.shouldReturnToBrush || paintState.toolId !== "colorPicker") return;
+    if (!this.pointerStarted || paintState.inputMode !== "COLOR_PICKER") return;
     this.active = false;
-    this.shouldReturnToBrush = false;
+    this.pointerStarted = false;
 
-    setTimeout(() => {
-      if (paintState.toolId === "colorPicker") {
-        toolManager.setBrushTool();
-      }
-    }, 0);
+    if (paintState.colorPickerModeSource === "button") {
+      paintState.restoreSelectedToolMode();
+    }
   }
 
   cancel() {
     this.active = false;
-    this.shouldReturnToBrush = false;
+    this.pointerStarted = false;
   }
 }

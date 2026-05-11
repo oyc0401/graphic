@@ -52,14 +52,17 @@ function requestToolChange(
 
 export const toolManager = {
   async setBrushTool() {
+    if (paintState.pointerdown) return;
     if (requestToolChange("brush")) {
       console.log("brush");
     }
   },
   setEraserTool() {
+    if (paintState.pointerdown) return;
     requestToolChange("eraser");
   },
   setLiquifyTool() {
+    if (paintState.pointerdown) return;
     const returnTool =
       paintState.coreTool === "selection" ? "select" : paintState.coreTool;
     if (requestToolChange("liquify")) {
@@ -67,6 +70,7 @@ export const toolManager = {
     }
   },
   setSelectTool() {
+    if (paintState.pointerdown) return;
     requestToolChange("select");
   },
   setZoomTool() {
@@ -84,9 +88,8 @@ export const toolManager = {
       applySelection();
     }
 
-    setCoreTool("brush");
-    syncCoreState();
-    paintState.setSelectedToolId("colorPicker");
+    paintState.setColorPickerModeSource("button");
+    paintState.setInputMode("COLOR_PICKER");
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });

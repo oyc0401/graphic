@@ -2,8 +2,14 @@ import { makeAutoObservable, runInAction } from "mobx";
 import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
-type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN";
-type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
+type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
+type ColorPickerModeSource = "button" | "keyboard";
+export type ToolId =
+  | "brush"
+  | "select"
+  | "selection"
+  | "zoom"
+  | "colorPicker";
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 class PaintState {
   inputMode: InputMode = "BRUSH";
@@ -11,6 +17,7 @@ class PaintState {
   coreTool: CoreTool = "brush";
   activeSessionTool: CoreTool | null = null;
   sessionReturnTool: CoreTool | null = null;
+  colorPickerModeSource: ColorPickerModeSource | null = null;
   brushSize = { brush: 5, eraser: 10, liquify: 50 };
   brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
 
@@ -32,12 +39,17 @@ class PaintState {
   setInputMode(val: InputMode) {
     this.inputMode = val;
   }
+  setColorPickerModeSource(source: ColorPickerModeSource | null) {
+    this.colorPickerModeSource = source;
+  }
   setSelectedToolId(toolId: ToolId) {
     this.selectedToolId = toolId;
     this.inputMode = toolId === "zoom" ? "ZOOM" : "BRUSH";
+    this.colorPickerModeSource = null;
   }
   restoreSelectedToolMode() {
     this.inputMode = this.selectedToolId === "zoom" ? "ZOOM" : "BRUSH";
+    this.colorPickerModeSource = null;
   }
   setCoreTool(coreTool: CoreTool) {
     this.coreTool = coreTool;
@@ -54,6 +66,9 @@ class PaintState {
   get activeToolId(): ToolId {
     if (this.inputMode === "ZOOM") {
       return "zoom";
+    }
+    if (this.inputMode === "COLOR_PICKER") {
+      return "colorPicker";
     }
 
     return this.selectedToolId;
