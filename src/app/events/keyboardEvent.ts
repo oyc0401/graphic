@@ -210,15 +210,11 @@ function applyKeyAction() {
   }
   if (pressedKeys.KeyZ) {
     console.log("zoom 누르는중");
-    paintState.setTemporaryTool({ id: "zoom", source: "keyboard" });
+    paintState.setInputMode("ZOOM");
     return;
   }
   if (pressedKeys.KeyC) {
-    paintState.setTemporaryTool({ id: "colorPicker", source: "keyboard" });
-    return;
-  }
-
-  if (paintState.temporaryTool?.source === "button") {
+    paintState.setInputMode("COLOR_PICKER");
     return;
   }
 

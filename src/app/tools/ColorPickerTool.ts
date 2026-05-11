@@ -41,10 +41,7 @@ export class ColorPickerTool {
     if (!this.pointerStarted || paintState.activeToolId !== "colorPicker")
       return;
     this.pointerStarted = false;
-
-    if (paintState.temporaryTool?.restoreOn === "pointerup") {
-      paintState.restoreSelectedToolMode();
-    }
+    paintState.restoreSelectedToolMode();
   }
 
   cancel() {

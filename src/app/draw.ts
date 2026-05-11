@@ -101,11 +101,7 @@ export const toolManager = {
       }
     }
 
-    paintState.setTemporaryTool({
-      id: "colorPicker",
-      source: "button",
-      restoreOn: "pointerup",
-    });
+    paintState.setInputMode("COLOR_PICKER");
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });
