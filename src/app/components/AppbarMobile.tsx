@@ -270,8 +270,8 @@ const SelectionToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "liquify";
+    paintState.activeToolId === "session" &&
+    paintState.sessionToolId === "liquify";
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);

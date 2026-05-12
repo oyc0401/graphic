@@ -3,8 +3,16 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
-export type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
-export type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
+export type ToolId =
+  | "brush"
+  | "select"
+  | "selection"
+  | "zoom"
+  | "colorPicker"
+  | "session";
+export type BrushId = Extract<CoreTool, "brush" | "eraser">;
+export type SessionToolId = Extract<CoreTool, "liquify">;
+type BrushSettingsId = BrushId | SessionToolId;
 
 function inputModeForTool(toolId: ToolId): InputMode {
   switch (toolId) {
@@ -15,6 +23,7 @@ function inputModeForTool(toolId: ToolId): InputMode {
     case "brush":
     case "select":
     case "selection":
+    case "session":
       return "BRUSH";
   }
 }
@@ -23,6 +32,7 @@ class PaintState {
   inputMode: InputMode = "BRUSH";
   selectedToolId: ToolId = "brush";
   coreTool: CoreTool = "brush";
+  sessionToolId: SessionToolId = "liquify";
 
   activeSessionTool: CoreTool | null = null;
   sessionReturnTool: CoreTool | null = null;
@@ -80,13 +90,16 @@ class PaintState {
   get brushId(): BrushId {
     switch (this.coreTool) {
       case "eraser":
-      case "liquify":
         return this.coreTool;
       case "brush":
+      case "liquify":
       case "select":
       case "selection":
         return "brush";
     }
+  }
+  get brushSettingsId(): BrushSettingsId {
+    return this.selectedToolId === "session" ? this.sessionToolId : this.brushId;
   }
   setPointerdown(val: boolean) {
     this.pointerdown = val;
@@ -110,12 +123,12 @@ class PaintState {
     this.cursorY = y;
   }
   setBrushSize(size: number) {
-    this.brushSize[this.brushId] = size;
+    this.brushSize[this.brushSettingsId] = size;
     const worker = getLayerWorker();
     worker.setStrokeSize(size);
   }
   setBrushAlpha(alpha: number) {
-    this.brushAlpha[this.brushId] = alpha;
+    this.brushAlpha[this.brushSettingsId] = alpha;
   }
   setShowCircle(value) {
     this.showCircle = value;
@@ -126,10 +139,10 @@ class PaintState {
   }
 
   getBrushSize() {
-    return this.brushSize[this.brushId];
+    return this.brushSize[this.brushSettingsId];
   }
   getBrushAlpha() {
-    return this.brushAlpha[this.brushId];
+    return this.brushAlpha[this.brushSettingsId];
   }
   moved = true;
 

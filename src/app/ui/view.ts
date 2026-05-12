@@ -94,7 +94,9 @@ function bindCursorUI() {
 
     const isBrush = paintState.inputMode === "BRUSH";
 
-    const isDrawingTool = paintState.activeToolId == "brush";
+    const isDrawingTool =
+      paintState.activeToolId === "brush" ||
+      paintState.activeToolId === "session";
     const isValid = isBrush && isDrawingTool;
 
     const isDesktop = !("ontouchstart" in window);

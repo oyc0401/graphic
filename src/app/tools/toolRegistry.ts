@@ -18,6 +18,7 @@ interface ToolMetadata {
 
 export const toolRegistry = {
   brush: new BrushTool(),
+  session: new BrushTool(),
   selection: new SelectionTool(),
   select: new SelectTool(),
   zoom: zoomTool,
@@ -29,7 +30,11 @@ export const toolMetadata: Record<ToolId, ToolMetadata> = {
     kind: "core",
     coreTool: "brush",
     allowCanvasResizeHandle: true,
-    blockCanvasResizeHandleBrushIds: ["liquify"],
+  },
+  session: {
+    kind: "core",
+    coreTool: "liquify",
+    allowCanvasResizeHandle: false,
   },
   select: {
     kind: "core",

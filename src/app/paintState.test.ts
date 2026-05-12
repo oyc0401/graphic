@@ -3,6 +3,7 @@ import { paintState } from "./paintState";
 
 describe("paintState tool mode mapping", () => {
   beforeEach(() => {
+    paintState.setCoreTool("brush");
     paintState.setSelectedToolId("brush");
   });
 
@@ -30,5 +31,16 @@ describe("paintState tool mode mapping", () => {
 
     expect(paintState.toolId).toBe("brush");
     expect(paintState.activeToolId).toBe("brush");
+  });
+
+  it("keeps liquify as a session tool instead of a brush id", () => {
+    paintState.setCoreTool("liquify");
+    paintState.setSelectedToolId("session");
+
+    expect(paintState.toolId).toBe("session");
+    expect(paintState.activeToolId).toBe("session");
+    expect(paintState.brushId).toBe("brush");
+    expect(paintState.sessionToolId).toBe("liquify");
+    expect(paintState.getBrushSize()).toBe(50);
   });
 });

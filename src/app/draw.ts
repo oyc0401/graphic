@@ -19,8 +19,9 @@ function toolIdForCoreTool(tool: CoreTool) {
       return tool;
     case "brush":
     case "eraser":
-    case "liquify":
       return "brush";
+    case "liquify":
+      return "session";
   }
 }
 

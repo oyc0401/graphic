@@ -215,8 +215,8 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "liquify";
+    paintState.activeToolId === "session" &&
+    paintState.sessionToolId === "liquify";
 
   return (
     <button

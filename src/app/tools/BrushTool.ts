@@ -7,8 +7,12 @@ export class BrushTool {
   private active = false;
   private start = { x: 0, y: 0 };
 
+  private canUseBrushTool() {
+    return paintState.toolId === "brush" || paintState.toolId === "session";
+  }
+
   down(e: PointerEvent) {
-    if (!paintState.pointerdown || paintState.toolId !== "brush") return;
+    if (!paintState.pointerdown || !this.canUseBrushTool()) return;
     this.active = true;
     // console.log("down:", e.clientX, e.clientY);
     const point = to_canvas_coord(e.clientX, e.clientY);
@@ -31,7 +35,7 @@ export class BrushTool {
     if (
       !paintState.pointerdown ||
       !this.active ||
-      paintState.toolId !== "brush"
+      !this.canUseBrushTool()
     )
       return;
 
@@ -54,7 +58,7 @@ export class BrushTool {
   }
 
   up(e: PointerEvent) {
-    if (!this.active || paintState.toolId !== "brush") return;
+    if (!this.active || !this.canUseBrushTool()) return;
     this.active = false;
 
     const point = to_canvas_coord(e.clientX, e.clientY);
