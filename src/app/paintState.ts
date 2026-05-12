@@ -5,6 +5,20 @@ import { getLayerWorker } from "./worker/workerPool";
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
 export type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
 type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
+
+function inputModeForTool(toolId: ToolId): InputMode {
+  switch (toolId) {
+    case "zoom":
+      return "ZOOM";
+    case "colorPicker":
+      return "COLOR_PICKER";
+    case "brush":
+    case "select":
+    case "selection":
+      return "BRUSH";
+  }
+}
+
 class PaintState {
   inputMode: InputMode = "BRUSH";
   selectedToolId: ToolId = "brush";
@@ -36,10 +50,10 @@ class PaintState {
   }
   setSelectedToolId(toolId: ToolId) {
     this.selectedToolId = toolId;
-    this.inputMode = toolId === "zoom" ? "ZOOM" : "BRUSH";
+    this.setInputMode(inputModeForTool(toolId));
   }
   restoreSelectedToolMode() {
-    this.inputMode = this.selectedToolId === "zoom" ? "ZOOM" : "BRUSH";
+    this.setInputMode(inputModeForTool(this.selectedToolId));
   }
   setCoreTool(coreTool: CoreTool) {
     this.coreTool = coreTool;

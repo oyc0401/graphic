@@ -101,7 +101,7 @@ export const toolManager = {
       }
     }
 
-    paintState.setInputMode("COLOR_PICKER");
+    paintState.setSelectedToolId("colorPicker");
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });
