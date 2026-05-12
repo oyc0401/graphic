@@ -2,12 +2,7 @@ import { paintOptions } from "./gl/texture";
 import { toWebglCoord, toWebglCoord2, toWebglCoord3 } from "./coordinate";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
-import type {
-  CoreSessionTool,
-  CoreTool,
-  CoreToolState,
-  Pointer,
-} from "../types.js";
+import type { CoreSessionTool, CoreTool, CoreToolState, Pointer } from "../types.js";
 import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
@@ -52,13 +47,7 @@ export class WebGL2Controller {
 
   // 사용자가 보고 있는 화면의 위치와 확대 비율을 변경한다.
   setCameraPosition(px: number, py: number, magnification: number): void {
-    let { x, y } = toWebglCoord3(
-      px,
-      py,
-      paintOptions.height,
-      paintOptions.screenHeight,
-      magnification,
-    );
+    let { x, y } = toWebglCoord3(px, py, paintOptions.height, paintOptions.screenHeight, magnification);
     paint.setCameraPosition(x, y, magnification);
   }
 
@@ -100,23 +89,23 @@ export class WebGL2Controller {
   }
 
   // 브러시, 지우개, 선택 같은 현재 사용 도구를 변경한다.
-  setTool(toolId: CoreTool, doExit: boolean = true): CoreToolState {
-    return paint.setTool(toolId, doExit);
+  setTool(toolId: CoreTool): CoreToolState {
+    return paint.setTool(toolId);
+  }
+
+  // 픽셀 유동화처럼 적용 전까지 임시로 편집하는 작업 모드를 시작한다.
+  openSession(toolId: CoreSessionTool): void {
+    paint.openSession(toolId);
   }
 
   // 현재 세션의 편집 결과를 이미지에 적용한다.
-  applyActiveSession(): void {
-    paint.applyActiveSession();
+  commitSession(): void {
+    paint.commitSession();
   }
 
   // 현재 세션의 편집 결과를 버린다.
-  discardActiveSession(): void {
-    paint.discardActiveSession();
-  }
-
-  // 현재 세션의 정보를 가져온다.
-  getState(): CoreState {
-    return paint.getState();
+  discardSession(): void {
+    paint.discardSession();
   }
 
   // 사용자가 누른 위치에서 그리기나 편집 동작을 시작한다.
@@ -141,45 +130,32 @@ export class WebGL2Controller {
   // 이미지의 지정한 사각형 영역을 선택한다.
   createSelection(px: number, py: number, w: number, h: number): void {
     let { x, y } = toWebglCoord2(px, py, w, h, paintOptions.height);
-    paint.select(x, y, w, h);
+    paint.createSelection(x, y, w, h);
   }
 
   // 선택 영역을 지정한 위치와 크기로 이동하거나 뒤집는다.
-  transformSelection(
-    px: number,
-    py: number,
-    width: number,
-    height: number,
-    flipH = false,
-    flipV = false,
-  ): void {
+  transformSelection(px: number, py: number, width: number, height: number, flipH = false, flipV = false): void {
     let { x, y } = toWebglCoord2(px, py, width, height, paintOptions.height);
-    paint.moveSelection(x, y, width, height, flipH, flipV);
+    paint.transformSelection(x, y, width, height, flipH, flipV);
   }
 
   // 선택 영역 이동이나 변형 작업을 완료한다.
   completeTransformSelection(): void {
-    paint.endSelection();
+    paint.completeTransformSelection();
   }
 
   // 선택 영역에 대한 이동, 붙여넣기, 변형 결과를 이미지에 확정한다.
   commitSelection(): void {
-    paint.applySelection();
+    paint.commitSelection();
   }
 
   // 현재 선택된 이미지 영역을 지운다.
   deleteSelection(): void {
-    paint.selectionDelete();
+    paint.deleteSelection();
   }
 
   // 외부 이미지를 지정한 영역에 붙여넣는다.
-  paste(
-    px: number,
-    py: number,
-    width: number,
-    height: number,
-    imageBitmap: ImageBitmap,
-  ): void {
+  paste(px: number, py: number, width: number, height: number, imageBitmap: ImageBitmap): void {
     let { x, y } = toWebglCoord2(px, py, width, height, paintOptions.height);
     paint.paste(x, y, width, height, imageBitmap);
   }
@@ -240,11 +216,6 @@ export class WebGL2Controller {
 interface HistoryCount {
   undoCount: number;
   redoCount: number;
-}
-
-interface CoreState {
-  activeSessionTool: CoreSessionTool | null;
-  history: HistoryCount;
 }
 
 interface PixelData {

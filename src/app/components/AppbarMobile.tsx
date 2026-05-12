@@ -85,14 +85,14 @@ const LiquifyMobileAppBar = observer(() => {
       <button
         className="header-button"
         aria-label={getLetter("apply")}
-        onClick={() => toolManager.applyActiveSession()}
+        onClick={() => toolManager.commitSession()}
       >
         <CircleCheck color="#16a34a" size={24} strokeWidth={2.4} />
       </button>
       <button
         className="header-button"
         aria-label={getLetter("cancel")}
-        onClick={() => toolManager.discardActiveSession()}
+        onClick={() => toolManager.discardSession()}
       >
         <CircleX color="#dc2626" size={24} strokeWidth={2.4} />
       </button>

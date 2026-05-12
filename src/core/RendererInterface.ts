@@ -1,22 +1,9 @@
-import type {
-  CoreSessionTool,
-  CoreTool,
-  CoreToolState,
-  Pointer,
-} from "./types.js";
+import type { CoreSessionTool, CoreTool, CoreToolState, Pointer } from "./types.js";
 
 interface HistoryResponse {
   toolState: CoreToolState;
   undoCount: number;
   redoCount: number;
-}
-
-interface CoreState {
-  activeSessionTool: CoreSessionTool | null;
-  history: {
-    undoCount: number;
-    redoCount: number;
-  };
 }
 
 export interface RendererInterface {
@@ -42,25 +29,20 @@ export interface RendererInterface {
   render(): void;
 
   // === 도구 관리 ===
-  setTool(toolId: CoreTool, doExit?: boolean): CoreToolState;
-  applyActiveSession(): void;
-  discardActiveSession(): void;
-  getState(): CoreState;
+  setTool(toolId: CoreTool): CoreToolState;
+  openSession(toolId: CoreSessionTool): void;
+  commitSession(): void;
+  discardSession(): void;
+  getHistoryCount(): { undoCount: number; redoCount: number };
 
   // === 선택 영역 ===
-  select(px: number, py: number, w: number, h: number): void;
-  endMove(): void;
-  moveSelection(px: number, py: number, width: number, height: number, flipH?: boolean, flipV?: boolean): void;
-  applySelection(): void;
+  createSelection(px: number, py: number, w: number, h: number): void;
+  transformSelection(px: number, py: number, width: number, height: number, flipH?: boolean, flipV?: boolean): void;
+  completeTransformSelection(): void;
+  commitSelection(): void;
 
   // === 클립보드 ===
-  paste(
-    px: number,
-    py: number,
-    width: number,
-    height: number,
-    imageBitmap: ImageBitmap
-  ): void;
+  paste(px: number, py: number, width: number, height: number, imageBitmap: ImageBitmap): void;
   getSelectionPixel(): {
     pixels: Uint8ClampedArray<ArrayBufferLike>;
     width: number;
@@ -71,7 +53,7 @@ export interface RendererInterface {
     width: number;
     height: number;
   };
-  selectionDelete(): void;
+  deleteSelection(): void;
 
   // === 이미지 관리 ===
   uploadImage(bitmap: ImageBitmap): HistoryResponse;

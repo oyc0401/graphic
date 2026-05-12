@@ -1,10 +1,7 @@
 import type { Pointer } from "../types";
 
-// 포인터 좌표의 Y축을 WebGL 좌표계로 뒤집는다.
-export function toWebglCoord(
-  pointer: Pointer,
-  canvasHeight: number,
-): { x: number; y: number } {
+// 화면에서 받은 한 점의 위치를 이미지 처리 내부 좌표로 바꾼다.
+export function toWebglCoord(pointer: Pointer, canvasHeight: number): { x: number; y: number } {
   let { x, y } = pointer;
   return {
     x,
@@ -12,7 +9,7 @@ export function toWebglCoord(
   };
 }
 
-// 사각형 좌표의 Y축을 높이까지 고려해 WebGL 좌표계로 변환한다.
+// 화면에서 받은 사각형 영역을 이미지 처리 내부 좌표로 바꾼다.
 export function toWebglCoord2(
   x: number,
   y: number,
@@ -28,7 +25,7 @@ export function toWebglCoord2(
   };
 }
 
-// 카메라 좌표를 화면 크기와 배율 기준의 WebGL 좌표로 변환한다.
+// 화면 이동 위치를 확대 비율이 적용된 내부 카메라 위치로 바꾼다.
 export function toWebglCoord3(
   x: number,
   y: number,

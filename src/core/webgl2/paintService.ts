@@ -9,7 +9,7 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
-import type { CoreTool, CoreToolState } from "../types";
+import type { CoreSessionTool, CoreTool, CoreToolState } from "../types";
 import { getSessionManager } from "./session/session";
 
 interface Pointer {
@@ -89,7 +89,7 @@ export class PaintService {
     // 레이어 바꾸기 전에 진행 중인 세션을 먼저 적용한다.
     const sessionManager = getSessionManager(this.canvas, this.gl);
     if (sessionManager.hasActiveSession()) {
-      sessionManager.applyActiveSession();
+      sessionManager.commitSession();
     }
 
     let layerManager = getLayerManager(this.canvas, this.gl);
@@ -127,32 +127,34 @@ export class PaintService {
       b: Math.min(255, pixel[2] + 255 - alpha),
     };
   }
-  setTool(toolId: CoreTool, doExit): CoreToolState {
-    if (paintOptions.toolId != toolId && doExit) {
+  setTool(toolId: CoreTool): CoreToolState {
+    if (paintOptions.toolId != toolId) {
       const sessionManager = getSessionManager(this.canvas, this.gl);
       if (sessionManager.hasActiveSession()) {
-        sessionManager.applyActiveSession();
+        sessionManager.commitSession();
       }
       paintOptions.toolId = toolId;
-      if (toolId === "liquify") {
-        sessionManager.startLiquifySession();
-      }
     }
     paintOptions.toolId = toolId;
     return { tool: toolId };
   }
-  applyActiveSession() {
-    getSessionManager(this.canvas, this.gl).applyActiveSession();
-  }
-  discardActiveSession() {
-    getSessionManager(this.canvas, this.gl).discardActiveSession();
-  }
-  getState() {
+
+  openSession(toolId: CoreSessionTool) {
     const sessionManager = getSessionManager(this.canvas, this.gl);
-    return {
-      activeSessionTool: sessionManager.getActiveSessionTool(),
-      history: this.getHistoryCount(),
-    };
+    if (sessionManager.hasActiveSession()) {
+      sessionManager.commitSession();
+    }
+
+    if (toolId === "liquify") {
+      paintOptions.toolId = toolId;
+      sessionManager.startLiquifySession();
+    }
+  }
+  commitSession() {
+    getSessionManager(this.canvas, this.gl).commitSession();
+  }
+  discardSession() {
+    getSessionManager(this.canvas, this.gl).discardSession();
   }
   getTool() {
     return this.tools[paintOptions.toolId];
@@ -171,19 +173,19 @@ export class PaintService {
   cancel() {
     this.getTool()?.cancel();
   }
-  select(x, y, width, height) {
+  createSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
   }
-  endSelection() {
+  completeTransformSelection() {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.endSelection();
   }
-  moveSelection(x, y, width, height, flipH = false, flipV = false) {
+  transformSelection(x, y, width, height, flipH = false, flipV = false) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.moveSelection(x, y, width, height, flipH, flipV);
   }
-  applySelection() {
+  commitSelection() {
     if (paintOptions.showSelection) {
       let selectionManager = getSelectionManager(this.canvas, this.gl);
       selectionManager.applySelection();
@@ -207,7 +209,7 @@ export class PaintService {
     selectionManager.afterCut();
     return { pixels, width, height };
   }
-  selectionDelete() {
+  deleteSelection() {
     paintOptions.showSelection = false;
     const renderingManager = getRenderingManager(this.canvas, this.gl);
     renderingManager.render();
@@ -243,10 +245,7 @@ export class PaintService {
     return historyManager.redo();
   }
   getHistoryCount() {
-    const sessionHistoryCount = getSessionManager(
-      this.canvas,
-      this.gl,
-    ).getHistoryCount();
+    const sessionHistoryCount = getSessionManager(this.canvas, this.gl).getHistoryCount();
     if (sessionHistoryCount) {
       return sessionHistoryCount;
     }

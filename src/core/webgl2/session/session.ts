@@ -65,12 +65,12 @@ class SessionManager {
     return this.activeSession?.tool ?? null;
   }
 
-  applyActiveSession() {
+  commitSession() {
     this.activeSession?.apply();
     this.activeSession = null;
   }
 
-  discardActiveSession() {
+  discardSession() {
     this.activeSession?.discard();
     this.activeSession = null;
   }

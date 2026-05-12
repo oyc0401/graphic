@@ -1,20 +1,10 @@
-import type { CoreTool, CoreToolState } from "@/core/types";
-import {
-  BrushId,
-  paintState,
-  SessionToolId,
-  ToolId,
-  type SessionReturnToolId,
-} from "./paintState";
+import type { CoreSessionTool, CoreTool, CoreToolState } from "@/core/types";
+import { BrushId, paintState, SessionToolId, ToolId, type SessionReturnToolId } from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
-export type WorkerToolTarget =
-  | BrushId
-  | SessionToolId.Liquify
-  | ToolId.Select
-  | ToolId.Selection;
+export type WorkerToolTarget = BrushId | SessionToolId.Liquify | ToolId.Select | ToolId.Selection;
 
-function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool {
+function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool | CoreSessionTool {
   switch (target) {
     case BrushId.Brush:
       return "brush";
@@ -29,14 +19,12 @@ function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool {
   }
 }
 
-function coreToolForCurrentPaintState(): CoreTool {
+function coreToolForCurrentPaintState(): CoreTool | CoreSessionTool {
   switch (paintState.selectedToolId) {
     case ToolId.Brush:
       return paintState.brushId;
     case ToolId.Session:
-      return paintState.sessionToolId === SessionToolId.Liquify
-        ? "liquify"
-        : "brush";
+      return paintState.sessionToolId === SessionToolId.Liquify ? "liquify" : "brush";
     case ToolId.Select:
     case ToolId.Selection:
       return paintState.selectedToolId;
@@ -46,7 +34,7 @@ function coreToolForCurrentPaintState(): CoreTool {
   }
 }
 
-function applyCoreToolToPaintState(tool: CoreTool) {
+function applyCoreToolToPaintState(tool: CoreTool | CoreSessionTool) {
   switch (tool) {
     case "brush":
       paintState.setBrushId(BrushId.Brush);
@@ -76,35 +64,35 @@ export function isCurrentWorkerToolTarget(target: WorkerToolTarget) {
   return coreToolForCurrentPaintState() === coreToolForWorkerTarget(target);
 }
 
-export function applyWorkerToolTarget(
-  target: WorkerToolTarget,
-  options: { doExit?: boolean } = {},
-) {
-  const { doExit = true } = options;
+export function applyWorkerToolTarget(target: WorkerToolTarget) {
   const tool = coreToolForWorkerTarget(target);
   applyCoreToolToPaintState(tool);
-  return getLayerWorker().setTool(tool, doExit);
+  if (tool === "liquify") {
+    return getLayerWorker().openSession(tool);
+  }
+  return getLayerWorker().setTool(tool);
 }
 
-export function applyWorkerToolState(
-  state: CoreToolState,
-  options: { syncWorker?: boolean; doExit?: boolean } = {},
-) {
-  const { syncWorker = true, doExit = true } = options;
+export function applyWorkerToolState(state: CoreToolState, options: { syncWorker?: boolean } = {}) {
+  const { syncWorker = true } = options;
   applyCoreToolToPaintState(state.tool);
 
   if (syncWorker) {
-    return getLayerWorker().setTool(state.tool, doExit);
+    if (state.tool === "liquify") {
+      return getLayerWorker().openSession(state.tool);
+    }
+    return getLayerWorker().setTool(state.tool);
   }
 
   return state;
 }
 
-export function syncWorkerToCurrentPaintTool(
-  options: { doExit?: boolean } = {},
-) {
-  const { doExit = true } = options;
-  return getLayerWorker().setTool(coreToolForCurrentPaintState(), doExit);
+export function syncWorkerToCurrentPaintTool() {
+  const tool = coreToolForCurrentPaintState();
+  if (tool === "liquify") {
+    return getLayerWorker().openSession(tool);
+  }
+  return getLayerWorker().setTool(tool);
 }
 
 export function isSelectionWorkerToolState(state: CoreToolState) {

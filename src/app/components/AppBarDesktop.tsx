@@ -116,7 +116,7 @@ const LiquifyMenuBar = observer(() => {
       <button
         className="select-button"
         aria-label={getLetter("apply")}
-        onClick={() => toolManager.applyActiveSession()}
+        onClick={() => toolManager.commitSession()}
       >
         <CircleCheck color="#16a34a" size={32} strokeWidth={2.4} />
         <p>{getLetter("apply")}</p>
@@ -124,7 +124,7 @@ const LiquifyMenuBar = observer(() => {
       <button
         className="select-button"
         aria-label={getLetter("cancel")}
-        onClick={() => toolManager.discardActiveSession()}
+        onClick={() => toolManager.discardSession()}
       >
         <CircleX color="#dc2626" size={32} strokeWidth={2.4} />
         <p>{getLetter("cancel")}</p>

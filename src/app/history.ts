@@ -3,11 +3,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
-import {
-  applyWorkerToolState,
-  applyWorkerToolTarget,
-  isSelectionWorkerToolState,
-} from "./coreToolAdapter";
+import { applyWorkerToolState, applyWorkerToolTarget, isSelectionWorkerToolState } from "./coreToolAdapter";
 import { ToolId } from "./paintState";
 
 class HistoryState {
@@ -35,24 +31,12 @@ class HistoryState {
 export const historyState = new HistoryState();
 
 export function syncCoreState() {
-  const coreState = getLayerWorker().getState();
-  const { undoCount, redoCount } = coreState.history;
-  paintState.setSessionToolId(coreState.activeSessionTool);
+  const { undoCount, redoCount } = getLayerWorker().getHistoryCount();
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 }
 
-function applyHistoryPosition({
-  x,
-  y,
-  width,
-  height,
-}: {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}) {
+function applyHistoryPosition({ x, y, width, height }: { x: number; y: number; width: number; height: number }) {
   const appY = position.screenHeight / position.scale - height - y;
 
   position.setX(x);
@@ -71,7 +55,7 @@ export async function undo() {
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 
-  applyWorkerToolState(toolState, { doExit: false });
+  applyWorkerToolState(toolState, { syncWorker: false });
 
   if (isSelectionWorkerToolState(toolState)) {
     selection.setVisible(true);
@@ -114,7 +98,7 @@ export async function redo() {
   historyState.setRedoCount(redoCount);
 
   if (!toolState.tool) return;
-  applyWorkerToolState(toolState, { doExit: false });
+  applyWorkerToolState(toolState, { syncWorker: false });
 
   if (isSelectionWorkerToolState(toolState)) {
     selection.setVisible(true);

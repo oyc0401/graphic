@@ -20,15 +20,13 @@ function confirmLiquifyApply() {
 
 function restoreSessionReturnTool() {
   const returnTool = paintState.sessionReturnTool ?? ToolId.Brush;
+  paintState.setSessionToolId(null);
   paintState.setSelectedToolId(returnTool);
   syncWorkerToCurrentPaintTool();
   paintState.setSessionReturnTool(null);
 }
 
-function requestToolChange(
-  tool: WorkerToolTarget,
-  options: { applyCurrentSelection?: boolean } = {},
-) {
+function requestToolChange(tool: WorkerToolTarget, options: { applyCurrentSelection?: boolean } = {}) {
   const { applyCurrentSelection = true } = options;
   if (paintState.pointerdown) return false;
   if (isCurrentWorkerToolTarget(tool)) {
@@ -39,8 +37,9 @@ function requestToolChange(
   if (!confirmLiquifyApply()) return false;
 
   if (paintState.sessionToolId === SessionToolId.Liquify) {
-    getLayerWorker().applyActiveSession();
+    getLayerWorker().commitSession();
     syncCoreState();
+    paintState.setSessionToolId(null);
     paintState.setSessionReturnTool(null);
   } else if (applyCurrentSelection) {
     applySelection();
@@ -82,14 +81,13 @@ export const toolManager = {
     if (!confirmLiquifyApply()) return;
 
     if (paintState.sessionToolId === SessionToolId.Liquify) {
-      getLayerWorker().applyActiveSession();
+      getLayerWorker().commitSession();
       syncCoreState();
       restoreSessionReturnTool();
       syncCoreState();
     } else {
       const shouldReturnToSelect =
-        paintState.toolId === ToolId.Selection ||
-        isCurrentWorkerToolTarget(ToolId.Selection);
+        paintState.toolId === ToolId.Selection || isCurrentWorkerToolTarget(ToolId.Selection);
       applySelection();
       if (shouldReturnToSelect) {
         applyWorkerToolTarget(ToolId.Select);
@@ -102,26 +100,18 @@ export const toolManager = {
   setSelection() {
     requestToolChange(ToolId.Selection, { applyCurrentSelection: false });
   },
-  applyActiveSession() {
-    if (
-      paintState.pointerdown ||
-      paintState.sessionToolId !== SessionToolId.Liquify
-    )
-      return;
+  commitSession() {
+    if (paintState.pointerdown || paintState.sessionToolId !== SessionToolId.Liquify) return;
 
-    getLayerWorker().applyActiveSession();
+    getLayerWorker().commitSession();
     syncCoreState();
     restoreSessionReturnTool();
     syncCoreState();
   },
-  discardActiveSession() {
-    if (
-      paintState.pointerdown ||
-      paintState.sessionToolId !== SessionToolId.Liquify
-    )
-      return;
+  discardSession() {
+    if (paintState.pointerdown || paintState.sessionToolId !== SessionToolId.Liquify) return;
 
-    getLayerWorker().discardActiveSession();
+    getLayerWorker().discardSession();
     syncCoreState();
     restoreSessionReturnTool();
     syncCoreState();
