@@ -4,7 +4,7 @@ import { SelectTool } from "./SelectTool";
 import { zoomTool } from "./ZoomTool";
 import { ColorPickerTool } from "./ColorPickerTool";
 import type { CoreTool } from "@/core/types";
-import type { BrushId, ToolId } from "../paintState";
+import { BrushId, ToolId } from "../paintState";
 
 type ToolKind = "core" | "transient" | "viewport";
 
@@ -17,42 +17,42 @@ interface ToolMetadata {
 }
 
 export const toolRegistry = {
-  brush: new BrushTool(),
-  session: new BrushTool(),
-  selection: new SelectionTool(),
-  select: new SelectTool(),
-  zoom: zoomTool,
-  colorPicker: new ColorPickerTool(),
+  [ToolId.Brush]: new BrushTool(),
+  [ToolId.Session]: new BrushTool(),
+  [ToolId.Selection]: new SelectionTool(),
+  [ToolId.Select]: new SelectTool(),
+  [ToolId.Zoom]: zoomTool,
+  [ToolId.ColorPicker]: new ColorPickerTool(),
 };
 
 export const toolMetadata: Record<ToolId, ToolMetadata> = {
-  brush: {
+  [ToolId.Brush]: {
     kind: "core",
     coreTool: "brush",
     allowCanvasResizeHandle: true,
   },
-  session: {
+  [ToolId.Session]: {
     kind: "core",
     coreTool: "liquify",
     allowCanvasResizeHandle: false,
   },
-  select: {
+  [ToolId.Select]: {
     kind: "core",
     coreTool: "select",
     allowCanvasResizeHandle: false,
     cursorClass: "select",
   },
-  selection: {
+  [ToolId.Selection]: {
     kind: "core",
     coreTool: "selection",
     allowCanvasResizeHandle: false,
   },
-  zoom: {
+  [ToolId.Zoom]: {
     kind: "viewport",
     allowCanvasResizeHandle: false,
     cursorClass: "zoom",
   },
-  colorPicker: {
+  [ToolId.ColorPicker]: {
     kind: "transient",
     allowCanvasResizeHandle: false,
     cursorClass: "colorPicker",

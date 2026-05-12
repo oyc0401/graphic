@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { paintState, ToolId } from "../paintState";
 import { getLayerWorker } from "../worker/workerPool";
 import { to_canvas_coord } from "../position";
 import { colorState } from "../colorState";
@@ -8,7 +8,9 @@ export class BrushTool {
   private start = { x: 0, y: 0 };
 
   private canUseBrushTool() {
-    return paintState.toolId === "brush" || paintState.toolId === "session";
+    return (
+      paintState.toolId === ToolId.Brush || paintState.toolId === ToolId.Session
+    );
   }
 
   down(e: PointerEvent) {
@@ -32,11 +34,7 @@ export class BrushTool {
 
   move(e: PointerEvent) {
     // console.log("dddd22", paintState.pointerdown, paintState.toolId);
-    if (
-      !paintState.pointerdown ||
-      !this.active ||
-      !this.canUseBrushTool()
-    )
+    if (!paintState.pointerdown || !this.active || !this.canUseBrushTool())
       return;
 
     paintState.setMoved(true);

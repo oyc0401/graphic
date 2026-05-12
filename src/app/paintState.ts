@@ -2,43 +2,70 @@ import { makeAutoObservable, runInAction } from "mobx";
 import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
-type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
-export type ToolId =
-  | "brush"
-  | "select"
-  | "selection"
-  | "zoom"
-  | "colorPicker"
-  | "session";
-export type BrushId = "brush" | "eraser";
-export type SessionToolId = "liquify" | "mosaic";
-export type SessionReturnToolId = Extract<ToolId, "brush" | "select">;
+export enum InputMode {
+  Brush = "BRUSH",
+  Zoom = "ZOOM",
+  Pinch = "PINCH",
+  Pan = "PAN",
+  ColorPicker = "COLOR_PICKER",
+}
+
+export enum ToolId {
+  Brush = "brush",
+  Select = "select",
+  Selection = "selection",
+  Zoom = "zoom",
+  ColorPicker = "colorPicker",
+  Session = "session",
+}
+
+export enum BrushId {
+  Brush = "brush",
+  Eraser = "eraser",
+}
+
+export enum SessionToolId {
+  Liquify = "liquify",
+  Mosaic = "mosaic",
+}
+
+export type SessionReturnToolId = ToolId.Brush | ToolId.Select;
 type BrushSettingsId = BrushId | SessionToolId;
 
 function inputModeForTool(toolId: ToolId): InputMode {
   switch (toolId) {
-    case "zoom":
-      return "ZOOM";
-    case "colorPicker":
-      return "COLOR_PICKER";
-    case "brush":
-    case "select":
-    case "selection":
-    case "session":
-      return "BRUSH";
+    case ToolId.Zoom:
+      return InputMode.Zoom;
+    case ToolId.ColorPicker:
+      return InputMode.ColorPicker;
+    case ToolId.Brush:
+    case ToolId.Select:
+    case ToolId.Selection:
+    case ToolId.Session:
+      return InputMode.Brush;
   }
 }
 
 class PaintState {
-  inputMode: InputMode = "BRUSH";
-  selectedToolId: ToolId = "brush";
-  brushId: BrushId = "brush";
+  inputMode: InputMode = InputMode.Brush;
+  selectedToolId: ToolId = ToolId.Brush;
+  brushId: BrushId = BrushId.Brush;
   sessionToolId: SessionToolId | null = null;
 
   sessionReturnTool: SessionReturnToolId | null = null;
 
-  brushSize = { brush: 5, eraser: 10, liquify: 50, mosaic: 50 };
-  brushAlpha = { brush: 100, eraser: 100, liquify: 100, mosaic: 100 };
+  brushSize = {
+    [BrushId.Brush]: 5,
+    [BrushId.Eraser]: 10,
+    [SessionToolId.Liquify]: 50,
+    [SessionToolId.Mosaic]: 50,
+  };
+  brushAlpha = {
+    [BrushId.Brush]: 100,
+    [BrushId.Eraser]: 100,
+    [SessionToolId.Liquify]: 100,
+    [SessionToolId.Mosaic]: 100,
+  };
 
   cursorX = 0;
   cursorY = 0;
@@ -59,8 +86,8 @@ class PaintState {
     this.inputMode = val;
   }
   setSelectedToolId(toolId: ToolId) {
-    if (toolId === "session" && this.sessionToolId === null) {
-      this.sessionToolId = "liquify";
+    if (toolId === ToolId.Session && this.sessionToolId === null) {
+      this.sessionToolId = SessionToolId.Liquify;
     }
     this.selectedToolId = toolId;
     this.setInputMode(inputModeForTool(toolId));
@@ -72,15 +99,17 @@ class PaintState {
     switch (coreTool) {
       case "brush":
       case "eraser":
-        this.brushId = coreTool;
-        this.setSelectedToolId("brush");
+        this.brushId = coreTool === "brush" ? BrushId.Brush : BrushId.Eraser;
+        this.setSelectedToolId(ToolId.Brush);
         break;
       case "liquify":
-        this.setSessionToolId(coreTool);
+        this.setSessionToolId(SessionToolId.Liquify);
         break;
       case "select":
       case "selection":
-        this.setSelectedToolId(coreTool);
+        this.setSelectedToolId(
+          coreTool === "select" ? ToolId.Select : ToolId.Selection,
+        );
         break;
     }
   }
@@ -90,40 +119,42 @@ class PaintState {
   setSessionToolId(tool: SessionToolId | null) {
     this.sessionToolId = tool;
     if (tool) {
-      this.setSelectedToolId("session");
-    } else if (this.selectedToolId === "session") {
-      this.setSelectedToolId("brush");
+      this.setSelectedToolId(ToolId.Session);
+    } else if (this.selectedToolId === ToolId.Session) {
+      this.setSelectedToolId(ToolId.Brush);
     }
   }
   get toolId(): ToolId {
     return this.selectedToolId;
   }
   get activeToolId(): ToolId {
-    if (this.inputMode === "ZOOM") {
-      return "zoom";
+    if (this.inputMode === InputMode.Zoom) {
+      return ToolId.Zoom;
     }
-    if (this.inputMode === "COLOR_PICKER") {
-      return "colorPicker";
+    if (this.inputMode === InputMode.ColorPicker) {
+      return ToolId.ColorPicker;
     }
 
     return this.selectedToolId;
   }
   get coreTool(): CoreTool {
     switch (this.selectedToolId) {
-      case "brush":
+      case ToolId.Brush:
         return this.brushId;
-      case "session":
-        return this.sessionToolId === "liquify" ? "liquify" : "brush";
-      case "select":
-      case "selection":
+      case ToolId.Session:
+        return this.sessionToolId === SessionToolId.Liquify
+          ? "liquify"
+          : "brush";
+      case ToolId.Select:
+      case ToolId.Selection:
         return this.selectedToolId;
-      case "zoom":
-      case "colorPicker":
+      case ToolId.Zoom:
+      case ToolId.ColorPicker:
         return this.brushId;
     }
   }
   get brushSettingsId(): BrushSettingsId {
-    return this.selectedToolId === "session"
+    return this.selectedToolId === ToolId.Session
       ? (this.sessionToolId ?? this.brushId)
       : this.brushId;
   }

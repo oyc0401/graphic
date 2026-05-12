@@ -1,5 +1,5 @@
 // tools/PanTool.ts
-import { paintState } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import { getPixelRatio, position, renderChangedPosition } from "../position";
 
 export class PanTool {
@@ -8,7 +8,8 @@ export class PanTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.inputMode !== "PAN" || !paintState.pointerdown) return;
+    if (paintState.inputMode !== InputMode.Pan || !paintState.pointerdown)
+      return;
     this.active = true;
 
     this.lastClientX = e.clientX;
@@ -16,7 +17,11 @@ export class PanTool {
   }
 
   move(e: PointerEvent) {
-    if (paintState.inputMode !== "PAN" || !paintState.pointerdown || !this.active)
+    if (
+      paintState.inputMode !== InputMode.Pan ||
+      !paintState.pointerdown ||
+      !this.active
+    )
       return;
 
     const dx = (this.lastClientX - e.clientX) * getPixelRatio();
@@ -36,7 +41,7 @@ export class PanTool {
 
   up(_: PointerEvent) {
     // No-op for pan
-    if (paintState.inputMode !== "PAN") return;
+    if (paintState.inputMode !== InputMode.Pan) return;
     this.active = false;
   }
 

@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import {
   resizeSelectionFromHandle,
   type SelectionResizeHandle,
@@ -80,7 +80,7 @@ export class ResizeTool {
       );
 
     return (
-      paintState.inputMode === "BRUSH" &&
+      paintState.inputMode === InputMode.Brush &&
       toolMetadata.allowCanvasResizeHandle &&
       !brushIdBlocksCanvasResizeHandle
     );

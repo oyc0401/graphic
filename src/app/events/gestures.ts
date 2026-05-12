@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import { cancel } from "../draw";
 import { dispatch } from "./pointerEvents";
 import {
@@ -150,7 +150,7 @@ export function addGestureEvent() {
   ) {
     paintState.setPointerdown(false);
     paintState.setDrawing(false);
-    paintState.setInputMode("PINCH");
+    paintState.setInputMode(InputMode.Pinch);
 
     blockedPointerIds.add(firstPointer.pointerId);
     blockedPointerIds.add(secondPointer.pointerId);
@@ -233,7 +233,7 @@ export function addGestureEvent() {
     pointerIndexCounter = 0;
     pointerdownTime = 0;
 
-    if (pointers.size === 0 && paintState.inputMode === "PINCH") {
+    if (pointers.size === 0 && paintState.inputMode === InputMode.Pinch) {
       paintState.restoreSelectedToolMode();
     }
   }

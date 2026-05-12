@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { BrushId, paintState, SessionToolId, ToolId } from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
@@ -56,7 +56,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.sessionToolId === "liquify" ? (
+        {paintState.sessionToolId === SessionToolId.Liquify ? (
           <LiquifyMenuBar />
         ) : (
           <div id="menu-bar">
@@ -164,8 +164,8 @@ const HistoryButtons = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "select" ||
-    paintState.activeToolId === "selection";
+    paintState.activeToolId === ToolId.Select ||
+    paintState.activeToolId === ToolId.Selection;
 
   return (
     <button
@@ -181,8 +181,8 @@ const SelectionToolButton = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "brush";
+    paintState.activeToolId === ToolId.Brush &&
+    paintState.brushId === BrushId.Brush;
 
   return (
     <button
@@ -198,8 +198,8 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "eraser";
+    paintState.activeToolId === ToolId.Brush &&
+    paintState.brushId === BrushId.Eraser;
 
   return (
     <button
@@ -215,8 +215,8 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "session" &&
-    paintState.sessionToolId === "liquify";
+    paintState.activeToolId === ToolId.Session &&
+    paintState.sessionToolId === SessionToolId.Liquify;
 
   return (
     <button
@@ -230,7 +230,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const ZoomToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === "zoom";
+  const isSelected = paintState.activeToolId === ToolId.Zoom;
 
   return (
     <button
@@ -249,7 +249,7 @@ const ZoomToolButton = observer(() => {
 });
 
 const ColorPickerToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === "colorPicker";
+  const isSelected = paintState.activeToolId === ToolId.ColorPicker;
 
   return (
     <button

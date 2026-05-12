@@ -1,6 +1,6 @@
 // tools/SelectionTool.ts
 import { paintConfig } from "@/paint.config";
-import { paintState } from "../paintState";
+import { InputMode, paintState, ToolId } from "../paintState";
 import { to_pixel_canvas_coord } from "../position";
 import { applySelection, beforeSelectionPos, selection } from "../selection";
 import { clamp } from "../utils/math";
@@ -23,7 +23,10 @@ export class SelectionTool {
   private startTime;
 
   down(e: PointerEvent) {
-    if (paintState.toolId !== "selection" || paintState.inputMode !== "BRUSH")
+    if (
+      paintState.toolId !== ToolId.Selection ||
+      paintState.inputMode !== InputMode.Brush
+    )
       return;
     if (!paintState.pointerdown) return;
 

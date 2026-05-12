@@ -1,5 +1,10 @@
 /** draw.ts */
-import { paintState, type SessionReturnToolId } from "./paintState";
+import {
+  paintState,
+  SessionToolId,
+  ToolId,
+  type SessionReturnToolId,
+} from "./paintState";
 import { applySelection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { setCoreTool } from "./coreToolState";
@@ -8,39 +13,40 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmLiquifyApply() {
-  if (paintState.sessionToolId !== "liquify") return true;
+  if (paintState.sessionToolId !== SessionToolId.Liquify) return true;
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
 function toolIdForCoreTool(tool: CoreTool) {
   switch (tool) {
     case "select":
+      return ToolId.Select;
     case "selection":
-      return tool;
+      return ToolId.Selection;
     case "brush":
     case "eraser":
-      return "brush";
+      return ToolId.Brush;
     case "liquify":
-      return "session";
+      return ToolId.Session;
   }
 }
 
 function sessionReturnToolForCurrentTool(): SessionReturnToolId {
   switch (paintState.toolId) {
-    case "select":
-    case "selection":
-      return "select";
-    case "brush":
-      return "brush";
-    case "zoom":
-    case "colorPicker":
-    case "session":
-      return "brush";
+    case ToolId.Select:
+    case ToolId.Selection:
+      return ToolId.Select;
+    case ToolId.Brush:
+      return ToolId.Brush;
+    case ToolId.Zoom:
+    case ToolId.ColorPicker:
+    case ToolId.Session:
+      return ToolId.Brush;
   }
 }
 
 function restoreSessionReturnTool() {
-  const returnTool = paintState.sessionReturnTool ?? "brush";
+  const returnTool = paintState.sessionReturnTool ?? ToolId.Brush;
   paintState.setSelectedToolId(returnTool);
   setCoreTool(paintState.coreTool);
   paintState.setSessionReturnTool(null);
@@ -59,7 +65,7 @@ function requestToolChange(
 
   if (!confirmLiquifyApply()) return false;
 
-  if (paintState.sessionToolId === "liquify") {
+  if (paintState.sessionToolId === SessionToolId.Liquify) {
     getLayerWorker().applyActiveSession();
     syncCoreState();
     paintState.setSessionReturnTool(null);
@@ -97,35 +103,39 @@ export const toolManager = {
   },
   setZoomTool() {
     if (paintState.pointerdown) return;
-    paintState.setSelectedToolId("zoom");
+    paintState.setSelectedToolId(ToolId.Zoom);
   },
   setColorPickerTool() {
     if (paintState.pointerdown) return;
     if (!confirmLiquifyApply()) return;
 
-    if (paintState.sessionToolId === "liquify") {
+    if (paintState.sessionToolId === SessionToolId.Liquify) {
       getLayerWorker().applyActiveSession();
       syncCoreState();
       restoreSessionReturnTool();
       syncCoreState();
     } else {
       const shouldReturnToSelect =
-        paintState.coreTool === "selection" || paintState.toolId === "selection";
+        paintState.coreTool === "selection" ||
+        paintState.toolId === ToolId.Selection;
       applySelection();
       if (shouldReturnToSelect) {
         setCoreTool("select");
-        paintState.setSelectedToolId("select");
+        paintState.setSelectedToolId(ToolId.Select);
         syncCoreState();
       }
     }
 
-    paintState.setSelectedToolId("colorPicker");
+    paintState.setSelectedToolId(ToolId.ColorPicker);
   },
   setSelection() {
     requestToolChange("selection", { applyCurrentSelection: false });
   },
   applyActiveSession() {
-    if (paintState.pointerdown || paintState.sessionToolId !== "liquify")
+    if (
+      paintState.pointerdown ||
+      paintState.sessionToolId !== SessionToolId.Liquify
+    )
       return;
 
     getLayerWorker().applyActiveSession();
@@ -134,7 +144,10 @@ export const toolManager = {
     syncCoreState();
   },
   discardActiveSession() {
-    if (paintState.pointerdown || paintState.sessionToolId !== "liquify")
+    if (
+      paintState.pointerdown ||
+      paintState.sessionToolId !== SessionToolId.Liquify
+    )
       return;
 
     getLayerWorker().discardActiveSession();
@@ -150,7 +163,7 @@ export const toolManager = {
 export function cancel() {
   console.log("cancel!");
 
-  if (paintState.toolId == "selection") {
+  if (paintState.toolId === ToolId.Selection) {
     selectionCancel();
     return;
   }

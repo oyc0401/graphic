@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import { getToolMetadata, toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { resizeTool } from "../tools/resizeTool";
@@ -19,7 +19,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
 
   // 1. 임시 PAN 모드는 현재 선택된 도구보다 우선한다.
   switch (paintState.inputMode) {
-    case "PAN":
+    case InputMode.Pan:
       panTool[phase]?.(e);
       syncCoreStateAfterPointerEnd(phase);
       return;
@@ -28,7 +28,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   const activeToolMetadata = getToolMetadata(paintState.activeToolId);
 
   if (
-    paintState.inputMode === "BRUSH" &&
+    paintState.inputMode === InputMode.Brush &&
     activeToolMetadata.allowCanvasResizeHandle
   ) {
     if (phase === "down" && resizeTool.canStart(e)) {

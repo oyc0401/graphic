@@ -1,5 +1,5 @@
 // tools/SelectTool.ts
-import { paintState } from "../paintState";
+import { InputMode, paintState, ToolId } from "../paintState";
 import { selection } from "../selection";
 import { position, to_pixel_canvas_coord } from "../position";
 import { canvasSelect } from "../selection";
@@ -11,7 +11,11 @@ export class SelectTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.inputMode !== "BRUSH" || paintState.toolId !== "select") return;
+    if (
+      paintState.inputMode !== InputMode.Brush ||
+      paintState.toolId !== ToolId.Select
+    )
+      return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);
@@ -24,7 +28,11 @@ export class SelectTool {
 
   move(e: PointerEvent) {
     if (!this.active || !paintState.pointerdown) return;
-    if (paintState.inputMode !== "BRUSH" || paintState.toolId !== "select") return;
+    if (
+      paintState.inputMode !== InputMode.Brush ||
+      paintState.toolId !== ToolId.Select
+    )
+      return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);

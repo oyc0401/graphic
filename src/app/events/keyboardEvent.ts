@@ -1,6 +1,6 @@
 /** keyboard.ts */
 import { redo, undo } from "../history";
-import { paintState } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import { position } from "../position";
 import { cancel, toolManager } from "../draw";
 import { applySelection, canvasSelect, selectionDelete } from "../selection";
@@ -47,9 +47,9 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
 };
 
 const temporaryActionMode = {
-  temporaryPan: "PAN",
-  temporaryZoom: "ZOOM",
-  temporaryColorPicker: "COLOR_PICKER",
+  temporaryPan: InputMode.Pan,
+  temporaryZoom: InputMode.Zoom,
+  temporaryColorPicker: InputMode.ColorPicker,
 } as const;
 
 const commandShortcuts = keyboardShortcuts.filter(

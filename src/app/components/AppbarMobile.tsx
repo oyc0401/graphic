@@ -1,5 +1,5 @@
 import "./mobile.css";
-import { paintState } from "../paintState";
+import { BrushId, paintState, SessionToolId, ToolId } from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
@@ -56,7 +56,7 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.sessionToolId === "liquify" ? (
+        {paintState.sessionToolId === SessionToolId.Liquify ? (
           <LiquifyMobileAppBar />
         ) : (
           <div className="mobile-appbar">
@@ -202,8 +202,8 @@ const HistoryButtons = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "brush";
+    paintState.activeToolId === ToolId.Brush &&
+    paintState.brushId === BrushId.Brush;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -227,8 +227,8 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "brush" &&
-    paintState.brushId === "eraser";
+    paintState.activeToolId === ToolId.Brush &&
+    paintState.brushId === BrushId.Eraser;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -254,8 +254,8 @@ const EraserToolButton = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "select" ||
-    paintState.activeToolId === "selection";
+    paintState.activeToolId === ToolId.Select ||
+    paintState.activeToolId === ToolId.Selection;
 
   return (
     <button
@@ -270,8 +270,8 @@ const SelectionToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === "session" &&
-    paintState.sessionToolId === "liquify";
+    paintState.activeToolId === ToolId.Session &&
+    paintState.sessionToolId === SessionToolId.Liquify;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -294,7 +294,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const ZoomToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === "zoom";
+  const isSelected = paintState.activeToolId === ToolId.Zoom;
 
   return (
     <button
@@ -316,7 +316,7 @@ const ZoomToolButton = observer(() => {
 });
 
 const ColorPickerToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === "colorPicker";
+  const isSelected = paintState.activeToolId === ToolId.ColorPicker;
 
   return (
     <button
@@ -371,7 +371,7 @@ const BrushSizeSlider = observer(() => {
 
 const BrushAlphaSlider = observer(() => {
   const label =
-    paintState.sessionToolId === "liquify"
+    paintState.sessionToolId === SessionToolId.Liquify
       ? getLetter("liquify_strength")
       : getLetter("opacity");
 

@@ -1,17 +1,18 @@
 import type { CoreTool, CoreToolState } from "@/core/types";
-import { paintState } from "./paintState";
+import { paintState, ToolId } from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
 function toolIdForCoreTool(tool: CoreTool) {
   switch (tool) {
     case "select":
+      return ToolId.Select;
     case "selection":
-      return tool;
+      return ToolId.Selection;
     case "brush":
     case "eraser":
-      return "brush";
+      return ToolId.Brush;
     case "liquify":
-      return "session";
+      return ToolId.Session;
   }
 }
 
