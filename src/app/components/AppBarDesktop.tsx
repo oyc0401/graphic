@@ -56,7 +56,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.activeSessionTool === "liquify" ? (
+        {paintState.sessionToolId === "liquify" ? (
           <LiquifyMenuBar />
         ) : (
           <div id="menu-bar">

@@ -1,7 +1,12 @@
 import { paintOptions } from "./gl/texture";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
-import type { CoreTool, CoreToolState, Pointer } from "../types.js";
+import type {
+  CoreSessionTool,
+  CoreTool,
+  CoreToolState,
+  Pointer,
+} from "../types.js";
 import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
@@ -206,7 +211,7 @@ interface HistoryCount {
 }
 
 interface CoreState {
-  activeSessionTool: CoreTool | null;
+  activeSessionTool: CoreSessionTool | null;
   history: HistoryCount;
 }
 

@@ -1,5 +1,5 @@
 /** draw.ts */
-import { paintState } from "./paintState";
+import { paintState, type SessionReturnToolId } from "./paintState";
 import { applySelection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
 import { setCoreTool } from "./coreToolState";
@@ -8,7 +8,7 @@ import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmLiquifyApply() {
-  if (paintState.activeSessionTool !== "liquify") return true;
+  if (paintState.sessionToolId !== "liquify") return true;
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
@@ -25,6 +25,27 @@ function toolIdForCoreTool(tool: CoreTool) {
   }
 }
 
+function sessionReturnToolForCurrentTool(): SessionReturnToolId {
+  switch (paintState.toolId) {
+    case "select":
+    case "selection":
+      return "select";
+    case "brush":
+      return "brush";
+    case "zoom":
+    case "colorPicker":
+    case "session":
+      return "brush";
+  }
+}
+
+function restoreSessionReturnTool() {
+  const returnTool = paintState.sessionReturnTool ?? "brush";
+  paintState.setSelectedToolId(returnTool);
+  setCoreTool(paintState.coreTool);
+  paintState.setSessionReturnTool(null);
+}
+
 function requestToolChange(
   tool: CoreTool,
   options: { applyCurrentSelection?: boolean } = {},
@@ -38,9 +59,10 @@ function requestToolChange(
 
   if (!confirmLiquifyApply()) return false;
 
-  if (paintState.activeSessionTool === "liquify") {
+  if (paintState.sessionToolId === "liquify") {
     getLayerWorker().applyActiveSession();
     syncCoreState();
+    paintState.setSessionReturnTool(null);
   } else if (applyCurrentSelection) {
     applySelection();
   }
@@ -64,8 +86,7 @@ export const toolManager = {
   },
   setLiquifyTool() {
     if (paintState.pointerdown) return;
-    const returnTool =
-      paintState.coreTool === "selection" ? "select" : paintState.coreTool;
+    const returnTool = sessionReturnToolForCurrentTool();
     if (requestToolChange("liquify")) {
       paintState.setSessionReturnTool(returnTool);
     }
@@ -82,14 +103,10 @@ export const toolManager = {
     if (paintState.pointerdown) return;
     if (!confirmLiquifyApply()) return;
 
-    if (paintState.activeSessionTool === "liquify") {
-      const returnTool = paintState.sessionReturnTool ?? "brush";
-      const nextTool = returnTool === "liquify" ? "brush" : returnTool;
+    if (paintState.sessionToolId === "liquify") {
       getLayerWorker().applyActiveSession();
       syncCoreState();
-      setCoreTool(nextTool);
-      paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
-      paintState.setSessionReturnTool(null);
+      restoreSessionReturnTool();
       syncCoreState();
     } else {
       const shouldReturnToSelect =
@@ -108,29 +125,21 @@ export const toolManager = {
     requestToolChange("selection", { applyCurrentSelection: false });
   },
   applyActiveSession() {
-    if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
+    if (paintState.pointerdown || paintState.sessionToolId !== "liquify")
       return;
 
-    const returnTool = paintState.sessionReturnTool ?? "brush";
-    const nextTool = returnTool === "liquify" ? "brush" : returnTool;
     getLayerWorker().applyActiveSession();
     syncCoreState();
-    setCoreTool(nextTool);
-    paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
-    paintState.setSessionReturnTool(null);
+    restoreSessionReturnTool();
     syncCoreState();
   },
   discardActiveSession() {
-    if (paintState.pointerdown || paintState.activeSessionTool !== "liquify")
+    if (paintState.pointerdown || paintState.sessionToolId !== "liquify")
       return;
 
-    const returnTool = paintState.sessionReturnTool ?? "brush";
-    const nextTool = returnTool === "liquify" ? "brush" : returnTool;
     getLayerWorker().discardActiveSession();
     syncCoreState();
-    setCoreTool(nextTool);
-    paintState.setSelectedToolId(toolIdForCoreTool(nextTool));
-    paintState.setSessionReturnTool(null);
+    restoreSessionReturnTool();
     syncCoreState();
   },
 };

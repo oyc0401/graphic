@@ -1,10 +1,10 @@
-import type { CoreTool } from "@/core/types";
+import type { CoreSessionTool } from "@/core/types";
 import type { HistoryCount, HistoryResponse } from "@/core/history/history";
 import { getManager } from "@/core/utils/cachedManager";
 import { getLiquifyManager } from "../gl/tool/liquify/liquify";
 
 export interface EditSession {
-  tool: CoreTool;
+  tool: CoreSessionTool;
   apply(): void;
   discard(): void;
   undo(): Promise<HistoryResponse | null>;
@@ -61,7 +61,7 @@ class SessionManager {
     return this.activeSession !== null;
   }
 
-  getActiveSessionTool(): CoreTool | null {
+  getActiveSessionTool(): CoreSessionTool | null {
     return this.activeSession?.tool ?? null;
   }
 

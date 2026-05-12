@@ -3,12 +3,9 @@ export interface Pointer {
   y: number;
 }
 
-export type CoreTool =
-  | "brush"
-  | "eraser"
-  | "liquify"
-  | "select"
-  | "selection";
+export type CoreTool = "brush" | "eraser" | "liquify" | "select" | "selection";
+
+export type CoreSessionTool = "liquify";
 
 export interface CoreToolState {
   tool: CoreTool;

@@ -1,4 +1,9 @@
-import type { CoreTool, CoreToolState, Pointer } from "./types.js";
+import type {
+  CoreSessionTool,
+  CoreTool,
+  CoreToolState,
+  Pointer,
+} from "./types.js";
 
 interface HistoryResponse {
   toolState: CoreToolState;
@@ -7,7 +12,7 @@ interface HistoryResponse {
 }
 
 interface CoreState {
-  activeSessionTool: CoreTool | null;
+  activeSessionTool: CoreSessionTool | null;
   history: {
     undoCount: number;
     redoCount: number;

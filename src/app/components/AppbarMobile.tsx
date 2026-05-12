@@ -56,7 +56,7 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.activeSessionTool === "liquify" ? (
+        {paintState.sessionToolId === "liquify" ? (
           <LiquifyMobileAppBar />
         ) : (
           <div className="mobile-appbar">
@@ -371,7 +371,7 @@ const BrushSizeSlider = observer(() => {
 
 const BrushAlphaSlider = observer(() => {
   const label =
-    paintState.activeSessionTool === "liquify"
+    paintState.sessionToolId === "liquify"
       ? getLetter("liquify_strength")
       : getLetter("opacity");
 

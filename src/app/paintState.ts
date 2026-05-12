@@ -10,8 +10,9 @@ export type ToolId =
   | "zoom"
   | "colorPicker"
   | "session";
-export type BrushId = Extract<CoreTool, "brush" | "eraser">;
-export type SessionToolId = Extract<CoreTool, "liquify">;
+export type BrushId = "brush" | "eraser";
+export type SessionToolId = "liquify" | "mosaic";
+export type SessionReturnToolId = Extract<ToolId, "brush" | "select">;
 type BrushSettingsId = BrushId | SessionToolId;
 
 function inputModeForTool(toolId: ToolId): InputMode {
@@ -31,14 +32,13 @@ function inputModeForTool(toolId: ToolId): InputMode {
 class PaintState {
   inputMode: InputMode = "BRUSH";
   selectedToolId: ToolId = "brush";
-  coreTool: CoreTool = "brush";
-  sessionToolId: SessionToolId = "liquify";
+  brushId: BrushId = "brush";
+  sessionToolId: SessionToolId | null = null;
 
-  activeSessionTool: CoreTool | null = null;
-  sessionReturnTool: CoreTool | null = null;
+  sessionReturnTool: SessionReturnToolId | null = null;
 
-  brushSize = { brush: 5, eraser: 10, liquify: 50 };
-  brushAlpha = { brush: 100, eraser: 100, liquify: 100 };
+  brushSize = { brush: 5, eraser: 10, liquify: 50, mosaic: 50 };
+  brushAlpha = { brush: 100, eraser: 100, liquify: 100, mosaic: 100 };
 
   cursorX = 0;
   cursorY = 0;
@@ -59,6 +59,9 @@ class PaintState {
     this.inputMode = val;
   }
   setSelectedToolId(toolId: ToolId) {
+    if (toolId === "session" && this.sessionToolId === null) {
+      this.sessionToolId = "liquify";
+    }
     this.selectedToolId = toolId;
     this.setInputMode(inputModeForTool(toolId));
   }
@@ -66,13 +69,31 @@ class PaintState {
     this.setInputMode(inputModeForTool(this.selectedToolId));
   }
   setCoreTool(coreTool: CoreTool) {
-    this.coreTool = coreTool;
+    switch (coreTool) {
+      case "brush":
+      case "eraser":
+        this.brushId = coreTool;
+        this.setSelectedToolId("brush");
+        break;
+      case "liquify":
+        this.setSessionToolId(coreTool);
+        break;
+      case "select":
+      case "selection":
+        this.setSelectedToolId(coreTool);
+        break;
+    }
   }
-  setActiveSessionTool(tool: CoreTool | null) {
-    this.activeSessionTool = tool;
-  }
-  setSessionReturnTool(tool: CoreTool | null) {
+  setSessionReturnTool(tool: SessionReturnToolId | null) {
     this.sessionReturnTool = tool;
+  }
+  setSessionToolId(tool: SessionToolId | null) {
+    this.sessionToolId = tool;
+    if (tool) {
+      this.setSelectedToolId("session");
+    } else if (this.selectedToolId === "session") {
+      this.setSelectedToolId("brush");
+    }
   }
   get toolId(): ToolId {
     return this.selectedToolId;
@@ -87,19 +108,24 @@ class PaintState {
 
     return this.selectedToolId;
   }
-  get brushId(): BrushId {
-    switch (this.coreTool) {
-      case "eraser":
-        return this.coreTool;
+  get coreTool(): CoreTool {
+    switch (this.selectedToolId) {
       case "brush":
-      case "liquify":
+        return this.brushId;
+      case "session":
+        return this.sessionToolId === "liquify" ? "liquify" : "brush";
       case "select":
       case "selection":
-        return "brush";
+        return this.selectedToolId;
+      case "zoom":
+      case "colorPicker":
+        return this.brushId;
     }
   }
   get brushSettingsId(): BrushSettingsId {
-    return this.selectedToolId === "session" ? this.sessionToolId : this.brushId;
+    return this.selectedToolId === "session"
+      ? (this.sessionToolId ?? this.brushId)
+      : this.brushId;
   }
   setPointerdown(val: boolean) {
     this.pointerdown = val;

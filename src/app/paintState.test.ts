@@ -35,12 +35,37 @@ describe("paintState tool mode mapping", () => {
 
   it("keeps liquify as a session tool instead of a brush id", () => {
     paintState.setCoreTool("liquify");
-    paintState.setSelectedToolId("session");
 
     expect(paintState.toolId).toBe("session");
     expect(paintState.activeToolId).toBe("session");
     expect(paintState.brushId).toBe("brush");
+    expect(paintState.coreTool).toBe("liquify");
     expect(paintState.sessionToolId).toBe("liquify");
     expect(paintState.getBrushSize()).toBe(50);
+  });
+
+  it("clears session tool by returning to brush", () => {
+    paintState.setCoreTool("liquify");
+    paintState.setSessionToolId(null);
+
+    expect(paintState.toolId).toBe("brush");
+    expect(paintState.sessionToolId).toBeNull();
+    expect(paintState.coreTool).toBe("brush");
+  });
+
+  it("supports mosaic as a future session tool", () => {
+    paintState.setSessionToolId("mosaic");
+
+    expect(paintState.toolId).toBe("session");
+    expect(paintState.sessionToolId).toBe("mosaic");
+    expect(paintState.getBrushSize()).toBe(50);
+  });
+
+  it("derives core tool from the selected brush id", () => {
+    paintState.setCoreTool("eraser");
+
+    expect(paintState.toolId).toBe("brush");
+    expect(paintState.brushId).toBe("eraser");
+    expect(paintState.coreTool).toBe("eraser");
   });
 });
