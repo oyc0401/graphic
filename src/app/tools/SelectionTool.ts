@@ -118,7 +118,7 @@ export class SelectionTool {
       const newY = point.y - this.dragOffset.y;
       selection.setPosition(newX, newY);
 
-      getLayerWorker().moveSelection(
+      getLayerWorker().transformSelection(
         selection.x,
         selection.y,
         selection.width,
@@ -148,7 +148,7 @@ export class SelectionTool {
       selection.setHeight(clamp(resized.height, min, max));
       selection.setFlip(resized.flipH, resized.flipV);
 
-      getLayerWorker().moveSelection(
+      getLayerWorker().transformSelection(
         selection.x,
         selection.y,
         selection.width,
@@ -184,7 +184,7 @@ export class SelectionTool {
 
     if (this.activeHandle !== "OUTSIDE") {
       const worker = getLayerWorker();
-      worker.endMove();
+      worker.completeTransformSelection();
     }
 
     selection.active = false;

@@ -135,7 +135,12 @@ export function canvasSelect(x, y, width, height) {
   selection.setSize(width, height);
   selection.setFlip(false, false);
 
-  worker.select(selection.x, selection.y, selection.width, selection.height);
+  worker.createSelection(
+    selection.x,
+    selection.y,
+    selection.width,
+    selection.height,
+  );
 
   beforeSelectionPos = {
     x: selection.x,
@@ -156,7 +161,7 @@ export function canvasSelect(x, y, width, height) {
 export function applySelection() {
   if (selection.visible) {
     let worker = getLayerWorker();
-    worker.applySelection();
+    worker.commitSelection();
   }
 
   selection.setVisible(false);
@@ -184,7 +189,7 @@ export function selectionDelete() {
   selection.setFlip(false, false);
 
   let worker = getLayerWorker();
-  worker.selectionDelete();
+  worker.deleteSelection();
 }
 
 // 선택창 캔슬
@@ -199,7 +204,7 @@ export function selectionCancel() {
 
       const worker = getLayerWorker();
 
-      worker.moveSelection(
+      worker.transformSelection(
         selection.x,
         selection.y,
         selection.width,
