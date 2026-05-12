@@ -3,7 +3,8 @@ import { BrushId, InputMode, paintState, SessionToolId, ToolId } from "./paintSt
 
 describe("paintState tool mode mapping", () => {
   beforeEach(() => {
-    paintState.setCoreTool("brush");
+    paintState.setBrushId(BrushId.Brush);
+    paintState.setSessionToolId(null);
     paintState.setSelectedToolId(ToolId.Brush);
   });
 
@@ -34,23 +35,21 @@ describe("paintState tool mode mapping", () => {
   });
 
   it("keeps liquify as a session tool instead of a brush id", () => {
-    paintState.setCoreTool("liquify");
+    paintState.setSessionToolId(SessionToolId.Liquify);
 
     expect(paintState.toolId).toBe(ToolId.Session);
     expect(paintState.activeToolId).toBe(ToolId.Session);
     expect(paintState.brushId).toBe(BrushId.Brush);
-    expect(paintState.coreTool).toBe("liquify");
     expect(paintState.sessionToolId).toBe(SessionToolId.Liquify);
     expect(paintState.getBrushSize()).toBe(50);
   });
 
   it("clears session tool by returning to brush", () => {
-    paintState.setCoreTool("liquify");
+    paintState.setSessionToolId(SessionToolId.Liquify);
     paintState.setSessionToolId(null);
 
     expect(paintState.toolId).toBe(ToolId.Brush);
     expect(paintState.sessionToolId).toBeNull();
-    expect(paintState.coreTool).toBe("brush");
   });
 
   it("supports mosaic as a future session tool", () => {
@@ -61,11 +60,11 @@ describe("paintState tool mode mapping", () => {
     expect(paintState.getBrushSize()).toBe(50);
   });
 
-  it("derives core tool from the selected brush id", () => {
-    paintState.setCoreTool("eraser");
+  it("keeps brush id separate from selected tool id", () => {
+    paintState.setBrushId(BrushId.Eraser);
+    paintState.setSelectedToolId(ToolId.Brush);
 
     expect(paintState.toolId).toBe(ToolId.Brush);
     expect(paintState.brushId).toBe(BrushId.Eraser);
-    expect(paintState.coreTool).toBe("eraser");
   });
 });

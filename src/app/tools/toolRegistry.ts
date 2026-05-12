@@ -3,14 +3,12 @@ import { SelectionTool } from "./SelectionTool";
 import { SelectTool } from "./SelectTool";
 import { zoomTool } from "./ZoomTool";
 import { ColorPickerTool } from "./ColorPickerTool";
-import type { CoreTool } from "@/core/types";
 import { BrushId, ToolId } from "../paintState";
 
 type ToolKind = "core" | "transient" | "viewport";
 
 interface ToolMetadata {
   kind: ToolKind;
-  coreTool?: CoreTool;
   allowCanvasResizeHandle: boolean;
   blockCanvasResizeHandleBrushIds?: BrushId[];
   cursorClass?: string;
@@ -28,23 +26,19 @@ export const toolRegistry = {
 export const toolMetadata: Record<ToolId, ToolMetadata> = {
   [ToolId.Brush]: {
     kind: "core",
-    coreTool: "brush",
     allowCanvasResizeHandle: true,
   },
   [ToolId.Session]: {
     kind: "core",
-    coreTool: "liquify",
     allowCanvasResizeHandle: false,
   },
   [ToolId.Select]: {
     kind: "core",
-    coreTool: "select",
     allowCanvasResizeHandle: false,
     cursorClass: "select",
   },
   [ToolId.Selection]: {
     kind: "core",
-    coreTool: "selection",
     allowCanvasResizeHandle: false,
   },
   [ToolId.Zoom]: {

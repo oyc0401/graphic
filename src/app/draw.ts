@@ -1,15 +1,16 @@
 /** draw.ts */
 import {
-  paintState,
-  SessionToolId,
-  ToolId,
-  type SessionReturnToolId,
-} from "./paintState";
+  applyWorkerToolTarget,
+  isCurrentWorkerToolTarget,
+  selectPaintToolForWorkerTarget,
+  sessionReturnToolForCurrentTool,
+  syncWorkerToCurrentPaintTool,
+  type WorkerToolTarget,
+} from "./coreToolAdapter";
+import { BrushId, paintState, SessionToolId, ToolId } from "./paintState";
 import { applySelection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
-import { setCoreTool } from "./coreToolState";
 import { syncCoreState } from "./history";
-import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmLiquifyApply() {
@@ -17,49 +18,21 @@ function confirmLiquifyApply() {
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
-function toolIdForCoreTool(tool: CoreTool) {
-  switch (tool) {
-    case "select":
-      return ToolId.Select;
-    case "selection":
-      return ToolId.Selection;
-    case "brush":
-    case "eraser":
-      return ToolId.Brush;
-    case "liquify":
-      return ToolId.Session;
-  }
-}
-
-function sessionReturnToolForCurrentTool(): SessionReturnToolId {
-  switch (paintState.toolId) {
-    case ToolId.Select:
-    case ToolId.Selection:
-      return ToolId.Select;
-    case ToolId.Brush:
-      return ToolId.Brush;
-    case ToolId.Zoom:
-    case ToolId.ColorPicker:
-    case ToolId.Session:
-      return ToolId.Brush;
-  }
-}
-
 function restoreSessionReturnTool() {
   const returnTool = paintState.sessionReturnTool ?? ToolId.Brush;
   paintState.setSelectedToolId(returnTool);
-  setCoreTool(paintState.coreTool);
+  syncWorkerToCurrentPaintTool();
   paintState.setSessionReturnTool(null);
 }
 
 function requestToolChange(
-  tool: CoreTool,
+  tool: WorkerToolTarget,
   options: { applyCurrentSelection?: boolean } = {},
 ) {
   const { applyCurrentSelection = true } = options;
   if (paintState.pointerdown) return false;
-  if (paintState.coreTool === tool) {
-    paintState.setSelectedToolId(toolIdForCoreTool(tool));
+  if (isCurrentWorkerToolTarget(tool)) {
+    selectPaintToolForWorkerTarget(tool);
     return false;
   }
 
@@ -73,8 +46,7 @@ function requestToolChange(
     applySelection();
   }
 
-  setCoreTool(tool);
-  paintState.setSelectedToolId(toolIdForCoreTool(tool));
+  applyWorkerToolTarget(tool);
   syncCoreState();
   return true;
 }
@@ -82,24 +54,24 @@ function requestToolChange(
 export const toolManager = {
   async setBrushTool() {
     if (paintState.pointerdown) return;
-    if (requestToolChange("brush")) {
+    if (requestToolChange(BrushId.Brush)) {
       console.log("brush");
     }
   },
   setEraserTool() {
     if (paintState.pointerdown) return;
-    requestToolChange("eraser");
+    requestToolChange(BrushId.Eraser);
   },
   setLiquifyTool() {
     if (paintState.pointerdown) return;
     const returnTool = sessionReturnToolForCurrentTool();
-    if (requestToolChange("liquify")) {
+    if (requestToolChange(SessionToolId.Liquify)) {
       paintState.setSessionReturnTool(returnTool);
     }
   },
   setSelectTool() {
     if (paintState.pointerdown) return;
-    requestToolChange("select");
+    requestToolChange(ToolId.Select);
   },
   setZoomTool() {
     if (paintState.pointerdown) return;
@@ -116,12 +88,11 @@ export const toolManager = {
       syncCoreState();
     } else {
       const shouldReturnToSelect =
-        paintState.coreTool === "selection" ||
-        paintState.toolId === ToolId.Selection;
+        paintState.toolId === ToolId.Selection ||
+        isCurrentWorkerToolTarget(ToolId.Selection);
       applySelection();
       if (shouldReturnToSelect) {
-        setCoreTool("select");
-        paintState.setSelectedToolId(ToolId.Select);
+        applyWorkerToolTarget(ToolId.Select);
         syncCoreState();
       }
     }
@@ -129,7 +100,7 @@ export const toolManager = {
     paintState.setSelectedToolId(ToolId.ColorPicker);
   },
   setSelection() {
-    requestToolChange("selection", { applyCurrentSelection: false });
+    requestToolChange(ToolId.Selection, { applyCurrentSelection: false });
   },
   applyActiveSession() {
     if (

@@ -1,5 +1,4 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import type { CoreTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 export enum InputMode {
@@ -95,23 +94,8 @@ class PaintState {
   restoreSelectedToolMode() {
     this.setInputMode(inputModeForTool(this.selectedToolId));
   }
-  setCoreTool(coreTool: CoreTool) {
-    switch (coreTool) {
-      case "brush":
-      case "eraser":
-        this.brushId = coreTool === "brush" ? BrushId.Brush : BrushId.Eraser;
-        this.setSelectedToolId(ToolId.Brush);
-        break;
-      case "liquify":
-        this.setSessionToolId(SessionToolId.Liquify);
-        break;
-      case "select":
-      case "selection":
-        this.setSelectedToolId(
-          coreTool === "select" ? ToolId.Select : ToolId.Selection,
-        );
-        break;
-    }
+  setBrushId(brushId: BrushId) {
+    this.brushId = brushId;
   }
   setSessionReturnTool(tool: SessionReturnToolId | null) {
     this.sessionReturnTool = tool;
@@ -136,22 +120,6 @@ class PaintState {
     }
 
     return this.selectedToolId;
-  }
-  get coreTool(): CoreTool {
-    switch (this.selectedToolId) {
-      case ToolId.Brush:
-        return this.brushId;
-      case ToolId.Session:
-        return this.sessionToolId === SessionToolId.Liquify
-          ? "liquify"
-          : "brush";
-      case ToolId.Select:
-      case ToolId.Selection:
-        return this.selectedToolId;
-      case ToolId.Zoom:
-      case ToolId.ColorPicker:
-        return this.brushId;
-    }
   }
   get brushSettingsId(): BrushSettingsId {
     return this.selectedToolId === ToolId.Session

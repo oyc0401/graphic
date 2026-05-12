@@ -13,7 +13,7 @@ import {
   type SelectionResizeHandle,
 } from "../utils/selectionResize";
 import { getLayerWorker } from "../worker/workerPool";
-import { setCoreTool } from "../coreToolState";
+import { applyWorkerToolTarget } from "../coreToolAdapter";
 
 export class SelectionTool {
   private activeHandle: HandleType | null = null;
@@ -178,7 +178,7 @@ export class SelectionTool {
         console.log("cancel Selection!");
 
         applySelection();
-        setCoreTool("select");
+        applyWorkerToolTarget(ToolId.Select);
       }
     }
 

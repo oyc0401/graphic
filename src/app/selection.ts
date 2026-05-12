@@ -4,7 +4,8 @@ import { position } from "./position";
 import { getLayerWorker } from "./worker/workerPool";
 import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
-import { setCoreTool } from "./coreToolState";
+import { applyWorkerToolTarget } from "./coreToolAdapter";
+import { ToolId } from "./paintState";
 
 export class SelectionState {
   x = 0;
@@ -96,7 +97,10 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   let newHeight = bitmap.height;
 
   // 선택 영역 설정
-  selection.setPosition(Math.ceil(Math.max(0, -position.x)), Math.ceil(Math.max(0, -position.y)));
+  selection.setPosition(
+    Math.ceil(Math.max(0, -position.x)),
+    Math.ceil(Math.max(0, -position.y)),
+  );
   selection.setSize(newWidth, newHeight);
   selection.setFlip(false, false);
 
@@ -117,7 +121,7 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
     //Comlink.transfer(bitmap, [bitmap]),
   );
 
-  setCoreTool("selection");
+  applyWorkerToolTarget(ToolId.Selection);
   selection.setVisible(true);
   selection.setShowHint(true);
   selection.setShowHandle(true);
@@ -140,7 +144,7 @@ export function canvasSelect(x, y, width, height) {
     height: selection.height,
   };
 
-  setCoreTool("selection");
+  applyWorkerToolTarget(ToolId.Selection);
 
   console.log("선택:", x, y, width, height);
   selection.setVisible(true);
@@ -165,7 +169,7 @@ export function applySelection() {
 
 // 자르기 한 이후에
 export function cutSelection() {
-  setCoreTool("select");
+  applyWorkerToolTarget(ToolId.Select);
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
@@ -173,7 +177,7 @@ export function cutSelection() {
 }
 
 export function selectionDelete() {
-  setCoreTool("select");
+  applyWorkerToolTarget(ToolId.Select);
   selection.setVisible(false);
   selection.setShowHint(false);
   selection.setShowHandle(false);
@@ -209,6 +213,6 @@ export function selectionCancel() {
     selection.active = false;
   } else {
     applySelection();
-    setCoreTool("select");
+    applyWorkerToolTarget(ToolId.Select);
   }
 }

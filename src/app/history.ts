@@ -3,7 +3,12 @@ import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
-import { applyCoreToolState, toCoreToolState } from "./coreToolState";
+import {
+  applyWorkerToolState,
+  applyWorkerToolTarget,
+  isSelectionWorkerToolState,
+} from "./coreToolAdapter";
+import { ToolId } from "./paintState";
 
 class HistoryState {
   undoCount = 0;
@@ -63,13 +68,12 @@ export async function undo() {
   let historyResponse = await worker.undo();
   if (!historyResponse) return;
   let { toolState, undoCount, redoCount } = historyResponse;
-  const tool = toolState.tool;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 
-  applyCoreToolState(toolState, { doExit: false });
+  applyWorkerToolState(toolState, { doExit: false });
 
-  if (tool == "selection") {
+  if (isSelectionWorkerToolState(toolState)) {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
@@ -93,9 +97,9 @@ export async function undo() {
     selection.setVisible(show);
 
     if (show) {
-      applyCoreToolState(toCoreToolState("selection"));
+      applyWorkerToolTarget(ToolId.Selection);
     } else {
-      applyCoreToolState(toCoreToolState("select"));
+      applyWorkerToolTarget(ToolId.Select);
     }
   }
 }
@@ -106,14 +110,13 @@ export async function redo() {
   let historyResponse = await worker.redo();
   if (!historyResponse) return;
   let { toolState, undoCount, redoCount } = historyResponse;
-  const tool = toolState.tool;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
 
-  if (!tool) return;
-  applyCoreToolState(toolState, { doExit: false });
+  if (!toolState.tool) return;
+  applyWorkerToolState(toolState, { doExit: false });
 
-  if (tool == "selection") {
+  if (isSelectionWorkerToolState(toolState)) {
     selection.setVisible(true);
     selection.setShowHint(true);
     selection.setShowHandle(true);
@@ -137,9 +140,9 @@ export async function redo() {
     selection.setVisible(show);
 
     if (show) {
-      applyCoreToolState(toCoreToolState("selection"));
+      applyWorkerToolTarget(ToolId.Selection);
     } else {
-      applyCoreToolState(toCoreToolState("select"));
+      applyWorkerToolTarget(ToolId.Select);
     }
   }
 }
