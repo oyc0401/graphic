@@ -1,5 +1,4 @@
 import { paintState } from "../paintState";
-import { selection } from "../selection";
 import {
   resizeSelectionFromHandle,
   type SelectionResizeHandle,
@@ -74,15 +73,16 @@ export class ResizeTool {
   }
 
   private canUseCanvasResizeHandle() {
-    const hasSelection =
-      selection.visible || selection.showHint || selection.showHandle;
+    const toolMetadata = getToolMetadata(paintState.activeToolId);
+    const brushIdBlocksCanvasResizeHandle =
+      toolMetadata.blockCanvasResizeHandleBrushIds?.includes(
+        paintState.brushId,
+      );
 
     return (
       paintState.inputMode === "BRUSH" &&
-      getToolMetadata(paintState.activeToolId).allowCanvasResizeHandle &&
-      (paintState.coreTool === "brush" ||
-        paintState.coreTool === "eraser" ||
-        (paintState.coreTool === "select" && !hasSelection))
+      toolMetadata.allowCanvasResizeHandle &&
+      !brushIdBlocksCanvasResizeHandle
     );
   }
 

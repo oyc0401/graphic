@@ -4,7 +4,7 @@ import { getLayerWorker } from "./worker/workerPool";
 
 type InputMode = "BRUSH" | "ZOOM" | "PINCH" | "PAN" | "COLOR_PICKER";
 export type ToolId = "brush" | "select" | "selection" | "zoom" | "colorPicker";
-type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
+export type BrushId = Extract<CoreTool, "brush" | "eraser" | "liquify">;
 
 function inputModeForTool(toolId: ToolId): InputMode {
   switch (toolId) {
