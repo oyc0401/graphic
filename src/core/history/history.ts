@@ -2,7 +2,6 @@ import { getUndoByte, paintConfig } from "@/paint.config";
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
-import type { CoreToolState } from "@/core/types";
 
 export class HistoryObject {
   id;
@@ -28,7 +27,6 @@ export class HistoryObject {
 }
 
 interface HistoryCommand {
-  toolState: CoreToolState;
   position?: {
     x: number;
     y: number;
@@ -47,7 +45,6 @@ interface HistoryCommand {
 }
 
 export interface HistoryResponse {
-  toolState: CoreToolState;
   position?: {
     x: number;
     y: number;
@@ -161,7 +158,6 @@ export class HistoryStack {
     this.addRedo(history);
 
     return {
-      toolState: response.toolState,
       selection: response.selection,
       position: response.position,
       undoCount: this.undoStack.length,
@@ -179,7 +175,6 @@ export class HistoryStack {
     this.addUndo(history, { resetRedo: false });
 
     return {
-      toolState: response.toolState,
       selection: response.selection,
       position: response.position,
       undoCount: this.undoStack.length,

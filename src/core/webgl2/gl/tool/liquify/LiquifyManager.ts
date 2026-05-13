@@ -435,13 +435,13 @@ export class LiquifyManager implements LiquifyManagerInterface {
         await before.apply();
         self.scissorRect = before.rect;
         self.render();
-        return { toolState: { tool: "liquify" } };
+        return {};
       },
       redo: async () => {
         await after.apply();
         self.scissorRect = after.rect;
         self.render();
-        return { toolState: { tool: "liquify" } };
+        return {};
       },
       byteSize,
     });
@@ -497,12 +497,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
         undo: async () => {
           await beforeSource.apply();
           self.renderingManager.render(changedRect);
-          return { toolState: { tool: "brush" } };
+          return {};
         },
         redo: async () => {
           await afterSource.apply();
           self.renderingManager.render(changedRect);
-          return { toolState: { tool: "brush" } };
+          return {};
         },
         byteSize,
       });

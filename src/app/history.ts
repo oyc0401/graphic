@@ -3,7 +3,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
-import { applyWorkerToolState, applyWorkerToolTarget, isSelectionWorkerToolState } from "./coreToolAdapter";
+import { applyWorkerToolTarget } from "./coreToolAdapter";
 import { ToolId } from "./paintState";
 
 class HistoryState {
@@ -51,25 +51,16 @@ export async function undo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.undo();
   if (!historyResponse) return;
-  let { toolState, undoCount, redoCount } = historyResponse;
+  let { undoCount, redoCount } = historyResponse;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
-
-  applyWorkerToolState(toolState, { syncWorker: false });
-
-  if (isSelectionWorkerToolState(toolState)) {
-    selection.setVisible(true);
-    selection.setShowHint(true);
-    selection.setShowHandle(true);
-    selection.setFlip(false, false);
-  }
 
   if (historyResponse.position) {
     applyHistoryPosition(historyResponse.position);
   }
 
   if (historyResponse.selection) {
-    let { show, x, y, width, height } = historyResponse.selection;
+    let { show, x, y, width, height, flipH = false, flipV = false } = historyResponse.selection;
 
     let realY = position.height - y - height;
     selection.setX(x);
@@ -79,6 +70,7 @@ export async function undo() {
     selection.setShowHandle(show);
     selection.setShowHint(show);
     selection.setVisible(show);
+    selection.setFlip(flipH, flipV);
 
     if (show) {
       applyWorkerToolTarget(ToolId.Selection);
@@ -93,26 +85,16 @@ export async function redo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.redo();
   if (!historyResponse) return;
-  let { toolState, undoCount, redoCount } = historyResponse;
+  let { undoCount, redoCount } = historyResponse;
   historyState.setUndoCount(undoCount);
   historyState.setRedoCount(redoCount);
-
-  if (!toolState.tool) return;
-  applyWorkerToolState(toolState, { syncWorker: false });
-
-  if (isSelectionWorkerToolState(toolState)) {
-    selection.setVisible(true);
-    selection.setShowHint(true);
-    selection.setShowHandle(true);
-    selection.setFlip(false, false);
-  }
 
   if (historyResponse.position) {
     applyHistoryPosition(historyResponse.position);
   }
 
   if (historyResponse.selection) {
-    let { show, x, y, width, height } = historyResponse.selection;
+    let { show, x, y, width, height, flipH = false, flipV = false } = historyResponse.selection;
 
     let realY = position.height - y - height;
     selection.setX(x);
@@ -122,6 +104,7 @@ export async function redo() {
     selection.setShowHandle(show);
     selection.setShowHint(show);
     selection.setVisible(show);
+    selection.setFlip(flipH, flipV);
 
     if (show) {
       applyWorkerToolTarget(ToolId.Selection);

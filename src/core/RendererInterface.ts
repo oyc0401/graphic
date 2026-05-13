@@ -1,7 +1,21 @@
 import type { CoreSessionTool, CoreTool, CoreToolState, Pointer } from "./types.js";
 
 interface HistoryResponse {
-  toolState: CoreToolState;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  selection?: {
+    show: boolean;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    flipH?: boolean;
+    flipV?: boolean;
+  };
   undoCount: number;
   redoCount: number;
 }

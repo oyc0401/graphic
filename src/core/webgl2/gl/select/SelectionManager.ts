@@ -313,7 +313,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "select" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -333,7 +332,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -388,7 +386,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "select" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -407,7 +404,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -479,7 +475,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -499,7 +494,6 @@ export class SelectionManager {
         this.renderingManager.render();
 
         return {
-          toolState: { tool: "brush" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -599,7 +593,6 @@ export class SelectionManager {
         this.beforePos = structuredClone(this.selectionPos);
 
         return {
-          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
@@ -624,7 +617,6 @@ export class SelectionManager {
         this.beforePos = structuredClone(this.selectionPos);
 
         return {
-          toolState: { tool: "selection" },
           selection: {
             show: paintOptions.showSelection,
             x: this.selectionPos.x,
