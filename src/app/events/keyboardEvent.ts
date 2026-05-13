@@ -296,7 +296,7 @@ function applyTemporaryAction() {
     return;
   }
 
-  paintState.restoreSelectedToolMode();
+  paintState.setInputMode(InputMode.DEFAULT);
 }
 
 function getHighestPriorityTemporaryAction() {

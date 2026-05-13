@@ -1,5 +1,5 @@
 import { colorState } from "../colorState";
-import { paintState, ToolId } from "../paintState";
+import { InputMode, paintState, ToolId } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 
@@ -44,7 +44,7 @@ export class ColorPickerTool {
     if (!this.pointerStarted || paintState.activeToolId !== ToolId.ColorPicker)
       return;
     this.pointerStarted = false;
-    paintState.restoreSelectedToolMode();
+    paintState.setInputMode(InputMode.DEFAULT);
   }
 
   cancel() {

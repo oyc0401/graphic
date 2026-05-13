@@ -25,7 +25,7 @@ export class SelectionTool {
   down(e: PointerEvent) {
     if (
       paintState.toolId !== ToolId.Selection ||
-      paintState.inputMode !== InputMode.Brush
+      paintState.inputMode !== InputMode.DEFAULT
     )
       return;
     if (!paintState.pointerdown) return;

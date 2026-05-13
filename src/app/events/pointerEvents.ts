@@ -28,7 +28,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   const activeToolMetadata = getToolMetadata(paintState.activeToolId);
 
   if (
-    paintState.inputMode === InputMode.Brush &&
+    paintState.inputMode === InputMode.DEFAULT &&
     activeToolMetadata.allowCanvasResizeHandle
   ) {
     if (phase === "down" && resizeTool.canStart(e)) {

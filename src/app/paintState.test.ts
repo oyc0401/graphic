@@ -3,34 +3,38 @@ import { BrushId, InputMode, paintState, SessionToolId, ToolId } from "./paintSt
 
 describe("paintState tool mode mapping", () => {
   beforeEach(() => {
+    paintState.setInputMode(InputMode.DEFAULT);
     paintState.setBrushId(BrushId.Brush);
     paintState.setSessionToolId(null);
     paintState.setSelectedToolId(ToolId.Brush);
   });
 
-  it("selects zoom as a persistent tool", () => {
+  it("selects zoom as a persistent tool without changing input mode", () => {
     paintState.setSelectedToolId(ToolId.Zoom);
 
     expect(paintState.toolId).toBe(ToolId.Zoom);
+    expect(paintState.inputMode).toBe(InputMode.DEFAULT);
     expect(paintState.activeToolId).toBe(ToolId.Zoom);
   });
 
-  it("selects color picker as a persistent tool", () => {
+  it("selects color picker as a persistent tool without changing input mode", () => {
     paintState.setSelectedToolId(ToolId.ColorPicker);
 
     expect(paintState.toolId).toBe(ToolId.ColorPicker);
+    expect(paintState.inputMode).toBe(InputMode.DEFAULT);
     expect(paintState.activeToolId).toBe(ToolId.ColorPicker);
   });
 
-  it("restores temporary color picker to the selected tool", () => {
+  it("restores temporary color picker with an explicit brush input mode", () => {
     paintState.setSelectedToolId(ToolId.Brush);
     paintState.setInputMode(InputMode.ColorPicker);
 
     expect(paintState.activeToolId).toBe(ToolId.ColorPicker);
 
-    paintState.restoreSelectedToolMode();
+    paintState.setInputMode(InputMode.DEFAULT);
 
     expect(paintState.toolId).toBe(ToolId.Brush);
+    expect(paintState.inputMode).toBe(InputMode.DEFAULT);
     expect(paintState.activeToolId).toBe(ToolId.Brush);
   });
 

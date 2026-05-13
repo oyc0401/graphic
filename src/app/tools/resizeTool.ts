@@ -80,7 +80,7 @@ export class ResizeTool {
       );
 
     return (
-      paintState.inputMode === InputMode.Brush &&
+      paintState.inputMode === InputMode.DEFAULT &&
       toolMetadata.allowCanvasResizeHandle &&
       !brushIdBlocksCanvasResizeHandle
     );

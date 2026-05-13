@@ -12,7 +12,7 @@ export class SelectTool {
 
   down(e: PointerEvent) {
     if (
-      paintState.inputMode !== InputMode.Brush ||
+      paintState.inputMode !== InputMode.DEFAULT ||
       paintState.toolId !== ToolId.Select
     )
       return;
@@ -29,7 +29,7 @@ export class SelectTool {
   move(e: PointerEvent) {
     if (!this.active || !paintState.pointerdown) return;
     if (
-      paintState.inputMode !== InputMode.Brush ||
+      paintState.inputMode !== InputMode.DEFAULT ||
       paintState.toolId !== ToolId.Select
     )
       return;

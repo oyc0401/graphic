@@ -234,7 +234,7 @@ export function addGestureEvent() {
     pointerdownTime = 0;
 
     if (pointers.size === 0 && paintState.inputMode === InputMode.Pinch) {
-      paintState.restoreSelectedToolMode();
+      paintState.setInputMode(InputMode.DEFAULT);
     }
   }
 

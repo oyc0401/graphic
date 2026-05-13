@@ -2,7 +2,7 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
 
 export enum InputMode {
-  Brush = "BRUSH",
+  DEFAULT = "BRUSH",
   Zoom = "ZOOM",
   Pinch = "PINCH",
   Pan = "PAN",
@@ -31,25 +31,11 @@ export enum SessionToolId {
 export type SessionReturnToolId = ToolId.Brush | ToolId.Select;
 type BrushSettingsId = BrushId | SessionToolId;
 
-function inputModeForTool(toolId: ToolId): InputMode {
-  switch (toolId) {
-    case ToolId.Zoom:
-      return InputMode.Zoom;
-    case ToolId.ColorPicker:
-      return InputMode.ColorPicker;
-    case ToolId.Brush:
-    case ToolId.Select:
-    case ToolId.Selection:
-    case ToolId.Session:
-      return InputMode.Brush;
-  }
-}
-
 class PaintState {
-  inputMode: InputMode = InputMode.Brush;
-  selectedToolId: ToolId = ToolId.Brush;
-  brushId: BrushId = BrushId.Brush;
-  sessionToolId: SessionToolId | null = null;
+  inputMode: InputMode = InputMode.DEFAULT; // DEFAULT, ZOOM, COLOR_PICKER
+  selectedToolId: ToolId = ToolId.Brush; // Brush, Select, Selection, Zoom, ColorPicker, Session
+  brushId: BrushId = BrushId.Brush; // Brush, Eraser
+  sessionToolId: SessionToolId | null = null; // Liquify, Mosaic, null
 
   sessionReturnTool: SessionReturnToolId | null = null;
 
@@ -89,10 +75,6 @@ class PaintState {
       this.sessionToolId = SessionToolId.Liquify;
     }
     this.selectedToolId = toolId;
-    this.setInputMode(inputModeForTool(toolId));
-  }
-  restoreSelectedToolMode() {
-    this.setInputMode(inputModeForTool(this.selectedToolId));
   }
   setBrushId(brushId: BrushId) {
     this.brushId = brushId;

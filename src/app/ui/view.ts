@@ -56,13 +56,13 @@ function bindCursorUI() {
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
-    const isBrush = paintState.inputMode === InputMode.Brush;
+    const isBrush = paintState.inputMode === InputMode.DEFAULT;
     const isSelectTool = paintState.activeToolId === ToolId.Select;
     container.classList.toggle("select", isBrush && isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
-      paintState.inputMode === InputMode.Brush &&
+      paintState.inputMode === InputMode.DEFAULT &&
       paintState.activeToolId === ToolId.Selection;
     const isCanvasResize = resizeTool.isVisible();
     const resizeHover = canvasResizeState.hover;
@@ -92,7 +92,7 @@ function bindCursorUI() {
   autorun(() => {
     const cursor = els.brushCursor;
 
-    const isBrush = paintState.inputMode === InputMode.Brush;
+    const isBrush = paintState.inputMode === InputMode.DEFAULT;
 
     const isDrawingTool =
       paintState.activeToolId === ToolId.Brush ||
