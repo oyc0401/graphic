@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { BrushId, InputMode, paintState, SessionToolId, ToolId } from "./paintState";
+import { BrushId, InputMode, paintState, SessionId, ToolId } from "./paintState";
 
 describe("paintState tool mode mapping", () => {
   beforeEach(() => {
     paintState.setInputMode(InputMode.DEFAULT);
     paintState.setBrushId(BrushId.Brush);
-    paintState.setSessionToolId(null);
+    paintState.endSession();
+    paintState.setSessionId(SessionId.Liquify);
     paintState.setSelectedToolId(ToolId.Brush);
   });
 
@@ -38,29 +39,32 @@ describe("paintState tool mode mapping", () => {
     expect(paintState.activeToolId).toBe(ToolId.Brush);
   });
 
-  it("keeps liquify as a session tool instead of a brush id", () => {
-    paintState.setSessionToolId(SessionToolId.Liquify);
+  it("keeps liquify in session state instead of selected tool id", () => {
+    paintState.startSession(SessionId.Liquify);
 
-    expect(paintState.toolId).toBe(ToolId.Session);
+    expect(paintState.toolId).toBe(ToolId.Brush);
+    expect(paintState.sessionMode).toBe(true);
     expect(paintState.activeToolId).toBe(ToolId.Session);
     expect(paintState.brushId).toBe(BrushId.Brush);
-    expect(paintState.sessionToolId).toBe(SessionToolId.Liquify);
+    expect(paintState.sessionId).toBe(SessionId.Liquify);
     expect(paintState.getBrushSize()).toBe(50);
   });
 
   it("clears session tool by returning to brush", () => {
-    paintState.setSessionToolId(SessionToolId.Liquify);
-    paintState.setSessionToolId(null);
+    paintState.startSession(SessionId.Liquify);
+    paintState.endSession();
 
     expect(paintState.toolId).toBe(ToolId.Brush);
-    expect(paintState.sessionToolId).toBeNull();
+    expect(paintState.sessionMode).toBe(false);
+    expect(paintState.sessionId).toBe(SessionId.Liquify);
   });
 
   it("supports mosaic as a future session tool", () => {
-    paintState.setSessionToolId(SessionToolId.Mosaic);
+    paintState.startSession(SessionId.Mosaic);
 
-    expect(paintState.toolId).toBe(ToolId.Session);
-    expect(paintState.sessionToolId).toBe(SessionToolId.Mosaic);
+    expect(paintState.toolId).toBe(ToolId.Brush);
+    expect(paintState.sessionMode).toBe(true);
+    expect(paintState.sessionId).toBe(SessionId.Mosaic);
     expect(paintState.getBrushSize()).toBe(50);
   });
 

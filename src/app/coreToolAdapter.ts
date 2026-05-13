@@ -1,8 +1,8 @@
 import type { CoreSessionTool, CoreTool } from "@/core/types";
-import { BrushId, paintState, SessionToolId, ToolId, type SessionReturnToolId } from "./paintState";
+import { BrushId, paintState, SessionId, ToolId } from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
-export type WorkerToolTarget = BrushId | SessionToolId.Liquify | ToolId.Select | ToolId.Selection;
+export type WorkerToolTarget = BrushId | SessionId.Liquify | ToolId.Select | ToolId.Selection;
 
 function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool | CoreSessionTool | null {
   switch (target) {
@@ -10,7 +10,7 @@ function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool | CoreSessi
       return "brush";
     case BrushId.Eraser:
       return "eraser";
-    case SessionToolId.Liquify:
+    case SessionId.Liquify:
       return "liquify";
     case ToolId.Select:
     case ToolId.Selection:
@@ -22,10 +22,9 @@ function coreToolForCurrentPaintState(): CoreTool | CoreSessionTool {
   switch (paintState.selectedToolId) {
     case ToolId.Brush:
       return paintState.brushId;
-    case ToolId.Session:
-      return paintState.sessionToolId === SessionToolId.Liquify ? "liquify" : "brush";
     case ToolId.Select:
     case ToolId.Selection:
+    case ToolId.Session:
       return paintState.brushId;
     case ToolId.Zoom:
     case ToolId.ColorPicker:
@@ -44,7 +43,7 @@ function applyCoreToolToPaintState(tool: CoreTool | CoreSessionTool | null, fall
       paintState.setSelectedToolId(ToolId.Brush);
       return;
     case "liquify":
-      paintState.setSessionToolId(SessionToolId.Liquify);
+      paintState.startSession(SessionId.Liquify);
       return;
     case null:
       if (fallbackTarget === ToolId.Select || fallbackTarget === ToolId.Selection) {
@@ -87,19 +86,4 @@ export function syncWorkerToCurrentPaintTool() {
     return getLayerWorker().openSession(tool);
   }
   return getLayerWorker().setTool(tool);
-}
-
-// 세션 도구를 끝낸 뒤 돌아갈 app 도구를 계산한다.
-export function sessionReturnToolForCurrentTool(): SessionReturnToolId {
-  switch (paintState.toolId) {
-    case ToolId.Select:
-    case ToolId.Selection:
-      return ToolId.Select;
-    case ToolId.Brush:
-      return ToolId.Brush;
-    case ToolId.Zoom:
-    case ToolId.ColorPicker:
-    case ToolId.Session:
-      return ToolId.Brush;
-  }
 }

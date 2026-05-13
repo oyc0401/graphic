@@ -8,9 +8,7 @@ export class BrushTool {
   private start = { x: 0, y: 0 };
 
   private canUseBrushTool() {
-    return (
-      paintState.toolId === ToolId.Brush || paintState.toolId === ToolId.Session
-    );
+    return paintState.toolId === ToolId.Brush || paintState.sessionMode;
   }
 
   down(e: PointerEvent) {

@@ -1,4 +1,4 @@
-import { BrushId, paintState, SessionToolId, ToolId } from "../paintState";
+import { BrushId, paintState, SessionId, ToolId } from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
@@ -56,7 +56,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.sessionToolId === SessionToolId.Liquify ? (
+        {paintState.sessionMode && paintState.sessionId === SessionId.Liquify ? (
           <LiquifyMenuBar />
         ) : (
           <div id="menu-bar">
@@ -216,7 +216,7 @@ const EraserToolButton = observer(() => {
 const LiquifyToolButton = observer(() => {
   const isSelected =
     paintState.activeToolId === ToolId.Session &&
-    paintState.sessionToolId === SessionToolId.Liquify;
+    paintState.sessionMode && paintState.sessionId === SessionId.Liquify;
 
   return (
     <button

@@ -1,5 +1,5 @@
 import "./mobile.css";
-import { BrushId, paintState, SessionToolId, ToolId } from "../paintState";
+import { BrushId, paintState, SessionId, ToolId } from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
@@ -56,7 +56,7 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.sessionToolId === SessionToolId.Liquify ? (
+        {paintState.sessionMode && paintState.sessionId === SessionId.Liquify ? (
           <LiquifyMobileAppBar />
         ) : (
           <div className="mobile-appbar">
@@ -271,7 +271,7 @@ const SelectionToolButton = observer(() => {
 const LiquifyToolButton = observer(() => {
   const isSelected =
     paintState.activeToolId === ToolId.Session &&
-    paintState.sessionToolId === SessionToolId.Liquify;
+    paintState.sessionMode && paintState.sessionId === SessionId.Liquify;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -371,7 +371,7 @@ const BrushSizeSlider = observer(() => {
 
 const BrushAlphaSlider = observer(() => {
   const label =
-    paintState.sessionToolId === SessionToolId.Liquify
+    paintState.sessionMode && paintState.sessionId === SessionId.Liquify
       ? getLetter("liquify_strength")
       : getLetter("opacity");
 
