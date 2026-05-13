@@ -9,7 +9,7 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
-import type { CoreSessionTool, CoreTool, CoreToolState } from "../types";
+import type { CoreSessionTool, CoreTool } from "../types";
 import { getSessionManager } from "./session/session";
 
 interface Pointer {
@@ -127,7 +127,7 @@ export class PaintService {
       b: Math.min(255, pixel[2] + 255 - alpha),
     };
   }
-  setTool(toolId: CoreTool): CoreToolState {
+  setTool(toolId: CoreTool): void {
     if (paintOptions.toolId != toolId) {
       const sessionManager = getSessionManager(this.canvas, this.gl);
       if (sessionManager.hasActiveSession()) {
@@ -136,7 +136,6 @@ export class PaintService {
       paintOptions.toolId = toolId;
     }
     paintOptions.toolId = toolId;
-    return { tool: toolId };
   }
 
   openSession(toolId: CoreSessionTool) {

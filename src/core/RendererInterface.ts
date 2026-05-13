@@ -1,4 +1,4 @@
-import type { CoreSessionTool, CoreTool, CoreToolState, Pointer } from "./types.js";
+import type { CoreSessionTool, CoreTool, Pointer } from "./types.js";
 
 interface HistoryResponse {
   position?: {
@@ -43,7 +43,7 @@ export interface RendererInterface {
   render(): void;
 
   // === 도구 관리 ===
-  setTool(toolId: CoreTool): CoreToolState;
+  setTool(toolId: CoreTool): void;
   openSession(toolId: CoreSessionTool): void;
   commitSession(): void;
   discardSession(): void;

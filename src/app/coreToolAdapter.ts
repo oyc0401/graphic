@@ -69,7 +69,7 @@ export function applyWorkerToolTarget(target: WorkerToolTarget) {
   const tool = coreToolForWorkerTarget(target);
   applyCoreToolToPaintState(tool, target);
   if (tool === null) {
-    return { tool: paintState.brushId };
+    return;
   }
   if (tool === "liquify") {
     return getLayerWorker().openSession(tool);

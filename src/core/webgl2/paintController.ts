@@ -2,7 +2,7 @@ import { paintOptions } from "./gl/texture";
 import { toWebglCoord, toWebglCoord2, toWebglCoord3 } from "./coordinate";
 import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
-import type { CoreSessionTool, CoreTool, CoreToolState, Pointer } from "../types.js";
+import type { CoreSessionTool, CoreTool, Pointer } from "../types.js";
 import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
@@ -89,8 +89,8 @@ export class WebGL2Controller {
   }
 
   // 브러시, 지우개, 선택 같은 현재 사용 도구를 변경한다.
-  setTool(toolId: CoreTool): CoreToolState {
-    return paint.setTool(toolId);
+  setTool(toolId: CoreTool): void {
+    paint.setTool(toolId);
   }
 
   // 픽셀 유동화처럼 적용 전까지 임시로 편집하는 작업 모드를 시작한다.
