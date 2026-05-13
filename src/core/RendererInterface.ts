@@ -1,25 +1,7 @@
 import type { CoreSessionTool, CoreTool, Pointer } from "./types.js";
+import type { HistoryResponse } from "./history/history";
 
-interface HistoryResponse {
-  position?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  selection?: {
-    show: boolean;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    flipH?: boolean;
-    flipV?: boolean;
-  };
-  undoCount: number;
-  redoCount: number;
-}
-
+// 이거 안쓰는 코드임
 export interface RendererInterface {
   // === 입력(브러시) ===
   start(pointer: Pointer): void;
@@ -51,12 +33,25 @@ export interface RendererInterface {
 
   // === 선택 영역 ===
   createSelection(px: number, py: number, w: number, h: number): void;
-  transformSelection(px: number, py: number, width: number, height: number, flipH?: boolean, flipV?: boolean): void;
+  transformSelection(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    flipH?: boolean,
+    flipV?: boolean,
+  ): void;
   completeTransformSelection(): void;
   commitSelection(): void;
 
   // === 클립보드 ===
-  paste(px: number, py: number, width: number, height: number, imageBitmap: ImageBitmap): void;
+  paste(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    imageBitmap: ImageBitmap,
+  ): void;
   getSelectionPixel(): {
     pixels: Uint8ClampedArray<ArrayBufferLike>;
     width: number;

@@ -1,10 +1,7 @@
-import type { RendererInterface } from "./RendererInterface";
 import { WebGL2Controller } from "./webgl2/paintController";
 
 export class PaintApplication {
-  private renderer!: WebGL2Controller;
-
-  async install(
+  static async install(
     main_canvas: OffscreenCanvas,
     screenWidth: number,
     screenHeight: number,
@@ -14,40 +11,20 @@ export class PaintApplication {
     px: number,
     py: number,
     scale: number,
-  ) {
-    try {
-      let webgl2Service = new WebGL2Controller();
-      await webgl2Service.install(
-        main_canvas,
-        screenWidth,
-        screenHeight,
-        dpr,
-        width,
-        height,
-        px,
-        py,
-        scale,
-      );
+  ): Promise<WebGL2Controller> {
+    const webgl2Service = new WebGL2Controller();
+    await webgl2Service.install(
+      main_canvas,
+      screenWidth,
+      screenHeight,
+      dpr,
+      width,
+      height,
+      px,
+      py,
+      scale,
+    );
 
-      this.renderer = webgl2Service;
-    } catch (e) {
-      // let canvas2dService = new Canvas2DService();
-      // await canvas2dService.install(
-      //   main_canvas,
-      //   screenWidth,
-      //   screenHeight,
-      //   dpr,
-      //   width,
-      //   height,
-      //   px,
-      //   py,
-      //   scale
-      // );
-      // this.renderService = canvas2dService;
-    }
-  }
-
-  get service() {
-    return this.renderer;
+    return webgl2Service;
   }
 }

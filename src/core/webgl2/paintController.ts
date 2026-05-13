@@ -1,6 +1,5 @@
 import { paintOptions } from "./gl/texture";
 import { toWebglCoord, toWebglCoord2, toWebglCoord3 } from "./coordinate";
-import { RendererInterface } from "../RendererInterface";
 import { PaintService } from "./paintService";
 import type { CoreSessionTool, CoreTool, Pointer } from "../types.js";
 import { HistoryResponse } from "../history/history";
@@ -47,7 +46,13 @@ export class WebGL2Controller {
 
   // 사용자가 보고 있는 화면의 위치와 확대 비율을 변경한다.
   setCameraPosition(px: number, py: number, magnification: number): void {
-    let { x, y } = toWebglCoord3(px, py, paintOptions.height, paintOptions.screenHeight, magnification);
+    let { x, y } = toWebglCoord3(
+      px,
+      py,
+      paintOptions.height,
+      paintOptions.screenHeight,
+      magnification,
+    );
     paint.setCameraPosition(x, y, magnification);
   }
 
@@ -134,7 +139,14 @@ export class WebGL2Controller {
   }
 
   // 선택 영역을 지정한 위치와 크기로 이동하거나 뒤집는다.
-  transformSelection(px: number, py: number, width: number, height: number, flipH = false, flipV = false): void {
+  transformSelection(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    flipH = false,
+    flipV = false,
+  ): void {
     let { x, y } = toWebglCoord2(px, py, width, height, paintOptions.height);
     paint.transformSelection(x, y, width, height, flipH, flipV);
   }
@@ -155,7 +167,13 @@ export class WebGL2Controller {
   }
 
   // 외부 이미지를 지정한 영역에 붙여넣는다.
-  paste(px: number, py: number, width: number, height: number, imageBitmap: ImageBitmap): void {
+  paste(
+    px: number,
+    py: number,
+    width: number,
+    height: number,
+    imageBitmap: ImageBitmap,
+  ): void {
     let { x, y } = toWebglCoord2(px, py, width, height, paintOptions.height);
     paint.paste(x, y, width, height, imageBitmap);
   }
@@ -200,11 +218,6 @@ export class WebGL2Controller {
   // 이 컨트롤러가 사용하는 그림 처리 방식을 식별한다.
   getServiceType(): "canvas2d" | "webgl" | "webgpu" {
     return "webgl";
-  }
-
-  // 이 컨트롤러가 호출 가능한 상태인지 알려준다.
-  isInitialized(): boolean {
-    return true; // Canvas2D는 항상 사용 가능
   }
 
   // 컨트롤러 사용을 끝낼 때 필요한 정리 작업을 수행한다.

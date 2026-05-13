@@ -1,27 +1,15 @@
 // 메인스레드 임포트 영역
 
-import { PaintApplication } from "@/core/PaintApplication";
+import type { WebGL2Controller } from "@/core/webgl2/paintController";
 
-const workerPool: {
-  [key: string]: PaintApplication;
+const rendererPool: {
+  [key: string]: WebGL2Controller;
 } = {};
 
-function getWorkerObject() {
-  // if (!workerPool["layer"]) {
-  //   workerPool["layer"] = new PaintApplication();
-  // }
-
-  return workerPool["layer"];
-}
-
 export function getLayerWorker() {
-  return getWorkerObject().service;
+  return rendererPool["layer"];
 }
 
-export function getApplication() {
-  return getWorkerObject();
-}
-
-export function initApplication() {
-  workerPool["layer"] = new PaintApplication();
+export function setLayerWorker(renderer: WebGL2Controller) {
+  rendererPool["layer"] = renderer;
 }

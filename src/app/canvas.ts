@@ -1,8 +1,8 @@
 /** canvas.ts */
 import { els } from "./ui/elements";
 import { getPixelRatio, position } from "./position";
-import { getApplication, initApplication } from "./worker/workerPool";
 import { PaintApplication } from "@/core/PaintApplication";
+import { setLayerWorker } from "./worker/workerPool";
 
 export async function tranferCanvas() {
   const offscreen = els.canvas.transferControlToOffscreen();
@@ -11,11 +11,8 @@ export async function tranferCanvas() {
 
   let dpr = getPixelRatio();
   // setHeapSnapshotNearHeapLimit;
-  initApplication();
 
-  const application = getApplication();
-
-  await application.install(
+  const renderer = await PaintApplication.install(
     offscreen,
     position.screenWidth,
     position.screenHeight,
@@ -26,6 +23,7 @@ export async function tranferCanvas() {
     position.y,
     position.scale,
   );
+  setLayerWorker(renderer);
 
   // // 캔버스 렌더링
   // setCameraPosition();

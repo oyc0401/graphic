@@ -54,10 +54,12 @@ function applyCoreToolToPaintState(tool: CoreTool | CoreSessionTool | null, fall
   }
 }
 
+// worker 대상 도구를 app의 선택 상태에만 반영한다.
 export function selectPaintToolForWorkerTarget(target: WorkerToolTarget) {
   applyCoreToolToPaintState(coreToolForWorkerTarget(target), target);
 }
 
+// 지정한 worker 대상 도구가 현재 app에서 선택된 도구인지 확인한다.
 export function isCurrentWorkerToolTarget(target: WorkerToolTarget) {
   if (target === ToolId.Select || target === ToolId.Selection) {
     return paintState.selectedToolId === target;
@@ -65,6 +67,7 @@ export function isCurrentWorkerToolTarget(target: WorkerToolTarget) {
   return coreToolForCurrentPaintState() === coreToolForWorkerTarget(target);
 }
 
+// app의 도구 선택을 core 도구 변경이나 세션 시작 명령으로 적용한다.
 export function applyWorkerToolTarget(target: WorkerToolTarget) {
   const tool = coreToolForWorkerTarget(target);
   applyCoreToolToPaintState(tool, target);
@@ -77,6 +80,7 @@ export function applyWorkerToolTarget(target: WorkerToolTarget) {
   return getLayerWorker().setTool(tool);
 }
 
+// 현재 app 도구 상태를 기준으로 core의 입력 도구나 세션 상태를 맞춘다.
 export function syncWorkerToCurrentPaintTool() {
   const tool = coreToolForCurrentPaintState();
   if (tool === "liquify") {
@@ -85,6 +89,7 @@ export function syncWorkerToCurrentPaintTool() {
   return getLayerWorker().setTool(tool);
 }
 
+// 세션 도구를 끝낸 뒤 돌아갈 app 도구를 계산한다.
 export function sessionReturnToolForCurrentTool(): SessionReturnToolId {
   switch (paintState.toolId) {
     case ToolId.Select:
