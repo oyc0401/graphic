@@ -26,6 +26,7 @@ import { menuState } from "../ui/menuState";
 import { useRef } from "react";
 import { getLetter } from "../i18n/language";
 import { CircleCheck, CircleX, Pipette, Search } from "lucide-react";
+import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
   "#000000",
@@ -335,77 +336,3 @@ const ColorPickerToolButton = observer(() => {
     </button>
   );
 });
-
-function fixedNumber(number) {
-  let sizeText = number.toFixed(1);
-  if (sizeText.endsWith(".0")) {
-    sizeText = sizeText.slice(0, -2);
-  }
-  return sizeText;
-}
-
-const BrushSizeSlider = observer(() => {
-  const sliderValue = sizeToPosition(paintState.getBrushSize()); // ✅ 초기 값 계산
-
-  return (
-    <label className="brush-control">
-      <p className="label">{getLetter("size")}</p>
-      <p className="value">{`${fixedNumber(paintState.getBrushSize())}px`}</p>
-      <div className="slider-area">
-        <input
-          id="size-slider"
-          type="range"
-          min="1"
-          max="1000"
-          onChange={(e) => {
-            paintState.setBrushSize(positionToSize(+e.target.value / 1000));
-          }}
-          value={sliderValue}
-          className="slider"
-        />
-      </div>
-    </label>
-  );
-});
-
-const BrushAlphaSlider = observer(() => {
-  const label =
-    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify
-      ? getLetter("liquify_strength")
-      : getLetter("opacity");
-
-  return (
-    <label className="brush-control">
-      <p className="label">{label}</p>
-      <p className="value">{paintState.getBrushAlpha()}%</p>
-      <div className="slider-area">
-        <input
-          id="opacity-slider"
-          type="range"
-          min="1"
-          max="100"
-          value={paintState.getBrushAlpha()} // ✅ 상태 반영
-          onChange={(e) => paintState.setBrushAlpha(+e.target.value)}
-          className="slider"
-        />
-      </div>
-    </label>
-  );
-});
-
-function positionToSize(pos: number): number {
-  const min = 1;
-  const max = 3000;
-  const logMin = Math.log(min);
-  const logMax = Math.log(max);
-  const logValue = logMin + (logMax - logMin) * pos;
-  return Math.exp(logValue);
-}
-
-function sizeToPosition(size: number): number {
-  const min = 1;
-  const max = 3000;
-  const logMin = Math.log(min);
-  const logMax = Math.log(max);
-  return ((Math.log(size) - logMin) / (logMax - logMin)) * 1000;
-}
