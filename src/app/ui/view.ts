@@ -106,19 +106,19 @@ function bindCursorUI() {
 
     const scaled = (brushSize * position.scale) / dpr;
     const isBigSize = scaled > 50;
-    const showCircle = paintState.getShowCircle();
+    const showBrushCursorPreview = paintState.getShowBrushCursorPreview();
 
     // ───────────── container 클래스
     container.classList.toggle(
       "largeBrush",
-      isValid && !showCircle && isBigSize,
+      isValid && !showBrushCursorPreview && isBigSize,
     );
-    container.classList.toggle("brush", isValid && !showCircle && !isBigSize);
-    container.classList.toggle("noCursor", isValid && showCircle);
+    container.classList.toggle("brush", isValid && !showBrushCursorPreview && !isBigSize);
+    container.classList.toggle("noCursor", isValid && showBrushCursorPreview);
 
     // ───────────── 브러시 커서 스타일
-    if ((isValid && (isBigSize || showCircle)) || !isDesktop) {
-      if (isDesktop || paintState.getDrawing()) {
+    if ((isValid && (isBigSize || showBrushCursorPreview)) || !isDesktop) {
+      if (isDesktop || paintState.getShowBrushCursor()) {
         cursor.style.visibility = "visible";
       } else {
         cursor.style.visibility = "hidden";

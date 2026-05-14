@@ -50,13 +50,14 @@ class PaintState {
     [SessionId.Mosaic]: 100,
   };
 
+  private _pointerdown = false;
+
   private _cursorX = 0;
   private _cursorY = 0;
+  private _showBrushCursor = false;
 
-  private _pointerdown = false;
-  private _drawing = false;
-
-  private _showCircle = false;
+  // alt누를때 브러시 크기 미리보기
+  private _showBrushCursorPreview = false;
 
   private _moved = true;
 
@@ -80,8 +81,8 @@ class PaintState {
   setPointerdown(val: boolean) {
     this._pointerdown = val;
   }
-  setDrawing(val: boolean) {
-    this._drawing = val;
+  setShowBrushCursor(val: boolean) {
+    this._showBrushCursor = val;
   }
   setCursorPosition(x, y) {
     this._cursorX = x;
@@ -95,8 +96,8 @@ class PaintState {
   setBrushAlpha(alpha: number) {
     this._brushAlpha[this.getBrushSettingsId()] = alpha;
   }
-  setShowCircle(value) {
-    this._showCircle = value;
+  setShowBrushCursorPreview(value) {
+    this._showBrushCursorPreview = value;
   }
 
   setMoved(value) {
@@ -135,11 +136,11 @@ class PaintState {
   getPointerdown() {
     return this._pointerdown;
   }
-  getDrawing() {
-    return this._drawing;
+  getShowBrushCursor() {
+    return this._showBrushCursor;
   }
-  getShowCircle() {
-    return this._showCircle;
+  getShowBrushCursorPreview() {
+    return this._showBrushCursorPreview;
   }
   getMoved() {
     return this._moved;

@@ -49,7 +49,7 @@ export class BrushTool {
     worker.strokeTo(point);
     //}
 
-    paintState.setDrawing(true);
+    paintState.setShowBrushCursor(true);
     paintState.setCursorPosition(e.clientX, e.clientY);
   }
 
@@ -67,11 +67,13 @@ export class BrushTool {
     //console.log("up:", e.clientX, e.clientY);
     worker.end();
     paintState.setMoved(false);
+    paintState.setShowBrushCursor(false);
   }
 
   cancel() {
     console.log("brushCancel");
     this.active = false;
+    paintState.setShowBrushCursor(false);
 
     getLayerWorker().cancel();
   }

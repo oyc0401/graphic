@@ -100,7 +100,6 @@ export function addGestureEvent() {
     if (!pointers.has(event.pointerId)) return false;
 
     paintState.setPointerdown(false);
-    paintState.setDrawing(false);
     pointers.delete(event.pointerId);
     return true;
   }
@@ -149,7 +148,7 @@ export function addGestureEvent() {
     secondPointer: TrackedPointer,
   ) {
     paintState.setPointerdown(false);
-    paintState.setDrawing(false);
+    paintState.setShowBrushCursor(false);
     paintState.setInputMode(InputMode.Pinch);
 
     blockedPointerIds.add(firstPointer.pointerId);

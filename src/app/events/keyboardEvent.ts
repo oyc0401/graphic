@@ -135,7 +135,7 @@ function handleKeyDown(event: KeyboardEvent) {
   if (event.repeat) return;
 
   if (event.code === "AltLeft") {
-    paintState.setShowCircle(true);
+    paintState.setShowBrushCursorPreview(true);
   }
 }
 
@@ -155,7 +155,7 @@ function handleKeyUp(event: KeyboardEvent) {
 
   if (event.code === "AltLeft") {
     event.preventDefault();
-    paintState.setShowCircle(false);
+    paintState.setShowBrushCursorPreview(false);
   }
 }
 
