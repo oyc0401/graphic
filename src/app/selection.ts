@@ -85,8 +85,6 @@ export function setBefore(ele) {
   beforeSelectionPos = ele;
 }
 
-let activeHandle: HTMLElement | null = null;
-
 // 비트맵으로 선택창 만들기
 export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
   applySelection();
@@ -168,7 +166,6 @@ export function applySelection() {
   selection.setShowHint(false);
   selection.setShowHandle(false);
   selection.setFlip(false, false);
-
 }
 
 // 자르기 한 이후에

@@ -11,6 +11,7 @@ import NewIcon from "../assets/new.svg?react";
 import OpenIcon from "../assets/open.svg?react";
 import SaveIcon from "../assets/save.svg?react";
 import TranslateIcon from "../assets/translate.svg?react";
+import { Bug } from "lucide-react";
 
 import { useRef, useEffect } from "react";
 import "./color-box.css";
@@ -22,6 +23,13 @@ import {
 } from "./menu-hooks";
 import { colorState, HsvToCss, rgbToCss } from "../colorState";
 import { getLetter } from "../i18n/language";
+
+const BUG_REPORT_FORM_URL = "https://forms.gle/P93ZSJqSUBEWEpB79";
+
+const openBugReportForm = () => {
+  window.open(BUG_REPORT_FORM_URL, "_blank", "noopener,noreferrer");
+  menuState.setShowMenu(false);
+};
 
 export const MainMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -68,6 +76,12 @@ export const MainMenuToggleButton = observer(() => {
             <div className="menu-button-content">
               <SaveIcon />
               <p>{getLetter("save")}</p>
+            </div>
+          </button>
+          <button id="bug-report-button" onClick={openBugReportForm}>
+            <div className="menu-button-content">
+              <Bug />
+              <p>{getLetter("bug_report")}</p>
             </div>
           </button>
           <LanguageMenuToggleButton />
