@@ -74,15 +74,10 @@ export class ResizeTool {
 
   private canUseCanvasResizeHandle() {
     const toolMetadata = getToolMetadata(paintState.getActiveToolId());
-    const brushIdBlocksCanvasResizeHandle =
-      toolMetadata.blockCanvasResizeHandleBrushIds?.includes(
-        paintState.getBrushId(),
-      );
 
     return (
       paintState.getInputMode() === InputMode.DEFAULT &&
-      toolMetadata.allowCanvasResizeHandle &&
-      !brushIdBlocksCanvasResizeHandle
+      toolMetadata.allowCanvasResizeHandle
     );
   }
 

@@ -31,18 +31,25 @@ export enum SessionId {
 type BrushSettingsId = BrushId | SessionId;
 
 class PaintState {
+  // 픽셀 유동화 같은 편집 세션이 켜져 있는지.
   private _sessionMode = false;
+  // 현재 사용할 세션 종류. 세션 중일 때 실제 활성 세션이 된다.
   private _sessionId: SessionId = SessionId.Liquify;
+  // pan, pinch, 임시 zoom/color pick 같은 입력 오버라이드.
   private _inputMode: InputMode = InputMode.DEFAULT;
+  // 사용자가 선택한 앱 도구. 세션 상태는 여기에 섞지 않는다.
   private _selectedToolId: ToolId = ToolId.Brush;
+  // brush/eraser 같은 브러시 계열 코어 도구.
   private _brushId: BrushId = BrushId.Brush;
 
+  // 도구별 브러시 크기 설정.
   private _brushSize = {
     [BrushId.Brush]: 5,
     [BrushId.Eraser]: 10,
     [SessionId.Liquify]: 50,
     [SessionId.Mosaic]: 50,
   };
+  // 도구별 브러시 불투명도/강도 설정.
   private _brushAlpha = {
     [BrushId.Brush]: 100,
     [BrushId.Eraser]: 100,
@@ -50,15 +57,19 @@ class PaintState {
     [SessionId.Mosaic]: 100,
   };
 
+  // 앱이 pointer press를 추적 중인지.
   private _pointerdown = false;
 
+  // 커서와 좌표 UI에 쓰는 마지막 포인터 위치.
   private _cursorX = 0;
   private _cursorY = 0;
+  // 브러시 stroke 중 브러시 커서를 보여줄지.
   private _showBrushCursor = false;
 
-  // alt누를때 브러시 크기 미리보기
+  // Alt를 누르는 동안 브러시 커서 프리뷰를 보여줄지.
   private _showBrushCursorPreview = false;
 
+  // 현재 브러시 stroke가 이동했는지.
   private _moved = true;
 
   constructor() {
