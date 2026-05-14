@@ -21,7 +21,7 @@ export function bindView() {
   bindCanvasResizeUI();
   bindCursorPositionUI();
   bindZoomAreaUI();
-  bindLoadingIndicatorUI();
+  // bindLoadingIndicatorUI();
 }
 
 function bindCursorUI() {
@@ -368,9 +368,9 @@ function bindZoomAreaUI() {
   });
 }
 
-function bindLoadingIndicatorUI() {
-  autorun(() => {
-    const canTouch = paintState.getCanTouch();
-    els.loadingIndicator.style.visibility = canTouch ? "hidden" : "visible";
-  });
-}
+// function bindLoadingIndicatorUI() {
+//   autorun(() => {
+//     // TODO: Reconnect this when there is a real busy/loading state.
+//     els.loadingIndicator.style.visibility = "hidden";
+//   });
+// }

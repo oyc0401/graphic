@@ -67,7 +67,6 @@ export class BrushTool {
     //console.log("up:", e.clientX, e.clientY);
     worker.end();
     paintState.setMoved(false);
-    paintState.setChanged(true);
   }
 
   cancel() {

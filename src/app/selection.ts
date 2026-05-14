@@ -169,7 +169,6 @@ export function applySelection() {
   selection.setShowHandle(false);
   selection.setFlip(false, false);
 
-  paintState.setChanged(true);
 }
 
 // 자르기 한 이후에

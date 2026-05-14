@@ -55,11 +55,8 @@ class PaintState {
 
   private _pointerdown = false;
   private _drawing = false;
-  private _canTouch = true;
 
-  private _changed = false;
   private _showCircle = false;
-  private _showSizeHandle = false;
 
   private _moved = true;
 
@@ -86,17 +83,6 @@ class PaintState {
   setDrawing(val: boolean) {
     this._drawing = val;
   }
-  setCanTouch(val: boolean) {
-    if (val) {
-      setTimeout(() => {
-        runInAction(() => {
-          this._canTouch = val;
-        });
-      });
-    } else {
-      this._canTouch = val;
-    }
-  }
   setCursorPosition(x, y) {
     this._cursorX = x;
     this._cursorY = y;
@@ -113,16 +99,8 @@ class PaintState {
     this._showCircle = value;
   }
 
-  setShowSizeHandle(val) {
-    this._showSizeHandle = val;
-  }
-
   setMoved(value) {
     this._moved = value;
-  }
-
-  setChanged(value: boolean) {
-    this._changed = value;
   }
 
   /** Getter functions */
@@ -160,17 +138,8 @@ class PaintState {
   getDrawing() {
     return this._drawing;
   }
-  getCanTouch() {
-    return this._canTouch;
-  }
-  getChanged() {
-    return this._changed;
-  }
   getShowCircle() {
     return this._showCircle;
-  }
-  getShowSizeHandle() {
-    return this._showSizeHandle;
   }
   getMoved() {
     return this._moved;

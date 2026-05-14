@@ -75,10 +75,6 @@ export class LiquifyTool implements Tool {
   }
   end() {
     //console.log("liquify end");
-    // paintState.setCanTouch(false);
-    // requestAnimationFrame(() => {
-    //   paintState.setCanTouch(true);
-    // });
 
     this.liquifyManager.end();
   }

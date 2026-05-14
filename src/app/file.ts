@@ -120,7 +120,7 @@ export function addClipboardEvent() {
 
         event.preventDefault(); // 기본 동작 막기
         console.log("onpaste 이미지 붙여넣기 실행!");
-        if (paintState.getChanged()) {
+        if (historyState.getUndoCount() + historyState.getRedoCount() > 0) {
           makeSelectionFromBitmap(bitmap);
         } else {
           uploadImage(bitmap);
