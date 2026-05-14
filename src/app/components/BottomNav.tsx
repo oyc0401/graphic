@@ -65,7 +65,7 @@ export function BottomNav() {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === ToolId.Brush && paintState.brushId === BrushId.Brush;
+    paintState.getToolId() === ToolId.Brush && paintState.getBrushId() === BrushId.Brush;
 
   return (
     <button
@@ -80,7 +80,7 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.toolId === ToolId.Brush && paintState.brushId === BrushId.Eraser;
+    paintState.getToolId() === ToolId.Brush && paintState.getBrushId() === BrushId.Eraser;
 
   return (
     <button

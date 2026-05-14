@@ -18,17 +18,17 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   }
 
   // 1. 임시 PAN 모드는 현재 선택된 도구보다 우선한다.
-  switch (paintState.inputMode) {
+  switch (paintState.getInputMode()) {
     case InputMode.Pan:
       panTool[phase]?.(e);
       syncCoreStateAfterPointerEnd(phase);
       return;
   }
 
-  const activeToolMetadata = getToolMetadata(paintState.activeToolId);
+  const activeToolMetadata = getToolMetadata(paintState.getActiveToolId());
 
   if (
-    paintState.inputMode === InputMode.DEFAULT &&
+    paintState.getInputMode() === InputMode.DEFAULT &&
     activeToolMetadata.allowCanvasResizeHandle
   ) {
     if (phase === "down" && resizeTool.canStart(e)) {
@@ -40,13 +40,13 @@ export function dispatch(e: PointerEvent, phase: Phase) {
       syncCoreStateAfterPointerEnd(phase);
       return;
     }
-    if (phase === "move" && !paintState.pointerdown) {
+    if (phase === "move" && !paintState.getPointerdown()) {
       resizeTool.move(e);
     }
   }
 
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
-  const tool = toolRegistry[paintState.activeToolId];
+  const tool = toolRegistry[paintState.getActiveToolId()];
   tool?.[phase]?.(e);
   syncCoreStateAfterPointerEnd(phase);
 }

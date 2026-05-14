@@ -23,7 +23,7 @@ export class ResizeTool {
   isVisible() {
     return (
       canvasResizeState.active ||
-      (!paintState.pointerdown && this.canUseCanvasResizeHandle())
+      (!paintState.getPointerdown() && this.canUseCanvasResizeHandle())
     );
   }
 
@@ -51,7 +51,7 @@ export class ResizeTool {
     const hoveredHandle = this.isVisible() ? this.hitTest(e) : null;
     canvasResizeState.setHover(cursorForResizeHandle(hoveredHandle));
 
-    if (!paintState.pointerdown || !this.isActive()) return;
+    if (!paintState.getPointerdown() || !this.isActive()) return;
 
     canvasResizeState.setPointer(e);
     this.updateResize(e);
@@ -73,14 +73,14 @@ export class ResizeTool {
   }
 
   private canUseCanvasResizeHandle() {
-    const toolMetadata = getToolMetadata(paintState.activeToolId);
+    const toolMetadata = getToolMetadata(paintState.getActiveToolId());
     const brushIdBlocksCanvasResizeHandle =
       toolMetadata.blockCanvasResizeHandleBrushIds?.includes(
-        paintState.brushId,
+        paintState.getBrushId(),
       );
 
     return (
-      paintState.inputMode === InputMode.DEFAULT &&
+      paintState.getInputMode() === InputMode.DEFAULT &&
       toolMetadata.allowCanvasResizeHandle &&
       !brushIdBlocksCanvasResizeHandle
     );

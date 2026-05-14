@@ -46,7 +46,7 @@ function applyHistoryPosition({ x, y, width, height }: { x: number; y: number; w
 }
 
 export async function undo() {
-  if (paintState.pointerdown) return;
+  if (paintState.getPointerdown()) return;
 
   let worker = getLayerWorker();
   let historyResponse = await worker.undo();
@@ -81,7 +81,7 @@ export async function undo() {
 }
 
 export async function redo() {
-  if (paintState.pointerdown) return;
+  if (paintState.getPointerdown()) return;
   let worker = getLayerWorker();
   let historyResponse = await worker.redo();
   if (!historyResponse) return;

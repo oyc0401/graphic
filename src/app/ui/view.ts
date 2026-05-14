@@ -29,21 +29,21 @@ function bindCursorUI() {
 
   // 1. PAN
   autorun(() => {
-    const isPan = paintState.inputMode === InputMode.Pan;
-    container.classList.toggle("grab", isPan && !paintState.pointerdown);
-    container.classList.toggle("grabbing", isPan && paintState.pointerdown);
+    const isPan = paintState.getInputMode() === InputMode.Pan;
+    container.classList.toggle("grab", isPan && !paintState.getPointerdown());
+    container.classList.toggle("grabbing", isPan && paintState.getPointerdown());
   });
 
   autorun(() => {
     const activeCursorClass = getToolMetadata(
-      paintState.activeToolId,
+      paintState.getActiveToolId(),
     ).cursorClass;
 
     for (const cursorClass of getToolCursorClasses()) {
       container.classList.toggle(
         cursorClass,
-        paintState.inputMode !== InputMode.Pan &&
-          paintState.inputMode !== InputMode.Pinch &&
+        paintState.getInputMode() !== InputMode.Pan &&
+          paintState.getInputMode() !== InputMode.Pinch &&
           cursorClass === activeCursorClass,
       );
     }
@@ -51,19 +51,19 @@ function bindCursorUI() {
 
   // 2. ZOOM
   autorun(() => {
-    container.classList.toggle("zoom", paintState.activeToolId === ToolId.Zoom);
+    container.classList.toggle("zoom", paintState.getActiveToolId() === ToolId.Zoom);
   });
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
-    const isBrush = paintState.inputMode === InputMode.DEFAULT;
-    const isSelectTool = paintState.activeToolId === ToolId.Select;
+    const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
+    const isSelectTool = paintState.getActiveToolId() === ToolId.Select;
     container.classList.toggle("select", isBrush && isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
-      paintState.inputMode === InputMode.DEFAULT &&
-      paintState.activeToolId === ToolId.Selection;
+      paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getActiveToolId() === ToolId.Selection;
     const isCanvasResize = resizeTool.isVisible();
     const resizeHover = canvasResizeState.hover;
     const nwse =
@@ -92,11 +92,11 @@ function bindCursorUI() {
   autorun(() => {
     const cursor = els.brushCursor;
 
-    const isBrush = paintState.inputMode === InputMode.DEFAULT;
+    const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
 
     const isDrawingTool =
-      paintState.activeToolId === ToolId.Brush ||
-      paintState.activeToolId === ToolId.Session;
+      paintState.getActiveToolId() === ToolId.Brush ||
+      paintState.getActiveToolId() === ToolId.Session;
     const isValid = isBrush && isDrawingTool;
 
     const isDesktop = !("ontouchstart" in window);
@@ -106,7 +106,7 @@ function bindCursorUI() {
 
     const scaled = (brushSize * position.scale) / dpr;
     const isBigSize = scaled > 50;
-    const showCircle = paintState.showCircle;
+    const showCircle = paintState.getShowCircle();
 
     // ───────────── container 클래스
     container.classList.toggle(
@@ -118,19 +118,19 @@ function bindCursorUI() {
 
     // ───────────── 브러시 커서 스타일
     if ((isValid && (isBigSize || showCircle)) || !isDesktop) {
-      if (isDesktop || paintState.drawing) {
+      if (isDesktop || paintState.getDrawing()) {
         cursor.style.visibility = "visible";
       } else {
         cursor.style.visibility = "hidden";
       }
-      if (!isDesktop && paintState.pointerdown && paintState.moved) {
+      if (!isDesktop && paintState.getPointerdown() && paintState.getMoved()) {
         cursor.style.visibility =
           (paintState.getBrushSize() * position.scale) / getPixelRatio() > 16
             ? "visible"
             : "hidden";
       }
-      cursor.style.left = `${paintState.cursorX - scaled / 2 - 1}px`;
-      cursor.style.top = `${paintState.cursorY - scaled / 2 - 1}px`;
+      cursor.style.left = `${paintState.getCursorX() - scaled / 2 - 1}px`;
+      cursor.style.top = `${paintState.getCursorY() - scaled / 2 - 1}px`;
       cursor.style.width = `${scaled}px`;
       cursor.style.height = `${scaled}px`;
     } else {
@@ -335,7 +335,7 @@ function bindCanvasResizeUI() {
 
 function bindCursorPositionUI() {
   autorun(() => {
-    let point = to_canvas_coord(paintState.cursorX, paintState.cursorY);
+    let point = to_canvas_coord(paintState.getCursorX(), paintState.getCursorY());
     let x = Math.ceil(point.x);
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;
@@ -348,7 +348,7 @@ function bindCursorPositionUI() {
 
 function bindZoomAreaUI() {
   autorun(() => {
-    const isZooming = paintState.activeToolId === ToolId.Zoom;
+    const isZooming = paintState.getActiveToolId() === ToolId.Zoom;
 
     if (!isZooming) {
       els.zoomArea.style.visibility = "hidden";
@@ -370,7 +370,7 @@ function bindZoomAreaUI() {
 
 function bindLoadingIndicatorUI() {
   autorun(() => {
-    const canTouch = paintState.canTouch;
+    const canTouch = paintState.getCanTouch();
     els.loadingIndicator.style.visibility = canTouch ? "hidden" : "visible";
   });
 }

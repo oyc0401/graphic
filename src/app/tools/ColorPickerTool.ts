@@ -24,8 +24,8 @@ export class ColorPickerTool {
 
   down(e: PointerEvent) {
     if (
-      !paintState.pointerdown ||
-      paintState.activeToolId !== ToolId.ColorPicker
+      !paintState.getPointerdown() ||
+      paintState.getActiveToolId() !== ToolId.ColorPicker
     )
       return;
     this.pointerStarted = true;
@@ -35,13 +35,13 @@ export class ColorPickerTool {
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.pointerStarted || paintState.activeToolId !== ToolId.ColorPicker)
+    if (!this.pointerStarted || paintState.getActiveToolId() !== ToolId.ColorPicker)
       return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.pointerStarted || paintState.activeToolId !== ToolId.ColorPicker)
+    if (!this.pointerStarted || paintState.getActiveToolId() !== ToolId.ColorPicker)
       return;
     this.pointerStarted = false;
     paintState.setInputMode(InputMode.DEFAULT);

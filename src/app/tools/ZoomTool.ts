@@ -17,8 +17,8 @@ export class ZoomTool {
 
   down(e: PointerEvent) {
     if (
-      paintState.activeToolId !== ToolId.Zoom ||
-      !paintState.pointerdown ||
+      paintState.getActiveToolId() !== ToolId.Zoom ||
+      !paintState.getPointerdown() ||
       this.active
     )
       return;
@@ -29,8 +29,8 @@ export class ZoomTool {
 
   move(e: PointerEvent) {
     if (
-      paintState.activeToolId !== ToolId.Zoom ||
-      !paintState.pointerdown ||
+      paintState.getActiveToolId() !== ToolId.Zoom ||
+      !paintState.getPointerdown() ||
       !this.active
     )
       return;
@@ -39,7 +39,7 @@ export class ZoomTool {
   }
 
   up(e: PointerEvent) {
-    if (paintState.activeToolId !== ToolId.Zoom || !this.active) return;
+    if (paintState.getActiveToolId() !== ToolId.Zoom || !this.active) return;
 
     this.active = false;
 

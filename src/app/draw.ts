@@ -11,14 +11,14 @@ import { syncCoreState } from "./history";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmLiquifyApply() {
-  if (!paintState.sessionMode || paintState.sessionId !== SessionId.Liquify) {
+  if (!paintState.getSessionMode() || paintState.getSessionId() !== SessionId.Liquify) {
     return true;
   }
   return window.confirm("픽셀유동화를 적용하시겠습니까?");
 }
 
 function canChangeTool() {
-  return !paintState.pointerdown;
+  return !paintState.getPointerdown();
 }
 
 function setDefaultInputMode() {
@@ -46,7 +46,7 @@ function discardLiquifySession() {
 function leaveCurrentEditingState(options: { commitSelection: boolean }) {
   if (!confirmLiquifyApply()) return false;
 
-  if (paintState.sessionMode && paintState.sessionId === SessionId.Liquify) {
+  if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
     commitLiquifySession();
     return true;
   }
@@ -73,13 +73,13 @@ function selectAppOnlyTool(
   paintState.endSession();
   paintState.setSelectedToolId(toolId);
   setDefaultInputMode();
-  getLayerWorker().setTool(paintState.brushId);
+  getLayerWorker().setTool(paintState.getBrushId());
 }
 
 function returnFromSession() {
   paintState.endSession();
   setDefaultInputMode();
-  getLayerWorker().setTool(paintState.brushId);
+  getLayerWorker().setTool(paintState.getBrushId());
   syncCoreState();
 }
 
@@ -98,7 +98,7 @@ export const toolManager = {
   },
   setLiquifyTool() {
     if (!canChangeTool()) return;
-    if (paintState.sessionMode && paintState.sessionId === SessionId.Liquify) {
+    if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
       setDefaultInputMode();
       return;
     }
@@ -143,8 +143,8 @@ export const toolManager = {
   commitSession() {
     if (
       !canChangeTool() ||
-      !paintState.sessionMode ||
-      paintState.sessionId !== SessionId.Liquify
+      !paintState.getSessionMode() ||
+      paintState.getSessionId() !== SessionId.Liquify
     )
       return;
 
@@ -154,8 +154,8 @@ export const toolManager = {
   discardSession() {
     if (
       !canChangeTool() ||
-      !paintState.sessionMode ||
-      paintState.sessionId !== SessionId.Liquify
+      !paintState.getSessionMode() ||
+      paintState.getSessionId() !== SessionId.Liquify
     )
       return;
 
@@ -170,7 +170,7 @@ export const toolManager = {
 export function cancel() {
   console.log("cancel!");
 
-  if (paintState.toolId === ToolId.Selection) {
+  if (paintState.getToolId() === ToolId.Selection) {
     selectionCancel();
     return;
   }

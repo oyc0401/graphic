@@ -8,7 +8,7 @@ export class PanTool {
   private active = false;
 
   down(e: PointerEvent) {
-    if (paintState.inputMode !== InputMode.Pan || !paintState.pointerdown)
+    if (paintState.getInputMode() !== InputMode.Pan || !paintState.getPointerdown())
       return;
     this.active = true;
 
@@ -18,8 +18,8 @@ export class PanTool {
 
   move(e: PointerEvent) {
     if (
-      paintState.inputMode !== InputMode.Pan ||
-      !paintState.pointerdown ||
+      paintState.getInputMode() !== InputMode.Pan ||
+      !paintState.getPointerdown() ||
       !this.active
     )
       return;
@@ -41,7 +41,7 @@ export class PanTool {
 
   up(_: PointerEvent) {
     // No-op for pan
-    if (paintState.inputMode !== InputMode.Pan) return;
+    if (paintState.getInputMode() !== InputMode.Pan) return;
     this.active = false;
   }
 

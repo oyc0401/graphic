@@ -31,37 +31,37 @@ export enum SessionId {
 type BrushSettingsId = BrushId | SessionId;
 
 class PaintState {
-  sessionMode = false;
-  sessionId: SessionId = SessionId.Liquify; // liquify, mosaic
-  inputMode: InputMode = InputMode.DEFAULT; // DEFAULT, ZOOM, COLOR_PICKER
-  selectedToolId: ToolId = ToolId.Brush; // brush, select, selection, zoom, colorPicker
-  brushId: BrushId = BrushId.Brush; // Brush, Eraser
+  private _sessionMode = false;
+  private _sessionId: SessionId = SessionId.Liquify;
+  private _inputMode: InputMode = InputMode.DEFAULT;
+  private _selectedToolId: ToolId = ToolId.Brush;
+  private _brushId: BrushId = BrushId.Brush;
 
-  brushSize = {
+  private _brushSize = {
     [BrushId.Brush]: 5,
     [BrushId.Eraser]: 10,
     [SessionId.Liquify]: 50,
     [SessionId.Mosaic]: 50,
   };
-  brushAlpha = {
+  private _brushAlpha = {
     [BrushId.Brush]: 100,
     [BrushId.Eraser]: 100,
     [SessionId.Liquify]: 100,
     [SessionId.Mosaic]: 100,
   };
 
-  cursorX = 0;
-  cursorY = 0;
+  private _cursorX = 0;
+  private _cursorY = 0;
 
-  pointerdown = false;
-  drawing = false;
-  canTouch = true;
+  private _pointerdown = false;
+  private _drawing = false;
+  private _canTouch = true;
 
-  changed = false;
-  showCircle = false;
-  showSizeHandle = false;
+  private _changed = false;
+  private _showCircle = false;
+  private _showSizeHandle = false;
 
-  moved = true;
+  private _moved = true;
 
   constructor() {
     makeAutoObservable(this);
@@ -69,94 +69,141 @@ class PaintState {
 
   /** Setter */
   setInputMode(val: InputMode) {
-    this.inputMode = val;
+    this._inputMode = val;
   }
   setSelectedToolId(toolId: ToolId) {
-    this.selectedToolId = toolId;
+    this._selectedToolId = toolId;
   }
   setBrushId(brushId: BrushId) {
-    this.brushId = brushId;
+    this._brushId = brushId;
   }
   setSessionId(sessionId: SessionId) {
-    this.sessionId = sessionId;
+    this._sessionId = sessionId;
   }
   setPointerdown(val: boolean) {
-    this.pointerdown = val;
+    this._pointerdown = val;
   }
   setDrawing(val: boolean) {
-    this.drawing = val;
+    this._drawing = val;
   }
   setCanTouch(val: boolean) {
     if (val) {
       setTimeout(() => {
         runInAction(() => {
-          this.canTouch = val;
+          this._canTouch = val;
         });
       });
     } else {
-      this.canTouch = val;
+      this._canTouch = val;
     }
   }
   setCursorPosition(x, y) {
-    this.cursorX = x;
-    this.cursorY = y;
+    this._cursorX = x;
+    this._cursorY = y;
   }
   setBrushSize(size: number) {
-    this.brushSize[this.brushSettingsId] = size;
+    this._brushSize[this.getBrushSettingsId()] = size;
     const worker = getLayerWorker();
     worker.setStrokeSize(size);
   }
   setBrushAlpha(alpha: number) {
-    this.brushAlpha[this.brushSettingsId] = alpha;
+    this._brushAlpha[this.getBrushSettingsId()] = alpha;
   }
   setShowCircle(value) {
-    this.showCircle = value;
+    this._showCircle = value;
   }
 
   setShowSizeHandle(val) {
-    this.showSizeHandle = val;
+    this._showSizeHandle = val;
   }
 
   setMoved(value) {
-    this.moved = value;
+    this._moved = value;
   }
 
-  /** Getter */
+  setChanged(value: boolean) {
+    this._changed = value;
+  }
+
+  /** Getter functions */
 
   getBrushSize() {
-    return this.brushSize[this.brushSettingsId];
+    return this._brushSize[this.getBrushSettingsId()];
   }
   getBrushAlpha() {
-    return this.brushAlpha[this.brushSettingsId];
+    return this._brushAlpha[this.getBrushSettingsId()];
+  }
+  getSessionMode() {
+    return this._sessionMode;
+  }
+  getSessionId() {
+    return this._sessionId;
+  }
+  getInputMode() {
+    return this._inputMode;
+  }
+  getSelectedToolId() {
+    return this._selectedToolId;
+  }
+  getBrushId() {
+    return this._brushId;
+  }
+  getCursorX() {
+    return this._cursorX;
+  }
+  getCursorY() {
+    return this._cursorY;
+  }
+  getPointerdown() {
+    return this._pointerdown;
+  }
+  getDrawing() {
+    return this._drawing;
+  }
+  getCanTouch() {
+    return this._canTouch;
+  }
+  getChanged() {
+    return this._changed;
+  }
+  getShowCircle() {
+    return this._showCircle;
+  }
+  getShowSizeHandle() {
+    return this._showSizeHandle;
+  }
+  getMoved() {
+    return this._moved;
+  }
+  getToolId(): ToolId {
+    return this._selectedToolId;
+  }
+  getActiveToolId(): ToolId {
+    if (this._inputMode === InputMode.Zoom) {
+      return ToolId.Zoom;
+    }
+    if (this._inputMode === InputMode.ColorPicker) {
+      return ToolId.ColorPicker;
+    }
+    if (this._sessionMode) {
+      return ToolId.Session;
+    }
+
+    return this._selectedToolId;
+  }
+
+  private getBrushSettingsId(): BrushSettingsId {
+    return this._sessionMode ? this._sessionId : this._brushId;
   }
 
   /** .etc */
 
   startSession(sessionId: SessionId) {
-    this.sessionId = sessionId;
-    this.sessionMode = true;
+    this._sessionId = sessionId;
+    this._sessionMode = true;
   }
   endSession() {
-    this.sessionMode = false;
-  }
-  get toolId(): ToolId {
-    return this.selectedToolId;
-  }
-  get activeToolId(): ToolId {
-    if (this.inputMode === InputMode.Zoom) {
-      return ToolId.Zoom;
-    }
-    if (this.inputMode === InputMode.ColorPicker) {
-      return ToolId.ColorPicker;
-    }
-    if (this.sessionMode) {
-      return ToolId.Session;
-    }
-
-    return this.selectedToolId;
-  }
-  get brushSettingsId(): BrushSettingsId {
-    return this.sessionMode ? this.sessionId : this.brushId;
+    this._sessionMode = false;
   }
 }
 

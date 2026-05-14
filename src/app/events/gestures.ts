@@ -233,7 +233,7 @@ export function addGestureEvent() {
     pointerIndexCounter = 0;
     pointerdownTime = 0;
 
-    if (pointers.size === 0 && paintState.inputMode === InputMode.Pinch) {
+    if (pointers.size === 0 && paintState.getInputMode() === InputMode.Pinch) {
       paintState.setInputMode(InputMode.DEFAULT);
     }
   }

@@ -24,11 +24,11 @@ export class SelectionTool {
 
   down(e: PointerEvent) {
     if (
-      paintState.toolId !== ToolId.Selection ||
-      paintState.inputMode !== InputMode.DEFAULT
+      paintState.getToolId() !== ToolId.Selection ||
+      paintState.getInputMode() !== InputMode.DEFAULT
     )
       return;
-    if (!paintState.pointerdown) return;
+    if (!paintState.getPointerdown()) return;
 
     // console.log("point!!:", this.startPoint, this.endPoint);
 
@@ -66,7 +66,7 @@ export class SelectionTool {
   }
 
   move(e: PointerEvent) {
-    // el.container의 커서를 grab으로, paintState.pointerdown이면 grabbing으로
+    // el.container의 커서를 grab으로, paintState.getPointerdown()이면 grabbing으로
     // 그리고 핸들 범위에 올라가면, nesw-resize이런 4개방향 화살표로.
 
     const rect = {
@@ -102,7 +102,7 @@ export class SelectionTool {
         break;
     }
 
-    if (!paintState.pointerdown) return;
+    if (!paintState.getPointerdown()) return;
 
     this.applySelectionDrag(e);
   }
@@ -172,7 +172,7 @@ export class SelectionTool {
       beforeSelectionPos.height = selection.height;
       selection.setShowHandle(true);
     }
-    if (!paintState.pointerdown && this.activeHandle === "OUTSIDE") {
+    if (!paintState.getPointerdown() && this.activeHandle === "OUTSIDE") {
       const now = performance.now();
       if (now - this.startTime < 150) {
         console.log("cancel Selection!");

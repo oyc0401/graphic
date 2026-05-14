@@ -169,7 +169,7 @@ export function applySelection() {
   selection.setShowHandle(false);
   selection.setFlip(false, false);
 
-  paintState.changed = true;
+  paintState.setChanged(true);
 }
 
 // 자르기 한 이후에
@@ -195,7 +195,7 @@ export function selectionDelete() {
 // 선택창 캔슬
 export function selectionCancel() {
   // 핀치줌으로 인한 캔슬이면 선택창 안 끄기
-  if (paintState.pointerdown) {
+  if (paintState.getPointerdown()) {
     if (selection.active) {
       selection.setX(beforeSelectionPos.x);
       selection.setY(beforeSelectionPos.y);

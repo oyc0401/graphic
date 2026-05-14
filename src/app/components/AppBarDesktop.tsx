@@ -56,7 +56,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.sessionMode && paintState.sessionId === SessionId.Liquify ? (
+        {paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify ? (
           <LiquifyMenuBar />
         ) : (
           <div id="menu-bar">
@@ -164,8 +164,8 @@ const HistoryButtons = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === ToolId.Select ||
-    paintState.activeToolId === ToolId.Selection;
+    paintState.getActiveToolId() === ToolId.Select ||
+    paintState.getActiveToolId() === ToolId.Selection;
 
   return (
     <button
@@ -181,8 +181,8 @@ const SelectionToolButton = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === ToolId.Brush &&
-    paintState.brushId === BrushId.Brush;
+    paintState.getActiveToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Brush;
 
   return (
     <button
@@ -198,8 +198,8 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === ToolId.Brush &&
-    paintState.brushId === BrushId.Eraser;
+    paintState.getActiveToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Eraser;
 
   return (
     <button
@@ -215,8 +215,8 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.activeToolId === ToolId.Session &&
-    paintState.sessionMode && paintState.sessionId === SessionId.Liquify;
+    paintState.getActiveToolId() === ToolId.Session &&
+    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify;
 
   return (
     <button
@@ -230,7 +230,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const ZoomToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === ToolId.Zoom;
+  const isSelected = paintState.getActiveToolId() === ToolId.Zoom;
 
   return (
     <button
@@ -249,7 +249,7 @@ const ZoomToolButton = observer(() => {
 });
 
 const ColorPickerToolButton = observer(() => {
-  const isSelected = paintState.activeToolId === ToolId.ColorPicker;
+  const isSelected = paintState.getActiveToolId() === ToolId.ColorPicker;
 
   return (
     <button

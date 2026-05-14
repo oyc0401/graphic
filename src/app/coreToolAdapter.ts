@@ -19,16 +19,16 @@ function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool | CoreSessi
 }
 
 function coreToolForCurrentPaintState(): CoreTool | CoreSessionTool {
-  switch (paintState.selectedToolId) {
+  switch (paintState.getSelectedToolId()) {
     case ToolId.Brush:
-      return paintState.brushId;
+      return paintState.getBrushId();
     case ToolId.Select:
     case ToolId.Selection:
     case ToolId.Session:
-      return paintState.brushId;
+      return paintState.getBrushId();
     case ToolId.Zoom:
     case ToolId.ColorPicker:
-      return paintState.brushId;
+      return paintState.getBrushId();
   }
 }
 
@@ -61,7 +61,7 @@ export function selectPaintToolForWorkerTarget(target: WorkerToolTarget) {
 // 지정한 worker 대상 도구가 현재 app에서 선택된 도구인지 확인한다.
 export function isCurrentWorkerToolTarget(target: WorkerToolTarget) {
   if (target === ToolId.Select || target === ToolId.Selection) {
-    return paintState.selectedToolId === target;
+    return paintState.getSelectedToolId() === target;
   }
   return coreToolForCurrentPaintState() === coreToolForWorkerTarget(target);
 }

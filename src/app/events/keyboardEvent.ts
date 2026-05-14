@@ -288,7 +288,7 @@ function setTemporaryAction(
 }
 
 function applyTemporaryAction() {
-  if (paintState.pointerdown) return;
+  if (paintState.getPointerdown()) return;
 
   const activeAction = getHighestPriorityTemporaryAction();
   if (activeAction) {
