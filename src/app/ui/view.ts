@@ -287,37 +287,6 @@ function bindCanvasResizeUI() {
     els.resizeHandleLB.style.top = `${bottom - inset}px`;
   };
 
-  const positionActiveResizeHandleAtPointer = () => {
-    const handle = canvasResizeState.activeHandle;
-    if (!handle) return;
-
-    const pointer = canvasResizeState.pointer;
-    const inset = RESIZE_HANDLE_SIZE_PX - 1;
-    const stroke = RESIZE_HANDLE_STROKE_WIDTH_PX;
-    const containerRect = els.container.getBoundingClientRect();
-    const x = pointer.clientX - containerRect.left;
-    const y = pointer.clientY - containerRect.top;
-
-    switch (handle) {
-      case "LT":
-        els.resizeHandleLT.style.left = `${x - stroke}px`;
-        els.resizeHandleLT.style.top = `${y - stroke}px`;
-        break;
-      case "RT":
-        els.resizeHandleRT.style.left = `${x - inset}px`;
-        els.resizeHandleRT.style.top = `${y - stroke}px`;
-        break;
-      case "RB":
-        els.resizeHandleRB.style.left = `${x - inset}px`;
-        els.resizeHandleRB.style.top = `${y - inset}px`;
-        break;
-      case "LB":
-        els.resizeHandleLB.style.left = `${x - stroke}px`;
-        els.resizeHandleLB.style.top = `${y - inset}px`;
-        break;
-    }
-  };
-
   autorun(() => {
     const showHandles = resizeTool.isVisible();
     const showPreview = canvasResizeState.active;
@@ -341,7 +310,6 @@ function bindCanvasResizeUI() {
 
     if (showHandles) {
       positionResizeHandles(rect);
-      positionActiveResizeHandleAtPointer();
     }
   });
 }

@@ -1,14 +1,11 @@
 import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState } from "../paintState";
-import {
-  resizeSelectionFromHandle,
-  type SelectionResizeHandle,
-} from "../utils/selectionResize";
 import { changeCanvasSize } from "../position";
 
 import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
 import { canvasResizeState, type CanvasResizeRect } from "../canvasResizeState";
+import { resizeCanvasFromHandleDrag } from "../utils/canvasResize";
 import { toolRegistry } from "./toolRegistry";
 import {
   cursorForResizeHandle,
@@ -20,6 +17,7 @@ import {
 
 export class ResizeTool {
   private start: CanvasResizeRect = { x: 0, y: 0, width: 1, height: 1 };
+  private startPointer = { x: 0, y: 0 };
 
   isVisible() {
     return (
@@ -45,13 +43,13 @@ export class ResizeTool {
 
     const rect = getCanvasResizeRect();
     this.start = rect;
+    this.startPointer = toResizeEdgePoint(e, handle);
     canvasResizeState.start(handle, rect, e);
     this.updateResize(e);
   }
 
   move(e: PointerEvent) {
-    const hoveredHandle = this.isVisible() ? this.hitTest(e) : null;
-    canvasResizeState.setHover(cursorForResizeHandle(hoveredHandle));
+    this.updateHover(e);
 
     if (!paintState.getPointerdown() || !this.isActive()) return;
 
@@ -68,6 +66,7 @@ export class ResizeTool {
     const { x, y, width, height } = canvasResizeState.rect;
     canvasResizeState.reset();
     changeCanvasSize(x, y, width, height);
+    this.updateHover(e);
   }
 
   cancel(e: PointerEvent) {
@@ -87,6 +86,18 @@ export class ResizeTool {
     return hitTestOutsideCanvasResizeCorner(e.clientX, e.clientY);
   }
 
+  private updateHover(e: PointerEvent) {
+    if (this.isActive()) {
+      canvasResizeState.setHover(
+        cursorForResizeHandle(canvasResizeState.activeHandle),
+      );
+      return;
+    }
+
+    const hoveredHandle = this.isVisible() ? this.hitTest(e) : null;
+    canvasResizeState.setHover(cursorForResizeHandle(hoveredHandle));
+  }
+
   private updateResize(e: PointerEvent) {
     const handle = canvasResizeState.activeHandle;
     if (!handle) return;
@@ -94,12 +105,11 @@ export class ResizeTool {
     const point = toResizeEdgePoint(e, handle);
     const min = 1;
     const max = paintConfig.maxSize;
-    const resized = resizeSelectionFromHandle({
+    const resized = resizeCanvasFromHandleDrag({
       startRect: this.start,
-      handle: handle as SelectionResizeHandle,
+      handle,
+      startPointer: this.startPointer,
       pointer: point,
-      keepRatio: e.shiftKey,
-      allowFlip: false,
     });
     const width = clamp(resized.width, min, max);
     const height = clamp(resized.height, min, max);

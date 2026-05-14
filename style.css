@@ -162,7 +162,7 @@ canvas {
 .resize-handle::after {
   content: "";
   position: absolute;
-  background: #000;
+  background: #b0b0b0;
 }
 
 .resize-handle::before {
