@@ -1,6 +1,5 @@
 // tools/ZoomTool.ts
-import { getActiveToolId } from "../coreToolAdapter";
-import { paintState, ToolId } from "../paintState";
+import { InputMode, paintState, ToolId } from "../paintState";
 import {
   position,
   renderChangedPosition,
@@ -9,38 +8,46 @@ import {
   getPixelRatio,
 } from "../position";
 import { zoomRect } from "../ui/zoomState";
+import type { Tool, ToolConfig } from "./Tool";
 
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 120;
 
-export class ZoomTool {
+export class ZoomTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+    cursorClass: "zoom",
+  };
+
   private active = false;
 
+  enter() {}
+
+  exit() {}
+
+  canUse() {
+    return (
+      paintState.getInputMode() === InputMode.Zoom ||
+      (paintState.getInputMode() === InputMode.DEFAULT &&
+        paintState.getToolId() === ToolId.Zoom)
+    );
+  }
+
   down(e: PointerEvent) {
-    if (
-      getActiveToolId() !== ToolId.Zoom ||
-      !paintState.getPointerdown() ||
-      this.active
-    )
-      return;
+    if (!this.canUse() || !paintState.getPointerdown() || this.active) return;
 
     this.active = true;
     zoomRect.setStart(e.clientX, e.clientY);
   }
 
   move(e: PointerEvent) {
-    if (
-      getActiveToolId() !== ToolId.Zoom ||
-      !paintState.getPointerdown() ||
-      !this.active
-    )
-      return;
+    if (!this.canUse() || !paintState.getPointerdown() || !this.active) return;
 
     zoomRect.updateEnd(e.clientX, e.clientY);
   }
 
   up(e: PointerEvent) {
-    if (getActiveToolId() !== ToolId.Zoom || !this.active) return;
+    if (!this.canUse() || !this.active) return;
 
     this.active = false;
 

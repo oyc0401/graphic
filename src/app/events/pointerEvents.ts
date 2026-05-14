@@ -1,6 +1,6 @@
 import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState } from "../paintState";
-import { getToolMetadata, toolRegistry } from "../tools/toolRegistry";
+import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { resizeTool } from "../tools/resizeTool";
 import { syncCoreState } from "../history";
@@ -27,11 +27,11 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   }
 
   const toolId = getActiveToolId();
-  const activeToolMetadata = getToolMetadata(toolId);
+  const activeToolConfig = toolRegistry[toolId].config;
 
   if (
     paintState.getInputMode() === InputMode.DEFAULT &&
-    activeToolMetadata.allowCanvasResizeHandle
+    activeToolConfig.allowCanvasResizeHandle
   ) {
     if (phase === "down" && resizeTool.canStart(e)) {
       resizeTool.down(e);

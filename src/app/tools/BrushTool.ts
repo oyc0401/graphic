@@ -2,17 +2,28 @@ import { paintState, ToolId } from "../paintState";
 import { getLayerWorker } from "../worker/workerPool";
 import { to_canvas_coord } from "../position";
 import { colorState } from "../colorState";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class BrushTool {
+export class BrushTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: true,
+  };
+
   private active = false;
   private start = { x: 0, y: 0 };
 
-  private canUseBrushTool() {
-    return paintState.getToolId() === ToolId.Brush || paintState.getSessionMode();
+  enter() {}
+
+  exit() {}
+
+  canUse() {
+    return (
+      paintState.getToolId() === ToolId.Brush || paintState.getSessionMode()
+    );
   }
 
   down(e: PointerEvent) {
-    if (!paintState.getPointerdown() || !this.canUseBrushTool()) return;
+    if (!paintState.getPointerdown() || !this.canUse()) return;
     this.active = true;
     // console.log("down:", e.clientX, e.clientY);
     const point = to_canvas_coord(e.clientX, e.clientY);
@@ -32,8 +43,7 @@ export class BrushTool {
 
   move(e: PointerEvent) {
     // console.log("dddd22", paintState.getPointerdown(), paintState.getToolId());
-    if (!paintState.getPointerdown() || !this.active || !this.canUseBrushTool())
-      return;
+    if (!paintState.getPointerdown() || !this.active || !this.canUse()) return;
 
     paintState.setMoved(true);
 
@@ -54,7 +64,7 @@ export class BrushTool {
   }
 
   up(e: PointerEvent) {
-    if (!this.active || !this.canUseBrushTool()) return;
+    if (!this.active || !this.canUse()) return;
     this.active = false;
 
     const point = to_canvas_coord(e.clientX, e.clientY);
@@ -77,4 +87,10 @@ export class BrushTool {
 
     getLayerWorker().cancel();
   }
+}
+
+export class SessionBrushTool extends BrushTool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+  };
 }

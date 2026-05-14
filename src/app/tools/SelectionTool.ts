@@ -14,20 +14,32 @@ import {
 } from "../utils/selectionResize";
 import { getLayerWorker } from "../worker/workerPool";
 import { applyWorkerToolTarget } from "../coreToolAdapter";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class SelectionTool {
+export class SelectionTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+  };
+
   private activeHandle: HandleType | null = null;
   private dragOffset = { x: 0, y: 0 };
   private start = { x: 0, y: 0, w: 0, h: 0, flipH: false, flipV: false };
 
   private startTime;
 
+  enter() {}
+
+  exit() {}
+
+  canUse() {
+    return (
+      paintState.getToolId() === ToolId.Selection &&
+      paintState.getInputMode() === InputMode.DEFAULT
+    );
+  }
+
   down(e: PointerEvent) {
-    if (
-      paintState.getToolId() !== ToolId.Selection ||
-      paintState.getInputMode() !== InputMode.DEFAULT
-    )
-      return;
+    if (!this.canUse()) return;
     if (!paintState.getPointerdown()) return;
 
     // console.log("point!!:", this.startPoint, this.endPoint);
@@ -187,6 +199,11 @@ export class SelectionTool {
       worker.completeTransformSelection();
     }
 
+    selection.active = false;
+    this.activeHandle = null;
+  }
+
+  cancel() {
     selection.active = false;
     this.activeHandle = null;
   }

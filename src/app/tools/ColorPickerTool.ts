@@ -1,11 +1,28 @@
-import { getActiveToolId } from "../coreToolAdapter";
 import { colorState } from "../colorState";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class ColorPickerTool {
+export class ColorPickerTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+    cursorClass: "colorPicker",
+  };
+
   private pointerStarted = false;
+
+  enter() {}
+
+  exit() {}
+
+  canUse() {
+    return (
+      paintState.getInputMode() === InputMode.ColorPicker ||
+      (paintState.getInputMode() === InputMode.DEFAULT &&
+        paintState.getToolId() === ToolId.ColorPicker)
+    );
+  }
 
   private sampleFromEvent(e: PointerEvent) {
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
@@ -24,8 +41,7 @@ export class ColorPickerTool {
   }
 
   down(e: PointerEvent) {
-    if (!paintState.getPointerdown() || getActiveToolId() !== ToolId.ColorPicker)
-      return;
+    if (!paintState.getPointerdown() || !this.canUse()) return;
     this.pointerStarted = true;
 
     this.sampleFromEvent(e);
@@ -33,12 +49,12 @@ export class ColorPickerTool {
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.pointerStarted || getActiveToolId() !== ToolId.ColorPicker) return;
+    if (!this.pointerStarted || !this.canUse()) return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.pointerStarted || getActiveToolId() !== ToolId.ColorPicker) return;
+    if (!this.pointerStarted || !this.canUse()) return;
     this.pointerStarted = false;
     paintState.setInputMode(InputMode.DEFAULT);
   }

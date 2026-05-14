@@ -9,7 +9,7 @@ import { zoomRect } from "./zoomState";
 import { isSmallSize } from "../utils/screen";
 import { resizeTool } from "../tools/resizeTool";
 import { canvasResizeState } from "../canvasResizeState";
-import { getToolCursorClasses, getToolMetadata } from "../tools/toolRegistry";
+import { toolRegistry } from "../tools/toolRegistry";
 import {
   RESIZE_HANDLE_SIZE_PX,
   getCanvasResizeRect,
@@ -32,13 +32,20 @@ function bindCursorUI() {
   autorun(() => {
     const isPan = paintState.getInputMode() === InputMode.Pan;
     container.classList.toggle("grab", isPan && !paintState.getPointerdown());
-    container.classList.toggle("grabbing", isPan && paintState.getPointerdown());
+    container.classList.toggle(
+      "grabbing",
+      isPan && paintState.getPointerdown(),
+    );
   });
 
   autorun(() => {
-    const activeCursorClass = getToolMetadata(getActiveToolId()).cursorClass;
+    const activeCursorClass =
+      toolRegistry[getActiveToolId()].config.cursorClass;
+    const toolCursorClasses = Object.values(toolRegistry)
+      .map((tool) => tool.config.cursorClass)
+      .filter((cursorClass): cursorClass is string => Boolean(cursorClass));
 
-    for (const cursorClass of getToolCursorClasses()) {
+    for (const cursorClass of toolCursorClasses) {
       container.classList.toggle(
         cursorClass,
         paintState.getInputMode() !== InputMode.Pan &&
@@ -112,7 +119,10 @@ function bindCursorUI() {
       "largeBrush",
       isValid && !showBrushCursorPreview && isBigSize,
     );
-    container.classList.toggle("brush", isValid && !showBrushCursorPreview && !isBigSize);
+    container.classList.toggle(
+      "brush",
+      isValid && !showBrushCursorPreview && !isBigSize,
+    );
     container.classList.toggle("noCursor", isValid && showBrushCursorPreview);
 
     // ───────────── 브러시 커서 스타일
@@ -334,7 +344,10 @@ function bindCanvasResizeUI() {
 
 function bindCursorPositionUI() {
   autorun(() => {
-    let point = to_canvas_coord(paintState.getCursorX(), paintState.getCursorY());
+    let point = to_canvas_coord(
+      paintState.getCursorX(),
+      paintState.getCursorY(),
+    );
     let x = Math.ceil(point.x);
     let y = Math.ceil(point.y);
     let visible = 0 < x && x <= position.width && 0 < y && y <= position.height;

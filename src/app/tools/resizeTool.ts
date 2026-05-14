@@ -9,7 +9,7 @@ import { changeCanvasSize } from "../position";
 import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
 import { canvasResizeState, type CanvasResizeRect } from "../canvasResizeState";
-import { getToolMetadata } from "./toolRegistry";
+import { toolRegistry } from "./toolRegistry";
 import {
   cursorForResizeHandle,
   getCanvasResizeRect,
@@ -74,11 +74,11 @@ export class ResizeTool {
   }
 
   private canUseCanvasResizeHandle() {
-    const toolMetadata = getToolMetadata(getActiveToolId());
+    const toolConfig = toolRegistry[getActiveToolId()].config;
 
     return (
       paintState.getInputMode() === InputMode.DEFAULT &&
-      toolMetadata.allowCanvasResizeHandle
+      toolConfig.allowCanvasResizeHandle
     );
   }
 

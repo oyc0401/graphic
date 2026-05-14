@@ -4,18 +4,31 @@ import { selection } from "../selection";
 import { position, to_pixel_canvas_coord } from "../position";
 import { canvasSelect } from "../selection";
 import { clamp } from "../utils/math";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class SelectTool {
+export class SelectTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+    cursorClass: "select",
+  };
+
   private startPoint: { x: number; y: number };
   private endPoint: { x: number; y: number };
   private active = false;
 
+  enter() {}
+
+  exit() {}
+
+  canUse() {
+    return (
+      paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getToolId() === ToolId.Select
+    );
+  }
+
   down(e: PointerEvent) {
-    if (
-      paintState.getInputMode() !== InputMode.DEFAULT ||
-      paintState.getToolId() !== ToolId.Select
-    )
-      return;
+    if (!this.canUse()) return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);
@@ -28,11 +41,7 @@ export class SelectTool {
 
   move(e: PointerEvent) {
     if (!this.active || !paintState.getPointerdown()) return;
-    if (
-      paintState.getInputMode() !== InputMode.DEFAULT ||
-      paintState.getToolId() !== ToolId.Select
-    )
-      return;
+    if (!this.canUse()) return;
 
     const point = to_pixel_canvas_coord(e.clientX, e.clientY);
     const px = clamp(point.x, 0, position.width - 1);
@@ -85,6 +94,11 @@ export class SelectTool {
     selection.setShowHint(true);
     selection.setShowHandle(true);
     canvasSelect(startX, startY, width, height);
+  }
+
+  cancel() {
+    this.active = false;
+    selection.setShowHint(false);
   }
 }
 
