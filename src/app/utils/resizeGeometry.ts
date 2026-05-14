@@ -1,10 +1,8 @@
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 
 export const RESIZE_HANDLE_SIZE_PX = 7;
-export const RESIZE_HANDLE_EDGE_OFFSET_PX = Math.floor(
-  RESIZE_HANDLE_SIZE_PX / 2,
-);
-export const RESIZE_HANDLE_HIT_MARGIN_PX = 22;
+export const RESIZE_HANDLE_STROKE_WIDTH_PX = 3;
+export const RESIZE_HANDLE_HIT_SIZE_PX = 23;
 
 export type ResizeCornerHandle = "LT" | "RT" | "RB" | "LB";
 export type ResizeCursor = "default" | "nwse-resize" | "nesw-resize";
@@ -28,8 +26,12 @@ export function getCanvasResizeRect(): CanvasRect {
 export function hitTestOutsideCanvasResizeCorner(
   clientX: number,
   clientY: number,
-  margin = RESIZE_HANDLE_HIT_MARGIN_PX,
+  hitSize = RESIZE_HANDLE_HIT_SIZE_PX,
 ): ResizeCornerHandle | null {
+  if (hitSize % 2 === 0) {
+    throw new Error("Canvas resize handle hit size must be odd.");
+  }
+
   const dpr = getPixelRatio();
   const left = (position.x * position.scale) / dpr;
   const top =
@@ -47,15 +49,23 @@ export function hitTestOutsideCanvasResizeCorner(
     rect: { x: number; y: number; w: number; h: number },
   ) =>
     x >= rect.x &&
-    x <= rect.x + rect.w &&
+    x < rect.x + rect.w &&
     y >= rect.y &&
-    y <= rect.y + rect.h;
+    y < rect.y + rect.h;
+
+  const half = Math.floor(hitSize / 2);
+  const insideCanvas =
+    clientX >= left && clientX < right && clientY >= top && clientY < bottom;
+
+  if (insideCanvas) {
+    return null;
+  }
 
   const corners = {
-    LT: { x: left - margin, y: top - margin, w: margin, h: margin },
-    RT: { x: right, y: top - margin, w: margin, h: margin },
-    RB: { x: right, y: bottom, w: margin, h: margin },
-    LB: { x: left - margin, y: bottom, w: margin, h: margin },
+    LT: { x: left - half, y: top - half, w: hitSize, h: hitSize },
+    RT: { x: right - half, y: top - half, w: hitSize, h: hitSize },
+    RB: { x: right - half, y: bottom - half, w: hitSize, h: hitSize },
+    LB: { x: left - half, y: bottom - half, w: hitSize, h: hitSize },
   } as const;
 
   for (const key of ["LT", "RT", "RB", "LB"] as const) {
@@ -77,8 +87,6 @@ export function toResizeEdgePoint(
   e: PointerEvent,
   handle: ResizeCornerHandle | null,
 ) {
-  const dpr = getPixelRatio();
-  const offset = (RESIZE_HANDLE_EDGE_OFFSET_PX * dpr) / position.scale;
   const point = to_canvas_coord(e.clientX, e.clientY);
   const toPixel = ({ x, y }: { x: number; y: number }) => ({
     x: Math.round(x),
@@ -87,13 +95,9 @@ export function toResizeEdgePoint(
 
   switch (handle) {
     case "LT":
-      return toPixel({ x: point.x + offset, y: point.y + offset });
     case "RT":
-      return toPixel({ x: point.x - offset, y: point.y + offset });
     case "RB":
-      return toPixel({ x: point.x - offset, y: point.y - offset });
     case "LB":
-      return toPixel({ x: point.x + offset, y: point.y - offset });
     case null:
       return toPixel(point);
   }

@@ -46,6 +46,7 @@ export class ResizeTool {
     const rect = getCanvasResizeRect();
     this.start = rect;
     canvasResizeState.start(handle, rect, e);
+    this.updateResize(e);
   }
 
   move(e: PointerEvent) {

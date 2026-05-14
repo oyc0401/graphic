@@ -149,8 +149,50 @@ canvas {
 }
 
 .resize-handle {
+  --resize-handle-size: 7px;
+  --resize-handle-width: 3px;
   z-index: 2902;
-  background: #b0b0b0;
+  width: calc(var(--resize-handle-size) + var(--resize-handle-width) - 1px);
+  height: calc(var(--resize-handle-size) + var(--resize-handle-width) - 1px);
+  background: transparent;
+  border: none;
+}
+
+.resize-handle::before,
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  background: #000;
+}
+
+.resize-handle::before {
+  width: 100%;
+  height: var(--resize-handle-width);
+}
+
+.resize-handle::after {
+  width: var(--resize-handle-width);
+  height: 100%;
+}
+
+#resize-handle-lt::before,
+#resize-handle-rt::before {
+  top: 0;
+}
+
+#resize-handle-lb::before,
+#resize-handle-rb::before {
+  bottom: 0;
+}
+
+#resize-handle-lt::after,
+#resize-handle-lb::after {
+  left: 0;
+}
+
+#resize-handle-rt::after,
+#resize-handle-rb::after {
+  right: 0;
 }
 
 #selection-size,

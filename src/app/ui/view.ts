@@ -12,6 +12,7 @@ import { canvasResizeState } from "../canvasResizeState";
 import { toolRegistry } from "../tools/toolRegistry";
 import {
   RESIZE_HANDLE_SIZE_PX,
+  RESIZE_HANDLE_STROKE_WIDTH_PX,
   getCanvasResizeRect,
   toContainerRect,
 } from "../utils/resizeGeometry";
@@ -273,15 +274,17 @@ function bindCanvasResizeUI() {
   }) => {
     const right = rect.x + rect.width;
     const bottom = rect.y + rect.height;
+    const inset = RESIZE_HANDLE_SIZE_PX - 1;
+    const stroke = RESIZE_HANDLE_STROKE_WIDTH_PX;
 
-    els.resizeHandleLT.style.left = `${rect.x - RESIZE_HANDLE_SIZE_PX}px`;
-    els.resizeHandleLT.style.top = `${rect.y - RESIZE_HANDLE_SIZE_PX}px`;
-    els.resizeHandleRT.style.left = `${right}px`;
-    els.resizeHandleRT.style.top = `${rect.y - RESIZE_HANDLE_SIZE_PX}px`;
-    els.resizeHandleRB.style.left = `${right}px`;
-    els.resizeHandleRB.style.top = `${bottom}px`;
-    els.resizeHandleLB.style.left = `${rect.x - RESIZE_HANDLE_SIZE_PX}px`;
-    els.resizeHandleLB.style.top = `${bottom}px`;
+    els.resizeHandleLT.style.left = `${rect.x - stroke}px`;
+    els.resizeHandleLT.style.top = `${rect.y - stroke}px`;
+    els.resizeHandleRT.style.left = `${right - inset}px`;
+    els.resizeHandleRT.style.top = `${rect.y - stroke}px`;
+    els.resizeHandleRB.style.left = `${right - inset}px`;
+    els.resizeHandleRB.style.top = `${bottom - inset}px`;
+    els.resizeHandleLB.style.left = `${rect.x - stroke}px`;
+    els.resizeHandleLB.style.top = `${bottom - inset}px`;
   };
 
   const positionActiveResizeHandleAtPointer = () => {
@@ -289,27 +292,28 @@ function bindCanvasResizeUI() {
     if (!handle) return;
 
     const pointer = canvasResizeState.pointer;
-    const half = Math.floor(RESIZE_HANDLE_SIZE_PX / 2);
+    const inset = RESIZE_HANDLE_SIZE_PX - 1;
+    const stroke = RESIZE_HANDLE_STROKE_WIDTH_PX;
     const containerRect = els.container.getBoundingClientRect();
-    const left = `${pointer.clientX - containerRect.left - half}px`;
-    const top = `${pointer.clientY - containerRect.top - half}px`;
+    const x = pointer.clientX - containerRect.left;
+    const y = pointer.clientY - containerRect.top;
 
     switch (handle) {
       case "LT":
-        els.resizeHandleLT.style.left = left;
-        els.resizeHandleLT.style.top = top;
+        els.resizeHandleLT.style.left = `${x - stroke}px`;
+        els.resizeHandleLT.style.top = `${y - stroke}px`;
         break;
       case "RT":
-        els.resizeHandleRT.style.left = left;
-        els.resizeHandleRT.style.top = top;
+        els.resizeHandleRT.style.left = `${x - inset}px`;
+        els.resizeHandleRT.style.top = `${y - stroke}px`;
         break;
       case "RB":
-        els.resizeHandleRB.style.left = left;
-        els.resizeHandleRB.style.top = top;
+        els.resizeHandleRB.style.left = `${x - inset}px`;
+        els.resizeHandleRB.style.top = `${y - inset}px`;
         break;
       case "LB":
-        els.resizeHandleLB.style.left = left;
-        els.resizeHandleLB.style.top = top;
+        els.resizeHandleLB.style.left = `${x - stroke}px`;
+        els.resizeHandleLB.style.top = `${y - inset}px`;
         break;
     }
   };
