@@ -202,7 +202,7 @@ const HistoryButtons = observer(() => {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.getActiveToolId() === ToolId.Brush &&
+    paintState.getSelectedToolId() === ToolId.Brush &&
     paintState.getBrushId() === BrushId.Brush;
 
   const toggleMenu = () => {
@@ -227,7 +227,7 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.getActiveToolId() === ToolId.Brush &&
+    paintState.getSelectedToolId() === ToolId.Brush &&
     paintState.getBrushId() === BrushId.Eraser;
 
   const toggleMenu = () => {
@@ -254,8 +254,8 @@ const EraserToolButton = observer(() => {
 
 const SelectionToolButton = observer(() => {
   const isSelected =
-    paintState.getActiveToolId() === ToolId.Select ||
-    paintState.getActiveToolId() === ToolId.Selection;
+    paintState.getSelectedToolId() === ToolId.Select ||
+    paintState.getSelectedToolId() === ToolId.Selection;
 
   return (
     <button
@@ -270,7 +270,6 @@ const SelectionToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.getActiveToolId() === ToolId.Session &&
     paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify;
 
   const toggleMenu = () => {
@@ -294,7 +293,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const ZoomToolButton = observer(() => {
-  const isSelected = paintState.getActiveToolId() === ToolId.Zoom;
+  const isSelected = paintState.getSelectedToolId() === ToolId.Zoom;
 
   return (
     <button
@@ -316,7 +315,7 @@ const ZoomToolButton = observer(() => {
 });
 
 const ColorPickerToolButton = observer(() => {
-  const isSelected = paintState.getActiveToolId() === ToolId.ColorPicker;
+  const isSelected = paintState.getSelectedToolId() === ToolId.ColorPicker;
 
   return (
     <button

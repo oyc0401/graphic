@@ -1,4 +1,5 @@
 // tools/ZoomTool.ts
+import { getActiveToolId } from "../coreToolAdapter";
 import { paintState, ToolId } from "../paintState";
 import {
   position,
@@ -17,7 +18,7 @@ export class ZoomTool {
 
   down(e: PointerEvent) {
     if (
-      paintState.getActiveToolId() !== ToolId.Zoom ||
+      getActiveToolId() !== ToolId.Zoom ||
       !paintState.getPointerdown() ||
       this.active
     )
@@ -29,7 +30,7 @@ export class ZoomTool {
 
   move(e: PointerEvent) {
     if (
-      paintState.getActiveToolId() !== ToolId.Zoom ||
+      getActiveToolId() !== ToolId.Zoom ||
       !paintState.getPointerdown() ||
       !this.active
     )
@@ -39,7 +40,7 @@ export class ZoomTool {
   }
 
   up(e: PointerEvent) {
-    if (paintState.getActiveToolId() !== ToolId.Zoom || !this.active) return;
+    if (getActiveToolId() !== ToolId.Zoom || !this.active) return;
 
     this.active = false;
 

@@ -5,7 +5,7 @@ describe("paintState tool mode mapping", () => {
   beforeEach(() => {
     paintState.setInputMode(InputMode.DEFAULT);
     paintState.setBrushId(BrushId.Brush);
-    paintState.endSession();
+    paintState.setSessionMode(false);
     paintState.setSessionId(SessionId.Liquify);
     paintState.setSelectedToolId(ToolId.Brush);
   });
@@ -14,45 +14,46 @@ describe("paintState tool mode mapping", () => {
     paintState.setSelectedToolId(ToolId.Zoom);
 
     expect(paintState.getToolId()).toBe(ToolId.Zoom);
+    expect(paintState.getSelectedToolId()).toBe(ToolId.Zoom);
     expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
-    expect(paintState.getActiveToolId()).toBe(ToolId.Zoom);
   });
 
   it("selects color picker as a persistent tool without changing input mode", () => {
     paintState.setSelectedToolId(ToolId.ColorPicker);
 
     expect(paintState.getToolId()).toBe(ToolId.ColorPicker);
+    expect(paintState.getSelectedToolId()).toBe(ToolId.ColorPicker);
     expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
-    expect(paintState.getActiveToolId()).toBe(ToolId.ColorPicker);
   });
 
-  it("restores temporary color picker with an explicit brush input mode", () => {
+  it("keeps temporary color picker in input mode only", () => {
     paintState.setSelectedToolId(ToolId.Brush);
     paintState.setInputMode(InputMode.ColorPicker);
 
-    expect(paintState.getActiveToolId()).toBe(ToolId.ColorPicker);
+    expect(paintState.getSelectedToolId()).toBe(ToolId.Brush);
+    expect(paintState.getInputMode()).toBe(InputMode.ColorPicker);
 
     paintState.setInputMode(InputMode.DEFAULT);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
-    expect(paintState.getActiveToolId()).toBe(ToolId.Brush);
   });
 
   it("keeps liquify in session state instead of selected tool id", () => {
-    paintState.startSession(SessionId.Liquify);
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(true);
-    expect(paintState.getActiveToolId()).toBe(ToolId.Session);
     expect(paintState.getBrushId()).toBe(BrushId.Brush);
     expect(paintState.getSessionId()).toBe(SessionId.Liquify);
     expect(paintState.getBrushSize()).toBe(50);
   });
 
   it("clears session tool by returning to brush", () => {
-    paintState.startSession(SessionId.Liquify);
-    paintState.endSession();
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
+    paintState.setSessionMode(false);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(false);
@@ -60,7 +61,8 @@ describe("paintState tool mode mapping", () => {
   });
 
   it("supports mosaic as a future session tool", () => {
-    paintState.startSession(SessionId.Mosaic);
+    paintState.setSessionId(SessionId.Mosaic);
+    paintState.setSessionMode(true);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(true);

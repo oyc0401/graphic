@@ -1,3 +1,4 @@
+import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState } from "../paintState";
 import { getToolMetadata, toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
@@ -25,7 +26,8 @@ export function dispatch(e: PointerEvent, phase: Phase) {
       return;
   }
 
-  const activeToolMetadata = getToolMetadata(paintState.getActiveToolId());
+  const toolId = getActiveToolId();
+  const activeToolMetadata = getToolMetadata(toolId);
 
   if (
     paintState.getInputMode() === InputMode.DEFAULT &&
@@ -46,7 +48,7 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   }
 
   // 2. 기본 도구 (BRUSH, SELECT, RESIZE 등)는 toolId 기준
-  const tool = toolRegistry[paintState.getActiveToolId()];
+  const tool = toolRegistry[toolId];
   tool?.[phase]?.(e);
   syncCoreStateAfterPointerEnd(phase);
 }

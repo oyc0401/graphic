@@ -1,4 +1,5 @@
 /** view.ts */
+import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { autorun } from "mobx";
 import { els } from "./elements";
@@ -35,9 +36,7 @@ function bindCursorUI() {
   });
 
   autorun(() => {
-    const activeCursorClass = getToolMetadata(
-      paintState.getActiveToolId(),
-    ).cursorClass;
+    const activeCursorClass = getToolMetadata(getActiveToolId()).cursorClass;
 
     for (const cursorClass of getToolCursorClasses()) {
       container.classList.toggle(
@@ -51,19 +50,19 @@ function bindCursorUI() {
 
   // 2. ZOOM
   autorun(() => {
-    container.classList.toggle("zoom", paintState.getActiveToolId() === ToolId.Zoom);
+    container.classList.toggle("zoom", getActiveToolId() === ToolId.Zoom);
   });
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
     const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
-    const isSelectTool = paintState.getActiveToolId() === ToolId.Select;
+    const isSelectTool = paintState.getSelectedToolId() === ToolId.Select;
     container.classList.toggle("select", isBrush && isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
       paintState.getInputMode() === InputMode.DEFAULT &&
-      paintState.getActiveToolId() === ToolId.Selection;
+      paintState.getSelectedToolId() === ToolId.Selection;
     const isCanvasResize = resizeTool.isVisible();
     const resizeHover = canvasResizeState.hover;
     const nwse =
@@ -95,8 +94,8 @@ function bindCursorUI() {
     const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
 
     const isDrawingTool =
-      paintState.getActiveToolId() === ToolId.Brush ||
-      paintState.getActiveToolId() === ToolId.Session;
+      paintState.getSelectedToolId() === ToolId.Brush ||
+      paintState.getSessionMode();
     const isValid = isBrush && isDrawingTool;
 
     const isDesktop = !("ontouchstart" in window);
@@ -348,7 +347,7 @@ function bindCursorPositionUI() {
 
 function bindZoomAreaUI() {
   autorun(() => {
-    const isZooming = paintState.getActiveToolId() === ToolId.Zoom;
+    const isZooming = getActiveToolId() === ToolId.Zoom;
 
     if (!isZooming) {
       els.zoomArea.style.visibility = "hidden";

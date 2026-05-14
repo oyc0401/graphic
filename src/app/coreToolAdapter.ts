@@ -1,8 +1,19 @@
 import type { CoreSessionTool, CoreTool } from "@/core/types";
-import { BrushId, paintState, SessionId, ToolId } from "./paintState";
+import { BrushId, InputMode, paintState, SessionId, ToolId } from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
 export type WorkerToolTarget = BrushId | SessionId.Liquify | ToolId.Select | ToolId.Selection;
+
+export function getActiveToolId(): ToolId {
+  let toolId = paintState.getSelectedToolId();
+  if (paintState.getSessionMode()) toolId = ToolId.Session;
+  if (paintState.getInputMode() === InputMode.Zoom) toolId = ToolId.Zoom;
+  if (paintState.getInputMode() === InputMode.ColorPicker) {
+    toolId = ToolId.ColorPicker;
+  }
+
+  return toolId;
+}
 
 function coreToolForWorkerTarget(target: WorkerToolTarget): CoreTool | CoreSessionTool | null {
   switch (target) {
@@ -43,7 +54,8 @@ function applyCoreToolToPaintState(tool: CoreTool | CoreSessionTool | null, fall
       paintState.setSelectedToolId(ToolId.Brush);
       return;
     case "liquify":
-      paintState.startSession(SessionId.Liquify);
+      paintState.setSessionId(SessionId.Liquify);
+      paintState.setSessionMode(true);
       return;
     case null:
       if (fallbackTarget === ToolId.Select || fallbackTarget === ToolId.Selection) {

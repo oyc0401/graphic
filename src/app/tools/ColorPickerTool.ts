@@ -1,3 +1,4 @@
+import { getActiveToolId } from "../coreToolAdapter";
 import { colorState } from "../colorState";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
@@ -23,10 +24,7 @@ export class ColorPickerTool {
   }
 
   down(e: PointerEvent) {
-    if (
-      !paintState.getPointerdown() ||
-      paintState.getActiveToolId() !== ToolId.ColorPicker
-    )
+    if (!paintState.getPointerdown() || getActiveToolId() !== ToolId.ColorPicker)
       return;
     this.pointerStarted = true;
 
@@ -35,14 +33,12 @@ export class ColorPickerTool {
 
   move(e: PointerEvent) {
     paintState.setCursorPosition(e.clientX, e.clientY);
-    if (!this.pointerStarted || paintState.getActiveToolId() !== ToolId.ColorPicker)
-      return;
+    if (!this.pointerStarted || getActiveToolId() !== ToolId.ColorPicker) return;
     this.sampleFromEvent(e);
   }
 
   up() {
-    if (!this.pointerStarted || paintState.getActiveToolId() !== ToolId.ColorPicker)
-      return;
+    if (!this.pointerStarted || getActiveToolId() !== ToolId.ColorPicker) return;
     this.pointerStarted = false;
     paintState.setInputMode(InputMode.DEFAULT);
   }

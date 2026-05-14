@@ -1,3 +1,4 @@
+import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState } from "../paintState";
 import {
   resizeSelectionFromHandle,
@@ -73,7 +74,7 @@ export class ResizeTool {
   }
 
   private canUseCanvasResizeHandle() {
-    const toolMetadata = getToolMetadata(paintState.getActiveToolId());
+    const toolMetadata = getToolMetadata(getActiveToolId());
 
     return (
       paintState.getInputMode() === InputMode.DEFAULT &&

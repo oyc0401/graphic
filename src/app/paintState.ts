@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
 
 export enum InputMode {
@@ -86,6 +86,9 @@ class PaintState {
   setBrushId(brushId: BrushId) {
     this._brushId = brushId;
   }
+  setSessionMode(value: boolean) {
+    this._sessionMode = value;
+  }
   setSessionId(sessionId: SessionId) {
     this._sessionId = sessionId;
   }
@@ -159,32 +162,11 @@ class PaintState {
   getToolId(): ToolId {
     return this._selectedToolId;
   }
-  getActiveToolId(): ToolId {
-    if (this._inputMode === InputMode.Zoom) {
-      return ToolId.Zoom;
-    }
-    if (this._inputMode === InputMode.ColorPicker) {
-      return ToolId.ColorPicker;
-    }
-    if (this._sessionMode) {
-      return ToolId.Session;
-    }
-
-    return this._selectedToolId;
-  }
-
-  private getBrushSettingsId(): BrushSettingsId {
-    return this._sessionMode ? this._sessionId : this._brushId;
-  }
 
   /** .etc */
 
-  startSession(sessionId: SessionId) {
-    this._sessionId = sessionId;
-    this._sessionMode = true;
-  }
-  endSession() {
-    this._sessionMode = false;
+  private getBrushSettingsId(): BrushSettingsId {
+    return this._sessionMode ? this._sessionId : this._brushId;
   }
 }
 

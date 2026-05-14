@@ -34,13 +34,13 @@ function commitVisibleSelection() {
 function commitLiquifySession() {
   getLayerWorker().commitSession();
   syncCoreState();
-  paintState.endSession();
+  paintState.setSessionMode(false);
 }
 
 function discardLiquifySession() {
   getLayerWorker().discardSession();
   syncCoreState();
-  paintState.endSession();
+  paintState.setSessionMode(false);
 }
 
 function leaveCurrentEditingState(options: { commitSelection: boolean }) {
@@ -59,7 +59,7 @@ function leaveCurrentEditingState(options: { commitSelection: boolean }) {
 }
 
 function selectBrushLikeTool(brushId: BrushId) {
-  paintState.endSession();
+  paintState.setSessionMode(false);
   paintState.setBrushId(brushId);
   paintState.setSelectedToolId(ToolId.Brush);
   setDefaultInputMode();
@@ -70,14 +70,14 @@ function selectBrushLikeTool(brushId: BrushId) {
 function selectAppOnlyTool(
   toolId: ToolId.Select | ToolId.Zoom | ToolId.ColorPicker,
 ) {
-  paintState.endSession();
+  paintState.setSessionMode(false);
   paintState.setSelectedToolId(toolId);
   setDefaultInputMode();
   getLayerWorker().setTool(paintState.getBrushId());
 }
 
 function returnFromSession() {
-  paintState.endSession();
+  paintState.setSessionMode(false);
   setDefaultInputMode();
   getLayerWorker().setTool(paintState.getBrushId());
   syncCoreState();
@@ -105,7 +105,8 @@ export const toolManager = {
 
     if (!leaveCurrentEditingState({ commitSelection: true })) return;
 
-    paintState.startSession(SessionId.Liquify);
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
     setDefaultInputMode();
     getLayerWorker().openSession("liquify");
     syncCoreState();
@@ -135,7 +136,7 @@ export const toolManager = {
     if (!canChangeTool()) return;
     if (!leaveCurrentEditingState({ commitSelection: false })) return;
 
-    paintState.endSession();
+    paintState.setSessionMode(false);
     paintState.setSelectedToolId(ToolId.Selection);
     setDefaultInputMode();
     syncCoreState();
