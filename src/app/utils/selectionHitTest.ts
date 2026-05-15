@@ -72,7 +72,7 @@ export function getSelectionHandleAtPoint(
   } as const;
 
   // ───── 우선순위: 꼭짓점 → 모서리 → 내부
-  for (const k of ["LT", "RT", "RB", "LB"] as const)
+  for (const k of ["RB", "RT", "LB", "LT"] as const)
     if (
       inRect(clientX, clientY, {
         ...corners[k],
@@ -82,7 +82,7 @@ export function getSelectionHandleAtPoint(
     )
       return k;
 
-  for (const k of ["T", "R", "B", "L"] as const)
+  for (const k of ["B", "R", "L", "T"] as const)
     if (inRect(clientX, clientY, { ...edges[k], w: edges[k].w, h: edges[k].h }))
       return k;
 
