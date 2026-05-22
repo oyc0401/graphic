@@ -133,3 +133,5 @@ dist
 # Rust build output (inside src/core/wasm)
 src/core/wasm/target/
 src/core/wasm/Cargo.lock  
+
+.DS_Store
