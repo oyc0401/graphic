@@ -16,8 +16,7 @@ export const TEXTURE_UNIT = {
   RENDERED_SELECTION: 10, // 선택창 확대/축소, copy시 그릴 버퍼
   OFFSCREEN: 11, // 렌더링 전 미리 그릴 버퍼
 
-  EASE_INTEGRAL: 17, // Ease In-Out Cubic Integral
-  EASE_MIRROR: 18, // Ease In-Out Cubic Mirror
+  LIQUIFY_PRIMITIVE: 17, // Finite stroke integral primitive P(U, X)
 };
 
 // W, H, cW, cH, sW, sH, mW, mH

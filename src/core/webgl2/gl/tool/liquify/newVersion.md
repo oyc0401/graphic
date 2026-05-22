@@ -408,6 +408,36 @@ ease를 슬라이더로 고를 수는 있다. 하지만 단면을 직접 그릴 
 
 거꾸로 돌리려면 도구가 필요하다. 그런데 그 도구는 이미 만들어져 있다.
 
+### 좌표와 기호
+
+이후 수식에서 쓰는 기호를 먼저 정리한다.
+
+```text
+pixel       현재 셰이더가 계산 중인 픽셀 위치. 이미지 픽셀 좌표다.
+start       현재 stroke segment의 시작점. 이미지 픽셀 좌표다.
+end         현재 stroke segment의 끝점. 이미지 픽셀 좌표다.
+radius      브러시 반지름. 픽셀 단위다.
+len         segment 길이. 픽셀 단위다.
+dir         segment 방향 단위 벡터.
+along       start에서 pixel을 dir 방향으로 투영한 거리. 픽셀 단위다.
+perp        segment 중심선에서 pixel까지의 수직 거리. 픽셀 단위다.
+X           perp / radius. 정규화된 수직 거리다.
+U           segment 방향 거리 / radius. 정규화된 선분 방향 거리다.
+K(r)        순간 브러시 커널. r은 0..1의 정규화 거리다.
+S(X)        긴 선분 중앙에서 보이는 최종 단면이다.
+P(U, X)     0..U까지 K를 적분해 둔 2D primitive lookup이다.
+```
+
+2D에서 외적은 스칼라로 구현한다.
+
+```glsl
+float cross2(vec2 a, vec2 b) {
+  return a.x * b.y - a.y * b.x;
+}
+```
+
+`X`와 `U`는 둘 다 정규화된 좌표다. 셰이더에서 텍스처 lookup에 바로 쓰기 위해 `0..1` 범위로 만든다.
+
 LEVEL3에서 만든 식.
 
 $$S = A \cdot K$$
@@ -426,9 +456,82 @@ $$A \cdot K = S_{\text{target}}$$
 
 $$\min_K \|A K - S_{\text{target}}\|^2 + \lambda \|D K\|^2$$
 
-최소제곱은 "가장 가까운 답을 찾는 것". 정규화 항은 `K`가 들쭉날쭉하지 않게 잡아주는 것. `K[j] ≥ 0` 제약은 음수 변위가 말이 안 되니까.
+최소제곱은 "가장 가까운 답을 찾는 것". 정규화 항은 `K`가 들쭉날쭉하지 않게 잡아주는 것.
+
+이 식은 선형 방정식으로 바꿀 수 있다.
+
+$$
+\left(A^T A + \lambda D^T D\right)K = A^T S_{\text{target}}
+$$
+
+샘플별 가중치도 넣을 수 있다. 그러면 `A^T A` 대신 `A^T W A`, `A^T S` 대신 `A^T W S`를 쓴다. 현재 고품질 preset에서는 가중치를 쓰지 않는다. 즉 `W = I`다. 낮은 해상도에서는 중심부 오차를 줄이기 위해 `X=0` 근처에 더 큰 가중치를 줄 수 있지만, 현재 설정에서는 오히려 가장자리 오차가 커져서 꺼두었다.
 
 [그림27 인터랙티브: 사용자가 마우스로 S_target을 그리면 K가 실시간으로 풀려서 옆에 표시]
+
+### 계산 비용
+
+여기서 조심해야 한다. LEVEL5도 드래그 중 픽셀당 비용은 `O(1)`이지만, **커널을 새로 만드는 비용은 싸지 않다.**
+
+`A`를 만드는 것 자체는 작다. `S` 샘플 수를 `N`, 커널 샘플 수를 `M`, 적분 샘플 수를 `Q`라고 하면 `A` 생성은 대략:
+
+$$O(N \cdot Q)$$
+
+각 `S[i]`에 대해 선분 방향으로 `Q`번 샘플링하고, 그 샘플이 커널의 어느 칸에 기여하는지 누적한다. 예를 들어 `N=128`, `Q=240`이면 약 3만 샘플이다. 이 부분은 병목이 아니다.
+
+비싼 부분은 `K`를 푸는 쪽이다. 단순히 `S = A K`니까 `K = A^{-1}S`라고 생각할 수 있지만, 실제 구현에서는 보통 역행렬을 직접 만들지 않는다. `A`는 적분 행렬이라 주변 커널 샘플을 섞고, 작은 오차를 크게 키울 수 있다. 그래서 정규화를 넣은 선형 시스템을 만든 뒤, 그 시스템을 한 번 푼다.
+
+초기 데모처럼 gradient descent로 풀 수도 있다. 한 번의 iteration마다:
+
+- `A K` 계산
+- `A^T residual` 계산
+
+을 하므로 비용은:
+
+$$O(I \cdot N \cdot M)$$
+
+`N = M`으로 잡으면:
+
+$$O(I \cdot N^2)$$
+
+예를 들어 `N=128`, `I=3000`이면 대략 `3000 × 2 × 128 × 128`, 즉 1억 번 정도의 곱셈/덧셈이 필요하다. 여기에 LEVEL4용 2D primitive texture를 다시 만드는 비용도 붙는다.
+
+하지만 `K[j] ≥ 0` 제약을 엄격하게 강제하지 않는다면, 위의 normal equation을 한 번 푸는 편이 훨씬 싸다. dense linear solve는 보통:
+
+$$O(N^3)$$
+
+`N=128`이면 `128^3`, 약 210만 규모다. gradient descent의 1억 연산보다 훨씬 작다. 나중에 단면을 자주 바꿔야 한다면, 더 나아가 `S`에서 `K`로 가는 변환 행렬을 미리 만들어 `K = B S`처럼 쓸 수도 있다. 그러면 단면을 바꿀 때마다 드는 비용은 `O(N^2)`까지 내려간다.
+
+`P(U, X)` 2D 텍스처를 순진하게 만들면 각 칸마다 `0..U`를 다시 적분하게 된다. 텍스처 크기를 `N_u × N_x`, 각 칸의 적분 샘플 수를 `Q_p`라고 하면:
+
+$$O(N_u \cdot N_x \cdot Q_p)$$
+
+`256 × 256 × 256`이면 약 1,680만 샘플이다.
+
+하지만 `P(U, X)`는 이름 그대로 누적 적분이다. 같은 `X` 행에서는 이전 `U`까지의 값을 재사용할 수 있다.
+
+```text
+P(U_i, X) = P(U_{i-1}, X) + ∫U_{i-1}..U_i K(sqrt(X² + u²)) du
+```
+
+그러면 각 칸을 처음부터 다시 적분하지 않고, `U` 방향으로 왼쪽에서 오른쪽으로 한 번 훑으면서 누적한다. midpoint 한 번으로 각 구간을 더하면 비용은:
+
+$$O(N_u \cdot N_x)$$
+
+`256 × 256`이면 약 6.5만 샘플이다. 순진한 방식보다 훨씬 싸고, lookup 해상도가 충분하면 오차는 매우 작다.
+
+정리하면:
+
+```text
+A 생성:             O(N · Q)              작음
+K 역산(GD):         O(I · N · M)          큼
+K 역산(solve):      O(N³)                 중간
+K 역산(사전 B):     O(N²)                 작음
+2D LUT 생성(순진):  O(Nu · Nx · Qp)       중간
+2D LUT 생성(누적):  O(Nu · Nx)            작음
+드래그 중 셰이더:   O(1)                  lookup 몇 번
+```
+
+그러니까 "60FPS"라는 말은 **커널과 텍스처를 만든 뒤의 드래그 비용**을 말한다. 사용자가 단면을 새로 그릴 때마다 `K`와 LUT를 다시 만들면 그 순간은 계산 시간이 든다. 고정된 프리셋만 쓸 거라면 이 계산은 런타임이 아니라 빌드 타임이나 사전계산 단계로 빼는 편이 좋다.
 
 ### 파이프라인
 
@@ -439,6 +542,317 @@ $$\min_K \|A K - S_{\text{target}}\|^2 + \lambda \|D K\|^2$$
 precompute가 한 번 더 무거워질 뿐이다. 사용자가 단면을 새로 그릴 때마다 텍스처를 다시 만든다. 한 번 만들면 그 다음 드래그는 다 60FPS.
 
 사용자는 이제 **원하는 결과를 직접 디자인한다.**
+
+### 현재 구현 명세
+
+이 섹션은 바로 구현할 수 있는 형태의 명세다. 변수 이름은 코드와 맞추기 위해 영어로 쓴다.
+
+#### 목표 단면
+
+현재 목표 단면은 `easeInOutSine`이다.
+
+```ts
+function easeInOutSine(x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  return -(Math.cos(Math.PI * x) - 1) / 2;
+}
+```
+
+`X`는 선분 중심선에서 픽셀까지의 수직 거리를 브러시 반지름으로 나눈 값이다.
+
+```text
+X = perpendicularDistance / radius
+```
+
+원하는 최종 단면은:
+
+```text
+S_target(X) = easeInOutSine(1 - X)
+```
+
+따라서:
+
+```text
+X = 0  → S = 1
+X = 1  → S = 0
+```
+
+#### 권장 파라미터
+
+현재 품질/비용 균형으로 쓰는 값은 다음과 같다.
+
+```ts
+const KERNEL_SIZE = 256;
+const PRIMITIVE_U_SIZE = 512;
+const PRIMITIVE_X_SIZE = 512;
+
+const SOLVE_SIZE = 256;
+const SOLVE_U_SAMPLES = 768;
+const SOLVE_SMOOTHNESS = 0.0002;
+const SOLVE_CENTER_WEIGHT = 0;
+const SOLVE_DIAGONAL_EPSILON = 1e-8;
+```
+
+이 설정의 대략적인 비용:
+
+```text
+A 생성:      256 × 768 ≈ 20만 샘플
+K solve:     256³ ≈ 1,680만 규모
+2D LUT 생성: 512² ≈ 26만 샘플
+```
+
+재현 측정 기준으로 `S_target`과 최종 `S_actual`의 차이는 대략:
+
+```text
+max absolute error ≈ 0.000008
+rms error          ≈ 0.000002
+```
+
+#### A 행렬 만들기
+
+`A`는 `K`를 `S`로 보내는 forward matrix다.
+
+```text
+S = A K
+```
+
+`A[i][j]`는 "`S[i]`를 만들 때 `K[j]`가 얼마나 기여하는가"를 뜻한다.
+
+```ts
+function buildForwardMatrix(profileSize, kernelSize, uSamples) {
+  const A = zeros(profileSize, kernelSize);
+
+  for (let i = 0; i < profileSize; i++) {
+    const X = i / (profileSize - 1);
+    const maxU = Math.sqrt(Math.max(0, 1 - X * X));
+    if (maxU === 0) continue;
+
+    const du = maxU / uSamples;
+    for (let sample = 0; sample < uSamples; sample++) {
+      const U = (sample + 0.5) * du;
+      const r = Math.sqrt(X * X + U * U);
+
+      const pos = r * (kernelSize - 1);
+      const j0 = Math.min(kernelSize - 1, Math.floor(pos));
+      const j1 = Math.min(kernelSize - 1, j0 + 1);
+      const t = pos - j0;
+
+      // S(X)는 -maxU..+maxU 적분이다.
+      // K는 u에 대해 대칭이므로 2 * ∫0..maxU 로 계산한다.
+      const weight = 2 * du;
+      A[i][j0] += weight * (1 - t);
+      A[i][j1] += weight * t;
+    }
+  }
+
+  return A;
+}
+```
+
+#### K 풀기
+
+목표는 다음 least squares 문제다.
+
+```text
+min ||A K - S_target||² + λ ||D K||²
+```
+
+`D`는 두 번째 차분 연산자다.
+
+```text
+(D K)[i] = K[i - 1] - 2K[i] + K[i + 1]
+```
+
+즉 커널의 곡률이 너무 커지지 않게 만든다. 이 항이 없으면 `A`가 작은 오차를 크게 증폭해서 `K`가 흔들릴 수 있다.
+
+normal equation은:
+
+```text
+(Aᵀ W A + λDᵀD + εI) K = Aᵀ W S_target
+```
+
+현재 설정에서는 `W = I`다. 즉 가중치를 쓰지 않는다. 중심부 가중치는 낮은 해상도에서는 도움이 될 수 있지만, `SOLVE_SIZE = 256`에서는 edge 오차를 키워서 꺼두었다.
+
+`D^T D`는 별도의 큰 행렬을 만들지 않고 `M`에 직접 더할 수 있다.
+
+```ts
+function addSmoothnessRegularization(M, lambda) {
+  for (let i = 1; i < M.length - 1; i++) {
+    const idx = [i - 1, i, i + 1];
+    const c = [1, -2, 1];
+
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        M[idx[row]][idx[col]] += lambda * c[row] * c[col];
+      }
+    }
+  }
+}
+```
+
+`εI`도 더한다. 이 값은 행렬이 거의 singular할 때 pivot이 0에 가까워지는 것을 막는 작은 안정화 항이다.
+
+구현 순서:
+
+```ts
+const A = buildForwardMatrix(SOLVE_SIZE, SOLVE_SIZE, SOLVE_U_SAMPLES);
+const S = makeTargetProfile(SOLVE_SIZE);
+const W = makeWeights(SOLVE_SIZE); // 현재는 모두 1
+
+const M = transpose(A) * W * A;
+const b = transpose(A) * W * S;
+
+M += SOLVE_SMOOTHNESS * transpose(D) * D;
+M += SOLVE_DIAGONAL_EPSILON * identity;
+
+const K_solve = solveLinearSystem(M, b);
+const K = resample(K_solve, KERNEL_SIZE);
+```
+
+`solveLinearSystem`은 부분 피벗 Gaussian elimination으로 충분하다. `N=256`에서는 비용이 감당 가능하다. 더 자주 풀어야 한다면 `B = M^{-1}A^T W`를 미리 만들어 `K = B S`로 바꿀 수 있다.
+
+#### 2D primitive LUT 만들기
+
+셰이더가 직접 읽는 텍스처는 `K`가 아니라 `P(U, X)`다.
+
+```text
+P(U, X) = ∫0..U K(sqrt(X² + u²)) du
+```
+
+이 LUT는 `PRIMITIVE_U_SIZE × PRIMITIVE_X_SIZE` 크기의 `R32F` 2D texture로 올린다.
+
+`K(r)`는 `r >= 1`에서 0으로 취급한다. 그래서 고정된 `X`에서 실제로 적분이 필요한 최대 `U`는:
+
+```text
+maxU = sqrt(1 - X²)
+```
+
+이다. `U`가 이 값을 넘으면 `sqrt(X² + U²) >= 1`이므로 커널 기여가 0이다. 그래서 각 행은 `maxU` 이후로 값이 더 이상 변하지 않는다.
+
+각 `X` 행은 누적합으로 만든다.
+
+```ts
+for (let y = 0; y < PRIMITIVE_X_SIZE; y++) {
+  const X = y / (PRIMITIVE_X_SIZE - 1);
+  const maxU = Math.sqrt(Math.max(0, 1 - X * X));
+  let sum = 0;
+
+  primitive[y][0] = 0;
+
+  for (let uIndex = 1; uIndex < PRIMITIVE_U_SIZE; uIndex++) {
+    const prevU = Math.min((uIndex - 1) / (PRIMITIVE_U_SIZE - 1), maxU);
+    const nextU = Math.min(uIndex / (PRIMITIVE_U_SIZE - 1), maxU);
+
+    if (nextU > prevU) {
+      const U = (prevU + nextU) / 2;
+      const r = Math.sqrt(X * X + U * U);
+      sum += sampleKernel(K, r) * (nextU - prevU);
+    }
+
+    primitive[y][uIndex] = sum;
+  }
+}
+```
+
+몸통 단면은 `S(X) = 2P(1, X)`다. 그래서 정규화는 `X=0`의 몸통 값을 기준으로 한다.
+
+```ts
+normalization = 2 * primitive[0][PRIMITIVE_U_SIZE - 1];
+primitive /= normalization;
+```
+
+이렇게 하면 긴 선분 중앙에서 `X=0`일 때 `power = 1`이 된다.
+
+런타임에는 `primitive`만 필요하다. `S(X)` 1D profile은 디버깅이나 오차 측정에는 유용하지만, 셰이더에 별도 텍스처로 올릴 필요는 없다. `S(X)`는 항상 `2P(1, X)`로 얻을 수 있다.
+
+#### 셰이더에서 쓰는 식
+
+픽셀 좌표를 `pixel`, 선분 시작/끝을 `start`, `end`, 반지름을 `radius`라고 하자.
+
+```glsl
+vec2 segment = end - start;
+float len = length(segment);
+vec2 dir = segment / len;
+
+vec2 local = pixel - start;
+float along = dot(local, dir);
+float perpendicular = abs(cross(local, dir));
+float X = perpendicular / radius;
+```
+
+`X >= 1`이면 영향력은 0이다.
+
+선분 구간은 `0..len`이다. 픽셀 위치 기준으로 양 끝을 radius 단위로 바꾸면:
+
+```glsl
+float z0 = -along / radius;
+float z1 = (len - along) / radius;
+```
+
+signed primitive:
+
+```glsl
+float primitiveSigned(float z, float X) {
+  float signValue = z < 0.0 ? -1.0 : 1.0;
+  float U = clamp(abs(z), 0.0, 1.0);
+  return signValue * texture(u_primitive, vec2(U, X)).r;
+}
+```
+
+최종 power:
+
+```glsl
+float power = primitiveSigned(z1, X) - primitiveSigned(z0, X);
+```
+
+긴 선분 중앙에서는 `z0 <= -1`, `z1 >= 1`이므로:
+
+```text
+power = P(1, X) - (-P(1, X)) = 2P(1, X) = S(X)
+```
+
+즉 LEVEL3의 몸통 단면 `S`는 2D LUT의 마지막 열 안에 들어 있다.
+
+변위량은 기존 브러시 감도에 맞춰 `0.5`를 곱한다.
+
+```glsl
+float diffVal = power * radius * strength * 0.5;
+```
+
+그 다음 기존 변위맵을 보간 샘플링해서 누적한다. 여기서는 forward splatting이 아니라 backward warping을 쓴다. 즉 "이 픽셀이 어디로 가는가"를 직접 뿌리는 대신, "현재 픽셀의 값은 이전 변위맵의 어디에서 가져올 것인가"를 계산한다.
+
+픽셀을 `dir` 방향으로 밀고 싶으면, 현재 픽셀은 이전 상태의 `pixel - movement`에서 값을 가져와야 한다.
+
+```glsl
+vec2 displacedCoord = pixel - diffVal * dir;
+vec2 dispSample = texture(u_displacement, displacedCoord / resolution).xy;
+outDisplacement = dispSample - diffVal * dir;
+```
+
+`texture(u_displacement, ...)`는 선형 보간을 사용한다. 그래서 이미 쌓인 변위맵을 부드럽게 따라가며 누적할 수 있다.
+
+#### 경계와 스케일 주의점
+
+- `X >= 1`이면 power는 0이다.
+- `len == 0`이면 stroke segment가 없으므로 기존 변위값을 그대로 반환한다.
+- `U` lookup은 `clamp(abs(z), 0, 1)`로 제한한다. `U >= 1` 이후는 커널이 0이라 `P`가 더 변하지 않기 때문이다.
+- `P(U, X)`는 정규화된 적분값이다. 최종 픽셀 이동량을 만들 때 다시 `radius`를 곱한다.
+- `strength`는 UI의 세기 값이다. 현재 구현은 기존 감도와 맞추기 위해 `0.5`를 추가로 곱한다.
+- 변위맵은 `RG32F`를 사용한다. R/G 채널에 x/y 방향 변위를 픽셀 단위로 저장한다.
+
+#### 구현 체크리스트
+
+1. `S_target(X) = easeInOutSine(1 - X)`를 만든다.
+2. `A` 행렬을 만든다.
+3. `M = AᵀWA + λDᵀD + εI`, `b = AᵀWS`를 만든다.
+4. `M K = b`를 푼다.
+5. `K`를 `KERNEL_SIZE`로 리샘플한다.
+6. 누적합으로 `P(U, X)` 2D LUT를 만든다.
+7. `2P(1, 0)`으로 LUT를 정규화한다.
+8. `P(U, X)`를 `R32F` 2D texture로 업로드한다.
+9. 셰이더에서 `primitiveSigned(z1, X) - primitiveSigned(z0, X)`로 power를 구한다.
+10. `power * radius * strength * 0.5`를 변위량으로 쓴다.
 
 ---
 
@@ -459,4 +873,3 @@ precompute가 한 번 더 무거워질 뿐이다. 사용자가 단면을 새로 
 > **"이 적분의 변수가 몇 개지?"**
 
 한두 개면, 거의 항상 표로 바꿀 수 있다.
-

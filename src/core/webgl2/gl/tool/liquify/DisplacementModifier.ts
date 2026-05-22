@@ -1,13 +1,10 @@
 import { Pointer } from "@/core/types";
 import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
 import { paintOptions, TEXTURE_UNIT } from "../../texture";
-import { createShader, createProgram, getGlHelper } from "../../utils/glHelper";
+import { createShader, createProgram } from "../../utils/glHelper";
 import { getFullQuadShader, getBufferManager } from "../../vertexShader";
-import {
-  getIntegralEaseInOut,
-  getIntegralEaseInOutMirror,
-} from "./cachedIntegrals";
 import liquifyPushFrag from "./liquifyPush.frag?raw";
+import { getEaseInOutLiquifyLookup } from "./liquifyLookup";
 
 export class DisplacementModifier {
   protected gl: WebGL2RenderingContext;
@@ -70,9 +67,7 @@ export class DisplacementModifier {
   private async initializeShaderResources() {
     const gl = this.gl;
 
-    // Load integral data
-    let integralData = await getIntegralEaseInOut();
-    let integralMirrorData = await getIntegralEaseInOutMirror();
+    const lookup = getEaseInOutLiquifyLookup();
 
     const fullQuadVertexShader = getFullQuadShader(gl);
     const bufferManager = getBufferManager(gl);
@@ -98,51 +93,27 @@ export class DisplacementModifier {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // Create and setup integral textures
-    const integralTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.EASE_INTEGRAL);
-    gl.bindTexture(gl.TEXTURE_2D, integralTex);
+    const primitiveTex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LIQUIFY_PRIMITIVE);
+    gl.bindTexture(gl.TEXTURE_2D, primitiveTex);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
       gl.R32F,
-      integralData.length,
-      1,
+      lookup.primitiveWidth,
+      lookup.primitiveHeight,
       0,
       gl.RED,
       gl.FLOAT,
-      integralData,
+      lookup.primitive,
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.uniform1i(
-      gl.getUniformLocation(this.pushProgram, "u_ease_integral"),
-      TEXTURE_UNIT.EASE_INTEGRAL,
-    );
-
-    const integralMirrorTex = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.EASE_MIRROR);
-    gl.bindTexture(gl.TEXTURE_2D, integralMirrorTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R32F,
-      integralMirrorData.length,
-      1,
-      0,
-      gl.RED,
-      gl.FLOAT,
-      integralMirrorData,
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.uniform1i(
-      gl.getUniformLocation(this.pushProgram, "u_ease_mirror"),
-      TEXTURE_UNIT.EASE_MIRROR,
+      gl.getUniformLocation(this.pushProgram, "u_primitive"),
+      TEXTURE_UNIT.LIQUIFY_PRIMITIVE,
     );
 
     // 쓰여진 결과를 기본 변위맵에 업로드 하기 위해서
