@@ -53,15 +53,15 @@ liquify.restoreMove({ x, y });
 liquify.restoreMove({ x, y });
 liquify.makeHistory();
 
-liquify.render(); // 이걸 하면 renderTexture가 수정됌
+liquify.render(); // 이걸 하면 resultTexture 수정됌
 
 liquify.undo(); // 이걸 하면 변위맵이 수정됌
-liquify.render(); // 이걸 하면 renderTexture가 수정됌
+liquify.render(); // 이걸 하면 resultTexture가 수정됌
 
 liquify.redo(); // 이걸 하면 변위맵이 수정됌
-liquify.render(); // 이걸 하면 renderTexture가 수정됌
+liquify.render(); // 이걸 하면 resultTexture 수정됌
 
-// 대중 renderTexture를 화면 어딘가에 렌더링한다는 함수
+// 대중 resultTexture를 화면 어딘가에 렌더링한다는 함수
 function render() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, canvas.width, canvas.height);
