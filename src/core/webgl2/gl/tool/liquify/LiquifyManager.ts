@@ -1,24 +1,11 @@
-import {
-  TEXTURE_UNIT,
-  getSourceTextureManager,
-  paintOptions,
-} from "../../texture";
+import type { LiquifyTool } from "@/core/types";
+import { Rect } from "@/core/utils/rect";
+import { HistoryObject, getHistoryManager } from "../../../../history/history";
 import { getLayerManager } from "../../layer";
-import { getBufferManager, getFullQuadShader } from "../../vertexShader";
-
-import { createShader, createProgram } from "../../utils/glHelper";
 import { getRenderingManager } from "../../render/render";
-import {
-  getHistoryManager,
-  HistoryStack,
-  HistoryObject,
-  Snapshot,
-} from "../../../../history/history";
-import { DirtyRectRecorder, Rect } from "@/core/utils/rect";
-
-import colorFrag from "./color.frag?raw";
-import { DisplacementModifier } from "./DisplacementModifier";
-import { PixelStore } from "../../../../history/PixelStore";
+import { getSourceTextureManager, paintOptions } from "../../texture";
+import { createLiquify } from "./liquifyModule";
+import type { LiquifyRect } from "./liquifyModule";
 
 interface LiquifyManagerInterface {
   enter(): void;
@@ -34,6 +21,7 @@ interface LiquifyManagerInterface {
   exit(): void;
   applySession(): void;
   discardSession(): void;
+  setTool(toolId: LiquifyTool): void;
   setSize: () => void;
 }
 
@@ -41,25 +29,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
   protected gl: WebGL2RenderingContext;
   private canvas: HTMLCanvasElement;
   private sourceTextureManager: any;
-  private displacementTex: WebGLTexture;
-  private displaceFBO: WebGLFramebuffer;
-  private displacementModifier: DisplacementModifier;
-  private renderProgram: WebGLProgram;
-  private bufferManager: any;
   private layerManager: any;
   private renderingManager: any;
-  private sourceDisplacementTex: WebGLTexture;
-  private sourceDisplacementFBO: WebGLFramebuffer;
-  private fbo: WebGLFramebuffer;
-
-  // State variables
-  // enter ~ exit동안 변경된 범위
-  private changeDirtyRecorder: DirtyRectRecorder;
+  private liquify: ReturnType<typeof createLiquify> | null = null;
+  private toolId: LiquifyTool = "push";
   private changedRect: Rect | null = null;
   private active = false;
-  private historyStack = new HistoryStack("liquify");
-
-  private scissorRect: Rect;
 
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
     this.canvas = canvas;
@@ -71,406 +46,128 @@ export class LiquifyManager implements LiquifyManagerInterface {
     gl: WebGL2RenderingContext,
   ): Promise<LiquifyManager> {
     const manager = new LiquifyManager(canvas, gl);
-    await manager.initializeShaderResources();
+    manager.initializeResources();
     return manager;
   }
 
-  private async initializeShaderResources() {
-    const gl = this.gl;
-
-    // 원본 이미지 텍스처 생성
-    this.sourceTextureManager = getSourceTextureManager(this.canvas, gl);
-
-    // Create displacement input texture and framebuffer
-    this.displacementTex = gl.createTexture()!;
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.displacementTex);
-
-    // 행렬에 linear를 사용하는 이유는 기존의 getVector는 보간으로 값을 가져오기 때문에
-    // 여기서도 텍스처에 접근할 때 보간을 사용해서 가져와야한다.
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    // 프레임버퍼 생성 및 바인딩
-    this.displaceFBO = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.displaceFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.displacementTex,
-      0,
-    );
-
-    // Create displacement modifier
-    this.displacementModifier = await DisplacementModifier.create(
-      gl,
-      this.displacementTex,
-      this.displaceFBO,
-    );
-
-    const fullQuadVertexShader = getFullQuadShader(gl);
-    this.bufferManager = getBufferManager(gl);
-
-    let renderShader = createShader(gl, gl.FRAGMENT_SHADER, colorFrag);
-    this.renderProgram = createProgram(gl, fullQuadVertexShader, renderShader);
-    gl.useProgram(this.renderProgram);
-
-    gl.uniform1i(
-      gl.getUniformLocation(this.renderProgram, "u_displacement"),
-      TEXTURE_UNIT.DISPLACEMENT,
-    );
-
-    gl.uniform1i(
-      gl.getUniformLocation(this.renderProgram, "u_source"),
-      TEXTURE_UNIT.SOURCE,
-    ); // 텍스처 유닛 1에 할당
-
-    this.bufferManager.createFullQuadVAO(this.renderProgram);
-
-    this.layerManager = getLayerManager(this.canvas, gl);
-    this.renderingManager = getRenderingManager(this.canvas, gl);
-
-    this.sourceDisplacementTex = gl.createTexture()!;
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.sourceDisplacementTex);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    this.sourceDisplacementFBO = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sourceDisplacementFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.sourceDisplacementTex,
-      0,
-    );
-
-    this.fbo = gl.createFramebuffer()!;
+  private initializeResources() {
+    this.sourceTextureManager = getSourceTextureManager(this.canvas, this.gl);
+    this.layerManager = getLayerManager(this.canvas, this.gl);
+    this.renderingManager = getRenderingManager(this.canvas, this.gl);
   }
 
-  /**
-   * displacementTex와 sourceDisplaceTex에 해당 픽셀을 적용시킨다.
-   */
-  private async applyHistory(pixelReader: PixelStore, rect: Rect) {
-    const gl = this.gl;
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.displacementTex);
+  private createLiquify() {
+    this.sourceTextureManager.uploadFromLayer(paintOptions.layerId);
 
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-      gl.RG,
-      gl.FLOAT,
-      await pixelReader.getPixelData(),
-    );
+    this.liquify = createLiquify(this.gl, {
+      imageTexture: this.sourceTextureManager.texture,
+      resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+      width: paintOptions.width,
+      height: paintOptions.height,
+    });
 
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.displaceFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.sourceDisplacementFBO);
-
-    gl.blitFramebuffer(
-      rect.x,
-      rect.y,
-      rect.ex + 1,
-      rect.ey + 1,
-      rect.x,
-      rect.y,
-      rect.ex + 1,
-      rect.ey + 1,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
+    this.liquify.setRadius(paintOptions.radius);
+    this.liquify.setStrength(paintOptions.alpha);
   }
 
-  /**
-   * displacementTex를 sourceDisplaceTex에 복사, changedRect 복사 하면서 해당 구역의 전 후 히스토리 스냅샷을 제작한다.
-   */
-  private uploadAndMakeHistory(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ) {
-    const gl = this.gl;
-    let renderRect = Rect.fromWidth(x, y, width, height);
+  private markChanged(rect: LiquifyRect | null) {
+    if (!rect || rect.width === 0 || rect.height === 0) return;
 
-    let beforeSnapshot: Snapshot = this.createCurrentSnapshot(
-      x,
-      y,
-      width,
-      height,
-    );
+    const appRect = Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
+    if (!this.changedRect) {
+      this.changedRect = appRect;
+      return;
+    }
 
-    // sourceMap으로 업로드
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.displaceFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.sourceDisplacementFBO);
-    gl.blitFramebuffer(
-      renderRect.x,
-      renderRect.y,
-      renderRect.ex + 1,
-      renderRect.ey + 1,
-      renderRect.x,
-      renderRect.y,
-      renderRect.ex + 1,
-      renderRect.ey + 1,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
-
-    // changedRect 업로드
-    this.changedRect = this.changeDirtyRecorder.generateRect();
-
-    return {
-      before: beforeSnapshot,
-      // after: afterSnapshot,
-    };
+    const left = Math.min(this.changedRect.x, appRect.x);
+    const top = Math.min(this.changedRect.y, appRect.y);
+    const right = Math.max(this.changedRect.right, appRect.right);
+    const bottom = Math.max(this.changedRect.bottom, appRect.bottom);
+    this.changedRect = Rect.fromWidth(left, top, right - left, bottom - top);
   }
 
-  /**
-   * 현재상태 스냅샷을 만든다.
-   */
-  private createCurrentSnapshot(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ) {
-    const gl = this.gl;
-    let renderRect = Rect.fromWidth(x, y, width, height);
-
-    // sourceDisplacementFBO에서 직접 픽셀 데이터 읽기
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
-    const pixels = new Float32Array(width * height * 2);
-
-    const sizeInBytes = pixels.byteLength;
-    const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-    console.log(
-      `[LiquifyManager] Pixel data size: (${sizeInMB} MB) - ${width}x${height}`,
-    );
-
-    gl.readPixels(x, y, width, height, gl.RG, gl.FLOAT, pixels);
-
-    let beforePixelReader = PixelStore.fromPixelData(pixels, width, height);
-
-    let copiedChangedRect = this.changedRect?.copy();
-
-    const self = this;
-    const currentSnapshot: Snapshot = {
-      layerId: paintOptions.layerId,
-      pixelReader: beforePixelReader,
-      rect: renderRect,
-      async apply() {
-        await self.applyHistory(this.pixelReader, this.rect);
-
-        self.changeDirtyRecorder = DirtyRectRecorder.clampedRect(
-          0,
-          0,
-          paintOptions.width,
-          paintOptions.height,
-        );
-        if (copiedChangedRect) {
-          self.changeDirtyRecorder.updateRect(copiedChangedRect);
-        }
-        self.changedRect = copiedChangedRect ?? null;
-      },
-    };
-
-    return currentSnapshot;
+  private toAppRect(rect: LiquifyRect | null): Rect | undefined {
+    if (!rect || rect.width === 0 || rect.height === 0) {
+      return undefined;
+    }
+    return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
   }
 
-  /**
-   * sourceDisplaceTex를 displacementTex에 적용시킨다.
-   */
-  private restore(rect: Rect) {
-    const gl = this.gl;
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.displaceFBO);
-
-    gl.blitFramebuffer(
-      rect.x,
-      rect.y,
-      rect.ex + 1,
-      rect.ey + 1,
-      rect.x,
-      rect.y,
-      rect.ex + 1,
-      rect.ey + 1,
-      gl.COLOR_BUFFER_BIT,
-      gl.NEAREST,
-    );
-  }
-
-  private openTexture() {
-    const gl = this.gl;
-    this.displacementModifier.resetWorkSpace(
-      paintOptions.width,
-      paintOptions.height,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.sourceDisplacementTex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RG32F,
-      paintOptions.width,
-      paintOptions.height,
-      0,
-      gl.RG,
-      gl.FLOAT,
-      null,
-    );
-
-    gl.useProgram(this.renderProgram);
-    gl.uniform2f(
-      gl.getUniformLocation(this.renderProgram, "u_resolution"),
-      paintOptions.width,
-      paintOptions.height,
-    );
-  }
-
-  private closeTexture() {
-    const gl = this.gl;
-    this.displacementModifier.exit();
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.sourceDisplacementTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, 1, 1, 0, gl.RG, gl.FLOAT, null);
-  }
-
-  private enterLogic() {
-    this.changeDirtyRecorder = DirtyRectRecorder.clampedRect(
-      0,
-      0,
-      paintOptions.width,
-      paintOptions.height,
-    );
-    this.changedRect = null;
-    this.historyStack.clear();
-    this.openTexture();
-  }
-
-  private addUndo(history: HistoryObject) {
-    this.historyStack.addUndo(history);
-  }
-
-  // Public interface methods
   enter() {
-    this.enterLogic();
+    this.changedRect = null;
+    this.createLiquify();
     this.active = true;
   }
 
   start(pointer: any) {
-    let ceiledRadius = Math.ceil(paintOptions.radius);
-    this.displacementModifier.start(pointer);
-    this.changeDirtyRecorder.updatePointer(pointer, ceiledRadius);
+    if (!this.liquify) return;
+
+    this.liquify.setRadius(paintOptions.radius);
+    this.liquify.setStrength(paintOptions.alpha);
+    this.liquify.start(pointer);
   }
 
-  push(start: any, end: any) {
-    let rect = this.displacementModifier.push(start, end);
-    if (rect) {
-      this.scissorRect = rect; // brush/eraser 렌더 영역으로 사용
-    }
-    this.changeDirtyRecorder.updatePointer(start, paintOptions.radius);
-    this.changeDirtyRecorder.updatePointer(end, paintOptions.radius);
+  push(_start: any, end: any) {
+    if (!this.liquify || this.toolId !== "push") return;
+
+    this.liquify.setRadius(paintOptions.radius);
+    this.liquify.setStrength(paintOptions.alpha);
+    const rect = this.liquify.move(end);
+    this.markChanged(rect);
   }
 
-  apply(_pointer: any) {
-    // 스프레이형 픽셀 유동화 도구가 pointerdown 중 매 프레임 호출하는 진입점.
+  apply(pointer: any) {
+    if (!this.liquify) return;
+
+    this.liquify.setRadius(paintOptions.radius);
+    this.liquify.setStrength(paintOptions.alpha);
+
+    const rect =
+      this.toolId === "twirlClockwise"
+        ? this.liquify.spin(pointer)
+        : this.toolId === "twirlCounterClockwise"
+          ? this.liquify.rightSpin(pointer)
+          : null;
+
+    this.markChanged(rect);
   }
 
   render() {
-    const gl = this.gl;
-    gl.useProgram(this.renderProgram);
-    // 쓰기 영역: 내 화면
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.layerManager.layerFBO);
-    gl.viewport(0, 0, paintOptions.width, paintOptions.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (!this.liquify) return;
 
-    gl.disable(gl.SCISSOR_TEST);
-
-    this.renderingManager.render(this.scissorRect);
+    const rect = this.liquify.render();
+    this.renderingManager.render(this.toAppRect(rect));
   }
 
   end() {
-    let strokeRect = this.displacementModifier.getStrokeDirtyRect();
-    let renderRect = Rect.fromWidth(
-      strokeRect.x,
-      strokeRect.y,
-      strokeRect.width,
-      strokeRect.height,
-    );
-
-    if (strokeRect.isEmpty()) {
-      return;
-    }
-
-    const { before } = this.uploadAndMakeHistory(
-      strokeRect.x,
-      strokeRect.y,
-      strokeRect.width,
-      strokeRect.height,
-    );
-
-    const after = this.createCurrentSnapshot(
-      renderRect.x,
-      renderRect.y,
-      renderRect.width,
-      renderRect.height,
-    );
-
-    // 바이트 크기 계산 (RG 2채널, HALF_FLOAT 2바이트, undo용과 redo용 두 개)
-
-    const displacePageSize = strokeRect.width * strokeRect.height * 2 * 4;
-    const byteSize = displacePageSize * 2;
-
-    const self = this;
-    const newHistory = new HistoryObject({
-      undo: async () => {
-        await before.apply();
-        self.scissorRect = before.rect;
-        self.render();
-        return {};
-      },
-      redo: async () => {
-        await after.apply();
-        self.scissorRect = after.rect;
-        self.render();
-        return {};
-      },
-      byteSize,
-    });
-
-    this.addUndo(newHistory);
-
-    this.changedRect = this.changeDirtyRecorder.generateRect();
+    this.liquify?.makeHistory();
   }
 
   cancel() {
-    this.restore(this.displacementModifier.getStrokeDirtyRect());
+    if (!this.liquify) return;
+
+    this.liquify.cancel();
     this.render();
   }
 
   async undo() {
-    return this.historyStack.undo();
+    if (!this.liquify) return null;
+
+    this.liquify.undo();
+    this.render();
+    return {};
   }
 
   async redo() {
-    return this.historyStack.redo();
+    if (!this.liquify) return null;
+
+    this.liquify.redo();
+    this.render();
+    return {};
   }
 
   getHistoryCount() {
-    return this.historyStack.getHistoryCount();
+    return this.liquify?.getHistoryCount() ?? { undoCount: 0, redoCount: 0 };
   }
 
   exit() {
@@ -481,13 +178,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
     if (!this.active) return;
 
     const gl = this.gl;
+    const historyManager = getHistoryManager(this.canvas, gl);
 
-    let historyManager = getHistoryManager(this.canvas, gl);
-
-    const self = this;
     if (this.changedRect) {
-      const changedRect = this.changedRect.copy();
-      let { before: beforeSource, after: afterSource } =
+      const changedRect = Rect.copy(this.changedRect);
+      const { before: beforeSource, after: afterSource } =
         this.sourceTextureManager.upload(
           changedRect.x,
           changedRect.y,
@@ -496,8 +191,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
         );
 
       const sourceBytes = changedRect.width * changedRect.height * 4 * 2;
-      const byteSize = sourceBytes;
-
+      const self = this;
       const newHistory = new HistoryObject({
         undo: async () => {
           await beforeSource.apply();
@@ -509,16 +203,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
           self.renderingManager.render(changedRect);
           return {};
         },
-        byteSize,
+        byteSize: sourceBytes,
       });
 
       historyManager.addUndo(newHistory);
     }
 
-    this.closeTexture();
+    this.liquify?.destroy();
+    this.liquify = null;
     this.active = false;
     this.changedRect = null;
-    this.historyStack.clear();
   }
 
   discardSession() {
@@ -526,10 +220,14 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.sourceTextureManager.restore();
     this.renderingManager.render();
-    this.closeTexture();
+    this.liquify?.destroy();
+    this.liquify = null;
     this.active = false;
     this.changedRect = null;
-    this.historyStack.clear();
+  }
+
+  setTool(toolId: LiquifyTool) {
+    this.toolId = toolId;
   }
 
   setSize: () => void = () => {};

@@ -53,6 +53,8 @@
 
       const imageTexture = createImageTexture(gl, image);
       const resultTexture = gl.createTexture();
+      createEmptyResultTexture(gl, resultTexture, width, height);
+      copyTexture(gl, imageTexture, resultTexture, width, height);
 
       const liquify = createLiquify(gl, {
         imageTexture,
@@ -112,7 +114,46 @@
         return texture;
       }
 
+      function createEmptyResultTexture(gl, texture, width, height) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          width,
+          height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      }
+
+      function copyTexture(gl, sourceTexture, targetTexture, width, height) {
+        const framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          targetTexture,
+          0,
+        );
+        drawTextureToCurrentFramebuffer(gl, sourceTexture, width, height);
+        gl.deleteFramebuffer(framebuffer);
+      }
+
       function drawTexture(gl, texture, width, height) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        drawTextureToCurrentFramebuffer(gl, texture, width, height);
+      }
+
+      function drawTextureToCurrentFramebuffer(gl, texture, width, height) {
         const vertexShader = createShader(
           gl,
           gl.VERTEX_SHADER,
@@ -159,7 +200,6 @@
         gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.disable(gl.SCISSOR_TEST);
         gl.viewport(0, 0, width, height);
         gl.drawArrays(gl.TRIANGLES, 0, 6);

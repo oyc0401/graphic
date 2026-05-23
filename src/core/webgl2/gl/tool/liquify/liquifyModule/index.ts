@@ -15,10 +15,10 @@ export interface CreateLiquifyOptions {
 }
 
 const TEXTURE_UNIT = {
-  TEMP: 0,
-  IMAGE: 1,
-  DISPLACEMENT: 2,
-  PRIMITIVE: 3,
+  TEMP: 12,
+  IMAGE: 13,
+  DISPLACEMENT: 14,
+  PRIMITIVE: 15,
 };
 
 const FULL_QUAD_VERTEX_SHADER = `#version 300 es
@@ -45,6 +45,7 @@ class Liquify {
   private lastPoint: LiquifyPoint | null = null;
   private currentPoint: LiquifyPoint | null = null;
   private strokeRect: LiquifyRect | null = null;
+  private dirtyRect: LiquifyRect | null = null;
   private history: LiquifyHistory[] = [];
   private redoHistory: LiquifyHistory[] = [];
 
@@ -115,6 +116,9 @@ class Liquify {
     this.lastPoint = point;
     this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
+    if (rect) {
+      this.dirtyRect = unionRect(this.dirtyRect, rect);
+    }
     return rect;
   }
 
@@ -124,6 +128,7 @@ class Liquify {
     const rect = this.twirl(point, 1);
     this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
+    this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
@@ -133,6 +138,7 @@ class Liquify {
     const rect = this.twirl(point, -1);
     this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
+    this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
@@ -155,16 +161,20 @@ class Liquify {
   }
 
   cancel() {
+    const rect = this.strokeRect;
     this.copyDisplacementRect(
-      this.strokeRect,
+      rect,
       this.committedDisplacementFBO,
       this.displacementFBO,
     );
     this.copyDisplacementRect(
-      this.strokeRect,
+      rect,
       this.committedDisplacementFBO,
       this.tempDisplacementFBO,
     );
+    if (rect) {
+      this.dirtyRect = unionRect(this.dirtyRect, rect);
+    }
     this.strokeRect = null;
     this.lastPoint = null;
   }
@@ -175,6 +185,7 @@ class Liquify {
 
     this.redoHistory.push(history);
     this.writeDisplacement(history.rect, history.before);
+    this.dirtyRect = unionRect(this.dirtyRect, history.rect);
   }
 
   redo() {
@@ -183,9 +194,42 @@ class Liquify {
 
     this.history.push(history);
     this.writeDisplacement(history.rect, history.after);
+    this.dirtyRect = unionRect(this.dirtyRect, history.rect);
   }
 
-  render() {
+  getHistoryCount() {
+    return {
+      undoCount: this.history.length,
+      redoCount: this.redoHistory.length,
+    };
+  }
+
+  destroy() {
+    const gl = this.gl;
+
+    gl.deleteTexture(this.displacementTexture);
+    gl.deleteTexture(this.tempDisplacementTexture);
+    gl.deleteTexture(this.committedDisplacementTexture);
+    gl.deleteTexture(this.primitiveTexture);
+    gl.deleteFramebuffer(this.displacementFBO);
+    gl.deleteFramebuffer(this.tempDisplacementFBO);
+    gl.deleteFramebuffer(this.committedDisplacementFBO);
+    gl.deleteFramebuffer(this.resultFBO);
+    gl.deleteProgram(this.pushProgram);
+    gl.deleteProgram(this.twirlProgram);
+    gl.deleteProgram(this.renderProgram);
+    gl.deleteBuffer(this.quadBuffer);
+    gl.deleteVertexArray(this.pushVAO);
+    gl.deleteVertexArray(this.twirlVAO);
+    gl.deleteVertexArray(this.renderVAO);
+  }
+
+  render(): LiquifyRect | null {
+    const rect = this.dirtyRect;
+    if (!rect || rect.width === 0 || rect.height === 0) {
+      return null;
+    }
+
     const gl = this.gl;
 
     gl.useProgram(this.renderProgram);
@@ -198,9 +242,14 @@ class Liquify {
     gl.bindTexture(gl.TEXTURE_2D, this.displacementTexture);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFBO);
-    gl.disable(gl.SCISSOR_TEST);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(rect.x, rect.y, rect.width, rect.height);
     gl.viewport(0, 0, this.width, this.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.disable(gl.SCISSOR_TEST);
+
+    this.dirtyRect = null;
+    return rect;
   }
 
   private setTextureSize(width: number, height: number) {
@@ -217,14 +266,6 @@ class Liquify {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.committedDisplacementTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, this.options.resultTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFBO);
     gl.framebufferTexture2D(

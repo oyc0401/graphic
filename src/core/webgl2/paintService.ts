@@ -159,7 +159,7 @@ export class PaintService {
     }
   }
   setLiquifyTool(toolId: LiquifyTool): void {
-    liquifyManager.setTool(toolId);
+    getLiquifyManager(this.canvas, this.gl).setTool(toolId);
   }
   commitSession() {
     getSessionManager(this.canvas, this.gl).commitSession();

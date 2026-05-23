@@ -1,4 +1,5 @@
 import { LiquifyManager } from "./LiquifyManager";
+import type { LiquifyTool } from "@/core/types";
 
 interface liquifyManager {
   enter(): void;
@@ -19,6 +20,7 @@ interface liquifyManager {
   exit(): void;
   applySession(): void;
   discardSession(): void;
+  setTool(toolId: LiquifyTool): void;
 
   setSize: () => void;
 }
