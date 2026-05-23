@@ -105,6 +105,8 @@ const LiquifyMobileAppBar = observer(() => {
         <LiquifyIcon />
       </button>
       <SizeToggleButton />
+      <div style={{ flex: 1 }} />
+      <HistoryButtons />
     </div>
   );
 });
@@ -189,13 +191,26 @@ const SizeToggleButton = observer(() => {
 });
 
 const HistoryButtons = observer(() => {
+  const canUndo = historyState.getUndoCount() > 0;
+  const canRedo = historyState.getRedoCount() > 0;
+
   return (
     <>
-      <button aria-label="undo-button" className="header-button" onClick={undo}>
-        {historyState.getUndoCount() === 0 ? <UndoOffIcon /> : <UndoIcon />}
+      <button
+        aria-label="undo-button"
+        className="header-button"
+        disabled={!canUndo}
+        onClick={undo}
+      >
+        {canUndo ? <UndoIcon /> : <UndoOffIcon />}
       </button>
-      <button aria-label="redo-button" className="header-button" onClick={redo}>
-        {historyState.getRedoCount() === 0 ? <RedoOffIcon /> : <RedoIcon />}
+      <button
+        aria-label="redo-button"
+        className="header-button"
+        disabled={!canRedo}
+        onClick={redo}
+      >
+        {canRedo ? <RedoIcon /> : <RedoOffIcon />}
       </button>
     </>
   );

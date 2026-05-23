@@ -99,6 +99,10 @@
   align-items: center;
 }
 
+.header-button:disabled {
+  cursor: default;
+}
+
 #menu-bar {
   display: flex;
   /* flex-wrap: wrap; */

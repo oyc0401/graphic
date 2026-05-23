@@ -1,4 +1,5 @@
 import { makeAutoObservable } from "mobx";
+import type { LiquifyTool } from "@/core/types";
 import { getLayerWorker } from "./worker/workerPool";
 
 export enum InputMode {
@@ -41,6 +42,8 @@ class PaintState {
   private _selectedToolId: ToolId = ToolId.Brush;
   // brush/eraser 같은 브러시 계열 코어 도구.
   private _brushId: BrushId = BrushId.Brush;
+  // 리퀴파이 세션 안에서 사용하는 하위 툴.
+  private _liquifyToolId: LiquifyTool = "push";
 
   // 도구별 브러시 크기 설정.
   private _brushSize = {
@@ -85,6 +88,9 @@ class PaintState {
   }
   setBrushId(brushId: BrushId) {
     this._brushId = brushId;
+  }
+  setLiquifyToolId(toolId: LiquifyTool) {
+    this._liquifyToolId = toolId;
   }
   setSessionMode(value: boolean) {
     this._sessionMode = value;
@@ -140,6 +146,9 @@ class PaintState {
   }
   getBrushId() {
     return this._brushId;
+  }
+  getLiquifyToolId() {
+    return this._liquifyToolId;
   }
   getCursorX() {
     return this._cursorX;
