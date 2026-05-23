@@ -31,7 +31,7 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Minus, Pipette, Plus, RotateCcw, RotateCw, Search } from "lucide-react";
+import { CircleCheck, CircleX, Expand, Pipette, RotateCcw, RotateCw, Search, Shrink } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -113,21 +113,25 @@ const LiquifyMobileAppBar = observer(() => {
         toolId={LiquifyToolId.TwirlCounterClockwise}
         label={getLetter("liquify_twirl_left")}
         icon={<RotateCcw size={24} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.TwirlClockwise}
         label={getLetter("liquify_twirl_right")}
         icon={<RotateCw size={24} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Bloat}
         label={getLetter("liquify_bloat")}
-        icon={<Plus size={24} strokeWidth={2.4} />}
+        icon={<Expand size={24} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Pucker}
         label={getLetter("liquify_pucker")}
-        icon={<Minus size={24} strokeWidth={2.4} />}
+        icon={<Shrink size={24} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Restore}
@@ -146,16 +150,18 @@ const LiquifySessionToolButton = observer(
     toolId,
     label,
     icon,
+    strokeIcon = false,
   }: {
     toolId: LiquifyToolId;
     label: string;
     icon: ReactNode;
+    strokeIcon?: boolean;
   }) => {
     const isSelected = paintState.getLiquifyToolId() === toolId;
 
     return (
       <button
-        className={`header-button ${isSelected ? "selected" : ""}`}
+        className={`header-button ${strokeIcon ? "stroke-icon-button" : ""} ${isSelected ? "selected" : ""}`}
         aria-label={label}
         onClick={() => toolManager.setLiquifyTool(toolId)}
       >

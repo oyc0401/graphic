@@ -173,6 +173,10 @@
 
 .selected > svg > path {
   fill: #3587ff;
+}
+
+.stroke-icon-button.selected > svg > path {
+  fill: none;
   stroke: #3587ff;
 }
 

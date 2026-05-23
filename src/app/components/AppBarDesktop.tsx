@@ -24,7 +24,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Minus, Pipette, Plus, RotateCcw, RotateCw, Search } from "lucide-react";
+import { CircleCheck, CircleX, Expand, Pipette, RotateCcw, RotateCw, Search, Shrink } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -72,7 +72,6 @@ function AppBarDesktop() {
 
             <div className="div-bar"></div>
             <div className="mini-buttons">
-              <LiquifyToolButton />
               <ZoomToolButton />
               <ColorPickerToolButton />
             </div>
@@ -80,6 +79,8 @@ function AppBarDesktop() {
 
             <BrushToolButton />
             <EraserToolButton />
+            <div className="div-bar"></div>
+            <LiquifyToolButton />
             <div className="div-bar"></div>
             {/* ===== 슬라이더 ===== */}
             <div className="brush-control-group">
@@ -149,21 +150,25 @@ const LiquifyMenuBar = observer(() => {
         toolId={LiquifyToolId.TwirlCounterClockwise}
         label={getLetter("liquify_twirl_left")}
         icon={<RotateCcw size={32} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.TwirlClockwise}
         label={getLetter("liquify_twirl_right")}
         icon={<RotateCw size={32} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Bloat}
         label={getLetter("liquify_bloat")}
-        icon={<Plus size={32} strokeWidth={2.4} />}
+        icon={<Expand size={32} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Pucker}
         label={getLetter("liquify_pucker")}
-        icon={<Minus size={32} strokeWidth={2.4} />}
+        icon={<Shrink size={32} strokeWidth={2.2} />}
+        strokeIcon
       />
       <LiquifySessionToolButton
         toolId={LiquifyToolId.Restore}
@@ -185,16 +190,18 @@ const LiquifySessionToolButton = observer(
     toolId,
     label,
     icon,
+    strokeIcon = false,
   }: {
     toolId: LiquifyToolId;
     label: string;
     icon: ReactNode;
+    strokeIcon?: boolean;
   }) => {
     const isSelected = paintState.getLiquifyToolId() === toolId;
 
     return (
       <button
-        className={`select-button ${isSelected ? "selected" : ""}`}
+        className={`select-button ${strokeIcon ? "stroke-icon-button" : ""} ${isSelected ? "selected" : ""}`}
         aria-label={label}
         onClick={() => toolManager.setLiquifyTool(toolId)}
       >
@@ -289,10 +296,11 @@ const LiquifyToolButton = observer(() => {
   return (
     <button
       id="select-liquify"
-      className={`select-mini ${isSelected ? "selected" : ""}`}
+      className={`select-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setLiquifyTool()}
     >
-      <LiquifyIcon width={20} height={20} />
+      <LiquifyIcon width={32} height={32} />
+      <p>{getLetter("liquify")}</p>
     </button>
   );
 });
