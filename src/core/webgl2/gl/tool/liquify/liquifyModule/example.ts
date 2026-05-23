@@ -28,13 +28,13 @@ liquify.move({ x, y });
 liquify.cancel();
 
 // 이걸 하면 변위맵이 수정됌
-liquify.spin();
-liquify.spin();
-liquify.spin();
+liquify.spin({ x, y });
+liquify.spin({ x, y });
+liquify.spin({ x, y });
 liquify.makeHistory();
 
 // 이걸 하면 변위맵이 수정됌
-liquify.rightSpin();
+liquify.rightSpin({ x, y });
 liquify.makeHistory();
 
 // 이걸 하면 변위맵이 수정됌

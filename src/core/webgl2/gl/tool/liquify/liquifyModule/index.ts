@@ -45,7 +45,6 @@ class Liquify {
   private radius = 10;
   private strength = 0.5;
   private lastPoint: LiquifyPoint | null = null;
-  private currentPoint: LiquifyPoint | null = null;
   private strokeRect: LiquifyRect | null = null;
   private dirtyRect: LiquifyRect | null = null;
   private history: LiquifyHistory[] = [];
@@ -120,7 +119,6 @@ class Liquify {
 
   start(point: LiquifyPoint) {
     this.lastPoint = point;
-    this.currentPoint = point;
     this.strokeRect = pointRect(point, this.radius, this.width, this.height);
   }
 
@@ -132,7 +130,6 @@ class Liquify {
 
     const rect = this.push(this.lastPoint, point);
     this.lastPoint = point;
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     if (rect) {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
@@ -142,7 +139,6 @@ class Liquify {
 
   restoreStart(point: LiquifyPoint) {
     this.lastPoint = point;
-    this.currentPoint = point;
     this.strokeRect = pointRect(point, this.radius, this.width, this.height);
   }
 
@@ -154,7 +150,6 @@ class Liquify {
 
     const rect = this.restore(this.lastPoint, point);
     this.lastPoint = point;
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     if (rect) {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
@@ -166,51 +161,36 @@ class Liquify {
     return this.restoremove(point);
   }
 
-  restorePoint(point = this.currentPoint): LiquifyRect | null {
-    if (!point) return null;
-
+  restorePoint(point: LiquifyPoint): LiquifyRect | null {
     const rect = this.restore(point, point);
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
-  spin(point = this.currentPoint): LiquifyRect | null {
-    if (!point) return null;
-
+  spin(point: LiquifyPoint): LiquifyRect | null {
     const rect = this.twirl(point, 1);
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
-  rightSpin(point = this.currentPoint): LiquifyRect | null {
-    if (!point) return null;
-
+  rightSpin(point: LiquifyPoint): LiquifyRect | null {
     const rect = this.twirl(point, -1);
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
-  bloat(point = this.currentPoint): LiquifyRect | null {
-    if (!point) return null;
-
+  bloat(point: LiquifyPoint): LiquifyRect | null {
     const rect = this.scale(point, 1);
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
-  pucker(point = this.currentPoint): LiquifyRect | null {
-    if (!point) return null;
-
+  pucker(point: LiquifyPoint): LiquifyRect | null {
     const rect = this.scale(point, -1);
-    this.currentPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
