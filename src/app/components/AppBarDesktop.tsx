@@ -24,7 +24,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Pipette, RotateCcw, RotateCw, Search } from "lucide-react";
+import { CircleCheck, CircleX, Minus, Pipette, Plus, RotateCcw, RotateCw, Search } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -154,6 +154,16 @@ const LiquifyMenuBar = observer(() => {
         toolId={LiquifyToolId.TwirlClockwise}
         label={getLetter("liquify_twirl_right")}
         icon={<RotateCw size={32} strokeWidth={2.2} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Bloat}
+        label={getLetter("liquify_bloat")}
+        icon={<Plus size={32} strokeWidth={2.4} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Pucker}
+        label={getLetter("liquify_pucker")}
+        icon={<Minus size={32} strokeWidth={2.4} />}
       />
 
       <div className="div-bar"></div>

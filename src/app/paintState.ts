@@ -32,6 +32,8 @@ export enum LiquifyToolId {
   Push = "push",
   TwirlClockwise = "twirlClockwise",
   TwirlCounterClockwise = "twirlCounterClockwise",
+  Bloat = "bloat",
+  Pucker = "pucker",
 }
 
 type BrushSettingsId = BrushId | SessionId;

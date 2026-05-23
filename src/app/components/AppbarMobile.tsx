@@ -31,7 +31,7 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Pipette, RotateCcw, RotateCw, Search } from "lucide-react";
+import { CircleCheck, CircleX, Minus, Pipette, Plus, RotateCcw, RotateCw, Search } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -118,6 +118,16 @@ const LiquifyMobileAppBar = observer(() => {
         toolId={LiquifyToolId.TwirlClockwise}
         label={getLetter("liquify_twirl_right")}
         icon={<RotateCw size={24} strokeWidth={2.2} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Bloat}
+        label={getLetter("liquify_bloat")}
+        icon={<Plus size={24} strokeWidth={2.4} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Pucker}
+        label={getLetter("liquify_pucker")}
+        icon={<Minus size={24} strokeWidth={2.4} />}
       />
       <SizeToggleButton />
       <div style={{ flex: 1 }} />

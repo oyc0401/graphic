@@ -10,7 +10,9 @@ export type CoreSessionTool = "liquify";
 export type LiquifyTool =
   | "push"
   | "twirlClockwise"
-  | "twirlCounterClockwise";
+  | "twirlCounterClockwise"
+  | "bloat"
+  | "pucker";
 
 export interface Tangent {
   x: number;
