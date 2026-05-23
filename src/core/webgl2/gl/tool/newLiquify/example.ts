@@ -20,13 +20,30 @@ liquify.setStrength(0.5);
 // 이걸 하면 변위맵이 수정됌
 liquify.start({ x, y });
 liquify.move({ x, y });
-liquify.end();
+liquify.move({ x, y });
+liquify.makeHistory();
+
+liquify.start({ x, y });
+liquify.move({ x, y });
+liquify.cancel();
 
 // 이걸 하면 변위맵이 수정됌
 liquify.spin();
+liquify.spin();
+liquify.spin();
+liquify.makeHistory();
 
-// 이걸 하면 renderTexture가 수정됌
-liquify.render();
+// 이걸 하면 변위맵이 수정됌
+liquify.rightSpin();
+liquify.makeHistory();
+
+liquify.render(); // 이걸 하면 renderTexture가 수정됌
+
+liquify.undo(); // 이걸 하면 변위맵이 수정됌
+liquify.render(); // 이걸 하면 renderTexture가 수정됌
+
+liquify.redo(); // 이걸 하면 변위맵이 수정됌
+liquify.render(); // 이걸 하면 renderTexture가 수정됌
 
 // 대중 renderTexture를 화면 어딘가에 렌더링한다는 함수
 function render() {
