@@ -152,18 +152,20 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
   async undo() {
     if (!this.liquify) return null;
+    if (this.liquify.getHistoryCount().undoCount === 0) return null;
 
     this.liquify.undo();
     this.render();
-    return {};
+    return this.liquify.getHistoryCount();
   }
 
   async redo() {
     if (!this.liquify) return null;
+    if (this.liquify.getHistoryCount().redoCount === 0) return null;
 
     this.liquify.redo();
     this.render();
-    return {};
+    return this.liquify.getHistoryCount();
   }
 
   getHistoryCount() {

@@ -88,9 +88,3 @@ export class BrushTool implements Tool {
     getLayerWorker().cancel();
   }
 }
-
-export class SessionBrushTool extends BrushTool {
-  config: ToolConfig = {
-    allowCanvasResizeHandle: false,
-  };
-}

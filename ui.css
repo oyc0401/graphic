@@ -173,6 +173,7 @@
 
 .selected > svg > path {
   fill: #3587ff;
+  stroke: #3587ff;
 }
 
 .div-bar {

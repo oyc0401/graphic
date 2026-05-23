@@ -1,7 +1,14 @@
-import { BrushId, paintState, SessionId, ToolId } from "../paintState";
+import {
+  BrushId,
+  LiquifyToolId,
+  paintState,
+  SessionId,
+  ToolId,
+} from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
+import type { ReactNode } from "react";
 
 import UndoIcon from "../assets/undo.svg?react";
 import RedoIcon from "../assets/redo.svg?react";
@@ -17,7 +24,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Pipette, Search } from "lucide-react";
+import { CircleCheck, CircleX, Pipette, RotateCcw, RotateCw, Search } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -133,13 +140,21 @@ const LiquifyMenuBar = observer(() => {
 
       <div className="div-bar"></div>
 
-      <button
-        className="select-button selected"
-        aria-label={getLetter("liquify_push")}
-      >
-        <LiquifyIcon width={32} height={32} />
-        <p>{getLetter("liquify_push")}</p>
-      </button>
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Push}
+        label={getLetter("liquify_push")}
+        icon={<LiquifyIcon width={32} height={32} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.TwirlCounterClockwise}
+        label={getLetter("liquify_twirl_left")}
+        icon={<RotateCcw size={32} strokeWidth={2.2} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.TwirlClockwise}
+        label={getLetter("liquify_twirl_right")}
+        icon={<RotateCw size={32} strokeWidth={2.2} />}
+      />
 
       <div className="div-bar"></div>
       <div className="brush-control-group">
@@ -149,6 +164,31 @@ const LiquifyMenuBar = observer(() => {
     </div>
   );
 });
+
+const LiquifySessionToolButton = observer(
+  ({
+    toolId,
+    label,
+    icon,
+  }: {
+    toolId: LiquifyToolId;
+    label: string;
+    icon: ReactNode;
+  }) => {
+    const isSelected = paintState.getLiquifyToolId() === toolId;
+
+    return (
+      <button
+        className={`select-button ${isSelected ? "selected" : ""}`}
+        aria-label={label}
+        onClick={() => toolManager.setLiquifyTool(toolId)}
+      >
+        {icon}
+        <p>{label}</p>
+      </button>
+    );
+  },
+);
 
 const HistoryButtons = observer(() => {
   const canUndo = historyState.getUndoCount() > 0;

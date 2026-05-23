@@ -108,4 +108,5 @@
 .mobile-appbar .selected>svg>path,
 .mobile-navigation .selected>svg>path {
   fill: #3587FF;
+  stroke: #3587FF;
 }

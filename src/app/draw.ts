@@ -1,6 +1,7 @@
 import {
   BrushId,
   InputMode,
+  LiquifyToolId,
   paintState,
   SessionId,
   ToolId,
@@ -96,9 +97,11 @@ export const toolManager = {
 
     selectBrushLikeTool(BrushId.Eraser);
   },
-  setLiquifyTool() {
+  setLiquifyTool(toolId: LiquifyToolId = LiquifyToolId.Push) {
     if (!canChangeTool()) return;
     if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
+      paintState.setLiquifyToolId(toolId);
+      getLayerWorker().setLiquifyTool(toolId);
       setDefaultInputMode();
       return;
     }
@@ -106,9 +109,11 @@ export const toolManager = {
     if (!leaveCurrentEditingState({ commitSelection: true })) return;
 
     paintState.setSessionId(SessionId.Liquify);
+    paintState.setLiquifyToolId(toolId);
     paintState.setSessionMode(true);
     setDefaultInputMode();
     getLayerWorker().openSession("liquify");
+    getLayerWorker().setLiquifyTool(toolId);
     syncCoreState();
   },
   setSelectTool() {

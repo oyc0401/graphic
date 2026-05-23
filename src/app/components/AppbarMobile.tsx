@@ -1,5 +1,11 @@
 import "./mobile.css";
-import { BrushId, paintState, SessionId, ToolId } from "../paintState";
+import {
+  BrushId,
+  LiquifyToolId,
+  paintState,
+  SessionId,
+  ToolId,
+} from "../paintState";
 import { toolManager } from "../draw";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
@@ -23,9 +29,9 @@ import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Pipette, Search } from "lucide-react";
+import { CircleCheck, CircleX, Pipette, RotateCcw, RotateCw, Search } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -98,18 +104,51 @@ const LiquifyMobileAppBar = observer(() => {
         <CircleX color="#dc2626" size={24} strokeWidth={2.4} />
       </button>
       <div className="mobile-div-bar"></div>
-      <button
-        className="header-button selected"
-        aria-label={getLetter("liquify_push")}
-      >
-        <LiquifyIcon />
-      </button>
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Push}
+        label={getLetter("liquify_push")}
+        icon={<LiquifyIcon />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.TwirlCounterClockwise}
+        label={getLetter("liquify_twirl_left")}
+        icon={<RotateCcw size={24} strokeWidth={2.2} />}
+      />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.TwirlClockwise}
+        label={getLetter("liquify_twirl_right")}
+        icon={<RotateCw size={24} strokeWidth={2.2} />}
+      />
       <SizeToggleButton />
       <div style={{ flex: 1 }} />
       <HistoryButtons />
     </div>
   );
 });
+
+const LiquifySessionToolButton = observer(
+  ({
+    toolId,
+    label,
+    icon,
+  }: {
+    toolId: LiquifyToolId;
+    label: string;
+    icon: ReactNode;
+  }) => {
+    const isSelected = paintState.getLiquifyToolId() === toolId;
+
+    return (
+      <button
+        className={`header-button ${isSelected ? "selected" : ""}`}
+        aria-label={label}
+        onClick={() => toolManager.setLiquifyTool(toolId)}
+      >
+        {icon}
+      </button>
+    );
+  },
+);
 
 const ToolsToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
