@@ -87,6 +87,8 @@ export function setBefore(ele) {
 
 // 비트맵으로 선택창 만들기
 export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
+  if (paintState.getSessionMode()) return;
+
   applySelection();
 
   let worker = getLayerWorker();
@@ -127,6 +129,8 @@ export function makeSelectionFromBitmap(bitmap: ImageBitmap) {
 
 // 해당 구역 선택
 export function canvasSelect(x, y, width, height) {
+  if (paintState.getSessionMode()) return;
+
   let worker = getLayerWorker();
 
   selection.setPosition(x, y);
