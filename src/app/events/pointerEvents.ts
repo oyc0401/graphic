@@ -4,6 +4,7 @@ import { toolRegistry } from "../tools/toolRegistry";
 import { panTool } from "../tools/PanTool";
 import { resizeTool } from "../tools/resizeTool";
 import { syncCoreState } from "../history";
+import { zoomTool } from "../tools/ZoomTool";
 
 type Phase = "down" | "move" | "up" | "cancel";
 
@@ -22,6 +23,10 @@ export function dispatch(e: PointerEvent, phase: Phase) {
   switch (paintState.getInputMode()) {
     case InputMode.Pan:
       panTool[phase]?.(e);
+      syncCoreStateAfterPointerEnd(phase);
+      return;
+    case InputMode.Zoom:
+      zoomTool[phase]?.(e);
       syncCoreStateAfterPointerEnd(phase);
       return;
   }
