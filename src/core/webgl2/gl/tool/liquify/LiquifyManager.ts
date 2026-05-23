@@ -104,15 +104,24 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.liquify.setRadius(paintOptions.radius);
     this.liquify.setStrength(paintOptions.alpha);
+    if (this.toolId === "restore") {
+      this.liquify.restoreStart(pointer);
+      return;
+    }
+
     this.liquify.start(pointer);
   }
 
   push(_start: any, end: any) {
-    if (!this.liquify || this.toolId !== "push") return;
+    if (!this.liquify) return;
+    if (this.toolId !== "push" && this.toolId !== "restore") return;
 
     this.liquify.setRadius(paintOptions.radius);
     this.liquify.setStrength(paintOptions.alpha);
-    const rect = this.liquify.move(end);
+    const rect =
+      this.toolId === "restore"
+        ? this.liquify.restoremove(end)
+        : this.liquify.move(end);
     this.markChanged(rect);
   }
 
@@ -131,7 +140,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
             ? this.liquify.bloat(pointer)
             : this.toolId === "pucker"
               ? this.liquify.pucker(pointer)
-              : null;
+              : this.toolId === "restore"
+                ? this.liquify.restorePoint(pointer)
+                : null;
 
     this.markChanged(rect);
   }

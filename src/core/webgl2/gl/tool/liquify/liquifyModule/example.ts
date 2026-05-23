@@ -47,17 +47,18 @@ liquify.pucker({ x, y });
 liquify.pucker({ x, y });
 liquify.makeHistory();
 
+// 이걸 하면 변위맵이 원본 상태로 복원됌
+liquify.restoreStart({ x, y });
+liquify.restoremove({ x, y });
+liquify.restoremove({ x, y });
+liquify.makeHistory();
+
 liquify.render(); // 이걸 하면 renderTexture가 수정됌
 
 liquify.undo(); // 이걸 하면 변위맵이 수정됌
 liquify.render(); // 이걸 하면 renderTexture가 수정됌
 
 liquify.redo(); // 이걸 하면 변위맵이 수정됌
-liquify.render(); // 이걸 하면 renderTexture가 수정됌
-
-liquify.restoreStart({ x, y });
-liquify.restoremove({ x, y });
-liquify.restoremove({ x, y });
 liquify.render(); // 이걸 하면 renderTexture가 수정됌
 
 // 대중 renderTexture를 화면 어딘가에 렌더링한다는 함수

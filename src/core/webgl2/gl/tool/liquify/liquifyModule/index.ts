@@ -3,6 +3,7 @@ import liquifyPushFrag from "./push.frag?raw";
 import renderFrag from "./render.frag?raw";
 import { pointRect, strokeRect, unionRect } from "./rect";
 import type { LiquifyPoint, LiquifyRect } from "./rect";
+import restoreFrag from "./restore.frag?raw";
 import liquifyScaleFrag from "./scale.frag?raw";
 import liquifyTwirlFrag from "./spin.frag?raw";
 
@@ -60,11 +61,13 @@ class Liquify {
   private resultFBO: WebGLFramebuffer;
 
   private pushProgram: WebGLProgram;
+  private restoreProgram: WebGLProgram;
   private twirlProgram: WebGLProgram;
   private scaleProgram: WebGLProgram;
   private renderProgram: WebGLProgram;
   private quadBuffer: WebGLBuffer;
   private pushVAO: WebGLVertexArrayObject;
+  private restoreVAO: WebGLVertexArrayObject;
   private twirlVAO: WebGLVertexArrayObject;
   private scaleVAO: WebGLVertexArrayObject;
   private renderVAO: WebGLVertexArrayObject;
@@ -74,6 +77,12 @@ class Liquify {
   private uPushEnd: WebGLUniformLocation;
   private uPushRadius: WebGLUniformLocation;
   private uPushStrength: WebGLUniformLocation;
+
+  private uRestoreResolution: WebGLUniformLocation;
+  private uRestoreStart: WebGLUniformLocation;
+  private uRestoreEnd: WebGLUniformLocation;
+  private uRestoreRadius: WebGLUniformLocation;
+  private uRestoreStrength: WebGLUniformLocation;
 
   private uTwirlResolution: WebGLUniformLocation;
   private uTwirlCenter: WebGLUniformLocation;
@@ -128,6 +137,42 @@ class Liquify {
     if (rect) {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
     }
+    return rect;
+  }
+
+  restoreStart(point: LiquifyPoint) {
+    this.lastPoint = point;
+    this.currentPoint = point;
+    this.strokeRect = pointRect(point, this.radius, this.width, this.height);
+  }
+
+  restoremove(point: LiquifyPoint): LiquifyRect | null {
+    if (!this.lastPoint) {
+      this.restoreStart(point);
+      return this.strokeRect;
+    }
+
+    const rect = this.restore(this.lastPoint, point);
+    this.lastPoint = point;
+    this.currentPoint = point;
+    this.strokeRect = unionRect(this.strokeRect, rect);
+    if (rect) {
+      this.dirtyRect = unionRect(this.dirtyRect, rect);
+    }
+    return rect;
+  }
+
+  restoreMove(point: LiquifyPoint): LiquifyRect | null {
+    return this.restoremove(point);
+  }
+
+  restorePoint(point = this.currentPoint): LiquifyRect | null {
+    if (!point) return null;
+
+    const rect = this.restore(point, point);
+    this.currentPoint = point;
+    this.strokeRect = unionRect(this.strokeRect, rect);
+    this.dirtyRect = unionRect(this.dirtyRect, rect);
     return rect;
   }
 
@@ -245,11 +290,13 @@ class Liquify {
     gl.deleteFramebuffer(this.committedDisplacementFBO);
     gl.deleteFramebuffer(this.resultFBO);
     gl.deleteProgram(this.pushProgram);
+    gl.deleteProgram(this.restoreProgram);
     gl.deleteProgram(this.twirlProgram);
     gl.deleteProgram(this.scaleProgram);
     gl.deleteProgram(this.renderProgram);
     gl.deleteBuffer(this.quadBuffer);
     gl.deleteVertexArray(this.pushVAO);
+    gl.deleteVertexArray(this.restoreVAO);
     gl.deleteVertexArray(this.twirlVAO);
     gl.deleteVertexArray(this.scaleVAO);
     gl.deleteVertexArray(this.renderVAO);
@@ -309,6 +356,8 @@ class Liquify {
 
     gl.useProgram(this.pushProgram);
     gl.uniform2f(this.uPushResolution, width, height);
+    gl.useProgram(this.restoreProgram);
+    gl.uniform2f(this.uRestoreResolution, width, height);
     gl.useProgram(this.twirlProgram);
     gl.uniform2f(this.uTwirlResolution, width, height);
     gl.useProgram(this.scaleProgram);
@@ -379,6 +428,11 @@ class Liquify {
       vertexShader,
       createShader(gl, gl.FRAGMENT_SHADER, liquifyPushFrag),
     );
+    this.restoreProgram = createProgram(
+      gl,
+      vertexShader,
+      createShader(gl, gl.FRAGMENT_SHADER, restoreFrag),
+    );
     this.twirlProgram = createProgram(
       gl,
       vertexShader,
@@ -396,11 +450,13 @@ class Liquify {
     );
 
     this.pushVAO = createFullQuadVAO(gl, this.quadBuffer, this.pushProgram);
+    this.restoreVAO = createFullQuadVAO(gl, this.quadBuffer, this.restoreProgram);
     this.twirlVAO = createFullQuadVAO(gl, this.quadBuffer, this.twirlProgram);
     this.scaleVAO = createFullQuadVAO(gl, this.quadBuffer, this.scaleProgram);
     this.renderVAO = createFullQuadVAO(gl, this.quadBuffer, this.renderProgram);
 
     this.setupPushProgram();
+    this.setupRestoreProgram();
     this.setupTwirlProgram();
     this.setupScaleProgram();
     this.setupRenderProgram();
@@ -429,6 +485,29 @@ class Liquify {
     this.uPushEnd = gl.getUniformLocation(this.pushProgram, "u_end")!;
     this.uPushRadius = gl.getUniformLocation(this.pushProgram, "u_radius")!;
     this.uPushStrength = gl.getUniformLocation(this.pushProgram, "u_strength")!;
+  }
+
+  private setupRestoreProgram() {
+    const gl = this.gl;
+
+    gl.useProgram(this.restoreProgram);
+    gl.uniform1i(
+      gl.getUniformLocation(this.restoreProgram, "u_displacement"),
+      TEXTURE_UNIT.DISPLACEMENT,
+    );
+    gl.uniform1i(
+      gl.getUniformLocation(this.restoreProgram, "u_primitive"),
+      TEXTURE_UNIT.PRIMITIVE,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PRIMITIVE);
+    gl.bindTexture(gl.TEXTURE_2D, this.primitiveTexture);
+
+    this.uRestoreResolution = gl.getUniformLocation(this.restoreProgram, "u_resolution")!;
+    this.uRestoreStart = gl.getUniformLocation(this.restoreProgram, "u_start")!;
+    this.uRestoreEnd = gl.getUniformLocation(this.restoreProgram, "u_end")!;
+    this.uRestoreRadius = gl.getUniformLocation(this.restoreProgram, "u_radius")!;
+    this.uRestoreStrength = gl.getUniformLocation(this.restoreProgram, "u_strength")!;
   }
 
   private setupTwirlProgram() {
@@ -489,6 +568,21 @@ class Liquify {
     gl.uniform2f(this.uPushEnd, end.x, end.y);
     gl.uniform1f(this.uPushRadius, this.radius);
     gl.uniform1f(this.uPushStrength, this.strength);
+
+    this.drawDisplacementPass(rect);
+    return rect;
+  }
+
+  private restore(start: LiquifyPoint, end: LiquifyPoint): LiquifyRect {
+    const rect = strokeRect(start, end, this.radius, this.width, this.height);
+    const gl = this.gl;
+
+    gl.useProgram(this.restoreProgram);
+    gl.bindVertexArray(this.restoreVAO);
+    gl.uniform2f(this.uRestoreStart, start.x, start.y);
+    gl.uniform2f(this.uRestoreEnd, end.x, end.y);
+    gl.uniform1f(this.uRestoreRadius, this.radius);
+    gl.uniform1f(this.uRestoreStrength, this.strength);
 
     this.drawDisplacementPass(rect);
     return rect;

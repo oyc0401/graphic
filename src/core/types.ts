@@ -12,7 +12,8 @@ export type LiquifyTool =
   | "twirlClockwise"
   | "twirlCounterClockwise"
   | "bloat"
-  | "pucker";
+  | "pucker"
+  | "restore";
 
 export interface Tangent {
   x: number;

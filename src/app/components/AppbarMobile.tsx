@@ -129,6 +129,11 @@ const LiquifyMobileAppBar = observer(() => {
         label={getLetter("liquify_pucker")}
         icon={<Minus size={24} strokeWidth={2.4} />}
       />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Restore}
+        label={getLetter("liquify_restore")}
+        icon={<EraserIcon width={24} height={24} />}
+      />
       <SizeToggleButton />
       <div style={{ flex: 1 }} />
       <HistoryButtons />

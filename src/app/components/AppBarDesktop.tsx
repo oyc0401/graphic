@@ -165,6 +165,11 @@ const LiquifyMenuBar = observer(() => {
         label={getLetter("liquify_pucker")}
         icon={<Minus size={32} strokeWidth={2.4} />}
       />
+      <LiquifySessionToolButton
+        toolId={LiquifyToolId.Restore}
+        label={getLetter("liquify_restore")}
+        icon={<EraserIcon width={32} height={32} />}
+      />
 
       <div className="div-bar"></div>
       <div className="brush-control-group">
