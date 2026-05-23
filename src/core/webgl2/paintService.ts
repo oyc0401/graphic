@@ -1,4 +1,10 @@
-import { BrushTool, EraserTool, installTools, LiquifyTool } from "./gl/tool/tool";
+import {
+  BrushTool,
+  EraserTool,
+  installTools,
+  LiquifyTool as LiquifyStrokeTool,
+} from "./gl/tool/tool";
+import type { ApplyTool } from "./gl/tool/tool";
 import { paintOptions } from "./gl/texture";
 import { getRenderingManager } from "./gl/render/render";
 import { resizeLayer, resizeScreen } from "./gl/resize";
@@ -9,8 +15,9 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
-import type { CoreSessionTool, CoreTool } from "../types";
+import type { CoreSessionTool, CoreTool, LiquifyTool } from "../types";
 import { getSessionManager } from "./session/session";
+import { getLiquifyManager } from "./gl/tool/liquify/liquify";
 
 interface Pointer {
   x: number;
@@ -61,7 +68,7 @@ export class PaintService {
 
     let brushTool = new BrushTool(this.canvas, this.gl);
     let eraserTool = new EraserTool(this.canvas, this.gl);
-    let liquifyTool = new LiquifyTool(this.canvas, this.gl);
+    let liquifyTool = new LiquifyStrokeTool(this.canvas, this.gl);
 
     this.tools = {
       brush: brushTool,
@@ -114,7 +121,9 @@ export class PaintService {
     const px = Math.max(0, Math.min(paintOptions.width - 1, Math.floor(x)));
     const py = Math.max(0, Math.min(paintOptions.height - 1, Math.floor(y)));
     const pixel = new Uint8Array(4);
-    const previousReadFramebuffer = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+    const previousReadFramebuffer = gl.getParameter(
+      gl.READ_FRAMEBUFFER_BINDING,
+    );
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, layerManager.layerFBO);
     gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
@@ -149,6 +158,9 @@ export class PaintService {
       sessionManager.startLiquifySession();
     }
   }
+  setLiquifyTool(toolId: LiquifyTool): void {
+    liquifyManager.setTool(toolId);
+  }
   commitSession() {
     getSessionManager(this.canvas, this.gl).commitSession();
   }
@@ -165,6 +177,10 @@ export class PaintService {
   strokeTo(pointer: Pointer) {
     this.getTool()?.stroke(this.lastPointer, pointer);
     this.lastPointer = pointer;
+  }
+  apply(pointer: Pointer) {
+    const tool = this.getTool() as ApplyTool;
+    tool.apply(pointer);
   }
   end() {
     this.getTool()?.end();
@@ -244,7 +260,10 @@ export class PaintService {
     return historyManager.redo();
   }
   getHistoryCount() {
-    const sessionHistoryCount = getSessionManager(this.canvas, this.gl).getHistoryCount();
+    const sessionHistoryCount = getSessionManager(
+      this.canvas,
+      this.gl,
+    ).getHistoryCount();
     if (sessionHistoryCount) {
       return sessionHistoryCount;
     }

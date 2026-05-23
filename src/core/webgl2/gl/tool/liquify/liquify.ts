@@ -5,6 +5,7 @@ interface liquifyManager {
 
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
+  apply: (pointer: any) => void;
   render: () => void;
 
   end(): void;

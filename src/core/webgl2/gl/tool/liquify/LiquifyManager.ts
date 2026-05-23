@@ -24,6 +24,7 @@ interface LiquifyManagerInterface {
   enter(): void;
   start: (pointer: any) => void;
   push: (start: any, end: any) => void;
+  apply: (pointer: any) => void;
   render: () => void;
   end(): void;
   cancel(): void;
@@ -382,6 +383,10 @@ export class LiquifyManager implements LiquifyManagerInterface {
     }
     this.changeDirtyRecorder.updatePointer(start, paintOptions.radius);
     this.changeDirtyRecorder.updatePointer(end, paintOptions.radius);
+  }
+
+  apply(_pointer: any) {
+    // 스프레이형 픽셀 유동화 도구가 pointerdown 중 매 프레임 호출하는 진입점.
   }
 
   render() {

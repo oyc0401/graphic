@@ -1,7 +1,12 @@
 import { paintOptions } from "./gl/texture";
 import { toWebglCoord, toWebglCoord2, toWebglCoord3 } from "./coordinate";
 import { PaintService } from "./paintService";
-import type { CoreSessionTool, CoreTool, Pointer } from "../types.js";
+import type {
+  CoreSessionTool,
+  CoreTool,
+  LiquifyTool,
+  Pointer,
+} from "../types.js";
 import { HistoryResponse } from "../history/history";
 
 let paint: PaintService;
@@ -103,6 +108,11 @@ export class WebGL2Controller {
     paint.openSession(toolId);
   }
 
+  // 픽셀 유동화 세션 내부에서 사용할 변형 도구를 선택한다.
+  setLiquifyTool(toolId: LiquifyTool): void {
+    paint.setLiquifyTool(toolId);
+  }
+
   // 현재 세션의 편집 결과를 이미지에 적용한다.
   commitSession(): void {
     paint.commitSession();
@@ -122,6 +132,11 @@ export class WebGL2Controller {
   strokeTo(p: Pointer): void {
     let pointer = toWebglCoord(p, paintOptions.height);
     paint.strokeTo(pointer);
+  }
+  // 포인터를 누른 상태에서 매 프레임 적용되는 편집 동작을 실행한다.
+  apply(p: Pointer): void {
+    let pointer = toWebglCoord(p, paintOptions.height);
+    paint.apply(pointer);
   }
   // 현재 진행 중인 그리기나 편집 동작을 완료한다.
   end(): void {

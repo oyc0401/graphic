@@ -13,6 +13,11 @@ interface Tool {
   cancel(): void;
 }
 
+export interface ApplyTool {
+  apply(pointer: Pointer): void;
+  cancel(): void;
+}
+
 export async function installTools(canvas, gl) {
   await installLiquifyManager(canvas, gl);
   console.log("Tool Installed");
@@ -60,7 +65,7 @@ export class EraserTool implements Tool {
   }
 }
 
-export class LiquifyTool implements Tool {
+export class LiquifyTool implements Tool, ApplyTool {
   liquifyManager;
   constructor(canvas, gl) {
     this.liquifyManager = getLiquifyManager(canvas, gl);
@@ -71,6 +76,10 @@ export class LiquifyTool implements Tool {
   }
   stroke(p1: Pointer, p2: Pointer) {
     this.liquifyManager.push(p1, p2);
+    this.liquifyManager.render();
+  }
+  apply(pointer: Pointer) {
+    this.liquifyManager.apply(pointer);
     this.liquifyManager.render();
   }
   end() {
