@@ -49,8 +49,8 @@ liquify.makeHistory();
 
 // 이걸 하면 변위맵이 원본 상태로 복원됌
 liquify.restoreStart({ x, y });
-liquify.restoremove({ x, y });
-liquify.restoremove({ x, y });
+liquify.restoreMove({ x, y });
+liquify.restoreMove({ x, y });
 liquify.makeHistory();
 
 liquify.render(); // 이걸 하면 renderTexture가 수정됌

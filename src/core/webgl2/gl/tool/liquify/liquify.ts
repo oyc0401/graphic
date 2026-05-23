@@ -1,12 +1,12 @@
 import { LiquifyManager } from "./LiquifyManager";
-import type { LiquifyTool } from "@/core/types";
+import type { LiquifyTool, Pointer } from "@/core/types";
 
 interface liquifyManager {
   enter(): void;
 
-  start: (pointer: any) => void;
-  push: (start: any, end: any) => void;
-  apply: (pointer: any) => void;
+  start: (pointer: Pointer) => void;
+  push: (pointer: Pointer) => void;
+  apply: (pointer: Pointer) => void;
   render: () => void;
 
   end(): void;

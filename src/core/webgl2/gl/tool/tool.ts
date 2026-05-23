@@ -74,8 +74,8 @@ export class LiquifyTool implements Tool, ApplyTool {
     // console.log("liquify start");
     this.liquifyManager.start(pointer);
   }
-  stroke(p1: Pointer, p2: Pointer) {
-    this.liquifyManager.push(p1, p2);
+  stroke(_p1: Pointer, p2: Pointer) {
+    this.liquifyManager.push(p2);
     this.liquifyManager.render();
   }
   apply(pointer: Pointer) {

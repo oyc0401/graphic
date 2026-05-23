@@ -1,4 +1,4 @@
-import type { LiquifyTool } from "@/core/types";
+import type { LiquifyTool, Pointer } from "@/core/types";
 import { Rect } from "@/core/utils/rect";
 import { HistoryObject, getHistoryManager } from "../../../../history/history";
 import { getLayerManager } from "../../layer";
@@ -9,9 +9,9 @@ import type { LiquifyRect } from "./liquifyModule";
 
 interface LiquifyManagerInterface {
   enter(): void;
-  start: (pointer: any) => void;
-  push: (start: any, end: any) => void;
-  apply: (pointer: any) => void;
+  start: (pointer: Pointer) => void;
+  push: (pointer: Pointer) => void;
+  apply: (pointer: Pointer) => void;
   render: () => void;
   end(): void;
   cancel(): void;
@@ -99,7 +99,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.active = true;
   }
 
-  start(pointer: any) {
+  start(pointer: Pointer) {
     if (!this.liquify) return;
 
     this.liquify.setRadius(paintOptions.radius);
@@ -112,7 +112,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.liquify.start(pointer);
   }
 
-  push(_start: any, end: any) {
+  push(pointer: Pointer) {
     if (!this.liquify) return;
     if (this.toolId !== "push" && this.toolId !== "restore") return;
 
@@ -120,12 +120,12 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.liquify.setStrength(paintOptions.alpha);
     const rect =
       this.toolId === "restore"
-        ? this.liquify.restoremove(end)
-        : this.liquify.move(end);
+        ? this.liquify.restoreMove(pointer)
+        : this.liquify.move(pointer);
     this.markChanged(rect);
   }
 
-  apply(pointer: any) {
+  apply(pointer: Pointer) {
     if (!this.liquify) return;
 
     this.liquify.setRadius(paintOptions.radius);

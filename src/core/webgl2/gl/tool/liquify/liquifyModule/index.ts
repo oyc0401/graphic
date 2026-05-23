@@ -142,7 +142,7 @@ class Liquify {
     this.strokeRect = pointRect(point, this.radius, this.width, this.height);
   }
 
-  restoremove(point: LiquifyPoint): LiquifyRect | null {
+  restoreMove(point: LiquifyPoint): LiquifyRect | null {
     if (!this.lastPoint) {
       this.restoreStart(point);
       return this.strokeRect;
@@ -155,10 +155,6 @@ class Liquify {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
     }
     return rect;
-  }
-
-  restoreMove(point: LiquifyPoint): LiquifyRect | null {
-    return this.restoremove(point);
   }
 
   restorePoint(point: LiquifyPoint): LiquifyRect | null {
