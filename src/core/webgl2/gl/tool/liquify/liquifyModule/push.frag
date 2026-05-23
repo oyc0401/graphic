@@ -89,7 +89,7 @@ void main() {
   // power는 정규화 영향력이고 radius를 곱하면 픽셀 이동량이 된다.
   // 0.5는 기존 픽셀유동화 도구의 체감 세기를 유지하기 위한 계수다.
   float power = strokePower(pixel, u_start, u_end, u_radius);
-  float diffVal = power * u_radius * u_strength * 0.5f;
+  float diffVal = power * u_radius * u_strength * 0.90f;
 
   // Backward warping: +unit으로 밀려면 현재 픽셀은 이전 변위장의 pixel - movement를 샘플링한다.
   // forward splatting의 구멍 문제를 피하고 선형 필터링으로 변위를 부드럽게 합성한다.

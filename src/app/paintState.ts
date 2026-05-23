@@ -37,7 +37,16 @@ export enum LiquifyToolId {
   Restore = "restore",
 }
 
-type BrushSettingsId = BrushId | SessionId;
+const LIQUIFY_TWIRL_SETTINGS_ID = "liquifyTwirl";
+const LIQUIFY_SCALE_SETTINGS_ID = "liquifyScale";
+
+type LiquifyBrushSettingsId =
+  | LiquifyToolId.Push
+  | typeof LIQUIFY_TWIRL_SETTINGS_ID
+  | typeof LIQUIFY_SCALE_SETTINGS_ID
+  | LiquifyToolId.Restore;
+
+type BrushSettingsId = BrushId | SessionId.Mosaic | LiquifyBrushSettingsId;
 
 class PaintState {
   // 픽셀 유동화 같은 편집 세션이 켜져 있는지.
@@ -57,15 +66,21 @@ class PaintState {
   private _brushSize = {
     [BrushId.Brush]: 5,
     [BrushId.Eraser]: 10,
-    [SessionId.Liquify]: 50,
     [SessionId.Mosaic]: 50,
+    [LiquifyToolId.Push]: 100,
+    [LIQUIFY_TWIRL_SETTINGS_ID]: 100,
+    [LIQUIFY_SCALE_SETTINGS_ID]: 100,
+    [LiquifyToolId.Restore]: 100,
   };
   // 도구별 브러시 불투명도/강도 설정.
   private _brushAlpha = {
     [BrushId.Brush]: 100,
     [BrushId.Eraser]: 100,
-    [SessionId.Liquify]: 100,
     [SessionId.Mosaic]: 100,
+    [LiquifyToolId.Push]: 50,
+    [LIQUIFY_TWIRL_SETTINGS_ID]: 50,
+    [LIQUIFY_SCALE_SETTINGS_ID]: 50,
+    [LiquifyToolId.Restore]: 100,
   };
 
   // 앱이 pointer press를 추적 중인지.
@@ -119,7 +134,7 @@ class PaintState {
   setBrushSize(size: number) {
     this._brushSize[this.getBrushSettingsId()] = size;
     const worker = getLayerWorker();
-    worker.setStrokeSize(size);
+    worker?.setStrokeSize(size);
   }
   setBrushAlpha(alpha: number) {
     this._brushAlpha[this.getBrushSettingsId()] = alpha;
@@ -183,7 +198,24 @@ class PaintState {
   /** .etc */
 
   private getBrushSettingsId(): BrushSettingsId {
-    return this._sessionMode ? this._sessionId : this._brushId;
+    if (!this._sessionMode) return this._brushId;
+    if (this._sessionId === SessionId.Liquify) {
+      return this.getLiquifyBrushSettingsId();
+    }
+    return this._sessionId;
+  }
+
+  private getLiquifyBrushSettingsId(): LiquifyBrushSettingsId {
+    switch (this._liquifyToolId) {
+      case LiquifyToolId.TwirlClockwise:
+      case LiquifyToolId.TwirlCounterClockwise:
+        return LIQUIFY_TWIRL_SETTINGS_ID;
+      case LiquifyToolId.Bloat:
+      case LiquifyToolId.Pucker:
+        return LIQUIFY_SCALE_SETTINGS_ID;
+      default:
+        return this._liquifyToolId;
+    }
   }
 }
 

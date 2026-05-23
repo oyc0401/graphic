@@ -1,12 +1,54 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { BrushId, InputMode, paintState, SessionId, ToolId } from "./paintState";
+import {
+  BrushId,
+  InputMode,
+  LiquifyToolId,
+  paintState,
+  SessionId,
+  ToolId,
+} from "./paintState";
+
+const liquifyToolIds = [
+  LiquifyToolId.Push,
+  LiquifyToolId.TwirlClockwise,
+  LiquifyToolId.TwirlCounterClockwise,
+  LiquifyToolId.Bloat,
+  LiquifyToolId.Pucker,
+  LiquifyToolId.Restore,
+];
+
+function resetBrushSettings() {
+  paintState.setSessionMode(false);
+
+  paintState.setBrushId(BrushId.Brush);
+  paintState.setBrushSize(5);
+  paintState.setBrushAlpha(100);
+
+  paintState.setBrushId(BrushId.Eraser);
+  paintState.setBrushSize(10);
+  paintState.setBrushAlpha(100);
+
+  paintState.setSessionMode(true);
+  paintState.setSessionId(SessionId.Liquify);
+  for (const toolId of liquifyToolIds) {
+    paintState.setLiquifyToolId(toolId);
+    paintState.setBrushSize(50);
+    paintState.setBrushAlpha(100);
+  }
+
+  paintState.setSessionId(SessionId.Mosaic);
+  paintState.setBrushSize(50);
+  paintState.setBrushAlpha(100);
+}
 
 describe("paintState tool mode mapping", () => {
   beforeEach(() => {
+    resetBrushSettings();
     paintState.setInputMode(InputMode.DEFAULT);
     paintState.setBrushId(BrushId.Brush);
     paintState.setSessionMode(false);
     paintState.setSessionId(SessionId.Liquify);
+    paintState.setLiquifyToolId(LiquifyToolId.Push);
     paintState.setSelectedToolId(ToolId.Brush);
   });
 
@@ -76,5 +118,56 @@ describe("paintState tool mode mapping", () => {
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getBrushId()).toBe(BrushId.Eraser);
+  });
+
+  it("keeps brush settings separate between liquify tool groups", () => {
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
+
+    paintState.setLiquifyToolId(LiquifyToolId.Push);
+    paintState.setBrushSize(80);
+    paintState.setBrushAlpha(25);
+
+    paintState.setLiquifyToolId(LiquifyToolId.TwirlClockwise);
+    paintState.setBrushSize(120);
+    paintState.setBrushAlpha(60);
+
+    paintState.setLiquifyToolId(LiquifyToolId.Push);
+    expect(paintState.getBrushSize()).toBe(80);
+    expect(paintState.getBrushAlpha()).toBe(25);
+
+    paintState.setLiquifyToolId(LiquifyToolId.TwirlClockwise);
+    expect(paintState.getBrushSize()).toBe(120);
+    expect(paintState.getBrushAlpha()).toBe(60);
+
+    paintState.setLiquifyToolId(LiquifyToolId.Restore);
+    expect(paintState.getBrushSize()).toBe(50);
+    expect(paintState.getBrushAlpha()).toBe(100);
+  });
+
+  it("shares brush settings between clockwise and counter-clockwise liquify twirl", () => {
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
+
+    paintState.setLiquifyToolId(LiquifyToolId.TwirlClockwise);
+    paintState.setBrushSize(140);
+    paintState.setBrushAlpha(45);
+
+    paintState.setLiquifyToolId(LiquifyToolId.TwirlCounterClockwise);
+    expect(paintState.getBrushSize()).toBe(140);
+    expect(paintState.getBrushAlpha()).toBe(45);
+  });
+
+  it("shares brush settings between liquify bloat and pucker", () => {
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionMode(true);
+
+    paintState.setLiquifyToolId(LiquifyToolId.Bloat);
+    paintState.setBrushSize(160);
+    paintState.setBrushAlpha(35);
+
+    paintState.setLiquifyToolId(LiquifyToolId.Pucker);
+    expect(paintState.getBrushSize()).toBe(160);
+    expect(paintState.getBrushAlpha()).toBe(35);
   });
 });
