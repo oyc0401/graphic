@@ -1,40 +1,58 @@
-const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "bmp"]);
+function getInitialImageUrl(search: string): string | null {
+  const imageUrl = new URLSearchParams(search).get("img");
+  if (!imageUrl) return null;
 
-function getInitialImageName(search: string): string | null {
-  const imageName = new URLSearchParams(search).get("image");
-  if (!imageName) return null;
+  const trimmed = imageUrl.trim();
+  if (!trimmed) {
+    console.error("Initial image URL is empty.");
+    return null;
+  }
 
-  const trimmed = imageName.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes("..")) return null;
-  if (trimmed.includes("/") || trimmed.includes("\\")) return null;
-
-  const extension = trimmed.split(".").pop()?.toLowerCase();
-  if (!extension || !IMAGE_EXTENSIONS.has(extension)) return null;
-
-  return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      console.error("Initial image URL must use http or https.", trimmed);
+      return null;
+    }
+    return url.href;
+  } catch {
+    console.error("Initial image URL is invalid.", trimmed);
+    return null;
+  }
 }
 
 export async function loadInitialImageFromQuery(
   search = window.location.search,
 ): Promise<ImageBitmap | null> {
-  const imageName = getInitialImageName(search);
-  if (!imageName) return null;
+  const imageUrl = getInitialImageUrl(search);
+  if (!imageUrl) return null;
 
   try {
-    const response = await fetch(`/${encodeURIComponent(imageName)}`);
-    if (!response.ok) return null;
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error(
+        "Initial image request failed.",
+        response.status,
+        response.statusText,
+        imageUrl,
+      );
+      return null;
+    }
 
     const contentType = response.headers.get("Content-Type");
-    if (!contentType?.startsWith("image/")) return null;
+    if (!contentType?.startsWith("image/")) {
+      console.error("Initial image response is not an image.", contentType);
+      return null;
+    }
 
     const blob = await response.blob();
     return await createImageBitmap(blob, {
       imageOrientation: "flipY",
       premultiplyAlpha: "premultiply",
     });
-  } catch {
+  } catch (error) {
     // Initial images are optional. Missing or invalid files should not block app startup.
+    console.error("Initial image loading failed.", error);
     return null;
   }
 }
