@@ -85,7 +85,6 @@ const commandHandlers = {
   },
 } satisfies Record<CommandShortcutAction, () => void>;
 
-const pressedModifiersInOrder: KeyboardShortcutKey[] = [];
 const DEBUG_KEYBOARD = true;
 
 const pressedTemporaryActions: Record<
@@ -114,9 +113,6 @@ function handleKeyDown(event: KeyboardEvent) {
   logRawKeyboardEvent("keydown", event);
 
   const key = getShortcutKey(event);
-  if (key && isModifierKey(key) && !event.repeat) {
-    pressModifier(key);
-  }
   logPressedKeys("keydown", event);
 
   const commandShortcut = findMatchingCommandShortcut(event, key);
@@ -144,9 +140,6 @@ function handleKeyUp(event: KeyboardEvent) {
 
   const key = getShortcutKey(event);
   if (key) {
-    if (isModifierKey(key)) {
-      releaseModifier(key);
-    }
     releaseTemporaryShortcut(key);
   }
   logPressedKeys("keyup", event);
@@ -175,29 +168,16 @@ function isModifierKey(key: KeyboardShortcutKey) {
   return key === "ctrl" || key === "cmd" || key === "shift";
 }
 
-function pressModifier(key: KeyboardShortcutKey) {
-  if (!pressedModifiersInOrder.includes(key)) {
-    pressedModifiersInOrder.push(key);
-  }
-}
-
 function logPressedKeys(phase: "keydown" | "keyup", event: KeyboardEvent) {
   if (!DEBUG_KEYBOARD) return;
 
-  // console.log("[keyboard]", phase, event.code, [...pressedModifiersInOrder]);
+  // console.log("[keyboard]", phase, event.code, getPressedModifierKeys(event));
 }
 
 function logRawKeyboardEvent(phase: "keydown" | "keyup", event: KeyboardEvent) {
   if (!DEBUG_KEYBOARD) return;
 
   // console.log("[keyboard:raw]", phase, event);
-}
-
-function releaseModifier(key: KeyboardShortcutKey) {
-  const index = pressedModifiersInOrder.indexOf(key);
-  if (index >= 0) {
-    pressedModifiersInOrder.splice(index, 1);
-  }
 }
 
 function findMatchingCommandShortcut(
@@ -213,11 +193,21 @@ function findMatchingCommandShortcut(
 }
 
 function getPressedCommandKeys(event: KeyboardEvent, key: KeyboardShortcutKey) {
-  if (key === "ctrl" || key === "shift") {
-    return pressedModifiersInOrder;
+  if (isModifierKey(key)) {
+    return getPressedModifierKeys(event);
   }
 
-  return [...pressedModifiersInOrder, key];
+  return [...getPressedModifierKeys(event), key];
+}
+
+function getPressedModifierKeys(event: KeyboardEvent) {
+  const keys: KeyboardShortcutKey[] = [];
+
+  if (event.ctrlKey) keys.push("ctrl");
+  if (event.metaKey) keys.push("cmd");
+  if (event.shiftKey) keys.push("shift");
+
+  return keys;
 }
 
 function isSameKeySequence(
@@ -256,8 +246,8 @@ function pressTemporaryShortcut(
   key: KeyboardShortcutKey,
   event: KeyboardEvent,
 ) {
-  if (pressedModifiersInOrder.includes("ctrl")) return;
-  if (pressedModifiersInOrder.includes("cmd")) return;
+  if (event.ctrlKey) return;
+  if (event.metaKey) return;
 
   const shortcut = findTemporaryShortcutByKey(key);
   if (!shortcut) return;
