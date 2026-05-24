@@ -5,7 +5,9 @@ export interface Pointer {
 
 export type CoreTool = "brush" | "eraser";
 
-export type CoreSessionTool = "liquify";
+export type CoreSessionTool = "liquify" | "mosaic";
+
+export type MosaicMode = "pixel" | "blur";
 
 export type LiquifyTool =
   | "push"

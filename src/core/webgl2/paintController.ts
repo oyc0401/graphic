@@ -5,6 +5,7 @@ import type {
   CoreSessionTool,
   CoreTool,
   LiquifyTool,
+  MosaicMode,
   Pointer,
 } from "../types.js";
 import { HistoryResponse } from "../history/history";
@@ -111,6 +112,16 @@ export class WebGL2Controller {
   // 픽셀 유동화 세션 내부에서 사용할 변형 도구를 선택한다.
   setLiquifyTool(toolId: LiquifyTool): void {
     paint.setLiquifyTool(toolId);
+  }
+
+  // 모자이크 세션에서 사용할 렌더링 방식을 선택한다.
+  setMosaicMode(mode: MosaicMode): void {
+    paint.setMosaicMode(mode);
+  }
+
+  // 모자이크 세션의 전역 강도를 0부터 100까지의 값으로 설정한다.
+  setMosaicStrength(strength: number): void {
+    paint.setMosaicStrength(strength / 100);
   }
 
   // 현재 세션의 편집 결과를 이미지에 적용한다.

@@ -1,5 +1,6 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify/liquify";
 import { getBrushManager } from "./brush/brushTool";
+import { getMosaicManager, installMosaicManager } from "./mosaic/mosaic";
 
 interface Pointer {
   x: number;
@@ -20,6 +21,7 @@ export interface ApplyTool {
 
 export async function installTools(canvas, gl) {
   await installLiquifyManager(canvas, gl);
+  await installMosaicManager(canvas, gl);
   console.log("Tool Installed");
 }
 
@@ -89,5 +91,25 @@ export class LiquifyTool implements Tool, ApplyTool {
   }
   cancel() {
     this.liquifyManager.cancel();
+  }
+}
+
+export class MosaicTool implements Tool {
+  mosaicManager;
+  constructor(canvas, gl) {
+    this.mosaicManager = getMosaicManager(canvas, gl);
+  }
+  start(pointer: Pointer) {
+    this.mosaicManager.start(pointer);
+  }
+  stroke(_p1: Pointer, p2: Pointer) {
+    this.mosaicManager.push(p2);
+    this.mosaicManager.render();
+  }
+  end() {
+    this.mosaicManager.end();
+  }
+  cancel() {
+    this.mosaicManager.cancel();
   }
 }

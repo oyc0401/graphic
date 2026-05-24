@@ -3,6 +3,7 @@ import {
   EraserTool,
   installTools,
   LiquifyTool as LiquifyStrokeTool,
+  MosaicTool as MosaicStrokeTool,
 } from "./gl/tool/tool";
 import type { ApplyTool } from "./gl/tool/tool";
 import { paintOptions } from "./gl/texture";
@@ -15,9 +16,10 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
-import type { CoreSessionTool, CoreTool, LiquifyTool } from "../types";
+import type { CoreSessionTool, CoreTool, LiquifyTool, MosaicMode } from "../types";
 import { getSessionManager } from "./session/session";
 import { getLiquifyManager } from "./gl/tool/liquify/liquify";
+import { getMosaicManager } from "./gl/tool/mosaic/mosaic";
 
 interface Pointer {
   x: number;
@@ -69,11 +71,13 @@ export class PaintService {
     let brushTool = new BrushTool(this.canvas, this.gl);
     let eraserTool = new EraserTool(this.canvas, this.gl);
     let liquifyTool = new LiquifyStrokeTool(this.canvas, this.gl);
+    let mosaicTool = new MosaicStrokeTool(this.canvas, this.gl);
 
     this.tools = {
       brush: brushTool,
       eraser: eraserTool,
       liquify: liquifyTool,
+      mosaic: mosaicTool,
     };
   }
 
@@ -156,10 +160,23 @@ export class PaintService {
     if (toolId === "liquify") {
       paintOptions.toolId = toolId;
       sessionManager.startLiquifySession();
+      return;
+    }
+
+    if (toolId === "mosaic") {
+      paintOptions.toolId = toolId;
+      sessionManager.startMosaicSession();
+      return;
     }
   }
   setLiquifyTool(toolId: LiquifyTool): void {
     getLiquifyManager(this.canvas, this.gl).setTool(toolId);
+  }
+  setMosaicMode(mode: MosaicMode): void {
+    getMosaicManager(this.canvas, this.gl).setMode(mode);
+  }
+  setMosaicStrength(strength: number): void {
+    getMosaicManager(this.canvas, this.gl).setStrength(strength / 100);
   }
   commitSession() {
     getSessionManager(this.canvas, this.gl).commitSession();

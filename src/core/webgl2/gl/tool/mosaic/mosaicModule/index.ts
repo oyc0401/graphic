@@ -7,7 +7,7 @@ import type { MosaicPoint, MosaicRect } from "./rect";
 
 export type { MosaicPoint, MosaicRect } from "./rect";
 
-export type MosaicMode = "픽셀" | "가우시안";
+export type MosaicMode = "pixel" | "blur";
 
 export interface CreateMosaicOptions {
   imageTexture: WebGLTexture;
@@ -44,8 +44,8 @@ class Mosaic {
   private height: number;
   private radius = 10;
   private strength = 0.5;
-  private mode: MosaicMode = "픽셀";
-  private committedMode: MosaicMode = "픽셀";
+  private mode: MosaicMode = "pixel";
+  private committedMode: MosaicMode = "pixel";
   private committedStrength = 0.5;
   private lastPoint: MosaicPoint | null = null;
   private strokeRect: MosaicRect | null = null;
@@ -254,7 +254,7 @@ class Mosaic {
       return null;
     }
 
-    if (this.mode === "가우시안") {
+    if (this.mode === "blur") {
       this.renderGaussian(rect);
       this.dirtyRect = null;
       return rect;

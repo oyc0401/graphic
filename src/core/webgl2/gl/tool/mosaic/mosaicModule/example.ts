@@ -35,9 +35,9 @@ mosaic.render(); // 이걸 하면 resultTexture가 수정됌
 mosaic.redo(); // 이걸 하면 알파맵이 수정됌
 mosaic.render(); // 이걸 하면 resultTexture 수정됌
 
-mosaic.setMode("가우시안"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
+mosaic.setMode("blur"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
 mosaic.render();
-mosaic.setMode("픽셀"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
+mosaic.setMode("pixel"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
 mosaic.render();
 mosaic.makeHistory();
 

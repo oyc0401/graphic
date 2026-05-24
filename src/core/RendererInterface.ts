@@ -1,4 +1,4 @@
-import type { CoreSessionTool, CoreTool, Pointer } from "./types.js";
+import type { CoreSessionTool, CoreTool, MosaicMode, Pointer } from "./types.js";
 import type { HistoryResponse } from "./history/history";
 
 // 이거 안쓰는 코드임
@@ -27,6 +27,8 @@ export interface RendererInterface {
   // === 도구 관리 ===
   setTool(toolId: CoreTool): void;
   openSession(toolId: CoreSessionTool): void;
+  setMosaicMode(mode: MosaicMode): void;
+  setMosaicStrength(strength: number): void;
   commitSession(): void;
   discardSession(): void;
   getHistoryCount(): { undoCount: number; redoCount: number };

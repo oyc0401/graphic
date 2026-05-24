@@ -2,6 +2,7 @@ import type { CoreSessionTool } from "@/core/types";
 import type { HistoryCount, HistoryResponse } from "@/core/history/history";
 import { getManager } from "@/core/utils/cachedManager";
 import { getLiquifyManager } from "../gl/tool/liquify/liquify";
+import { getMosaicManager } from "../gl/tool/mosaic/mosaic";
 
 export interface EditSession {
   tool: CoreSessionTool;
@@ -38,6 +39,32 @@ class LiquifySession implements EditSession {
   }
 }
 
+class MosaicSession implements EditSession {
+  readonly tool = "mosaic";
+
+  constructor(private mosaicManager) {}
+
+  apply() {
+    this.mosaicManager.applySession();
+  }
+
+  discard() {
+    this.mosaicManager.discardSession();
+  }
+
+  undo() {
+    return this.mosaicManager.undo();
+  }
+
+  redo() {
+    return this.mosaicManager.redo();
+  }
+
+  getHistoryCount() {
+    return this.mosaicManager.getHistoryCount();
+  }
+}
+
 class SessionManager {
   private activeSession: EditSession | null = null;
 
@@ -50,6 +77,13 @@ class SessionManager {
     const liquifyManager = getLiquifyManager(this.canvas, this.gl);
     liquifyManager.enter();
     this.activeSession = new LiquifySession(liquifyManager);
+    return this.activeSession;
+  }
+
+  startMosaicSession(): EditSession {
+    const mosaicManager = getMosaicManager(this.canvas, this.gl);
+    mosaicManager.enter();
+    this.activeSession = new MosaicSession(mosaicManager);
     return this.activeSession;
   }
 
