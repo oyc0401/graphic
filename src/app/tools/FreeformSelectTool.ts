@@ -1,6 +1,6 @@
 import { InputMode, paintState, ToolId } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
-import { canvasFreeformSelect } from "../selection";
+import { canvasFreeformSelect, selection } from "../selection";
 import { clamp } from "../utils/math";
 import type { Tool, ToolConfig } from "./Tool";
 
@@ -37,6 +37,7 @@ export class FreeformSelectTool implements Tool {
     this.points = [point];
     this.lastPoint = point;
     this.active = true;
+    selection.startFreeformPreview(point);
   }
 
   move(e: PointerEvent) {
@@ -47,6 +48,7 @@ export class FreeformSelectTool implements Tool {
     if (!this.lastPoint || distance(this.lastPoint, point) >= 1) {
       this.points.push(point);
       this.lastPoint = point;
+      selection.addFreeformPreviewPoint(point);
     }
   }
 
@@ -60,7 +62,9 @@ export class FreeformSelectTool implements Tool {
       this.points.push(point);
     }
 
-    canvasFreeformSelect(this.points);
+    const points = [...this.points];
+    selection.clearFreeformPreview();
+    canvasFreeformSelect(points);
     this.points = [];
     this.lastPoint = null;
   }
@@ -69,6 +73,7 @@ export class FreeformSelectTool implements Tool {
     this.active = false;
     this.points = [];
     this.lastPoint = null;
+    selection.clearFreeformPreview();
   }
 
   private getPoint(e: PointerEvent): SelectionPoint {

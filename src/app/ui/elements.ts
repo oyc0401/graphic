@@ -1,7 +1,7 @@
 /** elements.ts */
 import CursorSvg from "../assets/cursor.svg?raw";
 
-function $id<T extends HTMLElement = HTMLElement>(elementId: string): T {
+function $id<T extends Element = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
   if (element) {
     return element as T;
@@ -21,6 +21,10 @@ function elements() {
     zoomArea: $id("zoom-area"),
 
     selectionArea: $id("selection-area"),
+    freeformSelectPreview: $id<SVGSVGElement>("freeform-select-preview"),
+    freeformSelectPreviewLine: $id<SVGPolylineElement>(
+      "freeform-select-preview-line",
+    ),
     resizeArea: $id("resize-area"),
     handleLT: $id("handle-lt"),
     handleRT: $id("handle-rt"),

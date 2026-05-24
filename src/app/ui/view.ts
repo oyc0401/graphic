@@ -21,6 +21,7 @@ const TOOL_CURSOR_CLASSES = ["zoom", "select", "colorPicker"] as const;
 export function bindView() {
   bindCursorUI();
   bindSelectionUI();
+  bindFreeformSelectPreviewUI();
   bindCanvasResizeHover();
   bindCanvasResizeUI();
   bindCursorPositionUI();
@@ -149,6 +150,43 @@ function bindCursorUI() {
     } else {
       cursor.style.visibility = "hidden";
     }
+  });
+}
+
+function bindFreeformSelectPreviewUI() {
+  autorun(() => {
+    const points = selection.freeformPreviewPoints;
+    const visible =
+      selection.freeformPreviewVisible &&
+      !selection.visible &&
+      points.length > 1;
+
+    els.freeformSelectPreview.style.visibility = visible
+      ? "visible"
+      : "hidden";
+
+    if (!visible) {
+      els.freeformSelectPreviewLine.setAttribute("points", "");
+      return;
+    }
+
+    const dpr = getPixelRatio();
+    const width = position.bouncingRect.width;
+    const height = position.bouncingRect.height;
+    els.freeformSelectPreview.setAttribute(
+      "viewBox",
+      `0 0 ${width} ${height}`,
+    );
+
+    const polylinePoints = points
+      .map((point) => {
+        const x = ((point.x + position.x) * position.scale) / dpr;
+        const y = ((point.y + position.y) * position.scale) / dpr;
+        return `${x},${y}`;
+      })
+      .join(" ");
+
+    els.freeformSelectPreviewLine.setAttribute("points", polylinePoints);
   });
 }
 

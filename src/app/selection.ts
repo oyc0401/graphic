@@ -22,6 +22,8 @@ export class SelectionState {
   hover = "";
   flipH = false; // 수평 flip
   flipV = false; // 수직 flip
+  freeformPreviewVisible = false;
+  freeformPreviewPoints: SelectionPoint[] = [];
 
   constructor() {
     makeAutoObservable(this);
@@ -72,6 +74,20 @@ export class SelectionState {
   setFlip(flipH: boolean, flipV: boolean) {
     this.flipH = flipH;
     this.flipV = flipV;
+  }
+
+  startFreeformPreview(point: SelectionPoint) {
+    this.freeformPreviewVisible = true;
+    this.freeformPreviewPoints = [point];
+  }
+
+  addFreeformPreviewPoint(point: SelectionPoint) {
+    this.freeformPreviewPoints.push(point);
+  }
+
+  clearFreeformPreview() {
+    this.freeformPreviewVisible = false;
+    this.freeformPreviewPoints = [];
   }
 }
 
