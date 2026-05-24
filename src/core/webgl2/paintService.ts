@@ -176,7 +176,7 @@ export class PaintService {
     getMosaicManager(this.canvas, this.gl).setMode(mode);
   }
   setMosaicStrength(strength: number): void {
-    getMosaicManager(this.canvas, this.gl).setStrength(strength / 100);
+    getMosaicManager(this.canvas, this.gl).setStrength(strength);
   }
   commitSession() {
     getSessionManager(this.canvas, this.gl).commitSession();

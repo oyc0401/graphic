@@ -2,6 +2,7 @@ import "./mobile.css";
 import {
   BrushId,
   LiquifyToolId,
+  MosaicModeId,
   paintState,
   SessionId,
   ToolId,
@@ -31,7 +32,7 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Expand, Pipette, RotateCcw, RotateCw, Search, Shrink } from "lucide-react";
+import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -63,8 +64,12 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify ? (
-          <LiquifyMobileAppBar />
+        {paintState.getSessionMode() ? (
+          paintState.getSessionId() === SessionId.Mosaic ? (
+            <MosaicMobileAppBar />
+          ) : (
+            <LiquifyMobileAppBar />
+          )
         ) : (
           <div className="mobile-appbar">
             <MainMenuToggleButton />
@@ -171,6 +176,65 @@ const LiquifySessionToolButton = observer(
   },
 );
 
+const MosaicMobileAppBar = observer(() => {
+  return (
+    <div className="mobile-appbar">
+      <button
+        className="header-button"
+        aria-label={getLetter("apply")}
+        onClick={() => toolManager.commitSession()}
+      >
+        <CircleCheck color="#16a34a" size={24} strokeWidth={2.4} />
+      </button>
+      <button
+        className="header-button"
+        aria-label={getLetter("cancel")}
+        onClick={() => toolManager.discardSession()}
+      >
+        <CircleX color="#dc2626" size={24} strokeWidth={2.4} />
+      </button>
+      <div className="mobile-div-bar"></div>
+      <MosaicModeButton
+        modeId={MosaicModeId.Pixel}
+        label={getLetter("mosaic_pixel")}
+        icon={<Grid2X2 size={24} strokeWidth={2.2} />}
+      />
+      <MosaicModeButton
+        modeId={MosaicModeId.Blur}
+        label={getLetter("mosaic_blur")}
+        icon={<Waves size={24} strokeWidth={2.2} />}
+      />
+      <SizeToggleButton />
+      <div style={{ flex: 1 }} />
+      <HistoryButtons />
+    </div>
+  );
+});
+
+const MosaicModeButton = observer(
+  ({
+    modeId,
+    label,
+    icon,
+  }: {
+    modeId: MosaicModeId;
+    label: string;
+    icon: ReactNode;
+  }) => {
+    const isSelected = paintState.getMosaicModeId() === modeId;
+
+    return (
+      <button
+        className={`header-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+        aria-label={label}
+        onClick={() => toolManager.setMosaicMode(modeId)}
+      >
+        {icon}
+      </button>
+    );
+  },
+);
+
 const ToolsToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -200,6 +264,7 @@ const ToolsToggleButton = observer(() => {
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <LiquifyToolButton />
+          <MosaicToolButton />
           <ZoomToolButton />
           <ColorPickerToolButton />
           <div style={{ flex: 1 }} />
@@ -243,7 +308,14 @@ const SizeToggleButton = observer(() => {
       {menuState.showSizeBar && (
         <div className="size-bar" ref={menuRef}>
           <BrushSizeSlider />
-          <BrushAlphaSlider />
+          <BrushAlphaSlider
+            label={
+              paintState.getSessionMode() &&
+              paintState.getSessionId() === SessionId.Mosaic
+                ? getLetter("mosaic_strength")
+                : undefined
+            }
+          />
         </div>
       )}
     </>
@@ -364,6 +436,31 @@ const LiquifyToolButton = observer(() => {
       onClick={onClick}
     >
       <LiquifyIcon />
+    </button>
+  );
+});
+
+const MosaicToolButton = observer(() => {
+  const isSelected =
+    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  const onClick = () => {
+    toolManager.setMosaicTool();
+    toggleMenu();
+  };
+
+  return (
+    <button
+      id="select-mosaic"
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      aria-label={getLetter("mosaic")}
+      onClick={onClick}
+    >
+      <Grid2X2 size={24} strokeWidth={2.2} />
     </button>
   );
 });

@@ -2,6 +2,7 @@ import {
   BrushId,
   InputMode,
   LiquifyToolId,
+  MosaicModeId,
   paintState,
   SessionId,
   ToolId,
@@ -11,11 +12,13 @@ import { dispatch } from "./events/pointerEvents";
 import { syncCoreState } from "./history";
 import { getLayerWorker } from "./worker/workerPool";
 
-function confirmLiquifyApply() {
-  if (!paintState.getSessionMode() || paintState.getSessionId() !== SessionId.Liquify) {
+function confirmSessionApply() {
+  if (!paintState.getSessionMode()) {
     return true;
   }
-  return window.confirm("픽셀유동화를 적용하시겠습니까?");
+  const sessionName =
+    paintState.getSessionId() === SessionId.Mosaic ? "모자이크" : "픽셀유동화";
+  return window.confirm(`${sessionName}를 적용하시겠습니까?`);
 }
 
 function canChangeTool() {
@@ -32,23 +35,23 @@ function commitVisibleSelection() {
   }
 }
 
-function commitLiquifySession() {
+function commitEditingSession() {
   getLayerWorker().commitSession();
   syncCoreState();
   paintState.setSessionMode(false);
 }
 
-function discardLiquifySession() {
+function discardEditingSession() {
   getLayerWorker().discardSession();
   syncCoreState();
   paintState.setSessionMode(false);
 }
 
 function leaveCurrentEditingState(options: { commitSelection: boolean }) {
-  if (!confirmLiquifyApply()) return false;
+  if (!confirmSessionApply()) return false;
 
-  if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
-    commitLiquifySession();
+  if (paintState.getSessionMode()) {
+    commitEditingSession();
     return true;
   }
 
@@ -116,6 +119,29 @@ export const toolManager = {
     getLayerWorker().setLiquifyTool(toolId);
     syncCoreState();
   },
+  setMosaicTool() {
+    if (!canChangeTool()) return;
+    if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic) {
+      setDefaultInputMode();
+      return;
+    }
+
+    if (!leaveCurrentEditingState({ commitSelection: true })) return;
+
+    paintState.setSessionId(SessionId.Mosaic);
+    paintState.setSessionMode(true);
+    setDefaultInputMode();
+    getLayerWorker().openSession("mosaic");
+    getLayerWorker().setMosaicMode(paintState.getMosaicModeId());
+    getLayerWorker().setMosaicStrength(paintState.getBrushAlpha());
+    syncCoreState();
+  },
+  setMosaicMode(modeId: MosaicModeId) {
+    if (!canChangeTool()) return;
+    paintState.setMosaicModeId(modeId);
+    getLayerWorker().setMosaicMode(modeId);
+    syncCoreState();
+  },
   setSelectTool() {
     if (!canChangeTool()) return;
     if (!leaveCurrentEditingState({ commitSelection: true })) return;
@@ -149,23 +175,21 @@ export const toolManager = {
   commitSession() {
     if (
       !canChangeTool() ||
-      !paintState.getSessionMode() ||
-      paintState.getSessionId() !== SessionId.Liquify
+      !paintState.getSessionMode()
     )
       return;
 
-    commitLiquifySession();
+    commitEditingSession();
     returnFromSession();
   },
   discardSession() {
     if (
       !canChangeTool() ||
-      !paintState.getSessionMode() ||
-      paintState.getSessionId() !== SessionId.Liquify
+      !paintState.getSessionMode()
     )
       return;
 
-    discardLiquifySession();
+    discardEditingSession();
     returnFromSession();
   },
 };

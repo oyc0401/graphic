@@ -1,9 +1,14 @@
 import { BrushId, InputMode, paintState, SessionId, ToolId } from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
-export type WorkerToolTarget = BrushId | SessionId.Liquify | ToolId.Select | ToolId.Selection;
+export type WorkerToolTarget =
+  | BrushId
+  | SessionId.Liquify
+  | SessionId.Mosaic
+  | ToolId.Select
+  | ToolId.Selection;
 type WorkerPaintTool = "brush" | "eraser";
-type WorkerSessionTool = "liquify";
+type WorkerSessionTool = "liquify" | "mosaic";
 type WorkerToolCommand = WorkerPaintTool | WorkerSessionTool;
 
 export function getActiveToolId(): ToolId {
@@ -25,6 +30,8 @@ function workerToolForTarget(target: WorkerToolTarget): WorkerToolCommand | null
       return "eraser";
     case SessionId.Liquify:
       return "liquify";
+    case SessionId.Mosaic:
+      return "mosaic";
     case ToolId.Select:
     case ToolId.Selection:
       return null;
@@ -59,6 +66,10 @@ function applyWorkerToolToPaintState(tool: WorkerToolCommand | null, fallbackTar
       paintState.setSessionId(SessionId.Liquify);
       paintState.setSessionMode(true);
       return;
+    case "mosaic":
+      paintState.setSessionId(SessionId.Mosaic);
+      paintState.setSessionMode(true);
+      return;
     case null:
       if (fallbackTarget === ToolId.Select || fallbackTarget === ToolId.Selection) {
         paintState.setSelectedToolId(fallbackTarget);
@@ -87,7 +98,7 @@ export function applyWorkerToolTarget(target: WorkerToolTarget) {
   if (tool === null) {
     return;
   }
-  if (tool === "liquify") {
+  if (tool === "liquify" || tool === "mosaic") {
     return getLayerWorker().openSession(tool);
   }
   return getLayerWorker().setTool(tool);
@@ -96,7 +107,7 @@ export function applyWorkerToolTarget(target: WorkerToolTarget) {
 // 현재 app 도구 상태를 기준으로 worker의 입력 도구나 세션 상태를 맞춘다.
 export function syncWorkerToCurrentPaintTool() {
   const tool = workerToolForCurrentPaintState();
-  if (tool === "liquify") {
+  if (tool === "liquify" || tool === "mosaic") {
     return getLayerWorker().openSession(tool);
   }
   return getLayerWorker().setTool(tool);

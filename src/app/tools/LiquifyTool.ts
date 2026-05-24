@@ -1,4 +1,4 @@
-import { LiquifyToolId, paintState } from "../paintState";
+import { LiquifyToolId, paintState, SessionId } from "../paintState";
 import { to_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
 import { BrushTool } from "./BrushTool";
@@ -134,6 +134,9 @@ export class LiquifySessionTool implements Tool {
   }
 
   private getActiveTool() {
+    if (paintState.getSessionId() === SessionId.Mosaic) {
+      return this.pushTool;
+    }
     return paintState.getLiquifyToolId() === LiquifyToolId.Push
       ? this.pushTool
       : this.sprayTool;

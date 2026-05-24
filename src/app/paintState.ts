@@ -28,6 +28,11 @@ export enum SessionId {
   Mosaic = "mosaic",
 }
 
+export enum MosaicModeId {
+  Pixel = "pixel",
+  Blur = "blur",
+}
+
 export enum LiquifyToolId {
   Push = "push",
   TwirlClockwise = "twirlClockwise",
@@ -61,6 +66,8 @@ class PaintState {
   private _brushId: BrushId = BrushId.Brush;
   // 리퀴파이 세션 안에서 사용하는 하위 툴.
   private _liquifyToolId: LiquifyToolId = LiquifyToolId.Push;
+  // 모자이크 세션에서 사용하는 렌더링 방식.
+  private _mosaicModeId: MosaicModeId = MosaicModeId.Pixel;
 
   // 도구별 브러시 크기 설정.
   private _brushSize = {
@@ -115,6 +122,9 @@ class PaintState {
   setLiquifyToolId(toolId: LiquifyToolId) {
     this._liquifyToolId = toolId;
   }
+  setMosaicModeId(modeId: MosaicModeId) {
+    this._mosaicModeId = modeId;
+  }
   setSessionMode(value: boolean) {
     this._sessionMode = value;
   }
@@ -138,6 +148,9 @@ class PaintState {
   }
   setBrushAlpha(alpha: number) {
     this._brushAlpha[this.getBrushSettingsId()] = alpha;
+    if (this._sessionMode && this._sessionId === SessionId.Mosaic) {
+      getLayerWorker()?.setMosaicStrength(alpha);
+    }
   }
   setShowBrushCursorPreview(value) {
     this._showBrushCursorPreview = value;
@@ -172,6 +185,9 @@ class PaintState {
   }
   getLiquifyToolId() {
     return this._liquifyToolId;
+  }
+  getMosaicModeId() {
+    return this._mosaicModeId;
   }
   getCursorX() {
     return this._cursorX;

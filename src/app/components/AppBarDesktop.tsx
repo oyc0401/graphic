@@ -1,6 +1,7 @@
 import {
   BrushId,
   LiquifyToolId,
+  MosaicModeId,
   paintState,
   SessionId,
   ToolId,
@@ -24,7 +25,7 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Expand, Pipette, RotateCcw, RotateCw, Search, Shrink } from "lucide-react";
+import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
 import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
 
 const hexColors = [
@@ -64,8 +65,12 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify ? (
-          <LiquifyMenuBar />
+        {paintState.getSessionMode() ? (
+          paintState.getSessionId() === SessionId.Mosaic ? (
+            <MosaicMenuBar />
+          ) : (
+            <LiquifyMenuBar />
+          )
         ) : (
           <div id="menu-bar">
             <SelectionToolButton />
@@ -81,6 +86,7 @@ function AppBarDesktop() {
             <EraserToolButton />
             <div className="div-bar"></div>
             <LiquifyToolButton />
+            <MosaicToolButton />
             <div className="div-bar"></div>
             {/* ===== 슬라이더 ===== */}
             <div className="brush-control-group">
@@ -212,6 +218,73 @@ const LiquifySessionToolButton = observer(
   },
 );
 
+const MosaicMenuBar = observer(() => {
+  return (
+    <div id="menu-bar">
+      <button
+        className="select-button"
+        aria-label={getLetter("apply")}
+        onClick={() => toolManager.commitSession()}
+      >
+        <CircleCheck color="#16a34a" size={32} strokeWidth={2.4} />
+        <p>{getLetter("apply")}</p>
+      </button>
+      <button
+        className="select-button"
+        aria-label={getLetter("cancel")}
+        onClick={() => toolManager.discardSession()}
+      >
+        <CircleX color="#dc2626" size={32} strokeWidth={2.4} />
+        <p>{getLetter("cancel")}</p>
+      </button>
+
+      <div className="div-bar"></div>
+
+      <MosaicModeButton
+        modeId={MosaicModeId.Pixel}
+        label={getLetter("mosaic_pixel")}
+        icon={<Grid2X2 size={32} strokeWidth={2.2} />}
+      />
+      <MosaicModeButton
+        modeId={MosaicModeId.Blur}
+        label={getLetter("mosaic_blur")}
+        icon={<Waves size={32} strokeWidth={2.2} />}
+      />
+
+      <div className="div-bar"></div>
+      <div className="brush-control-group">
+        <BrushSizeSlider />
+        <BrushAlphaSlider label={getLetter("mosaic_strength")} />
+      </div>
+    </div>
+  );
+});
+
+const MosaicModeButton = observer(
+  ({
+    modeId,
+    label,
+    icon,
+  }: {
+    modeId: MosaicModeId;
+    label: string;
+    icon: ReactNode;
+  }) => {
+    const isSelected = paintState.getMosaicModeId() === modeId;
+
+    return (
+      <button
+        className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+        aria-label={label}
+        onClick={() => toolManager.setMosaicMode(modeId)}
+      >
+        {icon}
+        <p>{label}</p>
+      </button>
+    );
+  },
+);
+
 const HistoryButtons = observer(() => {
   const canUndo = historyState.getUndoCount() > 0;
   const canRedo = historyState.getRedoCount() > 0;
@@ -301,6 +374,22 @@ const LiquifyToolButton = observer(() => {
     >
       <LiquifyIcon width={32} height={32} />
       <p>{getLetter("liquify")}</p>
+    </button>
+  );
+});
+
+const MosaicToolButton = observer(() => {
+  const isSelected =
+    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+
+  return (
+    <button
+      id="select-mosaic"
+      className={`select-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setMosaicTool()}
+    >
+      <Grid2X2 size={32} strokeWidth={2.2} />
+      <p>{getLetter("mosaic")}</p>
     </button>
   );
 });
