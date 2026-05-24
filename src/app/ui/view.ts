@@ -6,6 +6,7 @@ import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
 import { resizeTool } from "../tools/resizeTool";
+import { selectionTool } from "../tools/SelectionTool";
 import { canvasResizeState } from "../canvasResizeState";
 import { getCurrentTool } from "../tools/activeTool";
 import {
@@ -251,13 +252,25 @@ function canShowCanvasResizeHandle() {
   );
 }
 
+function canShowSelectionHover() {
+  return (
+    !paintState.getPointerdown() &&
+    paintState.getInputMode() === InputMode.DEFAULT &&
+    paintState.getTemporaryToolId() === null &&
+    paintState.getSelectedToolId() === ToolId.Selection &&
+    selection.showHandle
+  );
+}
+
 function bindCanvasResizeHover() {
   els.container.addEventListener("pointermove", (event) => {
     resizeTool.updateHover(event, canShowCanvasResizeHandle());
+    selectionTool.updateHover(event, canShowSelectionHover());
   });
 
   els.container.addEventListener("pointerleave", (event) => {
     resizeTool.updateHover(event, false);
+    selectionTool.updateHover(event, false);
   });
 }
 

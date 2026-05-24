@@ -1,6 +1,5 @@
 import {
   BrushId,
-  InputMode,
   LiquifyToolId,
   MosaicToolId,
   paintState,
@@ -15,43 +14,40 @@ function canChangeTool() {
   return !paintState.getPointerdown();
 }
 
+function canChangeMainTool() {
+  return canChangeTool() && !paintState.getSessionMode();
+}
+
 export const toolManager = {
   async setBrushTool() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
     if (selection.visible) {
       applySelection();
     }
 
     paintState.setBrushId(BrushId.Brush);
     paintState.setSelectedToolId(ToolId.Brush);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(BrushId.Brush);
     syncCoreState();
   },
   setEraserTool() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
     if (selection.visible) {
       applySelection();
     }
 
     paintState.setBrushId(BrushId.Eraser);
     paintState.setSelectedToolId(ToolId.Brush);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(BrushId.Eraser);
     syncCoreState();
   },
   setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
     if (!canChangeTool()) return;
-    if (
-      paintState.getSessionMode() &&
-      paintState.getSessionId() === SessionId.Liquify
-    ) {
-      paintState.setLiquifyToolId(toolId);
-      getLayerWorker().setLiquifyTool(toolId);
-      paintState.setInputMode(InputMode.DEFAULT);
-      paintState.setTemporaryToolId(null);
+    if (paintState.getSessionMode()) {
+      if (paintState.getSessionId() === SessionId.Liquify) {
+        paintState.setLiquifyToolId(toolId);
+        getLayerWorker().setLiquifyTool(toolId);
+      }
       return;
     }
 
@@ -61,20 +57,13 @@ export const toolManager = {
 
     paintState.setSessionId(SessionId.Liquify);
     paintState.setLiquifyToolId(toolId);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().openSession("liquify");
     getLayerWorker().setLiquifyTool(toolId);
     syncCoreState();
   },
   setMosaicTool() {
     if (!canChangeTool()) return;
-    if (
-      paintState.getSessionMode() &&
-      paintState.getSessionId() === SessionId.Mosaic
-    ) {
-      paintState.setInputMode(InputMode.DEFAULT);
-      paintState.setTemporaryToolId(null);
+    if (paintState.getSessionMode()) {
       return;
     }
 
@@ -83,8 +72,6 @@ export const toolManager = {
     }
 
     paintState.setSessionId(SessionId.Mosaic);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().openSession("mosaic");
     getLayerWorker().setMosaicMode(paintState.getMosaicToolId());
     getLayerWorker().setMosaicStrength(paintState.getBrushAlpha());
@@ -92,52 +79,46 @@ export const toolManager = {
   },
   setMosaicMode(modeId: MosaicToolId) {
     if (!canChangeTool()) return;
+    if (paintState.getSessionId() !== SessionId.Mosaic) return;
+
     paintState.setMosaicToolId(modeId);
     getLayerWorker().setMosaicMode(modeId);
     syncCoreState();
   },
   setSelectTool() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
     if (selection.visible) {
       applySelection();
     }
 
     paintState.setSelectedToolId(ToolId.Select);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
   setZoomTool() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
     if (selection.visible) {
       applySelection();
     }
 
     paintState.setSelectedToolId(ToolId.Zoom);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
   setColorPickerTool() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
     if (selection.visible) {
       applySelection();
     }
 
     paintState.setSelectedToolId(ToolId.ColorPicker);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
   setSelection() {
-    if (!canChangeTool()) return;
+    if (!canChangeMainTool()) return;
 
     paintState.setSelectedToolId(ToolId.Selection);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     syncCoreState();
   },
   commitSession() {
@@ -146,8 +127,6 @@ export const toolManager = {
     getLayerWorker().commitSession();
     syncCoreState();
     paintState.setSessionId(null);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
@@ -164,8 +143,6 @@ export const toolManager = {
     getLayerWorker().discardSession();
     syncCoreState();
     paintState.setSessionId(null);
-    paintState.setInputMode(InputMode.DEFAULT);
-    paintState.setTemporaryToolId(null);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },

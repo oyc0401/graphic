@@ -13,7 +13,7 @@ import { MosaicSessionTool } from "./MosaicTool";
 import { panTool } from "./PanTool";
 import { resizeTool } from "./resizeTool";
 import { SelectTool } from "./SelectTool";
-import { SelectionTool } from "./SelectionTool";
+import { selectionTool } from "./SelectionTool";
 import type { Tool } from "./Tool";
 import { zoomTool } from "./ZoomTool";
 
@@ -22,7 +22,6 @@ const colorPickerTool = new ColorPickerTool();
 const liquifySessionTool = new LiquifySessionTool();
 const mosaicSessionTool = new MosaicSessionTool();
 const selectTool = new SelectTool();
-const selectionTool = new SelectionTool();
 
 export function getCurrentTool(): Tool | null {
   switch (paintState.getInputMode()) {

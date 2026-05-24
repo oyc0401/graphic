@@ -43,20 +43,52 @@ export class SelectionTool implements Tool {
     );
   }
 
+  private hitTest(e: PointerEvent): HandleType {
+    return getSelectionHandleAtPoint(e.clientX, e.clientY, {
+      x: selection.x,
+      y: selection.y,
+      width: selection.width,
+      height: selection.height,
+    });
+  }
+
+  private cursorForHandle(handle: HandleType) {
+    switch (handle) {
+      case "LT":
+      case "RB":
+        return "nwse-resize";
+      case "RT":
+      case "LB":
+        return "nesw-resize";
+      case "T":
+      case "B":
+        return "ns-resize";
+      case "L":
+      case "R":
+        return "ew-resize";
+      case "INSIDE":
+        return "move";
+      case "OUTSIDE":
+        return "default";
+    }
+  }
+
+  updateHover(e: PointerEvent, enabled: boolean) {
+    if (!enabled) {
+      selection.setHover("default");
+      return;
+    }
+
+    selection.setHover(this.cursorForHandle(this.hitTest(e)));
+  }
+
   down(e: PointerEvent) {
     if (!this.canUse()) return;
     if (!paintState.getPointerdown()) return;
 
     // console.log("point!!:", this.startPoint, this.endPoint);
 
-    const rect = {
-      x: selection.x,
-      y: selection.y,
-      width: selection.width,
-      height: selection.height,
-    };
-
-    const handle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
+    const handle = this.hitTest(e);
     this.activeHandle = handle;
     this.start = {
       x: selection.x,
@@ -83,42 +115,6 @@ export class SelectionTool implements Tool {
   }
 
   move(e: PointerEvent) {
-    // el.container의 커서를 grab으로, paintState.getPointerdown()이면 grabbing으로
-    // 그리고 핸들 범위에 올라가면, nesw-resize이런 4개방향 화살표로.
-
-    const rect = {
-      x: selection.x,
-      y: selection.y,
-      width: selection.width,
-      height: selection.height,
-    };
-
-    const hoveredHandle = getSelectionHandleAtPoint(e.clientX, e.clientY, rect);
-    switch (hoveredHandle) {
-      case "LT":
-      case "RB":
-        selection.setHover("nwse-resize");
-        break;
-      case "RT":
-      case "LB":
-        selection.setHover("nesw-resize");
-        break;
-      case "T":
-      case "B":
-        selection.setHover("ns-resize");
-        break;
-      case "L":
-      case "R":
-        selection.setHover("ew-resize");
-        break;
-      case "INSIDE":
-        selection.setHover("move");
-        break;
-      case "OUTSIDE":
-        selection.setHover("default");
-        break;
-    }
-
     if (!paintState.getPointerdown()) return;
 
     this.applySelectionDrag(e);
@@ -206,10 +202,12 @@ export class SelectionTool implements Tool {
 
     selection.active = false;
     this.activeHandle = null;
+    selection.setHover("default");
   }
 
   cancel() {
     selectionCancel();
+    selection.setHover("default");
     this.activeHandle = null;
   }
 }
