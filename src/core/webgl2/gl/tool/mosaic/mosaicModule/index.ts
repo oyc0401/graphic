@@ -328,19 +328,59 @@ class Mosaic {
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
     gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      null,
+    );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.tempMaskTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      null,
+    );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.committedMaskTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.R32F,
+      width,
+      height,
+      0,
+      gl.RED,
+      gl.FLOAT,
+      null,
+    );
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.BLUR);
     gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null,
+    );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFBO);
     gl.framebufferTexture2D(
@@ -379,7 +419,10 @@ class Mosaic {
       throw new Error("EXT_color_buffer_float is required for mosaic.");
     }
 
-    if (!gl.getExtension("OES_texture_float_linear") && !gl.getExtension("EXT_texture_filter_float")) {
+    if (
+      !gl.getExtension("OES_texture_float_linear") &&
+      !gl.getExtension("EXT_texture_filter_float")
+    ) {
       throw new Error("Float texture linear filtering is required for mosaic.");
     }
   }
@@ -437,7 +480,11 @@ class Mosaic {
 
   private createPrograms() {
     const gl = this.gl;
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER);
+    const vertexShader = createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      FULL_QUAD_VERTEX_SHADER,
+    );
     this.quadBuffer = createFullQuadBuffer(gl);
 
     this.maskProgram = createProgram(
@@ -499,7 +546,10 @@ class Mosaic {
       TEXTURE_UNIT.MASK,
     );
 
-    this.uMaskResolution = gl.getUniformLocation(this.maskProgram, "u_resolution")!;
+    this.uMaskResolution = gl.getUniformLocation(
+      this.maskProgram,
+      "u_resolution",
+    )!;
     this.uMaskStart = gl.getUniformLocation(this.maskProgram, "u_start")!;
     this.uMaskEnd = gl.getUniformLocation(this.maskProgram, "u_end")!;
     this.uMaskRadius = gl.getUniformLocation(this.maskProgram, "u_radius")!;
@@ -518,9 +568,18 @@ class Mosaic {
       this.restoreMaskProgram,
       "u_resolution",
     )!;
-    this.uRestoreMaskStart = gl.getUniformLocation(this.restoreMaskProgram, "u_start")!;
-    this.uRestoreMaskEnd = gl.getUniformLocation(this.restoreMaskProgram, "u_end")!;
-    this.uRestoreMaskRadius = gl.getUniformLocation(this.restoreMaskProgram, "u_radius")!;
+    this.uRestoreMaskStart = gl.getUniformLocation(
+      this.restoreMaskProgram,
+      "u_start",
+    )!;
+    this.uRestoreMaskEnd = gl.getUniformLocation(
+      this.restoreMaskProgram,
+      "u_end",
+    )!;
+    this.uRestoreMaskRadius = gl.getUniformLocation(
+      this.restoreMaskProgram,
+      "u_radius",
+    )!;
   }
 
   private setupRenderProgram() {
@@ -536,7 +595,10 @@ class Mosaic {
       TEXTURE_UNIT.MASK,
     );
 
-    this.uRenderResolution = gl.getUniformLocation(this.renderProgram, "u_resolution")!;
+    this.uRenderResolution = gl.getUniformLocation(
+      this.renderProgram,
+      "u_resolution",
+    )!;
     this.uRenderRadius = gl.getUniformLocation(this.renderProgram, "u_radius")!;
   }
 
@@ -680,7 +742,15 @@ class Mosaic {
     const pixels = new Float32Array(rect.width * rect.height);
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
-    gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RED, gl.FLOAT, pixels);
+    gl.readPixels(
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RED,
+      gl.FLOAT,
+      pixels,
+    );
 
     return pixels;
   }

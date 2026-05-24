@@ -24,6 +24,7 @@ import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
+import { loadInitialImageFromQuery } from "./initialImage";
 
 const root = document.getElementById("appbar-root");
 if (root) {
@@ -71,7 +72,8 @@ async function main() {
   changeCanvasTransform();
 
   // 캔버스 업로드
-  tranferCanvas();
+  await tranferCanvas();
+  await loadInitialImageFromQuery();
 
   console.log("Complete App!");
 

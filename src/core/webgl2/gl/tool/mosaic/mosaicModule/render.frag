@@ -11,7 +11,7 @@ out vec4 outColor;
 
 vec4 pixelMosaic(vec2 coord) {
   vec2 pixel = coord * u_resolution;
-  float blockSize = max(1.0f, u_radius);
+  float blockSize = max(1.0f, u_radius * 0.33f);
   vec2 blockOrigin = floor(pixel / blockSize) * blockSize;
   vec2 samplePixel = blockOrigin + vec2(blockSize * 0.5f);
   vec2 sampleCoord = clamp(samplePixel / u_resolution, vec2(0.0f), vec2(1.0f));
