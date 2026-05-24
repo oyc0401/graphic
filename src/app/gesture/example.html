@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gesture example</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        background: #202124;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      #viewport {
+        position: relative;
+        width: min(720px, calc(100vw - 32px));
+        height: min(520px, calc(100vh - 32px));
+        overflow: hidden;
+        border-radius: 6px;
+        background: #1976d2;
+        touch-action: none;
+        user-select: none;
+      }
+
+      #historyControls {
+        position: fixed;
+        left: 50%;
+        bottom: 16px;
+        z-index: 20;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: min(420px, calc(100vw - 32px));
+        transform: translateX(-50%);
+      }
+
+      #historyToggle {
+        align-self: center;
+        min-width: 96px;
+        padding: 9px 14px;
+        border: 0;
+        border-radius: 6px;
+        background: #f1f3f4;
+        color: #202124;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+      }
+
+      #historyToggle[aria-pressed="true"] {
+        background: #66bb6a;
+        color: #102414;
+      }
+
+      #historyPanel {
+        box-sizing: border-box;
+        display: none;
+      }
+
+      #historyPanel.open {
+        display: block;
+      }
+
+      #scene {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 220px;
+        height: 160px;
+        border-radius: 4px;
+        background: #e53935;
+        transform-origin: 0 0;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+      }
+
+      #scene::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 3px solid rgba(255, 255, 255, 0.85);
+        border-radius: 3px;
+      }
+
+      #notifications {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: min(360px, calc(100vw - 32px));
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      #notifications.history-open {
+        max-height: calc(100vh - 104px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 4px;
+        pointer-events: auto;
+        touch-action: pan-y;
+      }
+
+      .notification {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 6px;
+        background: rgba(22, 22, 22, 0.9);
+        color: #fff;
+        font-size: 13px;
+        line-height: 1.3;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+        opacity: 1;
+        transform: translateY(0);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease;
+      }
+
+      .notification.closing {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      .notification-name {
+        font-weight: 700;
+      }
+
+      .notification-time {
+        color: #bdc1c6;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .notification-pointer .notification-name {
+        color: #64b5f6;
+      }
+
+      .notification-pinch .notification-name {
+        color: #fff;
+      }
+
+      .notification-cancel .notification-name {
+        color: #ef5350;
+      }
+
+      .notification-history .notification-name {
+        color: #66bb6a;
+      }
+
+      .notification-multiTap .notification-name {
+        color: #fdd835;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="notifications"></div>
+    <div id="viewport">
+      <div id="scene"></div>
+    </div>
+    <div id="historyControls">
+      <button id="historyToggle" type="button" aria-pressed="false">기록보기</button>
+      <div id="historyPanel" aria-live="polite"></div>
+    </div>
+
+    <script type="module">
+      import { GestureModule } from "./index";
+
+      const viewport = document.querySelector("#viewport");
+      const scene = document.querySelector("#scene");
+      const notifications = document.querySelector("#notifications");
+      const historyToggle = document.querySelector("#historyToggle");
+      const historyPanel = document.querySelector("#historyPanel");
+
+      if (
+        !viewport ||
+        !scene ||
+        !notifications ||
+        !historyToggle ||
+        !historyPanel
+      ) {
+        throw new Error("Gesture example requires all fixture elements.");
+      }
+
+      const activeNotifications = new Map();
+      const logEntries = [];
+      let lastNotificationKey = "";
+      let isHistoryOpen = false;
+
+      function recordLog(
+        key,
+        message,
+        kind,
+        consoleMessage,
+        ...consoleArgs
+      ) {
+        if (isHistoryOpen) return;
+
+        const timestamp = formatTimestamp(new Date());
+        const lastLogEntry = logEntries.at(-1);
+        if (lastLogEntry?.key === key) {
+          lastLogEntry.count++;
+        } else {
+          logEntries.push({
+            key,
+            message,
+            kind,
+            timestamp,
+            count: 1,
+          });
+        }
+        notify(key, message, kind, timestamp);
+        console.log(consoleMessage, ...consoleArgs);
+      }
+
+      function notify(key, message, kind, timestamp) {
+        const active = activeNotifications.get(key);
+        if (active && lastNotificationKey === key) {
+          active.count++;
+          active.element.innerHTML = formatNotification(
+            active.timestamp,
+            message,
+            active.count,
+          );
+          window.clearTimeout(active.timer);
+          active.timer = window.setTimeout(() => closeNotification(active), 1800);
+          lastNotificationKey = key;
+          return;
+        }
+
+        const item = document.createElement("div");
+        item.className = `notification notification-${kind}`;
+        item.innerHTML = formatNotification(timestamp, message, 1);
+        notifications.prepend(item);
+
+        const notification = {
+          key,
+          count: 1,
+          timestamp,
+          element: item,
+          timer: 0,
+        };
+        notification.timer = window.setTimeout(
+          () => closeNotification(notification),
+          1800,
+        );
+        activeNotifications.set(key, notification);
+        lastNotificationKey = key;
+      }
+
+      function formatTimestamp(date) {
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+        return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+      }
+
+      function formatNotification(timestamp, message, count) {
+        const suffix = count > 1 ? ` ${count}` : "";
+        return `<span class="notification-time">[${timestamp}]</span> <span class="notification-name">${message}</span>${suffix}`;
+      }
+
+      function closeNotification(notification) {
+        if (activeNotifications.get(notification.key) === notification) {
+          activeNotifications.delete(notification.key);
+        }
+
+        notification.element.classList.add("closing");
+        notification.element.addEventListener(
+          "transitionend",
+          () => notification.element.remove(),
+          {
+            once: true,
+          },
+        );
+      }
+
+      function clearNotifications() {
+        for (const notification of activeNotifications.values()) {
+          window.clearTimeout(notification.timer);
+        }
+        activeNotifications.clear();
+        lastNotificationKey = "";
+        notifications.replaceChildren();
+      }
+
+      function setHistoryOpen(nextOpen) {
+        isHistoryOpen = nextOpen;
+        historyToggle.setAttribute("aria-pressed", String(nextOpen));
+        historyPanel.classList.toggle("open", nextOpen);
+        notifications.classList.toggle("history-open", nextOpen);
+
+        clearNotifications();
+
+        if (!nextOpen) {
+          return;
+        }
+
+        renderHistory();
+      }
+
+      function renderHistory() {
+        notifications.replaceChildren();
+
+        for (const entry of [...logEntries].reverse()) {
+          const item = document.createElement("div");
+          item.className = `notification notification-${entry.kind}`;
+          item.innerHTML = formatNotification(
+            entry.timestamp,
+            entry.message,
+            entry.count,
+          );
+          notifications.append(item);
+        }
+      }
+
+      historyToggle.addEventListener("click", () => {
+        setHistoryOpen(!isHistoryOpen);
+      });
+
+      const gesture = new GestureModule({
+        element: viewport,
+        position: {
+          x: 80,
+          y: 70,
+          width: 220,
+          height: 160,
+          scale: 1,
+        },
+        minScale: 0.25,
+        maxScale: 5,
+
+        onPointerdown: (event) => {
+          recordLog(
+            `pointerdown:${event.pointerId}`,
+            `pointerdown #${event.pointerId}`,
+            "pointer",
+            "pointerdown",
+            event.pointerId,
+          );
+        },
+
+        onPointermove: (event) => {
+          recordLog(
+            `pointermove:${event.pointerId}`,
+            `pointermove #${event.pointerId}`,
+            "pointer",
+            "pointermove",
+            event.pointerId,
+          );
+        },
+
+        onPointerup: (event) => {
+          recordLog(
+            `pointerup:${event.pointerId}`,
+            `pointerup #${event.pointerId}`,
+            "pointer",
+            "pointerup",
+            event.pointerId,
+          );
+        },
+
+        onPointercancel: (event) => {
+          recordLog(
+            `pointercancel:${event.pointerId}`,
+            `pointercancel #${event.pointerId}`,
+            "cancel",
+            "app pointercancel",
+            event.pointerId,
+          );
+        },
+
+        sceneChanged: (x, y, scale) => {
+          scene.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+        },
+
+        onPinchStart: () => {
+          recordLog("pinchStart", "pinchStart", "pinch", "pinchStart");
+        },
+
+        onPinchEnd: () => {
+          recordLog("pinchEnd", "pinchEnd", "pinch", "pinchEnd");
+        },
+
+        onTwoFingerTap: () => {
+          recordLog("twoFingerTap", "twoFingerTap", "history", "twoFingerTap");
+        },
+
+        onThreeFingerTap: () => {
+          recordLog("threeFingerTap", "threeFingerTap", "history", "threeFingerTap");
+        },
+
+        onTwoFingerDoubleTap: () => {
+          recordLog(
+            "twoFingerDoubleTap",
+            "twoFingerDoubleTap",
+            "multiTap",
+            "twoFingerDoubleTap",
+          );
+        },
+
+        onThreeFingerDoubleTap: () => {
+          recordLog(
+            "threeFingerDoubleTap",
+            "threeFingerDoubleTap",
+            "multiTap",
+            "threeFingerDoubleTap",
+          );
+        },
+      });
+
+      gesture.setPosition({
+        x: 80,
+        y: 70,
+        width: 220,
+        height: 160,
+        scale: 1,
+      });
+    </script>
+  </body>
+</html>

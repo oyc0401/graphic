@@ -372,10 +372,10 @@ export function addGestureEvent() {
         case "PinchFinish": {
           // 두 손가락이 짧은 시간 안에 모두 끝났다면 undo로 처리한다.
           const d = now - pointerdownTime;
+          finishGesture();
           if (d <= 150) {
             undo();
           }
-          finishGesture();
           return;
         }
 
@@ -392,10 +392,10 @@ export function addGestureEvent() {
         case "PinchFinish3": {
           // 세 손가락이 짧은 시간 안에 모두 끝났다면 redo로 처리한다.
           const d = now - pointerdownTime;
+          finishGesture();
           if (d <= 200) {
             redo();
           }
-          finishGesture();
           return;
         }
       }
