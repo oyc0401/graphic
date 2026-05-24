@@ -83,7 +83,7 @@ class PaintState {
   private _brushAlpha = {
     [BrushId.Brush]: 100,
     [BrushId.Eraser]: 100,
-    [SessionId.Mosaic]: 100,
+    [SessionId.Mosaic]: 10,
     [LiquifyToolId.Push]: 50,
     [LIQUIFY_TWIRL_SETTINGS_ID]: 50,
     [LIQUIFY_SCALE_SETTINGS_ID]: 50,

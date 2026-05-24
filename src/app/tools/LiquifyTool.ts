@@ -28,7 +28,10 @@ class LiquifySprayTool implements Tool {
   }
 
   canUse() {
-    return paintState.getSessionMode();
+    return (
+      paintState.getSessionMode() &&
+      paintState.getSessionId() === SessionId.Liquify
+    );
   }
 
   down(e: PointerEvent) {
@@ -134,9 +137,6 @@ export class LiquifySessionTool implements Tool {
   }
 
   private getActiveTool() {
-    if (paintState.getSessionId() === SessionId.Mosaic) {
-      return this.pushTool;
-    }
     return paintState.getLiquifyToolId() === LiquifyToolId.Push
       ? this.pushTool
       : this.sprayTool;
