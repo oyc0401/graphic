@@ -60,6 +60,8 @@ export interface HistoryResponse {
     flipH?: boolean;
     flipV?: boolean;
   };
+  mosaicStrength?: number;
+  mosaicMode?: "pixel" | "blur";
   undoCount: number;
   redoCount: number;
 }

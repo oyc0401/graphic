@@ -26,7 +26,7 @@ import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
 import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
-import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
+import { BrushAlphaSlider, BrushSizeSlider, MosaicStrengthSlider } from "./BrushSliders";
 
 const hexColors = [
   "#000000",
@@ -261,7 +261,7 @@ const MosaicMenuBar = observer(() => {
       <div className="div-bar"></div>
       <div className="brush-control-group">
         <BrushSizeSlider />
-        <BrushAlphaSlider label={getLetter("mosaic_strength")} />
+        <MosaicStrengthSlider />
       </div>
     </div>
   );

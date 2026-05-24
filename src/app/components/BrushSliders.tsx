@@ -2,6 +2,8 @@ import { useCallback, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import { paintState } from "../paintState";
 import { getLetter } from "../i18n/language";
+import { getLayerWorker } from "../worker/workerPool";
+import { syncCoreState } from "../history";
 
 const SLIDER_MIN = 1;
 const SIZE_SLIDER_MAX = 1000;
@@ -60,9 +62,17 @@ type CustomSliderProps = {
   min: number;
   max: number;
   onChange: (value: number) => void;
+  onCommit?: () => void;
 };
 
-const CustomSlider = ({ id, value, min, max, onChange }: CustomSliderProps) => {
+const CustomSlider = ({
+  id,
+  value,
+  min,
+  max,
+  onChange,
+  onCommit,
+}: CustomSliderProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const currentValue = clamp(value, min, max);
@@ -95,10 +105,24 @@ const CustomSlider = ({ id, value, min, max, onChange }: CustomSliderProps) => {
     [setValueFromX],
   );
 
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    draggingRef.current = false;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-  }, []);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!draggingRef.current) return;
+
+      draggingRef.current = false;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      onCommit?.();
+    },
+    [onCommit],
+  );
+
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      draggingRef.current = false;
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    },
+    [],
+  );
 
   return (
     <div
@@ -113,7 +137,7 @@ const CustomSlider = ({ id, value, min, max, onChange }: CustomSliderProps) => {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       <div className="custom-slider-track" />
       <div
@@ -177,3 +201,30 @@ export const BrushAlphaSlider = observer(
     );
   },
 );
+
+export const MosaicStrengthSlider = observer(() => {
+  const commitMosaicStrengthHistory = useCallback(() => {
+    const worker = getLayerWorker();
+    if (!worker) return;
+
+    worker.end();
+    syncCoreState();
+  }, []);
+
+  return (
+    <label className="brush-control">
+      <p className="label">{getLetter("mosaic_strength")}</p>
+      <p className="value">{paintState.getBrushAlpha()}%</p>
+      <div className="slider-area">
+        <CustomSlider
+          id="mosaic-strength-slider"
+          min={SLIDER_MIN}
+          max={ALPHA_SLIDER_MAX}
+          value={paintState.getBrushAlpha()}
+          onChange={(nextValue) => paintState.setBrushAlpha(nextValue)}
+          onCommit={commitMosaicStrengthHistory}
+        />
+      </div>
+    </label>
+  );
+});

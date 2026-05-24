@@ -33,7 +33,7 @@ import { menuState } from "../ui/menuState";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
 import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
-import { BrushAlphaSlider, BrushSizeSlider } from "./BrushSliders";
+import { BrushAlphaSlider, BrushSizeSlider, MosaicStrengthSlider } from "./BrushSliders";
 
 const hexColors = [
   "#000000",
@@ -317,14 +317,12 @@ const SizeToggleButton = observer(() => {
       {menuState.showSizeBar && (
         <div className="size-bar" ref={menuRef}>
           <BrushSizeSlider />
-          <BrushAlphaSlider
-            label={
-              paintState.getSessionMode() &&
-              paintState.getSessionId() === SessionId.Mosaic
-                ? getLetter("mosaic_strength")
-                : undefined
-            }
-          />
+          {paintState.getSessionMode() &&
+          paintState.getSessionId() === SessionId.Mosaic ? (
+            <MosaicStrengthSlider />
+          ) : (
+            <BrushAlphaSlider />
+          )}
         </div>
       )}
     </>

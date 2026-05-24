@@ -145,7 +145,11 @@ export class MosaicManager implements MosaicManagerInterface {
 
     this.mosaic.undo();
     this.render();
-    return this.mosaic.getHistoryCount();
+    return {
+      ...this.mosaic.getHistoryCount(),
+      mosaicStrength: Math.round(this.mosaic.getStrength() * 100),
+      mosaicMode: this.mosaic.getMode(),
+    };
   }
 
   async redo() {
@@ -154,7 +158,11 @@ export class MosaicManager implements MosaicManagerInterface {
 
     this.mosaic.redo();
     this.render();
-    return this.mosaic.getHistoryCount();
+    return {
+      ...this.mosaic.getHistoryCount(),
+      mosaicStrength: Math.round(this.mosaic.getStrength() * 100),
+      mosaicMode: this.mosaic.getMode(),
+    };
   }
 
   getHistoryCount() {

@@ -264,6 +264,14 @@ class Mosaic {
     };
   }
 
+  getStrength() {
+    return this.strength;
+  }
+
+  getMode() {
+    return this.mode;
+  }
+
   render(): MosaicRect | null {
     const rect = this.dirtyRect;
     if (!rect || rect.width === 0 || rect.height === 0) {

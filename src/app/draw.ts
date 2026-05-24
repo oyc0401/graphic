@@ -139,7 +139,9 @@ export const toolManager = {
   setMosaicMode(modeId: MosaicModeId) {
     if (!canChangeTool()) return;
     paintState.setMosaicModeId(modeId);
-    getLayerWorker().setMosaicMode(modeId);
+    const worker = getLayerWorker();
+    worker.setMosaicMode(modeId);
+    worker.end();
     syncCoreState();
   },
   setSelectTool() {
