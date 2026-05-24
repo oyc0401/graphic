@@ -2,7 +2,6 @@
 precision highp float;
 
 uniform sampler2D u_displacement;
-uniform sampler2D u_primitive;
 
 uniform vec2 u_resolution;
 uniform vec2 u_start;
@@ -13,43 +12,36 @@ uniform float u_strength;
 in vec2 v_texCoord;
 out vec2 outDisplacement;
 
-float cross2(vec2 a, vec2 b) {
-  return a.x * b.y - a.y * b.x;
+float easeInOutSine(float x) {
+  float clamped = clamp(x, 0.0f, 1.0f);
+  return -(cos(3.141592653589793f * clamped) - 1.0f) * 0.5f;
 }
 
-float primitive(float z, float x) {
-  float signValue = z < 0.0f ? -1.0f : 1.0f;
-  float u = clamp(abs(z), 0.0f, 1.0f);
-  return signValue * texture(u_primitive, vec2(u, x)).r;
+float ease(float x) {
+  float clamped = clamp(x, 0.0f, 1.0f);
+  if (clamped >= 0.5f) {
+    return 1.0f;
+  }
+
+  return easeInOutSine(clamped * 2.0f);
 }
 
 float strokePower(vec2 pixel, vec2 start, vec2 end, float radius) {
   vec2 segment = end - start;
-  float len = length(segment);
   if (radius <= 0.0f) {
     return 0.0f;
   }
-  if (len == 0.0f) {
-    float x = length(pixel - start) / radius;
-    if (x >= 1.0f) {
-      return 0.0f;
-    }
-    return primitive(1.0f, x);
-  }
 
-  vec2 direction = segment / len;
-  vec2 local = pixel - start;
-  float along = dot(local, direction);
-  float perpendicular = abs(cross2(local, direction));
-  float x = perpendicular / radius;
+  float lenSq = dot(segment, segment);
+  float t = lenSq == 0.0f ? 0.0f : clamp(dot(pixel - start, segment) / lenSq, 0.0f, 1.0f);
+  vec2 closest = start + segment * t;
+  float distanceRatio = length(pixel - closest) / radius;
 
-  if (x >= 1.0f) {
+  if (distanceRatio >= 1.0f) {
     return 0.0f;
   }
 
-  float z0 = -along / radius;
-  float z1 = (len - along) / radius;
-  return primitive(z1, x) - primitive(z0, x);
+  return ease(1.0f - distanceRatio);
 }
 
 void main() {
@@ -65,7 +57,7 @@ void main() {
     return;
   }
 
-  float power = min(strokePower(pixel, u_start, u_end, u_radius) * 2.0f, 1.0f);
-  float restoreAmount = clamp(power * u_strength * 0.5f, 0.0f, 1.0f);
+  float power = strokePower(pixel, u_start, u_end, u_radius);
+  float restoreAmount = clamp(power * u_strength, 0.0f, 1.0f);
   outDisplacement = mix(value, vec2(0.0f), restoreAmount);
 }

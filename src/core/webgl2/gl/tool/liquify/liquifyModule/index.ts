@@ -471,13 +471,6 @@ class Liquify {
       gl.getUniformLocation(this.restoreProgram, "u_displacement"),
       TEXTURE_UNIT.DISPLACEMENT,
     );
-    gl.uniform1i(
-      gl.getUniformLocation(this.restoreProgram, "u_primitive"),
-      TEXTURE_UNIT.PRIMITIVE,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PRIMITIVE);
-    gl.bindTexture(gl.TEXTURE_2D, this.primitiveTexture);
 
     this.uRestoreResolution = gl.getUniformLocation(this.restoreProgram, "u_resolution")!;
     this.uRestoreStart = gl.getUniformLocation(this.restoreProgram, "u_start")!;

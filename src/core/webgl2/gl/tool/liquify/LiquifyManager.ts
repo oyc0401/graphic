@@ -137,12 +137,10 @@ export class LiquifyManager implements LiquifyManagerInterface {
         : this.toolId === "twirlCounterClockwise"
           ? this.liquify.rightSpin(pointer)
           : this.toolId === "bloat"
-            ? this.liquify.bloat(pointer)
-            : this.toolId === "pucker"
-              ? this.liquify.pucker(pointer)
-              : this.toolId === "restore"
-                ? this.liquify.restorePoint(pointer)
-                : null;
+          ? this.liquify.bloat(pointer)
+          : this.toolId === "pucker"
+            ? this.liquify.pucker(pointer)
+            : null;
 
     this.markChanged(rect);
   }

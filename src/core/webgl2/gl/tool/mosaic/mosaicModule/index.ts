@@ -570,8 +570,8 @@ class Mosaic {
   }
 
   private getEffectRadius() {
-    const basis = Math.min(this.width, this.height);
-    return Math.max(1, Math.round(basis * 0.1 * this.strength));
+    const basis = Math.max(this.width, this.height);
+    return Math.max(1, Math.round(basis * 0.05 * this.strength));
   }
 
   private drawMask(start: MosaicPoint, end: MosaicPoint): MosaicRect {

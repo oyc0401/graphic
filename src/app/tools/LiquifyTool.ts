@@ -137,7 +137,8 @@ export class LiquifySessionTool implements Tool {
   }
 
   private getActiveTool() {
-    return paintState.getLiquifyToolId() === LiquifyToolId.Push
+    const toolId = paintState.getLiquifyToolId();
+    return toolId === LiquifyToolId.Push || toolId === LiquifyToolId.Restore
       ? this.pushTool
       : this.sprayTool;
   }
