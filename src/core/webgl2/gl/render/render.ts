@@ -290,7 +290,7 @@ function createOffscreenManager(canvas, gl) {
 
   function resize(newWidth, newHeight) {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.OFFSCREEN);
-    // temp 크기 설정
+    gl.bindTexture(gl.TEXTURE_2D, offscreenTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, newWidth, newHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   }
 

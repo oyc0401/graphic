@@ -87,6 +87,8 @@ export const toolManager = {
     if (!canChangeTool()) return;
     const sessionId = paintState.getSessionId();
     if (sessionId === SessionId.Mosaic) {
+      if (paintState.getMosaicToolId() === toolId) return;
+
       paintState.setMosaicToolId(toolId);
       getLayerWorker().setMosaicTool(toolId);
       syncCoreState();

@@ -94,7 +94,7 @@ function debugSetting() {
 
   window.addEventListener("resize", async function () {
     // debounce(async () => {
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       // 플리커링 일어나긴 하는데 걍 두고 나중에 고칩시다
       let lastY = position.bouncingRect.y;
       updateBouncingRect();
@@ -112,10 +112,10 @@ function debugSetting() {
 
       position.setY(position.y + diffY);
 
-      resizeScreen();
+      await resizeScreen();
 
       changeCanvasTransform();
-      setCameraPosition();
+      await setCameraPosition();
       render();
       console.log("screenHeightR", position.screenHeight);
     });
