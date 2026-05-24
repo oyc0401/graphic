@@ -3,6 +3,7 @@ import { syncCoreState } from "../history";
 import { InputMode, paintState } from "../paintState";
 import { panTool } from "../tools/PanTool";
 import { resizeTool } from "../tools/resizeTool";
+import { sessionTool } from "../tools/SessionTool";
 import { toolRegistry } from "../tools/toolRegistry";
 import { zoomTool } from "../tools/ZoomTool";
 
@@ -28,6 +29,12 @@ export function dispatchPointer(event: PointerEvent, phase: PointerPhase) {
       zoomTool[phase]?.(event);
       syncCoreStateAfterPointerEnd(phase);
       return;
+  }
+
+  if (paintState.getSessionMode()) {
+    sessionTool[phase]?.(event);
+    syncCoreStateAfterPointerEnd(phase);
+    return;
   }
 
   const toolId = getActiveToolId();

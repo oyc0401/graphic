@@ -3,9 +3,10 @@ import { redo, undo } from "../history";
 import {
   InputMode,
   LiquifyToolId,
-  MosaicModeId,
+  MosaicToolId,
   paintState,
   SessionId,
+  TemporaryToolId,
 } from "../paintState";
 import { position } from "../position";
 import { cancel, toolManager } from "../draw";
@@ -53,12 +54,6 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   Escape: "escape",
   Delete: "delete",
 };
-
-const temporaryActionMode = {
-  temporaryPan: InputMode.Pan,
-  temporaryZoom: InputMode.Zoom,
-  temporaryColorPicker: InputMode.ColorPicker,
-} as const;
 
 const commonCommandShortcuts = keyboardShortcuts.commonShortcuts.filter(
   isCommandShortcut,
@@ -119,13 +114,13 @@ const commandHandlers = {
     toolManager.setLiquifyTool(LiquifyToolId.Restore);
   },
   setMosaicPixelMode() {
-    toolManager.setMosaicMode(MosaicModeId.Pixel);
+    toolManager.setMosaicMode(MosaicToolId.Pixel);
   },
   setMosaicBlurMode() {
-    toolManager.setMosaicMode(MosaicModeId.Blur);
+    toolManager.setMosaicMode(MosaicToolId.Blur);
   },
   setMosaicRestoreMode() {
-    toolManager.setMosaicMode(MosaicModeId.Restore);
+    toolManager.setMosaicMode(MosaicToolId.Restore);
   },
 } satisfies Record<CommandShortcutAction, () => void>;
 
@@ -357,17 +352,33 @@ function applyTemporaryAction() {
   if (paintState.getPointerdown()) return;
 
   const activeAction = getHighestPriorityTemporaryAction();
-  if (activeAction) {
-    paintState.setInputMode(temporaryActionMode[activeAction]);
-    return;
+
+  switch (activeAction) {
+    case "temporaryPan":
+      paintState.setInputMode(InputMode.Pan);
+      return;
+    case "temporaryZoom":
+      paintState.setInputMode(InputMode.Zoom);
+      return;
+    case "temporaryColorPicker":
+      paintState.setTemporaryToolId(TemporaryToolId.ColorPicker);
+      return;
   }
 
   paintState.setInputMode(InputMode.DEFAULT);
+  paintState.setTemporaryToolId(null);
 }
 
 function getHighestPriorityTemporaryAction() {
+  const activeActions = new Set(
+    getActiveTemporaryShortcuts().map((shortcut) => shortcut.action),
+  );
+
   return Object.entries(pressedTemporaryActions)
-    .filter(([, isPressed]) => isPressed)
+    .filter(
+      ([action, isPressed]) =>
+        isPressed && activeActions.has(action as TemporaryKeyboardShortcutAction),
+    )
     .map(([action]) => action as TemporaryKeyboardShortcutAction)
     .sort(
       (a, b) => temporaryKeyActionPriority[b] - temporaryKeyActionPriority[a],

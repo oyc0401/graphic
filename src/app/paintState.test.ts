@@ -5,6 +5,7 @@ import {
   LiquifyToolId,
   paintState,
   SessionId,
+  TemporaryToolId,
   ToolId,
 } from "./paintState";
 
@@ -18,7 +19,7 @@ const liquifyToolIds = [
 ];
 
 function resetBrushSettings() {
-  paintState.setSessionMode(false);
+  paintState.setSessionId(null);
 
   paintState.setBrushId(BrushId.Brush);
   paintState.setBrushSize(5);
@@ -28,7 +29,6 @@ function resetBrushSettings() {
   paintState.setBrushSize(10);
   paintState.setBrushAlpha(100);
 
-  paintState.setSessionMode(true);
   paintState.setSessionId(SessionId.Liquify);
   for (const toolId of liquifyToolIds) {
     paintState.setLiquifyToolId(toolId);
@@ -45,9 +45,9 @@ describe("paintState tool mode mapping", () => {
   beforeEach(() => {
     resetBrushSettings();
     paintState.setInputMode(InputMode.DEFAULT);
+    paintState.setTemporaryToolId(null);
     paintState.setBrushId(BrushId.Brush);
-    paintState.setSessionMode(false);
-    paintState.setSessionId(SessionId.Liquify);
+    paintState.setSessionId(null);
     paintState.setLiquifyToolId(LiquifyToolId.Push);
     paintState.setSelectedToolId(ToolId.Brush);
   });
@@ -68,14 +68,15 @@ describe("paintState tool mode mapping", () => {
     expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
   });
 
-  it("keeps temporary color picker in input mode only", () => {
+  it("keeps temporary color picker separate from input mode", () => {
     paintState.setSelectedToolId(ToolId.Brush);
-    paintState.setInputMode(InputMode.ColorPicker);
+    paintState.setTemporaryToolId(TemporaryToolId.ColorPicker);
 
     expect(paintState.getSelectedToolId()).toBe(ToolId.Brush);
-    expect(paintState.getInputMode()).toBe(InputMode.ColorPicker);
+    expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
+    expect(paintState.getTemporaryToolId()).toBe(TemporaryToolId.ColorPicker);
 
-    paintState.setInputMode(InputMode.DEFAULT);
+    paintState.setTemporaryToolId(null);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getInputMode()).toBe(InputMode.DEFAULT);
@@ -83,7 +84,6 @@ describe("paintState tool mode mapping", () => {
 
   it("keeps liquify in session state instead of selected tool id", () => {
     paintState.setSessionId(SessionId.Liquify);
-    paintState.setSessionMode(true);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(true);
@@ -94,17 +94,15 @@ describe("paintState tool mode mapping", () => {
 
   it("clears session tool by returning to brush", () => {
     paintState.setSessionId(SessionId.Liquify);
-    paintState.setSessionMode(true);
-    paintState.setSessionMode(false);
+    paintState.setSessionId(null);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(false);
-    expect(paintState.getSessionId()).toBe(SessionId.Liquify);
+    expect(paintState.getSessionId()).toBeNull();
   });
 
   it("supports mosaic as a future session tool", () => {
     paintState.setSessionId(SessionId.Mosaic);
-    paintState.setSessionMode(true);
 
     expect(paintState.getToolId()).toBe(ToolId.Brush);
     expect(paintState.getSessionMode()).toBe(true);
@@ -122,7 +120,6 @@ describe("paintState tool mode mapping", () => {
 
   it("keeps brush settings separate between liquify tool groups", () => {
     paintState.setSessionId(SessionId.Liquify);
-    paintState.setSessionMode(true);
 
     paintState.setLiquifyToolId(LiquifyToolId.Push);
     paintState.setBrushSize(80);
@@ -147,7 +144,6 @@ describe("paintState tool mode mapping", () => {
 
   it("shares brush settings between clockwise and counter-clockwise liquify twirl", () => {
     paintState.setSessionId(SessionId.Liquify);
-    paintState.setSessionMode(true);
 
     paintState.setLiquifyToolId(LiquifyToolId.TwirlClockwise);
     paintState.setBrushSize(140);
@@ -160,7 +156,6 @@ describe("paintState tool mode mapping", () => {
 
   it("shares brush settings between liquify bloat and pucker", () => {
     paintState.setSessionId(SessionId.Liquify);
-    paintState.setSessionMode(true);
 
     paintState.setLiquifyToolId(LiquifyToolId.Bloat);
     paintState.setBrushSize(160);

@@ -2,7 +2,7 @@ import "./mobile.css";
 import {
   BrushId,
   LiquifyToolId,
-  MosaicModeId,
+  MosaicToolId,
   paintState,
   SessionId,
   ToolId,
@@ -195,19 +195,19 @@ const MosaicMobileAppBar = observer(() => {
       </button>
       <div className="mobile-div-bar"></div>
       <MosaicModeButton
-        modeId={MosaicModeId.Pixel}
+        modeId={MosaicToolId.Pixel}
         label={getLetter("mosaic_pixel")}
         icon={<Grid2X2 size={24} strokeWidth={2.2} />}
         strokeIcon
       />
       <MosaicModeButton
-        modeId={MosaicModeId.Blur}
+        modeId={MosaicToolId.Blur}
         label={getLetter("mosaic_blur")}
         icon={<Waves size={24} strokeWidth={2.2} />}
         strokeIcon
       />
       <MosaicModeButton
-        modeId={MosaicModeId.Restore}
+        modeId={MosaicToolId.Restore}
         label={getLetter("mosaic_restore")}
         icon={<EraserIcon width={24} height={24} />}
       />
@@ -225,12 +225,12 @@ const MosaicModeButton = observer(
     icon,
     strokeIcon = false,
   }: {
-    modeId: MosaicModeId;
+    modeId: MosaicToolId;
     label: string;
     icon: ReactNode;
     strokeIcon?: boolean;
   }) => {
-    const isSelected = paintState.getMosaicModeId() === modeId;
+    const isSelected = paintState.getMosaicToolId() === modeId;
 
     return (
       <button

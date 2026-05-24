@@ -1,18 +1,18 @@
 export type CommonKeyboardShortcutAction =
   | "undo"
   | "redo"
-  | "selectAll"
   | "cancel"
-  | "deleteSelection"
   | "temporaryPan"
-  | "temporaryZoom"
-  | "temporaryColorPicker";
+  | "temporaryZoom";
 
 export type MainKeyboardShortcutAction =
+  | "selectAll"
+  | "deleteSelection"
   | "setBrushTool"
   | "setEraserTool"
   | "setLiquifyTool"
-  | "setSelectTool";
+  | "setSelectTool"
+  | "temporaryColorPicker";
 
 export type LiquifyKeyboardShortcutAction =
   | "setLiquifyPushTool"

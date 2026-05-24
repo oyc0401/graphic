@@ -6,7 +6,10 @@ export enum InputMode {
   Zoom = "ZOOM",
   Pinch = "PINCH",
   Pan = "PAN",
-  ColorPicker = "COLOR_PICKER",
+}
+
+export enum TemporaryToolId {
+  ColorPicker = "colorPicker",
 }
 
 export enum ToolId {
@@ -15,7 +18,6 @@ export enum ToolId {
   Selection = "selection",
   Zoom = "zoom",
   ColorPicker = "colorPicker",
-  Session = "session",
 }
 
 export enum BrushId {
@@ -28,7 +30,7 @@ export enum SessionId {
   Mosaic = "mosaic",
 }
 
-export enum MosaicModeId {
+export enum MosaicToolId {
   Pixel = "pixel",
   Blur = "blur",
   Restore = "restore",
@@ -55,20 +57,21 @@ type LiquifyBrushSettingsId =
 type BrushSettingsId = BrushId | SessionId.Mosaic | LiquifyBrushSettingsId;
 
 class PaintState {
-  // 픽셀 유동화 같은 편집 세션이 켜져 있는지.
-  private _sessionMode = false;
-  // 현재 사용할 세션 종류. 세션 중일 때 실제 활성 세션이 된다.
-  private _sessionId: SessionId = SessionId.Liquify;
-  // pan, pinch, 임시 zoom/color pick 같은 입력 오버라이드.
+  // 현재 활성 편집 세션. null이면 일반 편집 상태다.
+  private _sessionId: SessionId | null = null;
+  // pan, pinch, zoom 같은 뷰 조작 입력 오버라이드.
   private _inputMode: InputMode = InputMode.DEFAULT;
+  // color picker 같은 임시 도구 오버라이드.
+  private _temporaryToolId: TemporaryToolId | null = null;
+
   // 사용자가 선택한 앱 도구. 세션 상태는 여기에 섞지 않는다.
   private _selectedToolId: ToolId = ToolId.Brush;
   // brush/eraser 같은 브러시 계열 코어 도구.
   private _brushId: BrushId = BrushId.Brush;
   // 리퀴파이 세션 안에서 사용하는 하위 툴.
   private _liquifyToolId: LiquifyToolId = LiquifyToolId.Push;
-  // 모자이크 세션에서 사용하는 렌더링/복원 모드.
-  private _mosaicModeId: MosaicModeId = MosaicModeId.Pixel;
+  // 모자이크 세션 안에서 사용하는 하위 툴.
+  private _mosaicToolId: MosaicToolId = MosaicToolId.Pixel;
 
   // 도구별 브러시 크기 설정.
   private _brushSize = {
@@ -123,14 +126,14 @@ class PaintState {
   setLiquifyToolId(toolId: LiquifyToolId) {
     this._liquifyToolId = toolId;
   }
-  setMosaicModeId(modeId: MosaicModeId) {
-    this._mosaicModeId = modeId;
+  setMosaicToolId(toolId: MosaicToolId) {
+    this._mosaicToolId = toolId;
   }
-  setSessionMode(value: boolean) {
-    this._sessionMode = value;
-  }
-  setSessionId(sessionId: SessionId) {
+  setSessionId(sessionId: SessionId | null) {
     this._sessionId = sessionId;
+  }
+  setTemporaryToolId(toolId: TemporaryToolId | null) {
+    this._temporaryToolId = toolId;
   }
   setPointerdown(val: boolean) {
     this._pointerdown = val;
@@ -149,7 +152,7 @@ class PaintState {
   }
   setBrushAlpha(alpha: number) {
     this._brushAlpha[this.getBrushSettingsId()] = alpha;
-    if (this._sessionMode && this._sessionId === SessionId.Mosaic) {
+    if (this._sessionId === SessionId.Mosaic) {
       getLayerWorker()?.setMosaicStrength(alpha);
     }
   }
@@ -170,7 +173,7 @@ class PaintState {
     return this._brushAlpha[this.getBrushSettingsId()];
   }
   getSessionMode() {
-    return this._sessionMode;
+    return this._sessionId !== null;
   }
   getSessionId() {
     return this._sessionId;
@@ -187,8 +190,11 @@ class PaintState {
   getLiquifyToolId() {
     return this._liquifyToolId;
   }
-  getMosaicModeId() {
-    return this._mosaicModeId;
+  getMosaicToolId() {
+    return this._mosaicToolId;
+  }
+  getTemporaryToolId() {
+    return this._temporaryToolId;
   }
   getCursorX() {
     return this._cursorX;
@@ -215,7 +221,7 @@ class PaintState {
   /** .etc */
 
   private getBrushSettingsId(): BrushSettingsId {
-    if (!this._sessionMode) return this._brushId;
+    if (!this._sessionId) return this._brushId;
     if (this._sessionId === SessionId.Liquify) {
       return this.getLiquifyBrushSettingsId();
     }

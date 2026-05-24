@@ -4,7 +4,7 @@ import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
 import { applyWorkerToolTarget } from "./coreToolAdapter";
-import { MosaicModeId, ToolId } from "./paintState";
+import { MosaicToolId, ToolId } from "./paintState";
 
 class HistoryState {
   undoCount = 0;
@@ -58,7 +58,7 @@ export async function undo() {
     paintState.setBrushAlpha(historyResponse.mosaicStrength);
   }
   if (historyResponse.mosaicMode !== undefined) {
-    paintState.setMosaicModeId(historyResponse.mosaicMode as MosaicModeId);
+    paintState.setMosaicToolId(historyResponse.mosaicMode as MosaicToolId);
   }
 
   if (historyResponse.position) {
@@ -98,7 +98,7 @@ export async function redo() {
     paintState.setBrushAlpha(historyResponse.mosaicStrength);
   }
   if (historyResponse.mosaicMode !== undefined) {
-    paintState.setMosaicModeId(historyResponse.mosaicMode as MosaicModeId);
+    paintState.setMosaicToolId(historyResponse.mosaicMode as MosaicToolId);
   }
 
   if (historyResponse.position) {

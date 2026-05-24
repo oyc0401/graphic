@@ -44,3 +44,5 @@ export class SessionTool implements Tool {
       : this.liquifyTool;
   }
 }
+
+export const sessionTool = new SessionTool();

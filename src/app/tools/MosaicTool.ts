@@ -1,4 +1,4 @@
-import { MosaicModeId, paintState, SessionId } from "../paintState";
+import { MosaicToolId, paintState, SessionId } from "../paintState";
 import { BrushSprayTool } from "./BrushSprayTool";
 import { BrushTool } from "./BrushTool";
 import type { Tool, ToolConfig } from "./Tool";
@@ -26,7 +26,7 @@ export class MosaicSessionTool implements Tool {
     () =>
       paintState.getSessionMode() &&
       paintState.getSessionId() === SessionId.Mosaic &&
-      paintState.getMosaicModeId() === MosaicModeId.Restore,
+      paintState.getMosaicToolId() === MosaicToolId.Restore,
   );
 
   enter() {}
@@ -57,7 +57,7 @@ export class MosaicSessionTool implements Tool {
   }
 
   private getActiveTool() {
-    return paintState.getMosaicModeId() === MosaicModeId.Restore
+    return paintState.getMosaicToolId() === MosaicToolId.Restore
       ? this.restoreTool
       : this.brushTool;
   }

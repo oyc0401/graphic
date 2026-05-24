@@ -1,4 +1,11 @@
-import { BrushId, InputMode, paintState, SessionId, ToolId } from "./paintState";
+import {
+  BrushId,
+  InputMode,
+  paintState,
+  SessionId,
+  TemporaryToolId,
+  ToolId,
+} from "./paintState";
 import { getLayerWorker } from "./worker/workerPool";
 
 export type WorkerToolTarget =
@@ -12,14 +19,13 @@ type WorkerSessionTool = "liquify" | "mosaic";
 type WorkerToolCommand = WorkerPaintTool | WorkerSessionTool;
 
 export function getActiveToolId(): ToolId {
-  let toolId = paintState.getSelectedToolId();
-  if (paintState.getSessionMode()) toolId = ToolId.Session;
-  if (paintState.getInputMode() === InputMode.Zoom) toolId = ToolId.Zoom;
-  if (paintState.getInputMode() === InputMode.ColorPicker) {
-    toolId = ToolId.ColorPicker;
+  if (paintState.getInputMode() === InputMode.Zoom) return ToolId.Zoom;
+
+  if (paintState.getTemporaryToolId() === TemporaryToolId.ColorPicker) {
+    return ToolId.ColorPicker;
   }
 
-  return toolId;
+  return paintState.getSelectedToolId();
 }
 
 function workerToolForTarget(target: WorkerToolTarget): WorkerToolCommand | null {
@@ -44,8 +50,6 @@ function workerToolForCurrentPaintState(): WorkerToolCommand {
       return paintState.getBrushId();
     case ToolId.Select:
     case ToolId.Selection:
-    case ToolId.Session:
-      return paintState.getBrushId();
     case ToolId.Zoom:
     case ToolId.ColorPicker:
       return paintState.getBrushId();
@@ -64,11 +68,9 @@ function applyWorkerToolToPaintState(tool: WorkerToolCommand | null, fallbackTar
       return;
     case "liquify":
       paintState.setSessionId(SessionId.Liquify);
-      paintState.setSessionMode(true);
       return;
     case "mosaic":
       paintState.setSessionId(SessionId.Mosaic);
-      paintState.setSessionMode(true);
       return;
     case null:
       if (fallbackTarget === ToolId.Select || fallbackTarget === ToolId.Selection) {
