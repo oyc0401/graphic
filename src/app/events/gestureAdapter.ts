@@ -1,14 +1,14 @@
 import { GestureModule } from "./gesture";
-import { dispatchGesturePointer } from "./gestureDispatch";
-import { redo, undo } from "./history";
-import { InputMode, paintState } from "./paintState";
+import { dispatchPointer } from "./dispatchPointer";
+import { redo, undo } from "../history";
+import { InputMode, paintState } from "../paintState";
 import {
   getPixelRatio,
   MAX_SCALE,
   MIN_SCALE,
   position,
   renderChangedPosition,
-} from "./position";
+} from "../position";
 
 export function installGestureAdapter(element: HTMLElement) {
   const pixelRatio = getPixelRatio();
@@ -27,18 +27,18 @@ export function installGestureAdapter(element: HTMLElement) {
     maxScale: MAX_SCALE / pixelRatio,
     onPointerdown: (event) => {
       paintState.setPointerdown(true);
-      dispatchGesturePointer(event, "down");
+      dispatchPointer(event, "down");
     },
     onPointermove: (event) => {
-      dispatchGesturePointer(event, "move");
+      dispatchPointer(event, "move");
     },
     onPointerup: (event) => {
       paintState.setPointerdown(false);
-      dispatchGesturePointer(event, "up");
+      dispatchPointer(event, "up");
     },
     onPointercancel: (event) => {
       paintState.setPointerdown(false);
-      dispatchGesturePointer(event, "cancel");
+      dispatchPointer(event, "cancel");
     },
     sceneChanged: (x, y, scale) => {
       gestureX = x;

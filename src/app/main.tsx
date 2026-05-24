@@ -23,7 +23,7 @@ import { paintState } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./initialImage";
-import { installGestureAdapter } from "./gestureAdapter";
+import { installGestureAdapter } from "./events/gestureAdapter";
 
 const root = document.getElementById("appbar-root");
 if (root) {
