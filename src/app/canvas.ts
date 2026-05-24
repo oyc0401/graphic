@@ -3,8 +3,13 @@ import { els } from "./ui/elements";
 import { getPixelRatio, position } from "./position";
 import { PaintApplication } from "@/core/PaintApplication";
 import { setLayerWorker } from "./worker/workerPool";
+import { getInitialImageLayout } from "@/core/initialImageLayout";
 
-export async function tranferCanvas() {
+export async function tranferCanvas(initialImage?: ImageBitmap | null) {
+  if (initialImage) {
+    setInitialImagePosition(initialImage);
+  }
+
   const offscreen = els.canvas.transferControlToOffscreen();
 
   console.log("screenHeight", position.screenHeight);
@@ -22,6 +27,7 @@ export async function tranferCanvas() {
     position.x,
     position.y,
     position.scale,
+    initialImage,
   );
   setLayerWorker(renderer);
 
@@ -30,4 +36,19 @@ export async function tranferCanvas() {
   // resizeScreen();
   // resizeLayer();
   // render();
+}
+
+function setInitialImagePosition(bitmap: ImageBitmap) {
+  const layout = getInitialImageLayout(
+    position.screenWidth,
+    position.screenHeight,
+    bitmap.width,
+    bitmap.height,
+  );
+
+  position.setScale(layout.scale);
+  position.setX(layout.x);
+  position.setY(layout.y);
+  position.setWidth(layout.width);
+  position.setHeight(layout.height);
 }

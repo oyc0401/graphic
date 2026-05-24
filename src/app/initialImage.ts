@@ -1,5 +1,3 @@
-import { uploadImage } from "./file";
-
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "bmp"]);
 
 export function getInitialImageName(search: string): string | null {
@@ -19,25 +17,24 @@ export function getInitialImageName(search: string): string | null {
 
 export async function loadInitialImageFromQuery(
   search = window.location.search,
-) {
+): Promise<ImageBitmap | null> {
   const imageName = getInitialImageName(search);
-  if (!imageName) return;
+  if (!imageName) return null;
 
   try {
     const response = await fetch(`/${encodeURIComponent(imageName)}`);
-    if (!response.ok) return;
+    if (!response.ok) return null;
 
     const contentType = response.headers.get("Content-Type");
-    if (!contentType?.startsWith("image/")) return;
+    if (!contentType?.startsWith("image/")) return null;
 
     const blob = await response.blob();
-    const bitmap = await createImageBitmap(blob, {
+    return await createImageBitmap(blob, {
       imageOrientation: "flipY",
       premultiplyAlpha: "premultiply",
     });
-
-    uploadImage(bitmap);
   } catch {
     // Initial images are optional. Missing or invalid files should not block app startup.
+    return null;
   }
 }

@@ -11,6 +11,7 @@ export class PaintApplication {
     px: number,
     py: number,
     scale: number,
+    image?: ImageBitmap | null,
   ): Promise<WebGL2Controller> {
     const webgl2Service = new WebGL2Controller();
     await webgl2Service.install(
@@ -23,6 +24,7 @@ export class PaintApplication {
       px,
       py,
       scale,
+      image,
     );
 
     return webgl2Service;

@@ -11,7 +11,12 @@ import { getRenderingManager } from "./gl/render/render";
 import { resizeLayer, resizeScreen } from "./gl/resize";
 import { getSelectionManager } from "./gl/select/selection";
 import { getLayerManager } from "./gl/layer";
-import { getCanvasPixelManager, resetImage, uploadImage } from "./gl/file";
+import {
+  getCanvasPixelManager,
+  resetImage,
+  uploadImage,
+  uploadInitialImage,
+} from "./gl/file";
 import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
@@ -250,6 +255,9 @@ export class PaintService {
   }
   uploadImage(imageBitmap: ImageBitmap) {
     return uploadImage(this.canvas, this.gl, imageBitmap);
+  }
+  uploadInitialImage(imageBitmap: ImageBitmap) {
+    return uploadInitialImage(this.canvas, this.gl, imageBitmap);
   }
   resetImage(width, height) {
     return resetImage(this.canvas, this.gl, width, height);

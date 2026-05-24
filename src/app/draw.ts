@@ -9,7 +9,7 @@ import {
 } from "./paintState";
 import { applySelection, selection, selectionCancel } from "./selection";
 import { dispatch } from "./events/pointerEvents";
-import { syncCoreState } from "./history";
+import { historyState, syncCoreState } from "./history";
 import { getLayerWorker } from "./worker/workerPool";
 
 function confirmSessionApply() {
@@ -22,6 +22,9 @@ function confirmSessionApply() {
 }
 
 function confirmSessionDiscard() {
+  if (historyState.getUndoCount() + historyState.getRedoCount() === 0) {
+    return true;
+  }
   return window.confirm("적용을 취소하시겠습니까?");
 }
 

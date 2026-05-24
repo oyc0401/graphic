@@ -1,6 +1,7 @@
 import { paintOptions } from "./gl/texture";
 import { toWebglCoord, toWebglCoord2, toWebglCoord3 } from "./coordinate";
 import { PaintService } from "./paintService";
+import { getInitialImageLayout } from "../initialImageLayout";
 import type {
   CoreSessionTool,
   CoreTool,
@@ -24,7 +25,22 @@ export class WebGL2Controller {
     px: number,
     py: number,
     scale: number,
+    image?: ImageBitmap | null,
   ): Promise<void> {
+    if (image) {
+      const layout = getInitialImageLayout(
+        screenWidth,
+        screenHeight,
+        image.width,
+        image.height,
+      );
+      width = layout.width;
+      height = layout.height;
+      px = layout.x;
+      py = layout.y;
+      scale = layout.scale;
+    }
+
     let { x, y } = toWebglCoord3(px, py, height, screenHeight, scale);
 
     paintOptions.screenWidth = screenWidth;
@@ -43,6 +59,9 @@ export class WebGL2Controller {
 
     paint = new PaintService(main_canvas);
     await paint.initialize();
+    if (image) {
+      paint.uploadInitialImage(image);
+    }
   }
 
   // 그리기와 편집이 적용될 레이어를 선택한다.

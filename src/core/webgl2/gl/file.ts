@@ -51,6 +51,31 @@ export function uploadImage(canvas, gl, bitmap: ImageBitmap) {
   renderingManager.render();
 }
 
+export function uploadInitialImage(canvas, gl, bitmap: ImageBitmap) {
+  const sourceTextureManager = getSourceTextureManager(canvas, gl);
+  const renderingManager = getRenderingManager(canvas, gl);
+  const layerManager = getLayerManager(canvas, gl);
+
+  resetHisory();
+  layerManager.bindCurrentLayer();
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    bitmap,
+  );
+
+  gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
+  gl.bindTexture(gl.TEXTURE_2D, sourceTextureManager.texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+
+  sourceTextureManager.upload(0, 0, paintOptions.width, paintOptions.height);
+  renderingManager.render();
+}
+
 export function resetImage(canvas, gl, width, height) {
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);

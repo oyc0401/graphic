@@ -120,6 +120,7 @@ canvas {
   position: absolute;
   z-index: 2900;
   box-sizing: border-box;
+  visibility: hidden;
   /* 보더를 포함한 크기 계산 */
   mix-blend-mode: difference;
 }
@@ -127,6 +128,7 @@ canvas {
 .handle {
   z-index: 2901;
   position: absolute;
+  visibility: hidden;
   width: 7px;
   height: 7px;
   background: rgb(255, 255, 255);
@@ -203,6 +205,7 @@ canvas {
   align-items: center;
   position: absolute;
   z-index: 2900;
+  visibility: hidden;
 }
 
 #selection-text,

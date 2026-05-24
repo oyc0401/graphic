@@ -56,6 +56,14 @@ async function main() {
   // 초기 캔버스 위치 계산
   setDefaultPosition();
 
+  const initialImage = await loadInitialImageFromQuery();
+
+  // 캔버스 업로드
+  await tranferCanvas(initialImage);
+
+  // dpr이 1이 아니면, 캔버스 확대
+  changeCanvasTransform();
+
   // 뷰 바인딩
   bindView();
 
@@ -68,12 +76,6 @@ async function main() {
   addKeyboardEvent();
 
   addClipboardEvent();
-  // dpr이 1이 아니면, 캔버스 확대
-  changeCanvasTransform();
-
-  // 캔버스 업로드
-  await tranferCanvas();
-  await loadInitialImageFromQuery();
 
   console.log("Complete App!");
 
