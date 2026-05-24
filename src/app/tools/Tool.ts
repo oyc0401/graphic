@@ -3,8 +3,6 @@ export interface ToolConfig {
   cursorClass?: string;
 }
 
-export type ToolPointerEvent = PointerEvent;
-
 export interface Tool {
   config: ToolConfig;
 
@@ -13,8 +11,8 @@ export interface Tool {
   enter(): void;
   exit(): void;
 
-  down(e: ToolPointerEvent): void;
-  move(e: ToolPointerEvent): void;
-  up(e: ToolPointerEvent): void;
+  down(e: PointerEvent): void;
+  move(e: PointerEvent): void;
+  up(e: PointerEvent): void;
   cancel(): void;
 }

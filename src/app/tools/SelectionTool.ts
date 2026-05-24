@@ -34,7 +34,12 @@ export class SelectionTool implements Tool {
 
   enter() {}
 
-  exit() {}
+  exit() {
+    if (selection.visible) {
+      applySelection();
+    }
+    selection.setHover("default");
+  }
 
   canUse() {
     return (

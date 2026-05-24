@@ -6,9 +6,9 @@ import {
   SessionId,
   ToolId,
 } from "../paintState";
-import { applySelection, selection } from "../selection";
 import { historyState, syncCoreState } from "../history";
 import { getLayerWorker } from "../worker/workerPool";
+import { getCurrentTool } from "./activeTool";
 
 function canChangeTool() {
   return !paintState.getPointerdown();
@@ -18,12 +18,14 @@ function canChangeMainTool() {
   return canChangeTool() && !paintState.getSessionMode();
 }
 
+function exitCurrentTool() {
+  getCurrentTool()?.exit();
+}
+
 export const toolManager = {
   async setBrushTool() {
     if (!canChangeMainTool()) return;
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setBrushId(BrushId.Brush);
     paintState.setSelectedToolId(ToolId.Brush);
@@ -32,9 +34,7 @@ export const toolManager = {
   },
   setEraserTool() {
     if (!canChangeMainTool()) return;
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setBrushId(BrushId.Eraser);
     paintState.setSelectedToolId(ToolId.Brush);
@@ -51,9 +51,7 @@ export const toolManager = {
       return;
     }
 
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setSessionId(SessionId.Liquify);
     paintState.setLiquifyToolId(toolId);
@@ -67,9 +65,7 @@ export const toolManager = {
       return;
     }
 
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setSessionId(SessionId.Mosaic);
     getLayerWorker().openSession("mosaic");
@@ -87,9 +83,7 @@ export const toolManager = {
   },
   setSelectTool() {
     if (!canChangeMainTool()) return;
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setSelectedToolId(ToolId.Select);
     getLayerWorker().setTool(paintState.getBrushId());
@@ -97,9 +91,7 @@ export const toolManager = {
   },
   setZoomTool() {
     if (!canChangeMainTool()) return;
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setSelectedToolId(ToolId.Zoom);
     getLayerWorker().setTool(paintState.getBrushId());
@@ -107,9 +99,7 @@ export const toolManager = {
   },
   setColorPickerTool() {
     if (!canChangeMainTool()) return;
-    if (selection.visible) {
-      applySelection();
-    }
+    exitCurrentTool();
 
     paintState.setSelectedToolId(ToolId.ColorPicker);
     getLayerWorker().setTool(paintState.getBrushId());
