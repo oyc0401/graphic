@@ -70,15 +70,6 @@ function leaveCurrentEditingState(options: { commitSelection: boolean }) {
   return true;
 }
 
-function selectBrushLikeTool(brushId: BrushId) {
-  paintState.setSessionId(null);
-  paintState.setBrushId(brushId);
-  paintState.setSelectedToolId(ToolId.Brush);
-  setDefaultInputMode();
-  getLayerWorker().setTool(brushId);
-  syncCoreState();
-}
-
 function selectAppOnlyTool(
   toolId: ToolId.Select | ToolId.Zoom | ToolId.ColorPicker,
 ) {
@@ -100,17 +91,30 @@ export const toolManager = {
     if (!canChangeTool()) return;
     if (!leaveCurrentEditingState({ commitSelection: true })) return;
 
-    selectBrushLikeTool(BrushId.Brush);
+    paintState.setSessionId(null);
+    paintState.setBrushId(BrushId.Brush);
+    paintState.setSelectedToolId(ToolId.Brush);
+    setDefaultInputMode();
+    getLayerWorker().setTool(BrushId.Brush);
+    syncCoreState();
   },
   setEraserTool() {
     if (!canChangeTool()) return;
     if (!leaveCurrentEditingState({ commitSelection: true })) return;
 
-    selectBrushLikeTool(BrushId.Eraser);
+    paintState.setSessionId(null);
+    paintState.setBrushId(BrushId.Eraser);
+    paintState.setSelectedToolId(ToolId.Brush);
+    setDefaultInputMode();
+    getLayerWorker().setTool(BrushId.Eraser);
+    syncCoreState();
   },
   setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
     if (!canChangeTool()) return;
-    if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
+    if (
+      paintState.getSessionMode() &&
+      paintState.getSessionId() === SessionId.Liquify
+    ) {
       paintState.setLiquifyToolId(toolId);
       getLayerWorker().setLiquifyTool(toolId);
       setDefaultInputMode();
@@ -128,7 +132,10 @@ export const toolManager = {
   },
   setMosaicTool() {
     if (!canChangeTool()) return;
-    if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic) {
+    if (
+      paintState.getSessionMode() &&
+      paintState.getSessionId() === SessionId.Mosaic
+    ) {
       setDefaultInputMode();
       return;
     }
@@ -179,21 +186,13 @@ export const toolManager = {
     syncCoreState();
   },
   commitSession() {
-    if (
-      !canChangeTool() ||
-      !paintState.getSessionMode()
-    )
-      return;
+    if (!canChangeTool() || !paintState.getSessionMode()) return;
 
     commitEditingSession();
     returnFromSession();
   },
   discardSession() {
-    if (
-      !canChangeTool() ||
-      !paintState.getSessionMode()
-    )
-      return;
+    if (!canChangeTool() || !paintState.getSessionMode()) return;
 
     if (!confirmSessionDiscard()) return;
 

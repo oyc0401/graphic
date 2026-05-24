@@ -73,6 +73,14 @@ class PaintState {
   // 모자이크 세션 안에서 사용하는 하위 툴.
   private _mosaicToolId: MosaicToolId = MosaicToolId.Pixel;
 
+  // 도구를 toolRegistry를 쓰지 말고,
+  // 위에있는 state를 보고 직접 도구를 추론하도록 하자.
+  // 경우의수는 main일때: InputMode -> _temporaryToolId -> _selectedToolId -> BrushId
+  // 세션일때: _sessionId -> (LiquifyToolId or MosaicToolId)
+  // 이렇게 추론해서 도구를 얻는 함수를 만들자.
+  // toolRegistry는 이제 제거하려고 하자.
+  // src/app/draw.ts 와 src/app/coreToolAdapter.ts의 존재이유가 뭐니 둘다 걍 짬통인거같음.
+
   // 도구별 브러시 크기 설정.
   private _brushSize = {
     [BrushId.Brush]: 5,
