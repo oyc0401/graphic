@@ -13,7 +13,7 @@ import {
 import { els, getElements } from "./ui/elements";
 import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
-import { addClipboardEvent } from "./file";
+import { addClipboardEvent } from "./file/file";
 
 import { bindView } from "./ui/view";
 import { getLayerWorker } from "./worker/workerPool";
@@ -22,7 +22,7 @@ import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
-import { loadInitialImageFromQuery } from "./initialImage";
+import { loadInitialImageFromQuery } from "./file/initialImage";
 import { installGestureAdapter } from "./events/gestureAdapter";
 
 const root = document.getElementById("appbar-root");

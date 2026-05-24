@@ -1,6 +1,6 @@
 /** file.ts */
-import { els } from "./ui/elements";
-import { getLayerWorker } from "./worker/workerPool";
+import { els } from "../ui/elements";
+import { getLayerWorker } from "../worker/workerPool";
 import { encode } from "fast-png";
 import * as Comlink from "comlink";
 import {
@@ -8,17 +8,17 @@ import {
   cutSelection,
   makeSelectionFromBitmap,
   selection,
-} from "./selection";
+} from "../selection";
 import {
   getPixelRatio,
   position,
   renderChangedPosition,
   setCameraPosition,
   setDefaultPosition,
-} from "./position";
-import { paintState } from "./paintState";
-import { toolManager } from "./tools/toolManager";
-import { historyState, syncCoreState } from "./history";
+} from "../position";
+import { paintState } from "../paintState";
+import { toolManager } from "../tools/toolManager";
+import { historyState, syncCoreState } from "../history";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지

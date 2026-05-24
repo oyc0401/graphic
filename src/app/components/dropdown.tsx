@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useState } from "react";
 import { paintState } from "../paintState";
 import { menuState } from "../ui/menuState";
 import { hexToRgb, rgbToHex } from "../utils/color";
-import { downloadImage, openFile, resetImage } from "../file";
+import { downloadImage, openFile, resetImage } from "../file/file";
 import { observer } from "mobx-react-lite";
 // AppBar.jsx 상단
 import MenuIcon from "../assets/menu.svg?react";

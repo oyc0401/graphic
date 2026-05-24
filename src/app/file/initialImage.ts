@@ -1,6 +1,6 @@
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "bmp"]);
 
-export function getInitialImageName(search: string): string | null {
+function getInitialImageName(search: string): string | null {
   const imageName = new URLSearchParams(search).get("image");
   if (!imageName) return null;
 
