@@ -1,5 +1,5 @@
 import { paintState } from "@/app/paintState";
-import { dispatch } from "../app/events/pointerEvents";
+import { dispatchGesturePointer } from "@/app/gestureDispatch";
 import { toolManager } from "@/app/draw";
 import { uploadImage } from "@/app/file";
 
@@ -25,18 +25,18 @@ function createFakeEvent(x: number, y: number): PointerEvent {
 function pointerDown(x: number, y: number) {
   console.log(`🖱️ pointerDown(${x}, ${y})`);
   paintState.pointerdown = true;
-  dispatch(createFakeEvent(x, y), "down");
+  dispatchGesturePointer(createFakeEvent(x, y), "down");
 }
 
 function pointerMove(x: number, y: number) {
   console.log(`🖱️ pointerMove(${x}, ${y})`);
-  dispatch(createFakeEvent(x, y), "move");
+  dispatchGesturePointer(createFakeEvent(x, y), "move");
 }
 
 function pointerUp(x: number, y: number) {
   console.log(`🖱️ pointerUp(${x}, ${y})`);
   paintState.pointerdown = false;
-  dispatch(createFakeEvent(x, y), "up");
+  dispatchGesturePointer(createFakeEvent(x, y), "up");
 }
 
 export async function runPointerTests() {

@@ -8,7 +8,7 @@ import {
   ToolId,
 } from "./paintState";
 import { applySelection, selection, selectionCancel } from "./selection";
-import { dispatch } from "./events/pointerEvents";
+import { dispatchGesturePointer } from "./gestureDispatch";
 import { historyState, syncCoreState } from "./history";
 import { getLayerWorker } from "./worker/workerPool";
 
@@ -214,5 +214,5 @@ export function cancel() {
     return;
   }
 
-  dispatch(new PointerEvent("pointercancel"), "cancel");
+  dispatchGesturePointer(new PointerEvent("pointercancel"), "cancel");
 }

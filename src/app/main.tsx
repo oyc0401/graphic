@@ -17,14 +17,13 @@ import { addClipboardEvent } from "./file";
 
 import { bindView } from "./ui/view";
 import { getLayerWorker } from "./worker/workerPool";
-import { attachPointerEvents } from "./events/pointerEvents";
 import { tranferCanvas } from "./canvas";
-import { addGestureEvent } from "./events/gestures";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./initialImage";
+import { installGestureAdapter } from "./gestureAdapter";
 
 const root = document.getElementById("appbar-root");
 if (root) {
@@ -67,10 +66,7 @@ async function main() {
   // 뷰 바인딩
   bindView();
 
-  addGestureEvent();
-
-  // 이벤트 추가
-  attachPointerEvents(els.container);
+  installGestureAdapter(els.container);
 
   addClickEvent();
   addKeyboardEvent();

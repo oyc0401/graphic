@@ -8,8 +8,6 @@ const gesture = new GestureModule({
   position: {
     x: 80,
     y: 70,
-    width: 220,
-    height: 160,
     scale: 1,
   },
   minScale: 0.25,
@@ -63,7 +61,5 @@ const gesture = new GestureModule({
 gesture.setPosition({
   x: 80,
   y: 70,
-  width: 220,
-  height: 160,
   scale: 1,
 });
