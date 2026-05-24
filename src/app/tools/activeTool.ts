@@ -1,0 +1,60 @@
+import {
+  BrushId,
+  InputMode,
+  paintState,
+  SessionId,
+  TemporaryToolId,
+  ToolId,
+} from "../paintState";
+import { BrushTool } from "./BrushTool";
+import { ColorPickerTool } from "./ColorPickerTool";
+import { LiquifySessionTool } from "./LiquifyTool";
+import { MosaicSessionTool } from "./MosaicTool";
+import { panTool } from "./PanTool";
+import { SelectTool } from "./SelectTool";
+import { SelectionTool } from "./SelectionTool";
+import type { Tool } from "./Tool";
+import { zoomTool } from "./ZoomTool";
+
+const brushTool = new BrushTool();
+const colorPickerTool = new ColorPickerTool();
+const liquifySessionTool = new LiquifySessionTool();
+const mosaicSessionTool = new MosaicSessionTool();
+const selectTool = new SelectTool();
+const selectionTool = new SelectionTool();
+
+export function getCurrentTool(): Tool | null {
+  switch (paintState.getInputMode()) {
+    case InputMode.Pan:
+      return panTool;
+    case InputMode.Zoom:
+      return zoomTool;
+    case InputMode.Pinch:
+      return null;
+  }
+
+  switch (paintState.getSessionId()) {
+    case SessionId.Liquify:
+      return liquifySessionTool;
+    case SessionId.Mosaic:
+      return mosaicSessionTool;
+  }
+
+  switch (paintState.getTemporaryToolId()) {
+    case TemporaryToolId.ColorPicker:
+      return colorPickerTool;
+  }
+
+  switch (paintState.getSelectedToolId()) {
+    case ToolId.Brush:
+      return brushTool;
+    case ToolId.Select:
+      return selectTool;
+    case ToolId.Selection:
+      return selectionTool;
+    case ToolId.Zoom:
+      return zoomTool;
+    case ToolId.ColorPicker:
+      return colorPickerTool;
+  }
+}

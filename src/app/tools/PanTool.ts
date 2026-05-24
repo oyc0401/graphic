@@ -1,15 +1,29 @@
 // tools/PanTool.ts
 import { InputMode, paintState } from "../paintState";
 import { getPixelRatio, position, renderChangedPosition } from "../position";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class PanTool {
+export class PanTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+  };
+
   private lastClientX = 0;
   private lastClientY = 0;
   private active = false;
 
+  enter() {}
+
+  exit() {
+    this.active = false;
+  }
+
+  canUse() {
+    return paintState.getInputMode() === InputMode.Pan;
+  }
+
   down(e: PointerEvent) {
-    if (paintState.getInputMode() !== InputMode.Pan || !paintState.getPointerdown())
-      return;
+    if (!this.canUse() || !paintState.getPointerdown()) return;
     this.active = true;
 
     this.lastClientX = e.clientX;
@@ -17,12 +31,7 @@ export class PanTool {
   }
 
   move(e: PointerEvent) {
-    if (
-      paintState.getInputMode() !== InputMode.Pan ||
-      !paintState.getPointerdown() ||
-      !this.active
-    )
-      return;
+    if (!this.canUse() || !paintState.getPointerdown() || !this.active) return;
 
     const dx = (this.lastClientX - e.clientX) * getPixelRatio();
     const dy = (this.lastClientY - e.clientY) * getPixelRatio();
@@ -40,13 +49,11 @@ export class PanTool {
   }
 
   up(_: PointerEvent) {
-    // No-op for pan
-    if (paintState.getInputMode() !== InputMode.Pan) return;
+    if (!this.canUse()) return;
     this.active = false;
   }
 
   cancel() {
-    // 선택적으로 추가 가능
     this.active = false;
   }
 }
