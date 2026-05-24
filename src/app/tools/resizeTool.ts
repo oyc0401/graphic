@@ -1,12 +1,10 @@
-import { getActiveToolId } from "../coreToolAdapter";
-import { InputMode, paintState } from "../paintState";
+import { InputMode, paintState, TemporaryToolId } from "../paintState";
 import { changeCanvasSize } from "../position";
 
 import { clamp } from "../utils/math";
 import { paintConfig } from "@/paint.config";
 import { canvasResizeState, type CanvasResizeRect } from "../canvasResizeState";
 import { resizeCanvasFromHandleDrag } from "../utils/canvasResize";
-import { toolRegistry } from "./toolRegistry";
 import {
   cursorForResizeHandle,
   getCanvasResizeRect,
@@ -14,15 +12,27 @@ import {
   toResizeEdgePoint,
   type ResizeCornerHandle,
 } from "../utils/resizeGeometry";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class ResizeTool {
+export class ResizeTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+  };
+
   private start: CanvasResizeRect = { x: 0, y: 0, width: 1, height: 1 };
   private startPointer = { x: 0, y: 0 };
 
-  isVisible() {
+  enter() {}
+
+  exit() {
+    canvasResizeState.reset();
+    canvasResizeState.setHover(null);
+  }
+
+  canUse() {
     return (
-      canvasResizeState.active ||
-      (!paintState.getPointerdown() && this.canUseCanvasResizeHandle())
+      paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getTemporaryToolId() === TemporaryToolId.Resize
     );
   }
 
@@ -31,12 +41,11 @@ export class ResizeTool {
   }
 
   canStart(e: PointerEvent) {
-    if (!this.canUseCanvasResizeHandle()) return false;
     return this.hitTest(e) !== null;
   }
 
   down(e: PointerEvent) {
-    if (!this.canStart(e)) return;
+    if (!this.canUse()) return;
 
     const handle = this.hitTest(e);
     if (!handle) return;
@@ -49,44 +58,40 @@ export class ResizeTool {
   }
 
   move(e: PointerEvent) {
-    this.updateHover(e);
-
-    if (!paintState.getPointerdown() || !this.isActive()) return;
+    if (!this.canUse() || !paintState.getPointerdown() || !this.isActive()) {
+      return;
+    }
 
     canvasResizeState.setPointer(e);
     this.updateResize(e);
   }
 
   up(e: PointerEvent) {
-    if (!this.isActive()) return;
+    if (!this.canUse()) return;
 
-    canvasResizeState.setPointer(e);
-    this.updateResize(e);
+    if (this.isActive()) {
+      canvasResizeState.setPointer(e);
+      this.updateResize(e);
 
-    const { x, y, width, height } = canvasResizeState.rect;
+      const { x, y, width, height } = canvasResizeState.rect;
+      canvasResizeState.reset();
+      changeCanvasSize(x, y, width, height);
+    }
+
+    paintState.setTemporaryToolId(null);
+  }
+
+  cancel() {
     canvasResizeState.reset();
-    changeCanvasSize(x, y, width, height);
-    this.updateHover(e);
-  }
-
-  cancel(e: PointerEvent) {
-    this.up(e);
-  }
-
-  private canUseCanvasResizeHandle() {
-    const toolConfig = toolRegistry[getActiveToolId()].config;
-
-    return (
-      paintState.getInputMode() === InputMode.DEFAULT &&
-      toolConfig.allowCanvasResizeHandle
-    );
+    canvasResizeState.setHover(null);
+    paintState.setTemporaryToolId(null);
   }
 
   private hitTest(e: PointerEvent): ResizeCornerHandle | null {
     return hitTestOutsideCanvasResizeCorner(e.clientX, e.clientY);
   }
 
-  private updateHover(e: PointerEvent) {
+  updateHover(e: PointerEvent, enabled: boolean) {
     if (this.isActive()) {
       canvasResizeState.setHover(
         cursorForResizeHandle(canvasResizeState.activeHandle),
@@ -94,7 +99,7 @@ export class ResizeTool {
       return;
     }
 
-    const hoveredHandle = this.isVisible() ? this.hitTest(e) : null;
+    const hoveredHandle = enabled ? this.hitTest(e) : null;
     canvasResizeState.setHover(cursorForResizeHandle(hoveredHandle));
   }
 

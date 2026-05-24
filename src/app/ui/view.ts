@@ -10,6 +10,7 @@ import { isSmallSize } from "../utils/screen";
 import { resizeTool } from "../tools/resizeTool";
 import { canvasResizeState } from "../canvasResizeState";
 import { toolRegistry } from "../tools/toolRegistry";
+import { getCurrentTool } from "../tools/activeTool";
 import {
   RESIZE_HANDLE_SIZE_PX,
   RESIZE_HANDLE_STROKE_WIDTH_PX,
@@ -20,6 +21,7 @@ import {
 export function bindView() {
   bindCursorUI();
   bindSelectionUI();
+  bindCanvasResizeHover();
   bindCanvasResizeUI();
   bindCursorPositionUI();
   bindZoomAreaUI();
@@ -75,7 +77,8 @@ function bindCursorUI() {
     const isSelectionTool =
       paintState.getInputMode() === InputMode.DEFAULT &&
       getActiveToolId() === ToolId.Selection;
-    const isCanvasResize = resizeTool.isVisible();
+    const isCanvasResize =
+      canvasResizeState.active || canvasResizeState.hover !== null;
     const resizeHover = canvasResizeState.hover;
     const nwse =
       (isSelectionTool && selection.hover == "nwse-resize") ||
@@ -244,6 +247,26 @@ function bindSelectionUI() {
   });
 }
 
+function canShowCanvasResizeHandle() {
+  if (paintState.getPointerdown()) return false;
+
+  const tool = getCurrentTool();
+  return Boolean(
+    paintState.getInputMode() === InputMode.DEFAULT &&
+      tool?.config.allowCanvasResizeHandle,
+  );
+}
+
+function bindCanvasResizeHover() {
+  els.container.addEventListener("pointermove", (event) => {
+    resizeTool.updateHover(event, canShowCanvasResizeHandle());
+  });
+
+  els.container.addEventListener("pointerleave", (event) => {
+    resizeTool.updateHover(event, false);
+  });
+}
+
 function bindCanvasResizeUI() {
   const resizeHandles = [
     els.resizeHandleLT,
@@ -292,7 +315,7 @@ function bindCanvasResizeUI() {
   };
 
   autorun(() => {
-    const showHandles = resizeTool.isVisible();
+    const showHandles = canvasResizeState.active || canShowCanvasResizeHandle();
     const showPreview = canvasResizeState.active;
     const rect = toContainerRect(
       showPreview ? canvasResizeState.rect : getCanvasResizeRect(),

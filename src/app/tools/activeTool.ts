@@ -11,6 +11,7 @@ import { ColorPickerTool } from "./ColorPickerTool";
 import { LiquifySessionTool } from "./LiquifyTool";
 import { MosaicSessionTool } from "./MosaicTool";
 import { panTool } from "./PanTool";
+import { resizeTool } from "./resizeTool";
 import { SelectTool } from "./SelectTool";
 import { SelectionTool } from "./SelectionTool";
 import type { Tool } from "./Tool";
@@ -43,6 +44,8 @@ export function getCurrentTool(): Tool | null {
   switch (paintState.getTemporaryToolId()) {
     case TemporaryToolId.ColorPicker:
       return colorPickerTool;
+    case TemporaryToolId.Resize:
+      return resizeTool;
   }
 
   switch (paintState.getSelectedToolId()) {

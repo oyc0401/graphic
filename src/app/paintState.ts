@@ -10,6 +10,7 @@ export enum InputMode {
 
 export enum TemporaryToolId {
   ColorPicker = "colorPicker",
+  Resize = "resize",
 }
 
 export enum ToolId {
