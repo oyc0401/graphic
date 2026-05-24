@@ -19,7 +19,7 @@ export class SessionTool implements Tool {
   }
 
   canUse() {
-    return paintState.getSessionMode();
+    return paintState.getSessionId() !== null;
   }
 
   down(e: PointerEvent) {

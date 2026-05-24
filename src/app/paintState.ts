@@ -173,9 +173,6 @@ class PaintState {
   getBrushAlpha() {
     return this._brushAlpha[this.getBrushSettingsId()];
   }
-  getSessionMode() {
-    return this._sessionId !== null;
-  }
   getSessionId() {
     return this._sessionId;
   }

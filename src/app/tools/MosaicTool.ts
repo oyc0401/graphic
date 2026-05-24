@@ -9,10 +9,7 @@ class MosaicBrushTool extends BrushTool {
   };
 
   canUse() {
-    return (
-      paintState.getSessionMode() &&
-      paintState.getSessionId() === SessionId.Mosaic
-    );
+    return paintState.getSessionId() === SessionId.Mosaic;
   }
 }
 
@@ -24,7 +21,6 @@ export class MosaicSessionTool implements Tool {
   private brushTool = new MosaicBrushTool();
   private restoreTool = new BrushSprayTool(
     () =>
-      paintState.getSessionMode() &&
       paintState.getSessionId() === SessionId.Mosaic &&
       paintState.getMosaicToolId() === MosaicToolId.Restore,
   );
@@ -37,7 +33,7 @@ export class MosaicSessionTool implements Tool {
   }
 
   canUse() {
-    return paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+    return paintState.getSessionId() === SessionId.Mosaic;
   }
 
   down(e: PointerEvent) {

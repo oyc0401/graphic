@@ -79,7 +79,7 @@ function AppBarMobile() {
       ></div>
       <div id="appbar">
         {/* ===== 헤더 ===== */}
-        {paintState.getSessionMode() ? (
+        {paintState.getSessionId() !== null ? (
           paintState.getSessionId() === SessionId.Mosaic ? (
             <MosaicMobileAppBar />
           ) : (
@@ -332,8 +332,7 @@ const SizeToggleButton = observer(() => {
       {menuState.showSizeBar && (
         <div className="size-bar" ref={menuRef}>
           <BrushSizeSlider />
-          {paintState.getSessionMode() &&
-          paintState.getSessionId() === SessionId.Mosaic ? (
+          {paintState.getSessionId() === SessionId.Mosaic ? (
             <MosaicStrengthSlider />
           ) : (
             <BrushAlphaSlider />
@@ -439,9 +438,7 @@ const SelectionToolButton = observer(() => {
 });
 
 const LiquifyToolButton = observer(() => {
-  const isSelected =
-    paintState.getSessionMode() &&
-    paintState.getSessionId() === SessionId.Liquify;
+  const isSelected = paintState.getSessionId() === SessionId.Liquify;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -464,9 +461,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const MosaicToolButton = observer(() => {
-  const isSelected =
-    paintState.getSessionMode() &&
-    paintState.getSessionId() === SessionId.Mosaic;
+  const isSelected = paintState.getSessionId() === SessionId.Mosaic;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);

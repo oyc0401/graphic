@@ -29,10 +29,7 @@ class LiquifySprayTool implements Tool {
   }
 
   canUse() {
-    return (
-      paintState.getSessionMode() &&
-      paintState.getSessionId() === SessionId.Liquify
-    );
+    return paintState.getSessionId() === SessionId.Liquify;
   }
 
   down(e: PointerEvent) {
@@ -111,7 +108,6 @@ export class LiquifySessionTool implements Tool {
   private sprayTool = new LiquifySprayTool();
   private restoreTool = new BrushSprayTool(
     () =>
-      paintState.getSessionMode() &&
       paintState.getSessionId() === SessionId.Liquify &&
       paintState.getLiquifyToolId() === LiquifyToolId.Restore,
   );
@@ -125,7 +121,7 @@ export class LiquifySessionTool implements Tool {
   }
 
   canUse() {
-    return paintState.getSessionMode();
+    return paintState.getSessionId() === SessionId.Liquify;
   }
 
   down(e: PointerEvent) {

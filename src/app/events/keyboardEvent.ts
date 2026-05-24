@@ -241,7 +241,7 @@ function findMatchingCommandShortcut(
 }
 
 function getActiveCommandShortcuts(): readonly CommandShortcut[] {
-  if (!paintState.getSessionMode()) {
+  if (paintState.getSessionId() === null) {
     return [...commonCommandShortcuts, ...mainCommandShortcuts];
   }
 
@@ -330,7 +330,7 @@ function findTemporaryShortcutByKey(key: KeyboardShortcutKey) {
 }
 
 function getActiveTemporaryShortcuts(): readonly TemporaryShortcut[] {
-  if (!paintState.getSessionMode()) {
+  if (paintState.getSessionId() === null) {
     return [...temporaryShortcuts, ...mainTemporaryShortcuts];
   }
 

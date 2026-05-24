@@ -80,7 +80,7 @@ function AppBarDesktop() {
         </div>
 
         {/* ===== 툴바 ===== */}
-        {paintState.getSessionMode() ? (
+        {paintState.getSessionId() !== null ? (
           paintState.getSessionId() === SessionId.Mosaic ? (
             <MosaicMenuBar />
           ) : (
@@ -387,9 +387,7 @@ const EraserToolButton = observer(() => {
 });
 
 const LiquifyToolButton = observer(() => {
-  const isSelected =
-    paintState.getSessionMode() &&
-    paintState.getSessionId() === SessionId.Liquify;
+  const isSelected = paintState.getSessionId() === SessionId.Liquify;
 
   return (
     <button
@@ -404,9 +402,7 @@ const LiquifyToolButton = observer(() => {
 });
 
 const MosaicToolButton = observer(() => {
-  const isSelected =
-    paintState.getSessionMode() &&
-    paintState.getSessionId() === SessionId.Mosaic;
+  const isSelected = paintState.getSessionId() === SessionId.Mosaic;
 
   return (
     <button

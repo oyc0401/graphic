@@ -105,7 +105,7 @@ function bindCursorUI() {
     const isDrawingTool =
       (paintState.getSelectedToolId() === ToolId.Brush &&
         tool?.config.allowCanvasResizeHandle) ||
-      paintState.getSessionMode();
+      paintState.getSessionId() !== null;
     const isValid = isBrush && isDrawingTool;
 
     const isDesktop = !("ontouchstart" in window);

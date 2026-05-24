@@ -18,7 +18,7 @@ export class BrushTool implements Tool {
 
   canUse() {
     return (
-      paintState.getToolId() === ToolId.Brush || paintState.getSessionMode()
+      paintState.getToolId() === ToolId.Brush || paintState.getSessionId() !== null
     );
   }
 

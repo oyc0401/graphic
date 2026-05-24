@@ -29,7 +29,7 @@ export function addClipboardEvent() {
   // 실제 드롭이 발생했을 때
   els.container.addEventListener("drop", async (e) => {
     e.preventDefault();
-    if (paintState.getSessionMode()) return;
+    if (paintState.getSessionId() !== null) return;
 
     const dt = e.dataTransfer;
     if (!dt || !dt.files.length) return;
@@ -69,7 +69,7 @@ export function addClipboardEvent() {
       target instanceof HTMLSelectElement;
     console.log(target);
     if (isInput) return; // 인풋창이면 기본 이벤트 허용
-    if (paintState.getSessionMode()) {
+    if (paintState.getSessionId() !== null) {
       event.preventDefault();
       return;
     }

@@ -15,7 +15,7 @@ function canChangeTool() {
 }
 
 function canChangeMainTool() {
-  return canChangeTool() && !paintState.getSessionMode();
+  return canChangeTool() && paintState.getSessionId() === null;
 }
 
 function exitCurrentTool() {
@@ -43,8 +43,9 @@ export const toolManager = {
   },
   setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
     if (!canChangeTool()) return;
-    if (paintState.getSessionMode()) {
-      if (paintState.getSessionId() === SessionId.Liquify) {
+    const sessionId = paintState.getSessionId();
+    if (sessionId !== null) {
+      if (sessionId === SessionId.Liquify) {
         paintState.setLiquifyToolId(toolId);
         getLayerWorker().setLiquifyTool(toolId);
       }
@@ -61,7 +62,7 @@ export const toolManager = {
   },
   setMosaicTool() {
     if (!canChangeTool()) return;
-    if (paintState.getSessionMode()) {
+    if (paintState.getSessionId() !== null) {
       return;
     }
 
@@ -112,7 +113,7 @@ export const toolManager = {
     syncCoreState();
   },
   commitSession() {
-    if (!canChangeTool() || !paintState.getSessionMode()) return;
+    if (!canChangeTool() || paintState.getSessionId() === null) return;
 
     getLayerWorker().commitSession();
     syncCoreState();
@@ -121,7 +122,7 @@ export const toolManager = {
     syncCoreState();
   },
   discardSession() {
-    if (!canChangeTool() || !paintState.getSessionMode()) return;
+    if (!canChangeTool() || paintState.getSessionId() === null) return;
 
     if (
       historyState.getUndoCount() + historyState.getRedoCount() > 0 &&
