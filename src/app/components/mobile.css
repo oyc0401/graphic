@@ -105,13 +105,13 @@
 }
 
 
-.mobile-appbar .selected>svg>path,
-.mobile-navigation .selected>svg>path {
+.mobile-appbar .selected>svg *,
+.mobile-navigation .selected>svg * {
   fill: #3587FF;
 }
 
-.mobile-appbar .stroke-icon-button.selected>svg>path,
-.mobile-navigation .stroke-icon-button.selected>svg>path {
+.mobile-appbar .stroke-icon-button.selected>svg *,
+.mobile-navigation .stroke-icon-button.selected>svg * {
   fill: none;
   stroke: #3587FF;
 }

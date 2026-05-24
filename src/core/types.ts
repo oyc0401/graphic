@@ -7,7 +7,7 @@ export type CoreTool = "brush" | "eraser";
 
 export type CoreSessionTool = "liquify" | "mosaic";
 
-export type MosaicMode = "pixel" | "blur";
+export type MosaicMode = "pixel" | "blur" | "restore";
 
 export type LiquifyTool =
   | "push"

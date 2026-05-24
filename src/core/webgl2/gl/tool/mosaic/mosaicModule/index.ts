@@ -2,12 +2,14 @@ import blurHorizontalFrag from "./blurHorizontal.frag?raw";
 import blurVerticalFrag from "./blurVertical.frag?raw";
 import maskFrag from "./mask.frag?raw";
 import renderFrag from "./render.frag?raw";
+import restoreMaskFrag from "./restoreMask.frag?raw";
 import { pointRect, strokeRect, unionRect } from "./rect";
 import type { MosaicPoint, MosaicRect } from "./rect";
 
 export type { MosaicPoint, MosaicRect } from "./rect";
 
-export type MosaicMode = "pixel" | "blur";
+export type MosaicMode = "pixel" | "blur" | "restore";
+type MosaicEffectMode = Exclude<MosaicMode, "restore">;
 
 export interface CreateMosaicOptions {
   imageTexture: WebGLTexture;
@@ -44,8 +46,9 @@ class Mosaic {
   private height: number;
   private radius = 10;
   private strength = 0.5;
-  private mode: MosaicMode = "pixel";
-  private committedMode: MosaicMode = "pixel";
+  private mode: MosaicEffectMode = "pixel";
+  private committedMode: MosaicEffectMode = "pixel";
+  private restoring = false;
   private committedStrength = 0.5;
   private lastPoint: MosaicPoint | null = null;
   private strokeRect: MosaicRect | null = null;
@@ -66,11 +69,13 @@ class Mosaic {
   private resultFBO: WebGLFramebuffer;
 
   private maskProgram: WebGLProgram;
+  private restoreMaskProgram: WebGLProgram;
   private renderProgram: WebGLProgram;
   private blurHorizontalProgram: WebGLProgram;
   private blurVerticalProgram: WebGLProgram;
   private quadBuffer: WebGLBuffer;
   private maskVAO: WebGLVertexArrayObject;
+  private restoreMaskVAO: WebGLVertexArrayObject;
   private renderVAO: WebGLVertexArrayObject;
   private blurHorizontalVAO: WebGLVertexArrayObject;
   private blurVerticalVAO: WebGLVertexArrayObject;
@@ -79,6 +84,11 @@ class Mosaic {
   private uMaskStart: WebGLUniformLocation;
   private uMaskEnd: WebGLUniformLocation;
   private uMaskRadius: WebGLUniformLocation;
+
+  private uRestoreMaskResolution: WebGLUniformLocation;
+  private uRestoreMaskStart: WebGLUniformLocation;
+  private uRestoreMaskEnd: WebGLUniformLocation;
+  private uRestoreMaskRadius: WebGLUniformLocation;
 
   private uRenderResolution: WebGLUniformLocation;
   private uRenderRadius: WebGLUniformLocation;
@@ -115,6 +125,12 @@ class Mosaic {
   }
 
   setMode(mode: MosaicMode) {
+    if (mode === "restore") {
+      this.restoring = true;
+      return;
+    }
+
+    this.restoring = false;
     if (this.mode === mode) return;
 
     this.mode = mode;
@@ -295,11 +311,13 @@ class Mosaic {
     gl.deleteFramebuffer(this.blurFBO);
     gl.deleteFramebuffer(this.resultFBO);
     gl.deleteProgram(this.maskProgram);
+    gl.deleteProgram(this.restoreMaskProgram);
     gl.deleteProgram(this.renderProgram);
     gl.deleteProgram(this.blurHorizontalProgram);
     gl.deleteProgram(this.blurVerticalProgram);
     gl.deleteBuffer(this.quadBuffer);
     gl.deleteVertexArray(this.maskVAO);
+    gl.deleteVertexArray(this.restoreMaskVAO);
     gl.deleteVertexArray(this.renderVAO);
     gl.deleteVertexArray(this.blurHorizontalVAO);
     gl.deleteVertexArray(this.blurVerticalVAO);
@@ -344,6 +362,8 @@ class Mosaic {
 
     gl.useProgram(this.maskProgram);
     gl.uniform2f(this.uMaskResolution, width, height);
+    gl.useProgram(this.restoreMaskProgram);
+    gl.uniform2f(this.uRestoreMaskResolution, width, height);
     gl.useProgram(this.renderProgram);
     gl.uniform2f(this.uRenderResolution, width, height);
     gl.useProgram(this.blurHorizontalProgram);
@@ -425,6 +445,11 @@ class Mosaic {
       vertexShader,
       createShader(gl, gl.FRAGMENT_SHADER, maskFrag),
     );
+    this.restoreMaskProgram = createProgram(
+      gl,
+      vertexShader,
+      createShader(gl, gl.FRAGMENT_SHADER, restoreMaskFrag),
+    );
     this.renderProgram = createProgram(
       gl,
       vertexShader,
@@ -442,6 +467,11 @@ class Mosaic {
     );
 
     this.maskVAO = createFullQuadVAO(gl, this.quadBuffer, this.maskProgram);
+    this.restoreMaskVAO = createFullQuadVAO(
+      gl,
+      this.quadBuffer,
+      this.restoreMaskProgram,
+    );
     this.renderVAO = createFullQuadVAO(gl, this.quadBuffer, this.renderProgram);
     this.blurHorizontalVAO = createFullQuadVAO(
       gl,
@@ -455,6 +485,7 @@ class Mosaic {
     );
 
     this.setupMaskProgram();
+    this.setupRestoreMaskProgram();
     this.setupRenderProgram();
     this.setupBlurPrograms();
   }
@@ -472,6 +503,24 @@ class Mosaic {
     this.uMaskStart = gl.getUniformLocation(this.maskProgram, "u_start")!;
     this.uMaskEnd = gl.getUniformLocation(this.maskProgram, "u_end")!;
     this.uMaskRadius = gl.getUniformLocation(this.maskProgram, "u_radius")!;
+  }
+
+  private setupRestoreMaskProgram() {
+    const gl = this.gl;
+
+    gl.useProgram(this.restoreMaskProgram);
+    gl.uniform1i(
+      gl.getUniformLocation(this.restoreMaskProgram, "u_mask"),
+      TEXTURE_UNIT.MASK,
+    );
+
+    this.uRestoreMaskResolution = gl.getUniformLocation(
+      this.restoreMaskProgram,
+      "u_resolution",
+    )!;
+    this.uRestoreMaskStart = gl.getUniformLocation(this.restoreMaskProgram, "u_start")!;
+    this.uRestoreMaskEnd = gl.getUniformLocation(this.restoreMaskProgram, "u_end")!;
+    this.uRestoreMaskRadius = gl.getUniformLocation(this.restoreMaskProgram, "u_radius")!;
   }
 
   private setupRenderProgram() {
@@ -578,11 +627,19 @@ class Mosaic {
     const rect = strokeRect(start, end, this.radius, this.width, this.height);
     const gl = this.gl;
 
-    gl.useProgram(this.maskProgram);
-    gl.bindVertexArray(this.maskVAO);
-    gl.uniform2f(this.uMaskStart, start.x, start.y);
-    gl.uniform2f(this.uMaskEnd, end.x, end.y);
-    gl.uniform1f(this.uMaskRadius, this.radius);
+    if (this.restoring) {
+      gl.useProgram(this.restoreMaskProgram);
+      gl.bindVertexArray(this.restoreMaskVAO);
+      gl.uniform2f(this.uRestoreMaskStart, start.x, start.y);
+      gl.uniform2f(this.uRestoreMaskEnd, end.x, end.y);
+      gl.uniform1f(this.uRestoreMaskRadius, this.radius);
+    } else {
+      gl.useProgram(this.maskProgram);
+      gl.bindVertexArray(this.maskVAO);
+      gl.uniform2f(this.uMaskStart, start.x, start.y);
+      gl.uniform2f(this.uMaskEnd, end.x, end.y);
+      gl.uniform1f(this.uMaskRadius, this.radius);
+    }
 
     this.drawMaskPass(rect);
     return rect;
@@ -678,8 +735,8 @@ interface MosaicHistory {
   rect: MosaicRect | null;
   before: Float32Array | null;
   after: Float32Array | null;
-  beforeMode: MosaicMode;
-  afterMode: MosaicMode;
+  beforeMode: MosaicEffectMode;
+  afterMode: MosaicEffectMode;
   beforeStrength: number;
   afterStrength: number;
 }

@@ -244,11 +244,18 @@ const MosaicMenuBar = observer(() => {
         modeId={MosaicModeId.Pixel}
         label={getLetter("mosaic_pixel")}
         icon={<Grid2X2 size={32} strokeWidth={2.2} />}
+        strokeIcon
       />
       <MosaicModeButton
         modeId={MosaicModeId.Blur}
         label={getLetter("mosaic_blur")}
         icon={<Waves size={32} strokeWidth={2.2} />}
+        strokeIcon
+      />
+      <MosaicModeButton
+        modeId={MosaicModeId.Restore}
+        label={getLetter("mosaic_restore")}
+        icon={<EraserIcon width={32} height={32} />}
       />
 
       <div className="div-bar"></div>
@@ -265,16 +272,18 @@ const MosaicModeButton = observer(
     modeId,
     label,
     icon,
+    strokeIcon = false,
   }: {
     modeId: MosaicModeId;
     label: string;
     icon: ReactNode;
+    strokeIcon?: boolean;
   }) => {
     const isSelected = paintState.getMosaicModeId() === modeId;
 
     return (
       <button
-        className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+        className={`select-button ${strokeIcon ? "stroke-icon-button" : ""} ${isSelected ? "selected" : ""}`}
         aria-label={label}
         onClick={() => toolManager.setMosaicMode(modeId)}
       >

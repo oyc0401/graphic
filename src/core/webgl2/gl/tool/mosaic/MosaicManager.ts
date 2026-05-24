@@ -34,7 +34,8 @@ export class MosaicManager implements MosaicManagerInterface {
   private mosaic: ReturnType<typeof createMosaic> | null = null;
   private changedRect: Rect | null = null;
   private active = false;
-  private mode: MosaicMode = "pixel";
+  private mode: Exclude<MosaicMode, "restore"> = "pixel";
+  private restoring = false;
   private strength = 0.5;
 
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
@@ -69,6 +70,9 @@ export class MosaicManager implements MosaicManagerInterface {
 
     this.mosaic.setRadius(paintOptions.radius);
     this.mosaic.setMode(this.mode);
+    if (this.restoring) {
+      this.mosaic.setMode("restore");
+    }
     this.mosaic.setStrength(this.strength);
   }
 
@@ -214,6 +218,13 @@ export class MosaicManager implements MosaicManagerInterface {
   }
 
   setMode(mode: MosaicMode) {
+    if (mode === "restore") {
+      this.restoring = true;
+      this.mosaic?.setMode(mode);
+      return;
+    }
+
+    this.restoring = false;
     this.mode = mode;
     if (!this.mosaic) return;
 

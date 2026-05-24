@@ -11,18 +11,18 @@ uniform float u_radius;
 in vec2 v_texCoord;
 out float outMask;
 
-float easeOutSine(float x) {
+float easeInOutSine(float x) {
   float clamped = clamp(x, 0.0f, 1.0f);
-  return sin((clamped * 3.141592653589793f) / 2.0f);
+  return -(cos(3.141592653589793f * clamped) - 1.0f) * 0.5f;
 }
 
 float ease(float x) {
   float clamped = clamp(x, 0.0f, 1.0f);
-  if (clamped >= 0.125f) {
+  if (clamped >= 0.5f) {
     return 1.0f;
   }
 
-  return easeOutSine(clamped / 0.125f);
+  return easeInOutSine(clamped * 2.0f);
 }
 
 float strokePower(vec2 pixel, vec2 start, vec2 end, float radius) {
@@ -57,5 +57,5 @@ void main() {
   }
 
   float power = strokePower(pixel, u_start, u_end, u_radius);
-  outMask = max(value, power);
+  outMask = value * (1.0f - power);
 }
