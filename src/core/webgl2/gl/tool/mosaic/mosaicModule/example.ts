@@ -15,7 +15,8 @@ const mosaic = createMosaic(gl, {
 });
 
 mosaic.setRadius(50);
-mosaic.setStrength(0.5);
+mosaic.setStrength(0.5); // 이걸 하면, 모자이크 강도가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
+mosaic.render(); // 이걸 하면 resultTexture의 dirtyRect 영역이 모자이크로 수정됌
 
 // 이걸 하면 알파맵이 수정됌
 mosaic.start({ x, y });
@@ -34,7 +35,11 @@ mosaic.render(); // 이걸 하면 resultTexture가 수정됌
 mosaic.redo(); // 이걸 하면 알파맵이 수정됌
 mosaic.render(); // 이걸 하면 resultTexture 수정됌
 
-mosaic.setMode("가우시안 | 픽셀"); // 이걸 하면 모자이크 모드가 바뀌면서 resultTexture도 수정됌
+mosaic.setMode("가우시안"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
+mosaic.render();
+mosaic.setMode("픽셀"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 알파맵 영역이 다시 렌더링 대상이 됌
+mosaic.render();
+mosaic.makeHistory();
 
 // 대충 resultTexture를 화면 어딘가에 렌더링한다는 함수
 function render() {
