@@ -74,7 +74,7 @@ class PaintState {
   private _brushSize = {
     [BrushId.Brush]: 5,
     [BrushId.Eraser]: 10,
-    [SessionId.Mosaic]: 50,
+    [SessionId.Mosaic]: 100,
     [LiquifyToolId.Push]: 100,
     [LIQUIFY_TWIRL_SETTINGS_ID]: 100,
     [LIQUIFY_SCALE_SETTINGS_ID]: 100,

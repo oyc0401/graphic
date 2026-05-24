@@ -21,6 +21,10 @@ function confirmSessionApply() {
   return window.confirm(`${sessionName}를 적용하시겠습니까?`);
 }
 
+function confirmSessionDiscard() {
+  return window.confirm("적용을 취소하시겠습니까?");
+}
+
 function canChangeTool() {
   return !paintState.getPointerdown();
 }
@@ -139,9 +143,7 @@ export const toolManager = {
   setMosaicMode(modeId: MosaicModeId) {
     if (!canChangeTool()) return;
     paintState.setMosaicModeId(modeId);
-    const worker = getLayerWorker();
-    worker.setMosaicMode(modeId);
-    worker.end();
+    getLayerWorker().setMosaicMode(modeId);
     syncCoreState();
   },
   setSelectTool() {
@@ -190,6 +192,8 @@ export const toolManager = {
       !paintState.getSessionMode()
     )
       return;
+
+    if (!confirmSessionDiscard()) return;
 
     discardEditingSession();
     returnFromSession();

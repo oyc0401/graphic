@@ -173,7 +173,9 @@ export class PaintService {
     getLiquifyManager(this.canvas, this.gl).setTool(toolId);
   }
   setMosaicMode(mode: MosaicMode): void {
-    getMosaicManager(this.canvas, this.gl).setMode(mode);
+    const mosaicManager = getMosaicManager(this.canvas, this.gl);
+    mosaicManager.setMode(mode);
+    mosaicManager.end();
   }
   setMosaicStrength(strength: number): void {
     getMosaicManager(this.canvas, this.gl).setStrength(strength);

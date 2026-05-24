@@ -162,12 +162,14 @@ class Mosaic {
   makeHistory() {
     const modeChanged = this.mode !== this.committedMode;
     const strengthChanged = this.strength !== this.committedStrength;
+    const hasMask = !!this.maskRect && this.maskRect.width !== 0 && this.maskRect.height !== 0;
+    const hasPendingMask =
+      !!this.pendingMaskRect &&
+      this.pendingMaskRect.width !== 0 &&
+      this.pendingMaskRect.height !== 0;
     if (
-      !modeChanged &&
-      !strengthChanged &&
-      (!this.pendingMaskRect ||
-        this.pendingMaskRect.width === 0 ||
-        this.pendingMaskRect.height === 0)
+      !hasPendingMask &&
+      (!hasMask || (!modeChanged && !strengthChanged))
     ) {
       return;
     }
