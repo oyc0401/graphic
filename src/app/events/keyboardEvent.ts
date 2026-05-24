@@ -1,6 +1,12 @@
 /** keyboard.ts */
 import { redo, undo } from "../history";
-import { InputMode, paintState } from "../paintState";
+import {
+  InputMode,
+  LiquifyToolId,
+  MosaicModeId,
+  paintState,
+  SessionId,
+} from "../paintState";
 import { position } from "../position";
 import { cancel, toolManager } from "../draw";
 import { applySelection, canvasSelect, selectionDelete } from "../selection";
@@ -41,6 +47,8 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   KeyB: "b",
   KeyE: "e",
   KeyL: "l",
+  KeyP: "p",
+  KeyR: "r",
   KeyS: "s",
   Escape: "escape",
   Delete: "delete",
@@ -52,14 +60,23 @@ const temporaryActionMode = {
   temporaryColorPicker: InputMode.ColorPicker,
 } as const;
 
-const commandShortcuts = keyboardShortcuts.filter(
-  (shortcut): shortcut is CommandShortcut =>
-    !(shortcut.action in temporaryKeyActionPriority),
+const commonCommandShortcuts = keyboardShortcuts.commonShortcuts.filter(
+  isCommandShortcut,
 );
-
-const temporaryShortcuts = keyboardShortcuts.filter(
-  (shortcut): shortcut is TemporaryShortcut =>
-    shortcut.action in temporaryKeyActionPriority,
+const mainCommandShortcuts = keyboardShortcuts.mainShortcuts.filter(
+  isCommandShortcut,
+);
+const liquifyCommandShortcuts = keyboardShortcuts.liquifyShortcuts.filter(
+  isCommandShortcut,
+);
+const mosaicCommandShortcuts = keyboardShortcuts.mosaicShortcuts.filter(
+  isCommandShortcut,
+);
+const temporaryShortcuts = keyboardShortcuts.commonShortcuts.filter(
+  isTemporaryShortcut,
+);
+const mainTemporaryShortcuts = keyboardShortcuts.mainShortcuts.filter(
+  isTemporaryShortcut,
 );
 
 const commandHandlers = {
@@ -82,6 +99,33 @@ const commandHandlers = {
   },
   setSelectTool() {
     toolManager.setSelectTool();
+  },
+  setLiquifyPushTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.Push);
+  },
+  setLiquifyTwirlCounterClockwiseTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.TwirlCounterClockwise);
+  },
+  setLiquifyTwirlClockwiseTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.TwirlClockwise);
+  },
+  setLiquifyBloatTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.Bloat);
+  },
+  setLiquifyPuckerTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.Pucker);
+  },
+  setLiquifyRestoreTool() {
+    toolManager.setLiquifyTool(LiquifyToolId.Restore);
+  },
+  setMosaicPixelMode() {
+    toolManager.setMosaicMode(MosaicModeId.Pixel);
+  },
+  setMosaicBlurMode() {
+    toolManager.setMosaicMode(MosaicModeId.Blur);
+  },
+  setMosaicRestoreMode() {
+    toolManager.setMosaicMode(MosaicModeId.Restore);
   },
 } satisfies Record<CommandShortcutAction, () => void>;
 
@@ -168,6 +212,18 @@ function isModifierKey(key: KeyboardShortcutKey) {
   return key === "ctrl" || key === "cmd" || key === "shift";
 }
 
+function isCommandShortcut(
+  shortcut: KeyboardShortcut,
+): shortcut is CommandShortcut {
+  return !(shortcut.action in temporaryKeyActionPriority);
+}
+
+function isTemporaryShortcut(
+  shortcut: KeyboardShortcut,
+): shortcut is TemporaryShortcut {
+  return shortcut.action in temporaryKeyActionPriority;
+}
+
 function logPressedKeys(phase: "keydown" | "keyup", event: KeyboardEvent) {
   if (!DEBUG_KEYBOARD) return;
 
@@ -187,9 +243,21 @@ function findMatchingCommandShortcut(
   if (!key) return undefined;
 
   const pressedCommandKeys = getPressedCommandKeys(event, key);
-  return commandShortcuts.find((shortcut) =>
+  return getActiveCommandShortcuts().find((shortcut) =>
     isSameKeySequence(shortcut.keys, pressedCommandKeys),
   );
+}
+
+function getActiveCommandShortcuts(): readonly CommandShortcut[] {
+  if (!paintState.getSessionMode()) {
+    return [...commonCommandShortcuts, ...mainCommandShortcuts];
+  }
+
+  if (paintState.getSessionId() === SessionId.Liquify) {
+    return [...commonCommandShortcuts, ...liquifyCommandShortcuts];
+  }
+
+  return [...commonCommandShortcuts, ...mosaicCommandShortcuts];
 }
 
 function getPressedCommandKeys(event: KeyboardEvent, key: KeyboardShortcutKey) {
@@ -264,9 +332,17 @@ function releaseTemporaryShortcut(key: KeyboardShortcutKey) {
 }
 
 function findTemporaryShortcutByKey(key: KeyboardShortcutKey) {
-  return temporaryShortcuts.find(
+  return getActiveTemporaryShortcuts().find(
     (shortcut) => shortcut.keys.length === 1 && shortcut.keys[0] === key,
   );
+}
+
+function getActiveTemporaryShortcuts(): readonly TemporaryShortcut[] {
+  if (!paintState.getSessionMode()) {
+    return [...temporaryShortcuts, ...mainTemporaryShortcuts];
+  }
+
+  return temporaryShortcuts;
 }
 
 function setTemporaryAction(

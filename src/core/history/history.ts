@@ -1,4 +1,5 @@
 import { getUndoByte, paintConfig } from "@/paint.config";
+import type { MosaicMode } from "@/core/types";
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
@@ -61,7 +62,7 @@ export interface HistoryResponse {
     flipV?: boolean;
   };
   mosaicStrength?: number;
-  mosaicMode?: "pixel" | "blur";
+  mosaicMode?: MosaicMode;
   undoCount: number;
   redoCount: number;
 }

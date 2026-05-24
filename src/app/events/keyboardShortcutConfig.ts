@@ -1,16 +1,37 @@
-export type KeyboardShortcutAction =
+export type CommonKeyboardShortcutAction =
   | "undo"
   | "redo"
   | "selectAll"
   | "cancel"
   | "deleteSelection"
-  | "setBrushTool"
-  | "setEraserTool"
-  | "setLiquifyTool"
-  | "setSelectTool"
   | "temporaryPan"
   | "temporaryZoom"
   | "temporaryColorPicker";
+
+export type MainKeyboardShortcutAction =
+  | "setBrushTool"
+  | "setEraserTool"
+  | "setLiquifyTool"
+  | "setSelectTool";
+
+export type LiquifyKeyboardShortcutAction =
+  | "setLiquifyPushTool"
+  | "setLiquifyTwirlCounterClockwiseTool"
+  | "setLiquifyTwirlClockwiseTool"
+  | "setLiquifyBloatTool"
+  | "setLiquifyPuckerTool"
+  | "setLiquifyRestoreTool";
+
+export type MosaicKeyboardShortcutAction =
+  | "setMosaicPixelMode"
+  | "setMosaicBlurMode"
+  | "setMosaicRestoreMode";
+
+export type KeyboardShortcutAction =
+  | CommonKeyboardShortcutAction
+  | MainKeyboardShortcutAction
+  | LiquifyKeyboardShortcutAction
+  | MosaicKeyboardShortcutAction;
 
 export type KeyboardShortcutKey =
   | "ctrl"
@@ -23,6 +44,8 @@ export type KeyboardShortcutKey =
   | "b"
   | "e"
   | "l"
+  | "p"
+  | "r"
   | "s"
   | "escape"
   | "delete";
@@ -39,60 +62,104 @@ const isMacPlatform =
 
 const systemModifierKey = isMacPlatform ? "cmd" : "ctrl";
 
-export const keyboardShortcuts = [
-  {
-    action: "undo",
-    keys: [systemModifierKey, "z"],
-  },
-  {
-    action: "redo",
-    keys: [systemModifierKey, "shift", "z"],
-  },
-  {
-    action: "selectAll",
-    keys: [systemModifierKey, "a"],
-  },
-  {
-    action: "cancel",
-    keys: ["escape"],
-  },
-  {
-    action: "deleteSelection",
-    keys: ["delete"],
-  },
-  {
-    action: "deleteSelection",
-    keys: [systemModifierKey, "delete"],
-  },
-  {
-    action: "setBrushTool",
-    keys: ["b"],
-  },
-  {
-    action: "setEraserTool",
-    keys: ["e"],
-  },
-  {
-    action: "setLiquifyTool",
-    keys: ["l"],
-  },
-  {
-    action: "setSelectTool",
-    keys: ["s"],
-  },
-  {
-    action: "temporaryPan",
-    keys: ["space"],
-  },
-  {
-    action: "temporaryZoom",
-    keys: ["z"],
-  },
-  {
-    action: "temporaryColorPicker",
-    keys: ["c"],
-  },
-] as const satisfies readonly KeyboardShortcut[];
+export const keyboardShortcuts = {
+  commonShortcuts: [
+    {
+      action: "undo",
+      keys: [systemModifierKey, "z"],
+    },
+    {
+      action: "redo",
+      keys: [systemModifierKey, "shift", "z"],
+    },
+    {
+      action: "cancel",
+      keys: ["escape"],
+    },
+    {
+      action: "temporaryPan",
+      keys: ["space"],
+    },
+    {
+      action: "temporaryZoom",
+      keys: ["z"],
+    },
+  ],
+  mainShortcuts: [
+    {
+      action: "selectAll",
+      keys: [systemModifierKey, "a"],
+    },
+    {
+      action: "deleteSelection",
+      keys: ["delete"],
+    },
+    {
+      action: "deleteSelection",
+      keys: [systemModifierKey, "delete"],
+    },
+    {
+      action: "setBrushTool",
+      keys: ["b"],
+    },
+    {
+      action: "setEraserTool",
+      keys: ["e"],
+    },
+    {
+      action: "setLiquifyTool",
+      keys: ["l"],
+    },
+    {
+      action: "setSelectTool",
+      keys: ["s"],
+    },
+    {
+      action: "temporaryColorPicker",
+      keys: ["c"],
+    },
+  ],
+  liquifyShortcuts: [
+    {
+      action: "setLiquifyPushTool",
+      keys: ["p"],
+    },
+    {
+      action: "setLiquifyTwirlCounterClockwiseTool",
+      keys: ["l"],
+    },
+    {
+      action: "setLiquifyTwirlClockwiseTool",
+      keys: ["r"],
+    },
+    {
+      action: "setLiquifyBloatTool",
+      keys: ["b"],
+    },
+    {
+      action: "setLiquifyPuckerTool",
+      keys: ["s"],
+    },
+    {
+      action: "setLiquifyRestoreTool",
+      keys: ["e"],
+    },
+  ],
+  mosaicShortcuts: [
+    {
+      action: "setMosaicPixelMode",
+      keys: ["p"],
+    },
+    {
+      action: "setMosaicBlurMode",
+      keys: ["b"],
+    },
+    {
+      action: "setMosaicRestoreMode",
+      keys: ["e"],
+    },
+  ],
+} as const satisfies Record<string, readonly KeyboardShortcut[]>;
 
 export type TemporaryKeyboardShortcutAction = Extract<
   KeyboardShortcutAction,
