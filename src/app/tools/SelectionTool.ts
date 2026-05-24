@@ -18,7 +18,6 @@ import {
   type SelectionResizeHandle,
 } from "../utils/selectionResize";
 import { getLayerWorker } from "../worker/workerPool";
-import { applyWorkerToolTarget } from "../coreToolAdapter";
 import type { Tool, ToolConfig } from "./Tool";
 
 export class SelectionTool implements Tool {
@@ -196,7 +195,7 @@ export class SelectionTool implements Tool {
         console.log("cancel Selection!");
 
         applySelection();
-        applyWorkerToolTarget(ToolId.Select);
+        paintState.setSelectedToolId(ToolId.Select);
       }
     }
 

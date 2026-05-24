@@ -3,7 +3,6 @@ import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
-import { applyWorkerToolTarget } from "./coreToolAdapter";
 import { MosaicToolId, ToolId } from "./paintState";
 
 class HistoryState {
@@ -79,9 +78,9 @@ export async function undo() {
     selection.setFlip(flipH, flipV);
 
     if (show) {
-      applyWorkerToolTarget(ToolId.Selection);
+      paintState.setSelectedToolId(ToolId.Selection);
     } else {
-      applyWorkerToolTarget(ToolId.Select);
+      paintState.setSelectedToolId(ToolId.Select);
     }
   }
 }
@@ -119,9 +118,9 @@ export async function redo() {
     selection.setFlip(flipH, flipV);
 
     if (show) {
-      applyWorkerToolTarget(ToolId.Selection);
+      paintState.setSelectedToolId(ToolId.Selection);
     } else {
-      applyWorkerToolTarget(ToolId.Select);
+      paintState.setSelectedToolId(ToolId.Select);
     }
   }
 }
