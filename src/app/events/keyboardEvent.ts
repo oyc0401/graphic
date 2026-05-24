@@ -48,6 +48,7 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   KeyA: "a",
   KeyB: "b",
   KeyE: "e",
+  KeyF: "f",
   KeyL: "l",
   KeyP: "p",
   KeyR: "r",
@@ -94,6 +95,9 @@ const commandHandlers = {
   },
   setSelectTool() {
     toolManager.setSelectTool();
+  },
+  setFreeformSelectTool() {
+    toolManager.setFreeformSelectTool();
   },
   setLiquifyPushTool() {
     toolManager.setLiquifyTool(LiquifyToolId.Push);

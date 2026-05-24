@@ -13,6 +13,7 @@ export type MainKeyboardShortcutAction =
   | "setLiquifyTool"
   | "setMosaicTool"
   | "setSelectTool"
+  | "setFreeformSelectTool"
   | "temporaryColorPicker";
 
 export type LiquifyKeyboardShortcutAction =
@@ -48,6 +49,7 @@ export type KeyboardShortcutKey =
   | "a"
   | "b"
   | "e"
+  | "f"
   | "l"
   | "m"
   | "p"
@@ -123,6 +125,10 @@ export const keyboardShortcuts = {
     {
       action: "setSelectTool",
       keys: ["s"],
+    },
+    {
+      action: "setFreeformSelectTool",
+      keys: ["f"],
     },
     {
       action: "temporaryColorPicker",
