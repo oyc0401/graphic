@@ -1,15 +1,12 @@
 /** view.ts */
-import { getActiveToolId } from "../coreToolAdapter";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { autorun } from "mobx";
 import { els } from "./elements";
 import { selection } from "../selection";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
-import { isSmallSize } from "../utils/screen";
 import { resizeTool } from "../tools/resizeTool";
 import { canvasResizeState } from "../canvasResizeState";
-import { toolRegistry } from "../tools/toolRegistry";
 import { getCurrentTool } from "../tools/activeTool";
 import {
   RESIZE_HANDLE_SIZE_PX,
@@ -17,6 +14,8 @@ import {
   getCanvasResizeRect,
   toContainerRect,
 } from "../utils/resizeGeometry";
+
+const TOOL_CURSOR_CLASSES = ["zoom", "select", "colorPicker"] as const;
 
 export function bindView() {
   bindCursorUI();
@@ -42,13 +41,9 @@ function bindCursorUI() {
   });
 
   autorun(() => {
-    const activeCursorClass =
-      toolRegistry[getActiveToolId()].config.cursorClass;
-    const toolCursorClasses = Object.values(toolRegistry)
-      .map((tool) => tool.config.cursorClass)
-      .filter((cursorClass): cursorClass is string => Boolean(cursorClass));
+    const activeCursorClass = getCurrentTool()?.config.cursorClass;
 
-    for (const cursorClass of toolCursorClasses) {
+    for (const cursorClass of TOOL_CURSOR_CLASSES) {
       container.classList.toggle(
         cursorClass,
         paintState.getInputMode() !== InputMode.Pan &&
@@ -60,23 +55,20 @@ function bindCursorUI() {
 
   // 2. ZOOM
   autorun(() => {
-    const isZoom =
-      paintState.getInputMode() !== InputMode.Pan &&
-      paintState.getInputMode() !== InputMode.Pinch &&
-      getActiveToolId() === ToolId.Zoom;
+    const isZoom = getCurrentTool()?.config.cursorClass === "zoom";
     container.classList.toggle("zoom", isZoom);
   });
 
   // 3. SELECT 툴 (BRUSH 모드 + select 툴)
   autorun(() => {
-    const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
-    const isSelectTool = getActiveToolId() === ToolId.Select;
-    container.classList.toggle("select", isBrush && isSelectTool);
+    const isSelectTool = getCurrentTool()?.config.cursorClass === "select";
+    container.classList.toggle("select", isSelectTool);
   });
   autorun(() => {
     const isSelectionTool =
       paintState.getInputMode() === InputMode.DEFAULT &&
-      getActiveToolId() === ToolId.Selection;
+      paintState.getTemporaryToolId() === null &&
+      paintState.getSelectedToolId() === ToolId.Selection;
     const isCanvasResize =
       canvasResizeState.active || canvasResizeState.hover !== null;
     const resizeHover = canvasResizeState.hover;
@@ -107,9 +99,11 @@ function bindCursorUI() {
     const cursor = els.brushCursor;
 
     const isBrush = paintState.getInputMode() === InputMode.DEFAULT;
+    const tool = getCurrentTool();
 
     const isDrawingTool =
-      getActiveToolId() === ToolId.Brush ||
+      (paintState.getSelectedToolId() === ToolId.Brush &&
+        tool?.config.allowCanvasResizeHandle) ||
       paintState.getSessionMode();
     const isValid = isBrush && isDrawingTool;
 
@@ -359,10 +353,7 @@ function bindCursorPositionUI() {
 
 function bindZoomAreaUI() {
   autorun(() => {
-    const isZooming =
-      paintState.getInputMode() !== InputMode.Pan &&
-      paintState.getInputMode() !== InputMode.Pinch &&
-      getActiveToolId() === ToolId.Zoom;
+    const isZooming = getCurrentTool()?.config.cursorClass === "zoom";
 
     if (!isZooming) {
       els.zoomArea.style.visibility = "hidden";

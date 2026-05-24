@@ -9,8 +9,9 @@ import {
   TemporaryToolId,
 } from "../paintState";
 import { position } from "../position";
-import { cancel, toolManager } from "../draw";
+import { toolManager } from "../draw";
 import { applySelection, canvasSelect, selectionDelete } from "../selection";
+import { dispatchPointer } from "./dispatchPointer";
 import {
   keyboardShortcuts,
   temporaryKeyActionPriority,
@@ -81,7 +82,9 @@ const commandHandlers = {
     applySelection();
     canvasSelect(0, 0, position.width, position.height);
   },
-  cancel,
+  cancel() {
+    dispatchPointer(new PointerEvent("pointercancel"), "cancel");
+  },
   deleteSelection: selectionDelete,
   setBrushTool() {
     toolManager.setBrushTool();

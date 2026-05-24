@@ -2,7 +2,12 @@
 import { paintConfig } from "@/paint.config";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { to_pixel_canvas_coord } from "../position";
-import { applySelection, beforeSelectionPos, selection } from "../selection";
+import {
+  applySelection,
+  beforeSelectionPos,
+  selection,
+  selectionCancel,
+} from "../selection";
 import { clamp } from "../utils/math";
 import {
   getSelectionHandleAtPoint,
@@ -204,7 +209,7 @@ export class SelectionTool implements Tool {
   }
 
   cancel() {
-    selection.active = false;
+    selectionCancel();
     this.activeHandle = null;
   }
 }
