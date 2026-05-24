@@ -89,6 +89,9 @@ const commandHandlers = {
   setLiquifyTool() {
     toolManager.setLiquifyTool();
   },
+  setMosaicTool() {
+    toolManager.setMosaicTool();
+  },
   setSelectTool() {
     toolManager.setSelectTool();
   },
@@ -118,6 +121,12 @@ const commandHandlers = {
   },
   setMosaicRestoreMode() {
     toolManager.setMosaicTool(MosaicToolId.Restore);
+  },
+  commitSession() {
+    toolManager.commitSession();
+  },
+  discardSession() {
+    toolManager.discardSession();
   },
 } satisfies Record<CommandShortcutAction, () => void>;
 

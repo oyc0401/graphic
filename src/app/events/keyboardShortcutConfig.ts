@@ -11,6 +11,7 @@ export type MainKeyboardShortcutAction =
   | "setBrushTool"
   | "setEraserTool"
   | "setLiquifyTool"
+  | "setMosaicTool"
   | "setSelectTool"
   | "temporaryColorPicker";
 
@@ -20,12 +21,16 @@ export type LiquifyKeyboardShortcutAction =
   | "setLiquifyTwirlClockwiseTool"
   | "setLiquifyBloatTool"
   | "setLiquifyPuckerTool"
-  | "setLiquifyRestoreTool";
+  | "setLiquifyRestoreTool"
+  | "commitSession"
+  | "discardSession";
 
 export type MosaicKeyboardShortcutAction =
   | "setMosaicPixelMode"
   | "setMosaicBlurMode"
-  | "setMosaicRestoreMode";
+  | "setMosaicRestoreMode"
+  | "commitSession"
+  | "discardSession";
 
 export type KeyboardShortcutAction =
   | CommonKeyboardShortcutAction
@@ -44,6 +49,7 @@ export type KeyboardShortcutKey =
   | "b"
   | "e"
   | "l"
+  | "m"
   | "p"
   | "r"
   | "s"
@@ -111,6 +117,10 @@ export const keyboardShortcuts = {
       keys: ["l"],
     },
     {
+      action: "setMosaicTool",
+      keys: ["m"],
+    },
+    {
       action: "setSelectTool",
       keys: ["s"],
     },
@@ -120,6 +130,14 @@ export const keyboardShortcuts = {
     },
   ],
   liquifyShortcuts: [
+    {
+      action: "commitSession",
+      keys: ["a"],
+    },
+    {
+      action: "discardSession",
+      keys: ["c"],
+    },
     {
       action: "setLiquifyPushTool",
       keys: ["p"],
@@ -146,6 +164,14 @@ export const keyboardShortcuts = {
     },
   ],
   mosaicShortcuts: [
+    {
+      action: "commitSession",
+      keys: ["a"],
+    },
+    {
+      action: "discardSession",
+      keys: ["c"],
+    },
     {
       action: "setMosaicPixelMode",
       keys: ["p"],
