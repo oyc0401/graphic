@@ -10,7 +10,7 @@ export type CanvasResizeRect = {
 
 class CanvasResizeState {
   active = false;
-  hover: ResizeCursor = "default";
+  hover: ResizeCursor | null = null;
   activeHandle: ResizeCornerHandle | null = null;
   rect: CanvasResizeRect = { x: 0, y: 0, width: 1, height: 1 };
   pointer = { clientX: 0, clientY: 0 };
@@ -34,14 +34,14 @@ class CanvasResizeState {
     this.pointer = { clientX: pointer.clientX, clientY: pointer.clientY };
   }
 
-  setHover(hover: ResizeCursor) {
+  setHover(hover: ResizeCursor | null) {
     this.hover = hover;
   }
 
   reset() {
     this.active = false;
     this.activeHandle = null;
-    this.hover = "default";
+    this.hover = null;
   }
 }
 

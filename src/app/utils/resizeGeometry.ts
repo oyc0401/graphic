@@ -5,7 +5,7 @@ export const RESIZE_HANDLE_STROKE_WIDTH_PX = 3;
 export const RESIZE_HANDLE_HIT_SIZE_PX = 23;
 
 export type ResizeCornerHandle = "LT" | "RT" | "RB" | "LB";
-export type ResizeCursor = "default" | "nwse-resize" | "nesw-resize";
+export type ResizeCursor = "nwse-resize" | "nesw-resize";
 
 export type CanvasRect = {
   x: number;
@@ -77,10 +77,10 @@ export function hitTestOutsideCanvasResizeCorner(
 
 export function cursorForResizeHandle(
   handle: ResizeCornerHandle | null,
-): ResizeCursor {
+): ResizeCursor | null {
   if (handle === "LT" || handle === "RB") return "nwse-resize";
   if (handle === "RT" || handle === "LB") return "nesw-resize";
-  return "default";
+  return null;
 }
 
 export function toResizeEdgePoint(

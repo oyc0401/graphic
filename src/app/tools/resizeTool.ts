@@ -26,7 +26,6 @@ export class ResizeTool implements Tool {
 
   exit() {
     canvasResizeState.reset();
-    canvasResizeState.setHover(null);
   }
 
   canUse() {
@@ -83,7 +82,6 @@ export class ResizeTool implements Tool {
 
   cancel() {
     canvasResizeState.reset();
-    canvasResizeState.setHover(null);
     paintState.setTemporaryToolId(null);
   }
 
