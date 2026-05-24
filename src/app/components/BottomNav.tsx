@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { isSmallSize } from "../utils/screen";
 import { BrushId, paintState, ToolId } from "../paintState";
-import { toolManager } from "../draw";
+import { toolManager } from "../tools/toolManager";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
 
@@ -65,7 +65,8 @@ export function BottomNav() {
 
 const BrushToolButton = observer(() => {
   const isSelected =
-    paintState.getToolId() === ToolId.Brush && paintState.getBrushId() === BrushId.Brush;
+    paintState.getToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Brush;
 
   return (
     <button
@@ -80,7 +81,8 @@ const BrushToolButton = observer(() => {
 
 const EraserToolButton = observer(() => {
   const isSelected =
-    paintState.getToolId() === ToolId.Brush && paintState.getBrushId() === BrushId.Eraser;
+    paintState.getToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Eraser;
 
   return (
     <button

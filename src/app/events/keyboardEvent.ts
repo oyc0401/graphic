@@ -9,7 +9,7 @@ import {
   TemporaryToolId,
 } from "../paintState";
 import { position } from "../position";
-import { toolManager } from "../draw";
+import { toolManager } from "../tools/toolManager";
 import { applySelection, canvasSelect, selectionDelete } from "../selection";
 import { dispatchPointer } from "./dispatchPointer";
 import {
@@ -56,24 +56,18 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   Delete: "delete",
 };
 
-const commonCommandShortcuts = keyboardShortcuts.commonShortcuts.filter(
-  isCommandShortcut,
-);
-const mainCommandShortcuts = keyboardShortcuts.mainShortcuts.filter(
-  isCommandShortcut,
-);
-const liquifyCommandShortcuts = keyboardShortcuts.liquifyShortcuts.filter(
-  isCommandShortcut,
-);
-const mosaicCommandShortcuts = keyboardShortcuts.mosaicShortcuts.filter(
-  isCommandShortcut,
-);
-const temporaryShortcuts = keyboardShortcuts.commonShortcuts.filter(
-  isTemporaryShortcut,
-);
-const mainTemporaryShortcuts = keyboardShortcuts.mainShortcuts.filter(
-  isTemporaryShortcut,
-);
+const commonCommandShortcuts =
+  keyboardShortcuts.commonShortcuts.filter(isCommandShortcut);
+const mainCommandShortcuts =
+  keyboardShortcuts.mainShortcuts.filter(isCommandShortcut);
+const liquifyCommandShortcuts =
+  keyboardShortcuts.liquifyShortcuts.filter(isCommandShortcut);
+const mosaicCommandShortcuts =
+  keyboardShortcuts.mosaicShortcuts.filter(isCommandShortcut);
+const temporaryShortcuts =
+  keyboardShortcuts.commonShortcuts.filter(isTemporaryShortcut);
+const mainTemporaryShortcuts =
+  keyboardShortcuts.mainShortcuts.filter(isTemporaryShortcut);
 
 const commandHandlers = {
   undo,
@@ -380,7 +374,8 @@ function getHighestPriorityTemporaryAction() {
   return Object.entries(pressedTemporaryActions)
     .filter(
       ([action, isPressed]) =>
-        isPressed && activeActions.has(action as TemporaryKeyboardShortcutAction),
+        isPressed &&
+        activeActions.has(action as TemporaryKeyboardShortcutAction),
     )
     .map(([action]) => action as TemporaryKeyboardShortcutAction)
     .sort(

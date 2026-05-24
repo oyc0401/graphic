@@ -17,7 +17,7 @@ import {
   setDefaultPosition,
 } from "./position";
 import { paintState } from "./paintState";
-import { toolManager } from "./draw";
+import { toolManager } from "./tools/toolManager";
 import { historyState, syncCoreState } from "./history";
 
 export function addClipboardEvent() {

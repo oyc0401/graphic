@@ -7,7 +7,7 @@ import {
   SessionId,
   ToolId,
 } from "../paintState";
-import { toolManager } from "../draw";
+import { toolManager } from "../tools/toolManager";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
 
@@ -32,8 +32,23 @@ import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
-import { BrushAlphaSlider, BrushSizeSlider, MosaicStrengthSlider } from "./BrushSliders";
+import {
+  CircleCheck,
+  CircleX,
+  Expand,
+  Grid2X2,
+  Pipette,
+  RotateCcw,
+  RotateCw,
+  Search,
+  Shrink,
+  Waves,
+} from "lucide-react";
+import {
+  BrushAlphaSlider,
+  BrushSizeSlider,
+  MosaicStrengthSlider,
+} from "./BrushSliders";
 
 const hexColors = [
   "#000000",
@@ -425,7 +440,8 @@ const SelectionToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify;
+    paintState.getSessionMode() &&
+    paintState.getSessionId() === SessionId.Liquify;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);
@@ -449,7 +465,8 @@ const LiquifyToolButton = observer(() => {
 
 const MosaicToolButton = observer(() => {
   const isSelected =
-    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+    paintState.getSessionMode() &&
+    paintState.getSessionId() === SessionId.Mosaic;
 
   const toggleMenu = () => {
     menuState.setShowSizeBar(!menuState.showSizeBar);

@@ -6,7 +6,7 @@ import {
   SessionId,
   ToolId,
 } from "../paintState";
-import { toolManager } from "../draw";
+import { toolManager } from "../tools/toolManager";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
 import type { ReactNode } from "react";
@@ -25,8 +25,23 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
-import { CircleCheck, CircleX, Expand, Grid2X2, Pipette, RotateCcw, RotateCw, Search, Shrink, Waves } from "lucide-react";
-import { BrushAlphaSlider, BrushSizeSlider, MosaicStrengthSlider } from "./BrushSliders";
+import {
+  CircleCheck,
+  CircleX,
+  Expand,
+  Grid2X2,
+  Pipette,
+  RotateCcw,
+  RotateCw,
+  Search,
+  Shrink,
+  Waves,
+} from "lucide-react";
+import {
+  BrushAlphaSlider,
+  BrushSizeSlider,
+  MosaicStrengthSlider,
+} from "./BrushSliders";
 
 const hexColors = [
   "#000000",
@@ -373,7 +388,8 @@ const EraserToolButton = observer(() => {
 
 const LiquifyToolButton = observer(() => {
   const isSelected =
-    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify;
+    paintState.getSessionMode() &&
+    paintState.getSessionId() === SessionId.Liquify;
 
   return (
     <button
@@ -389,7 +405,8 @@ const LiquifyToolButton = observer(() => {
 
 const MosaicToolButton = observer(() => {
   const isSelected =
-    paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+    paintState.getSessionMode() &&
+    paintState.getSessionId() === SessionId.Mosaic;
 
   return (
     <button
