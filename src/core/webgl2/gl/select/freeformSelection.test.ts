@@ -47,4 +47,76 @@ describe("freeform selection", () => {
     expect(selectedPixels).toBeGreaterThan(0);
     expect(selectedPixels).toBeLessThan(rect.width * rect.height);
   });
+
+  it("matches the naive per-pixel even-odd result", () => {
+    const cases = [
+      [
+        { x: 1, y: 1 },
+        { x: 7, y: 2 },
+        { x: 6, y: 7 },
+        { x: 2, y: 6 },
+      ],
+      [
+        { x: 1, y: 1 },
+        { x: 7, y: 7 },
+        { x: 1, y: 7 },
+        { x: 7, y: 1 },
+      ],
+      [
+        { x: 2.5, y: 1 },
+        { x: 8, y: 4.5 },
+        { x: 5, y: 8 },
+        { x: 1, y: 5 },
+      ],
+    ];
+
+    for (const points of cases) {
+      const rect = getFreeformSelectionRect(points)!;
+      expect([...createFreeformSelectionMask(points, rect)]).toEqual([
+        ...createNaiveMask(points, rect),
+      ]);
+    }
+  });
 });
+
+function createNaiveMask(
+  points: { x: number; y: number }[],
+  rect: { x: number; y: number; width: number; height: number },
+): Uint8Array {
+  const mask = new Uint8Array(rect.width * rect.height);
+
+  for (let y = 0; y < rect.height; y++) {
+    for (let x = 0; x < rect.width; x++) {
+      if (isPointInPolygonEvenOdd(rect.x + x + 0.5, rect.y + y + 0.5, points)) {
+        mask[y * rect.width + x] = 1;
+      }
+    }
+  }
+
+  return mask;
+}
+
+function isPointInPolygonEvenOdd(
+  x: number,
+  y: number,
+  points: { x: number; y: number }[],
+): boolean {
+  let inside = false;
+  let previous = points.length - 1;
+
+  for (let current = 0; current < points.length; current++) {
+    const start = points[current];
+    const end = points[previous];
+    const crossesY = start.y > y !== end.y > y;
+
+    if (crossesY) {
+      const intersectionX =
+        ((end.x - start.x) * (y - start.y)) / (end.y - start.y) + start.x;
+      if (x < intersectionX) inside = !inside;
+    }
+
+    previous = current;
+  }
+
+  return inside;
+}

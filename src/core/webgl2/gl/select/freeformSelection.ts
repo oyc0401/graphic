@@ -33,24 +33,29 @@ export function createFreeformSelectionMask(
   const mask = new Uint8Array(rect.width * rect.height);
 
   for (let y = 0; y < rect.height; y++) {
-    for (let x = 0; x < rect.width; x++) {
-      const px = rect.x + x + 0.5;
-      const py = rect.y + y + 0.5;
-      if (isPointInPolygonEvenOdd(px, py, points)) {
-        mask[y * rect.width + x] = 1;
+    const intersections = getRowIntersections(rect.y + y + 0.5, points);
+    let inside = intersections.length % 2 === 1;
+    let startX = 0;
+
+    for (const intersectionX of intersections) {
+      const endX = clampMaskX(Math.ceil(intersectionX - rect.x - 0.5), rect);
+      if (inside) {
+        fillMaskRow(mask, rect.width, y, startX, endX);
       }
+      inside = !inside;
+      startX = endX;
+    }
+
+    if (inside) {
+      fillMaskRow(mask, rect.width, y, startX, rect.width);
     }
   }
 
   return mask;
 }
 
-function isPointInPolygonEvenOdd(
-  x: number,
-  y: number,
-  points: Pointer[],
-): boolean {
-  let inside = false;
+function getRowIntersections(y: number, points: Pointer[]): number[] {
+  const intersections: number[] = [];
   let previous = points.length - 1;
 
   for (let current = 0; current < points.length; current++) {
@@ -61,11 +66,27 @@ function isPointInPolygonEvenOdd(
     if (crossesY) {
       const intersectionX =
         ((end.x - start.x) * (y - start.y)) / (end.y - start.y) + start.x;
-      if (x < intersectionX) inside = !inside;
+      intersections.push(intersectionX);
     }
 
     previous = current;
   }
 
-  return inside;
+  return intersections.sort((a, b) => a - b);
+}
+
+function clampMaskX(x: number, rect: Rect): number {
+  return Math.min(rect.width, Math.max(0, x));
+}
+
+function fillMaskRow(
+  mask: Uint8Array,
+  width: number,
+  y: number,
+  startX: number,
+  endX: number,
+) {
+  for (let x = startX; x < endX; x++) {
+    mask[y * width + x] = 1;
+  }
 }
