@@ -35,7 +35,7 @@ void main() {
   }
 
   float power = falloff(1.0 - dist / u_radius);
-  float angle = u_direction * u_strength * power * 0.06;
+  float angle = u_direction * u_strength * power * 0.03;
 
   // Backward warping: 현재 픽셀은 반대 방향으로 회전한 이전 변위장을 샘플링한다.
   vec2 samplePixel = u_center + rotationMatrix(-angle) * local;

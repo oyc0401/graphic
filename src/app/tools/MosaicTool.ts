@@ -1,8 +1,9 @@
-import { paintState, SessionId } from "../paintState";
+import { MosaicModeId, paintState, SessionId } from "../paintState";
+import { BrushSprayTool } from "./BrushSprayTool";
 import { BrushTool } from "./BrushTool";
-import type { ToolConfig } from "./Tool";
+import type { Tool, ToolConfig } from "./Tool";
 
-export class MosaicSessionTool extends BrushTool {
+class MosaicBrushTool extends BrushTool {
   config: ToolConfig = {
     allowCanvasResizeHandle: false,
   };
@@ -12,5 +13,52 @@ export class MosaicSessionTool extends BrushTool {
       paintState.getSessionMode() &&
       paintState.getSessionId() === SessionId.Mosaic
     );
+  }
+}
+
+export class MosaicSessionTool implements Tool {
+  config: ToolConfig = {
+    allowCanvasResizeHandle: false,
+  };
+
+  private brushTool = new MosaicBrushTool();
+  private restoreTool = new BrushSprayTool(
+    () =>
+      paintState.getSessionMode() &&
+      paintState.getSessionId() === SessionId.Mosaic &&
+      paintState.getMosaicModeId() === MosaicModeId.Restore,
+  );
+
+  enter() {}
+
+  exit() {
+    this.brushTool.exit();
+    this.restoreTool.exit();
+  }
+
+  canUse() {
+    return paintState.getSessionMode() && paintState.getSessionId() === SessionId.Mosaic;
+  }
+
+  down(e: PointerEvent) {
+    this.getActiveTool().down(e);
+  }
+
+  move(e: PointerEvent) {
+    this.getActiveTool().move(e);
+  }
+
+  up(e: PointerEvent) {
+    this.getActiveTool().up(e);
+  }
+
+  cancel() {
+    this.getActiveTool().cancel();
+  }
+
+  private getActiveTool() {
+    return paintState.getMosaicModeId() === MosaicModeId.Restore
+      ? this.restoreTool
+      : this.brushTool;
   }
 }

@@ -1,10 +1,11 @@
 import { LiquifyToolId, paintState, SessionId } from "../paintState";
 import { to_canvas_coord } from "../position";
 import { getLayerWorker } from "../worker/workerPool";
+import { BrushSprayTool } from "./BrushSprayTool";
 import { BrushTool } from "./BrushTool";
 import type { Tool, ToolConfig } from "./Tool";
 
-const LIQUIFY_SPRAY_INTERVAL_MS = 33;
+const LIQUIFY_SPRAY_INTERVAL_MS = 16;
 
 class LiquifyPushTool extends BrushTool {
   config: ToolConfig = {
@@ -108,12 +109,19 @@ export class LiquifySessionTool implements Tool {
 
   private pushTool = new LiquifyPushTool();
   private sprayTool = new LiquifySprayTool();
+  private restoreTool = new BrushSprayTool(
+    () =>
+      paintState.getSessionMode() &&
+      paintState.getSessionId() === SessionId.Liquify &&
+      paintState.getLiquifyToolId() === LiquifyToolId.Restore,
+  );
 
   enter() {}
 
   exit() {
     this.pushTool.exit();
     this.sprayTool.exit();
+    this.restoreTool.exit();
   }
 
   canUse() {
@@ -138,8 +146,7 @@ export class LiquifySessionTool implements Tool {
 
   private getActiveTool() {
     const toolId = paintState.getLiquifyToolId();
-    return toolId === LiquifyToolId.Push || toolId === LiquifyToolId.Restore
-      ? this.pushTool
-      : this.sprayTool;
+    if (toolId === LiquifyToolId.Restore) return this.restoreTool;
+    return toolId === LiquifyToolId.Push ? this.pushTool : this.sprayTool;
   }
 }

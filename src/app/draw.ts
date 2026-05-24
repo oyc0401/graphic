@@ -100,7 +100,7 @@ export const toolManager = {
 
     selectBrushLikeTool(BrushId.Eraser);
   },
-  setLiquifyTool(toolId: LiquifyToolId = LiquifyToolId.Push) {
+  setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
     if (!canChangeTool()) return;
     if (paintState.getSessionMode() && paintState.getSessionId() === SessionId.Liquify) {
       paintState.setLiquifyToolId(toolId);

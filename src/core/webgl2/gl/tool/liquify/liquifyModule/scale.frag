@@ -29,7 +29,7 @@ void main() {
   }
 
   float power = falloff(1.0 - dist / u_radius);
-  float scale = 1.0 + u_direction * u_strength * power * 0.065625;
+  float scale = 1.0 + u_direction * u_strength * power * 0.0328125;
 
   // Backward warping: 확장은 중심 쪽을, 축소는 바깥쪽을 샘플링한다.
   vec2 samplePixel = u_center + local / scale;
