@@ -424,9 +424,7 @@ const EraserToolButton = observer(() => {
 });
 
 const SelectionToolButton = observer(() => {
-  const isSelected =
-    paintState.getSelectedToolId() === ToolId.Select ||
-    paintState.getSelectedToolId() === ToolId.Selection;
+  const isSelected = paintState.getSelectedToolId() === ToolId.Select;
 
   return (
     <button

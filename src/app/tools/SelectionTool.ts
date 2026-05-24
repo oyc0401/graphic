@@ -1,6 +1,6 @@
 // tools/SelectionTool.ts
 import { paintConfig } from "@/paint.config";
-import { InputMode, paintState, ToolId } from "../paintState";
+import { InputMode, paintState } from "../paintState";
 import { to_pixel_canvas_coord } from "../position";
 import {
   applySelection,
@@ -42,8 +42,10 @@ export class SelectionTool implements Tool {
 
   canUse() {
     return (
-      paintState.getToolId() === ToolId.Selection &&
-      paintState.getInputMode() === InputMode.DEFAULT
+      selection.visible &&
+      paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getSessionId() === null &&
+      paintState.getTemporaryToolId() === null
     );
   }
 
@@ -195,7 +197,6 @@ export class SelectionTool implements Tool {
         console.log("cancel Selection!");
 
         applySelection();
-        paintState.setSelectedToolId(ToolId.Select);
       }
     }
 

@@ -14,6 +14,7 @@ import { MosaicSessionTool } from "./MosaicTool";
 import { panTool } from "./PanTool";
 import { resizeTool } from "./resizeTool";
 import { SelectTool } from "./SelectTool";
+import { selection } from "../selection";
 import { selectionTool } from "./SelectionTool";
 import type { Tool } from "./Tool";
 import { zoomTool } from "./ZoomTool";
@@ -49,6 +50,15 @@ export function getCurrentTool(): Tool | null {
       return resizeTool;
   }
 
+  if (
+    selection.visible &&
+    paintState.getInputMode() === InputMode.DEFAULT &&
+    paintState.getSessionId() === null &&
+    paintState.getTemporaryToolId() === null
+  ) {
+    return selectionTool;
+  }
+
   switch (paintState.getSelectedToolId()) {
     case ToolId.Brush:
       return brushTool;
@@ -56,8 +66,6 @@ export function getCurrentTool(): Tool | null {
       return selectTool;
     case ToolId.FreeformSelect:
       return freeformSelectTool;
-    case ToolId.Selection:
-      return selectionTool;
     case ToolId.Zoom:
       return zoomTool;
     case ToolId.ColorPicker:

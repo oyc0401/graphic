@@ -68,8 +68,9 @@ function bindCursorUI() {
   autorun(() => {
     const isSelectionTool =
       paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getSessionId() === null &&
       paintState.getTemporaryToolId() === null &&
-      paintState.getSelectedToolId() === ToolId.Selection;
+      selection.visible;
     const isCanvasResize =
       canvasResizeState.active || canvasResizeState.hover !== null;
     const resizeHover = canvasResizeState.hover;
@@ -256,8 +257,9 @@ function canShowSelectionHover() {
   return (
     !paintState.getPointerdown() &&
     paintState.getInputMode() === InputMode.DEFAULT &&
+    paintState.getSessionId() === null &&
     paintState.getTemporaryToolId() === null &&
-    paintState.getSelectedToolId() === ToolId.Selection &&
+    selection.visible &&
     selection.showHandle
   );
 }

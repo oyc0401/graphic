@@ -3,7 +3,7 @@ import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
 import { position } from "./position";
-import { MosaicToolId, ToolId } from "./paintState";
+import { MosaicToolId } from "./paintState";
 
 class HistoryState {
   undoCount = 0;
@@ -77,11 +77,6 @@ export async function undo() {
     selection.setVisible(show);
     selection.setFlip(flipH, flipV);
 
-    if (show) {
-      paintState.setSelectedToolId(ToolId.Selection);
-    } else {
-      paintState.setSelectedToolId(ToolId.Select);
-    }
   }
 }
 
@@ -117,10 +112,5 @@ export async function redo() {
     selection.setVisible(show);
     selection.setFlip(flipH, flipV);
 
-    if (show) {
-      paintState.setSelectedToolId(ToolId.Selection);
-    } else {
-      paintState.setSelectedToolId(ToolId.Select);
-    }
   }
 }
