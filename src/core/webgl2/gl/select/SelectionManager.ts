@@ -11,6 +11,11 @@ import { Rect } from "@/core/utils/rect";
 import * as twgl from "twgl.js";
 
 import selectionFrag from "./selection.frag?raw";
+import {
+  createFreeformSelectionMask,
+  getFreeformSelectionRect,
+} from "./freeformSelection";
+import type { Pointer } from "@/core/types";
 
 export class SelectionManager {
   private static readonly MAX_TEXTURE_SIZE = 2048.0;
@@ -302,6 +307,157 @@ export class SelectionManager {
 
     const selectionBytes = this.originalWidth * this.originalHeight * 4;
     const sourceBytes = swidth * sheight * 4 * 2;
+    const byteSize = selectionBytes + sourceBytes;
+
+    const newHistory = new HistoryObject({
+      undo: async () => {
+        await before.apply();
+        await beforeSource.apply();
+        this.uploadRenderedTex();
+
+        this.renderingManager.render();
+
+        return {
+          selection: {
+            show: paintOptions.showSelection,
+            x: this.selectionPos.x,
+            y: this.selectionPos.y,
+            width: this.selectionPos.width,
+            height: this.selectionPos.height,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
+          },
+        };
+      },
+      redo: async () => {
+        await after.apply();
+        await afterSource.apply();
+        this.uploadRenderedTex();
+
+        this.renderingManager.render();
+
+        return {
+          selection: {
+            show: paintOptions.showSelection,
+            x: this.selectionPos.x,
+            y: this.selectionPos.y,
+            width: this.selectionPos.width,
+            height: this.selectionPos.height,
+            flipH: this.selectionPos.flipH,
+            flipV: this.selectionPos.flipV,
+          },
+        };
+      },
+      byteSize,
+    });
+
+    let historyManager = getHistoryManager(this.canvas, gl);
+    historyManager.addUndo(newHistory);
+
+    this.uploadRenderedTex();
+  }
+
+  selectFreeform(points: Pointer[]) {
+    const gl = this.gl;
+    const rect = getFreeformSelectionRect(points)?.clampTo(
+      0,
+      0,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    if (!rect || rect.isEmpty()) return;
+
+    const mask = createFreeformSelectionMask(points, rect);
+    let hasSelectedPixel = false;
+    for (const value of mask) {
+      if (value) {
+        hasSelectedPixel = true;
+        break;
+      }
+    }
+    if (!hasSelectedPixel) return;
+
+    this.openTexture();
+    paintOptions.showSelection = true;
+    paintOptions.selectionAntialias = false;
+
+    this.selectionPos.x = rect.x;
+    this.selectionPos.y = rect.y;
+    this.selectionPos.width = rect.width;
+    this.selectionPos.height = rect.height;
+    this.selectionPos.flipH = false;
+    this.selectionPos.flipV = false;
+    this.originalWidth = rect.width;
+    this.originalHeight = rect.height;
+    this.beforePos = structuredClone(this.selectionPos);
+
+    const sourcePixels = new Uint8Array(rect.width * rect.height * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.layerManager.layerFBO);
+    gl.readPixels(
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      sourcePixels,
+    );
+
+    const selectionPixels = new Uint8Array(sourcePixels.length);
+    const layerPixels = new Uint8Array(sourcePixels);
+
+    for (let index = 0; index < mask.length; index++) {
+      if (!mask[index]) continue;
+
+      const pixelIndex = index * 4;
+      selectionPixels[pixelIndex] = sourcePixels[pixelIndex];
+      selectionPixels[pixelIndex + 1] = sourcePixels[pixelIndex + 1];
+      selectionPixels[pixelIndex + 2] = sourcePixels[pixelIndex + 2];
+      selectionPixels[pixelIndex + 3] = sourcePixels[pixelIndex + 3];
+
+      layerPixels[pixelIndex] = 0;
+      layerPixels[pixelIndex + 1] = 0;
+      layerPixels[pixelIndex + 2] = 0;
+      layerPixels[pixelIndex + 3] = 0;
+    }
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, this.selectionTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      rect.width,
+      rect.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      selectionPixels,
+    );
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.LAYER);
+    gl.bindTexture(
+      gl.TEXTURE_2D,
+      this.layerManager.getLayerTex(paintOptions.layerId),
+    );
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      layerPixels,
+    );
+
+    let { show: after, hide: before } = this.createCurrentSnapshot();
+    let { before: beforeSource, after: afterSource } =
+      this.sourceTextureManager.upload(rect.x, rect.y, rect.width, rect.height);
+
+    const selectionBytes = this.originalWidth * this.originalHeight * 4;
+    const sourceBytes = rect.width * rect.height * 4 * 2;
     const byteSize = selectionBytes + sourceBytes;
 
     const newHistory = new HistoryObject({

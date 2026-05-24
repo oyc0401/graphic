@@ -37,6 +37,7 @@ import {
   CircleX,
   Expand,
   Grid2X2,
+  LassoSelect,
   Pipette,
   RotateCcw,
   RotateCw,
@@ -287,6 +288,7 @@ const ToolsToggleButton = observer(() => {
       {menuState.showTools && (
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
+          <FreeformSelectionToolButton />
           <LiquifyToolButton />
           <MosaicToolButton />
           <ZoomToolButton />
@@ -433,6 +435,20 @@ const SelectionToolButton = observer(() => {
       onClick={() => toolManager.setSelectTool()}
     >
       <SelectionIcon />
+    </button>
+  );
+});
+
+const FreeformSelectionToolButton = observer(() => {
+  const isSelected = paintState.getSelectedToolId() === ToolId.FreeformSelect;
+
+  return (
+    <button
+      id="select-freeform-selection"
+      className={`header-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setFreeformSelectTool()}
+    >
+      <LassoSelect size={24} strokeWidth={2.2} />
     </button>
   );
 });

@@ -49,6 +49,14 @@ export const toolManager = {
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
+  setFreeformSelectTool() {
+    if (!canChangeMainTool()) return;
+    exitCurrentTool();
+
+    paintState.setSelectedToolId(ToolId.FreeformSelect);
+    getLayerWorker().setTool(paintState.getBrushId());
+    syncCoreState();
+  },
   setZoomTool() {
     if (!canChangeMainTool()) return;
     exitCurrentTool();

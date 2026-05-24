@@ -183,6 +183,13 @@ export class WebGL2Controller {
     paint.createSelection(x, y, w, h);
   }
 
+  // 이미지의 지정한 자유형 영역을 선택한다.
+  createFreeformSelection(points: Pointer[]): void {
+    paint.createFreeformSelection(
+      points.map((point) => toWebglCoord(point, paintOptions.height)),
+    );
+  }
+
   // 선택 영역을 지정한 위치와 크기로 이동하거나 뒤집는다.
   transformSelection(
     px: number,

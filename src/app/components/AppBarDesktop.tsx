@@ -30,6 +30,7 @@ import {
   CircleX,
   Expand,
   Grid2X2,
+  LassoSelect,
   Pipette,
   RotateCcw,
   RotateCw,
@@ -89,6 +90,7 @@ function AppBarDesktop() {
         ) : (
           <div id="menu-bar">
             <SelectionToolButton />
+            <FreeformSelectionToolButton />
 
             <div className="div-bar"></div>
             <div className="mini-buttons">
@@ -348,6 +350,21 @@ const SelectionToolButton = observer(() => {
     >
       <SelectionIcon width={32} height={32} />
       <p>{getLetter("select")}</p>
+    </button>
+  );
+});
+
+const FreeformSelectionToolButton = observer(() => {
+  const isSelected = paintState.getSelectedToolId() === ToolId.FreeformSelect;
+
+  return (
+    <button
+      id="select-freeform-selection"
+      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setFreeformSelectTool()}
+    >
+      <LassoSelect size={32} strokeWidth={2.2} />
+      <p>Freeform</p>
     </button>
   );
 });

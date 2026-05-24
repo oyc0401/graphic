@@ -21,15 +21,16 @@ import { getHistoryManager } from "../history/history";
 import { Callink } from "callink";
 import init, { do_task } from "../wasm/pkg/wasm_tasks.js";
 import { getBitmapManager } from "../canvas/bitmap";
-import type { CoreSessionTool, CoreTool, LiquifyTool, MosaicMode } from "../types";
+import type {
+  CoreSessionTool,
+  CoreTool,
+  LiquifyTool,
+  MosaicMode,
+  Pointer,
+} from "../types";
 import { getSessionManager } from "./session/session";
 import { getLiquifyManager } from "./gl/tool/liquify/liquify";
 import { getMosaicManager } from "./gl/tool/mosaic/mosaic";
-
-interface Pointer {
-  x: number;
-  y: number;
-}
 
 export class PaintService {
   canvas: OffscreenCanvas;
@@ -215,6 +216,10 @@ export class PaintService {
   createSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
+  }
+  createFreeformSelection(points: Pointer[]) {
+    let selectionManager = getSelectionManager(this.canvas, this.gl);
+    selectionManager.selectFreeform(points);
   }
   completeTransformSelection() {
     let selectionManager = getSelectionManager(this.canvas, this.gl);

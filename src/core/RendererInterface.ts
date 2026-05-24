@@ -35,6 +35,7 @@ export interface RendererInterface {
 
   // === 선택 영역 ===
   createSelection(px: number, py: number, w: number, h: number): void;
+  createFreeformSelection(points: Pointer[]): void;
   transformSelection(
     px: number,
     py: number,

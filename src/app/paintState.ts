@@ -16,6 +16,7 @@ export enum TemporaryToolId {
 export enum ToolId {
   Brush = "brush",
   Select = "select",
+  FreeformSelect = "freeformSelect",
   Selection = "selection",
   Zoom = "zoom",
   ColorPicker = "colorPicker",

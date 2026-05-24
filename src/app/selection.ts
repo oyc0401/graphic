@@ -6,6 +6,11 @@ import * as Comlink from "comlink";
 import { makeAutoObservable } from "mobx";
 import { ToolId } from "./paintState";
 
+interface SelectionPoint {
+  x: number;
+  y: number;
+}
+
 export class SelectionState {
   x = 0;
   y = 0;
@@ -153,6 +158,50 @@ export function canvasSelect(x, y, width, height) {
   paintState.setSelectedToolId(ToolId.Selection);
 
   console.log("선택:", x, y, width, height);
+  selection.setVisible(true);
+  selection.setShowHandle(true);
+  selection.setShowHint(true);
+}
+
+export function canvasFreeformSelect(points: SelectionPoint[]) {
+  if (paintState.getSessionId() !== null) return;
+  if (points.length < 3) return;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const point of points) {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+  }
+
+  const x = Math.max(0, Math.floor(minX));
+  const y = Math.max(0, Math.floor(minY));
+  const width = Math.min(position.width - x, Math.ceil(maxX) - x + 1);
+  const height = Math.min(position.height - y, Math.ceil(maxY) - y + 1);
+
+  if (width <= 1 || height <= 1) return;
+
+  let worker = getLayerWorker();
+
+  selection.setPosition(x, y);
+  selection.setSize(width, height);
+  selection.setFlip(false, false);
+
+  worker.createFreeformSelection(points);
+
+  beforeSelectionPos = {
+    x: selection.x,
+    y: selection.y,
+    width: selection.width,
+    height: selection.height,
+  };
+
+  paintState.setSelectedToolId(ToolId.Selection);
   selection.setVisible(true);
   selection.setShowHandle(true);
   selection.setShowHint(true);
