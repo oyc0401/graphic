@@ -133,9 +133,9 @@ export class WebGL2Controller {
     paint.setLiquifyTool(toolId);
   }
 
-  // 모자이크 세션에서 사용할 렌더링 방식을 선택한다.
-  setMosaicMode(mode: MosaicMode): void {
-    paint.setMosaicMode(mode);
+  // 모자이크 세션에서 사용할 도구를 선택한다.
+  setMosaicTool(toolId: MosaicMode): void {
+    paint.setMosaicTool(toolId);
   }
 
   // 모자이크 세션의 전역 강도를 0부터 100까지의 값으로 설정한다.

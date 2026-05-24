@@ -23,7 +23,7 @@ function exitCurrentTool() {
 }
 
 export const toolManager = {
-  async setBrushTool() {
+  setBrushTool() {
     if (!canChangeMainTool()) return;
     exitCurrentTool();
 
@@ -39,47 +39,6 @@ export const toolManager = {
     paintState.setBrushId(BrushId.Eraser);
     paintState.setSelectedToolId(ToolId.Brush);
     getLayerWorker().setTool(BrushId.Eraser);
-    syncCoreState();
-  },
-  setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
-    if (!canChangeTool()) return;
-    const sessionId = paintState.getSessionId();
-    if (sessionId !== null) {
-      if (sessionId === SessionId.Liquify) {
-        paintState.setLiquifyToolId(toolId);
-        getLayerWorker().setLiquifyTool(toolId);
-      }
-      return;
-    }
-
-    exitCurrentTool();
-
-    paintState.setSessionId(SessionId.Liquify);
-    paintState.setLiquifyToolId(toolId);
-    getLayerWorker().openSession("liquify");
-    getLayerWorker().setLiquifyTool(toolId);
-    syncCoreState();
-  },
-  setMosaicTool() {
-    if (!canChangeTool()) return;
-    if (paintState.getSessionId() !== null) {
-      return;
-    }
-
-    exitCurrentTool();
-
-    paintState.setSessionId(SessionId.Mosaic);
-    getLayerWorker().openSession("mosaic");
-    getLayerWorker().setMosaicMode(paintState.getMosaicToolId());
-    getLayerWorker().setMosaicStrength(paintState.getBrushAlpha());
-    syncCoreState();
-  },
-  setMosaicMode(modeId: MosaicToolId) {
-    if (!canChangeTool()) return;
-    if (paintState.getSessionId() !== SessionId.Mosaic) return;
-
-    paintState.setMosaicToolId(modeId);
-    getLayerWorker().setMosaicMode(modeId);
     syncCoreState();
   },
   setSelectTool() {
@@ -106,10 +65,42 @@ export const toolManager = {
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
-  setSelection() {
-    if (!canChangeMainTool()) return;
+  setLiquifyTool(toolId: LiquifyToolId = paintState.getLiquifyToolId()) {
+    if (!canChangeTool()) return;
+    const sessionId = paintState.getSessionId();
+    if (sessionId === SessionId.Liquify) {
+      paintState.setLiquifyToolId(toolId);
+      getLayerWorker().setLiquifyTool(toolId);
+      return;
+    }
+    if (sessionId !== null) return;
 
-    paintState.setSelectedToolId(ToolId.Selection);
+    exitCurrentTool();
+
+    paintState.setSessionId(SessionId.Liquify);
+    paintState.setLiquifyToolId(toolId);
+    getLayerWorker().openSession("liquify");
+    getLayerWorker().setLiquifyTool(toolId);
+    syncCoreState();
+  },
+  setMosaicTool(toolId: MosaicToolId = paintState.getMosaicToolId()) {
+    if (!canChangeTool()) return;
+    const sessionId = paintState.getSessionId();
+    if (sessionId === SessionId.Mosaic) {
+      paintState.setMosaicToolId(toolId);
+      getLayerWorker().setMosaicTool(toolId);
+      syncCoreState();
+      return;
+    }
+    if (sessionId !== null) return;
+
+    exitCurrentTool();
+
+    paintState.setSessionId(SessionId.Mosaic);
+    paintState.setMosaicToolId(toolId);
+    getLayerWorker().openSession("mosaic");
+    getLayerWorker().setMosaicTool(toolId);
+    getLayerWorker().setMosaicStrength(paintState.getBrushAlpha());
     syncCoreState();
   },
   commitSession() {

@@ -300,7 +300,7 @@ const MosaicModeButton = observer(
       <button
         className={`select-button ${strokeIcon ? "stroke-icon-button" : ""} ${isSelected ? "selected" : ""}`}
         aria-label={label}
-        onClick={() => toolManager.setMosaicMode(modeId)}
+        onClick={() => toolManager.setMosaicTool(modeId)}
       >
         {icon}
         <p>{label}</p>

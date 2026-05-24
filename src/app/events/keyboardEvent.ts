@@ -111,13 +111,13 @@ const commandHandlers = {
     toolManager.setLiquifyTool(LiquifyToolId.Restore);
   },
   setMosaicPixelMode() {
-    toolManager.setMosaicMode(MosaicToolId.Pixel);
+    toolManager.setMosaicTool(MosaicToolId.Pixel);
   },
   setMosaicBlurMode() {
-    toolManager.setMosaicMode(MosaicToolId.Blur);
+    toolManager.setMosaicTool(MosaicToolId.Blur);
   },
   setMosaicRestoreMode() {
-    toolManager.setMosaicMode(MosaicToolId.Restore);
+    toolManager.setMosaicTool(MosaicToolId.Restore);
   },
 } satisfies Record<CommandShortcutAction, () => void>;
 

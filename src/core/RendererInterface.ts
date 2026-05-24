@@ -27,7 +27,7 @@ export interface RendererInterface {
   // === 도구 관리 ===
   setTool(toolId: CoreTool): void;
   openSession(toolId: CoreSessionTool): void;
-  setMosaicMode(mode: MosaicMode): void;
+  setMosaicTool(toolId: MosaicMode): void;
   setMosaicStrength(strength: number): void;
   commitSession(): void;
   discardSession(): void;
