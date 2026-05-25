@@ -470,6 +470,7 @@ const FreeformSelectionToolButton = observer(() => {
   return (
     <button
       id="select-freeform-selection"
+      aria-label={getLetter("freeform_select")}
       className={`header-button stroke-icon-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setFreeformSelectTool()}
     >

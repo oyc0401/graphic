@@ -245,12 +245,6 @@ function renderHtml(template: string, locale: Locale, page: PageId): string {
     `    <meta property="og:url" content="${escapeHtml(canonical)}" />`,
     "og:url",
   );
-  html = replaceRequired(
-    html,
-    /window\.lang = "[^"]*";/,
-    `window.lang = "${escapeHtml(locale)}";`,
-    "window.lang",
-  );
   return insertJsonLd(
     html,
     softwareApplicationJsonLd(meta.title, meta.description, canonical),
@@ -307,12 +301,6 @@ function renderRootHtml(template: string): string {
     /    <meta property="og:url" content="[^"]*" \/>/,
     `    <meta property="og:url" content="${escapeHtml(rootUrl())}" />`,
     "og:url",
-  );
-  html = replaceRequired(
-    html,
-    /window\.lang = "[^"]*";/,
-    `window.lang = "${escapeHtml(root.locale)}";`,
-    "window.lang",
   );
   return insertJsonLd(
     html,

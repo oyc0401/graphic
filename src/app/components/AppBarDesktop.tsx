@@ -364,7 +364,7 @@ const FreeformSelectionToolButton = observer(() => {
       onClick={() => toolManager.setFreeformSelectTool()}
     >
       <LassoSelect size={32} strokeWidth={2.2} />
-      <p>Freeform</p>
+      <p>{getLetter("freeform_select")}</p>
     </button>
   );
 });

@@ -10,7 +10,12 @@ export function setLanguage(lang) {
   }
 }
 
-setLanguage(window.lang);
+function getPathLanguage() {
+  const [lang] = window.location.pathname.split("/").filter(Boolean);
+  return existLang(lang) ? lang : null;
+}
+
+setLanguage(getPathLanguage() ?? "en");
 
 export function getLetter(key: Letter, lang = currentLang) {
   let currentPack = languagePack[lang];

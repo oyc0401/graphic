@@ -20,12 +20,17 @@ import { getLayerWorker } from "./worker/workerPool";
 import { tranferCanvas } from "./canvas";
 import { addKeyboardEvent } from "./events/keyboardEvent";
 import { paintState, SessionId } from "./paintState";
+import { syncCoreState } from "./history";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./file/initialImage";
 import { getInitialRouteSession } from "./file/initialRouteSession";
 import { installGestureAdapter } from "./events/gestureAdapter";
-import { toolManager } from "./tools/toolManager";
+
+const initialRouteSession = getInitialRouteSession();
+if (initialRouteSession !== null) {
+  paintState.setSessionId(initialRouteSession);
+}
 
 const root = document.getElementById("appbar-root");
 if (root) {
@@ -75,12 +80,7 @@ async function main() {
 
   addClipboardEvent();
 
-  const initialRouteSession = getInitialRouteSession();
-  if (initialRouteSession === SessionId.Liquify) {
-    toolManager.setLiquifyTool();
-  } else if (initialRouteSession === SessionId.Mosaic) {
-    toolManager.setMosaicTool();
-  }
+  openInitialRouteSessionInCore(initialRouteSession);
 
   console.log("Complete App!");
 
@@ -137,6 +137,19 @@ function debugSetting() {
     applySelection();
     worker.setLayerId(layerId);
   };
+}
+
+function openInitialRouteSessionInCore(sessionId: SessionId | null) {
+  if (sessionId === SessionId.Liquify) {
+    getLayerWorker().openSession("liquify");
+    getLayerWorker().setLiquifyTool(paintState.getLiquifyToolId());
+    syncCoreState();
+  } else if (sessionId === SessionId.Mosaic) {
+    getLayerWorker().openSession("mosaic");
+    getLayerWorker().setMosaicTool(paintState.getMosaicToolId());
+    getLayerWorker().setMosaicStrength(paintState.getBrushAlpha());
+    syncCoreState();
+  }
 }
 
 function changeCanvasTransform() {
