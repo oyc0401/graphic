@@ -6,13 +6,14 @@ const gl = canvas.getContext("webgl2")!;
 const width = canvas.width;
 const height = canvas.height;
 
+const alphaMapTexture = gl.createTexture()!;
+
 const pencil = createPencil(gl, {
   alphaMapTexture,
   width,
   height,
 });
 
-pencil.setColor({ r: 40, g: 80, b: 220 });
 pencil.setAlpha(1);
 pencil.setDiameter(1);
 
