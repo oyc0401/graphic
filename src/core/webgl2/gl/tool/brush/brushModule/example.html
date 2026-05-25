@@ -120,6 +120,8 @@
 
       brush.setAlpha(Number(alphaInput.value));
       brush.setBrushSize(Number(brushSizeInput.value));
+      brush.setColor([0, 0, 0]);
+      brush.setMode("brush");
       brush.setStrokeType(strokeTypeInput.value);
 
       let active = false;

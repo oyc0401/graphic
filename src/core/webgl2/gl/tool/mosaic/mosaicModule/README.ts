@@ -42,12 +42,12 @@ mosaic.render();
 mosaic.makeHistory();
 
 // 이걸 하면 mask맵이 원본 상태로 복원됌
-liquify.restoreStart({ x, y });
-liquify.restoreMove({ x, y });
-liquify.restoreMove({ x, y });
-liquify.makeHistory();
+mosaic.restoreStart({ x, y });
+mosaic.restoreMove({ x, y });
+mosaic.restoreMove({ x, y });
+mosaic.makeHistory();
 
-liquify.render(); // 이걸 하면 resultTexture 수정됌
+mosaic.render(); // 이걸 하면 resultTexture 수정됌
 
 // 대충 resultTexture를 화면 어딘가에 렌더링한다는 함수
 function render() {

@@ -42,3 +42,17 @@ brush.move({ x: 180, y: 88 });
 
 // 내부적으로 dirtyRect부분의 resultTexture <- imageTexture를 함.
 brush.cancel();
+
+
+// 대충 resultTexture를 화면 어딘가에 렌더링한다는 함수
+function render() {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+
+  gl.bindTexture(gl.TEXTURE_2D, resultTexture);
+
+  // resultTexture를 읽는 셰이더와 fullscreen quad는 있다고 치자.
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+render();

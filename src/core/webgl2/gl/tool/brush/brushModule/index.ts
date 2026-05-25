@@ -1,9 +1,12 @@
 import brushFrag from "../brush.frag?raw";
+import eraserFrag from "../eraser.frag?raw";
 import { createDist } from "../distModule";
 import { createPencil } from "../pencilModule";
 import { createSpline } from "../splineModule";
 
 export type BrushStrokeType = "spline" | "dist" | "pencil";
+export type BrushMode = "brush" | "eraser";
+export type BrushColor = [number, number, number];
 
 export interface BrushPoint {
   x: number;
@@ -71,14 +74,18 @@ class Brush {
   private readonly resultFramebuffer: WebGLFramebuffer;
   private readonly imageFramebuffer: WebGLFramebuffer;
   private readonly brushProgram: WebGLProgram;
+  private readonly eraserProgram: WebGLProgram;
   private readonly copyProgram: WebGLProgram;
   private readonly brushVAO: WebGLVertexArrayObject;
+  private readonly eraserVAO: WebGLVertexArrayObject;
   private readonly copyVAO: WebGLVertexArrayObject;
   private readonly splinePath: BrushStrokeModule;
   private readonly distPath: BrushStrokeModule;
   private readonly pencilPath: BrushStrokeModule;
   private alpha = 1;
   private brushSize = 1;
+  private color: BrushColor = [0, 0, 0];
+  private mode: BrushMode = "brush";
   private strokeType: BrushStrokeType = "spline";
   private strokeModule: BrushStrokeModule;
   private dirtyRect: BrushRect | null = null;
@@ -97,12 +104,18 @@ class Brush {
       createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER),
       createShader(gl, gl.FRAGMENT_SHADER, brushFrag),
     );
+    this.eraserProgram = createProgram(
+      gl,
+      createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER),
+      createShader(gl, gl.FRAGMENT_SHADER, eraserFrag),
+    );
     this.copyProgram = createProgram(
       gl,
       createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER),
       createShader(gl, gl.FRAGMENT_SHADER, COPY_FRAGMENT_SHADER),
     );
     this.brushVAO = this.createFullQuadVAO(this.brushProgram);
+    this.eraserVAO = this.createFullQuadVAO(this.eraserProgram);
     this.copyVAO = this.createFullQuadVAO(this.copyProgram);
     this.splinePath = createSpline(gl, {
       alphaMapTexture: this.alphaMapTexture,
@@ -120,7 +133,8 @@ class Brush {
       height: this.height,
     });
     this.strokeModule = this.splinePath;
-    this.bindBrushUniforms();
+    this.bindRenderUniforms(this.brushProgram);
+    this.bindRenderUniforms(this.eraserProgram);
   }
 
   setAlpha(alpha: number) {
@@ -129,6 +143,14 @@ class Brush {
 
   setBrushSize(brushSize: number) {
     this.brushSize = Math.max(1, brushSize);
+  }
+
+  setColor(color: BrushColor) {
+    this.color = color;
+  }
+
+  setMode(mode: BrushMode) {
+    this.mode = mode;
   }
 
   setStrokeType(type: BrushStrokeType) {
@@ -144,7 +166,7 @@ class Brush {
     const rect = this.strokeModule.start(point);
     if (rect) {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
-      this.renderBrush(rect);
+      this.renderStroke(rect);
     }
   }
 
@@ -153,7 +175,7 @@ class Brush {
     if (!rect) return;
 
     this.dirtyRect = unionRect(this.dirtyRect, rect);
-    this.renderBrush(rect);
+    this.renderStroke(rect);
   }
 
   end(): BrushRect | null {
@@ -164,7 +186,7 @@ class Brush {
       return null;
     }
 
-    this.renderBrush(rect);
+    this.renderStroke(rect);
     this.copyTextureRect(
       this.options.resultTexture,
       this.imageFramebuffer,
@@ -198,12 +220,22 @@ class Brush {
     return this.splinePath;
   }
 
-  private renderBrush(rect: BrushRect) {
+  private renderStroke(rect: BrushRect) {
     if (isEmptyRect(rect)) return;
 
     const gl = this.gl;
-    gl.useProgram(this.brushProgram);
-    gl.bindVertexArray(this.brushVAO);
+    const program = this.getRenderProgram();
+    const vao = this.getRenderVAO();
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    if (this.mode === "brush") {
+      gl.uniform3f(
+        gl.getUniformLocation(program, "u_color"),
+        this.color[0],
+        this.color[1],
+        this.color[2],
+      );
+    }
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
     gl.bindTexture(gl.TEXTURE_2D, this.alphaMapTexture);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
@@ -215,6 +247,16 @@ class Brush {
     gl.viewport(0, 0, this.width, this.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.disable(gl.SCISSOR_TEST);
+  }
+
+  private getRenderProgram() {
+    if (this.mode === "eraser") return this.eraserProgram;
+    return this.brushProgram;
+  }
+
+  private getRenderVAO() {
+    if (this.mode === "eraser") return this.eraserVAO;
+    return this.brushVAO;
   }
 
   private copyTextureRect(
@@ -242,23 +284,22 @@ class Brush {
     gl.disable(gl.SCISSOR_TEST);
   }
 
-  private bindBrushUniforms() {
+  private bindRenderUniforms(program: WebGLProgram) {
     const gl = this.gl;
-    gl.useProgram(this.brushProgram);
+    gl.useProgram(program);
     gl.uniform1i(
-      gl.getUniformLocation(this.brushProgram, "u_pathMap"),
+      gl.getUniformLocation(program, "u_pathMap"),
       TEXTURE_UNIT.PATHMAP,
     );
     gl.uniform1i(
-      gl.getUniformLocation(this.brushProgram, "u_source"),
+      gl.getUniformLocation(program, "u_source"),
       TEXTURE_UNIT.SOURCE,
     );
     gl.uniform2f(
-      gl.getUniformLocation(this.brushProgram, "u_resolution"),
+      gl.getUniformLocation(program, "u_resolution"),
       this.width,
       this.height,
     );
-    gl.uniform3f(gl.getUniformLocation(this.brushProgram, "u_color"), 0, 0, 0);
   }
 
   private createAlphaMapTexture() {

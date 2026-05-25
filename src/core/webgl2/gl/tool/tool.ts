@@ -33,6 +33,7 @@ export class BrushTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   start(pointer: Pointer) {
+    this.drawManager.setMode("brush");
     this.drawManager.setStrokeType(getBrushStrokeType());
     this.drawManager.start(pointer);
   }
@@ -55,6 +56,7 @@ export class EraserTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   start(pointer: Pointer) {
+    this.drawManager.setMode("eraser");
     this.drawManager.setStrokeType(getBrushStrokeType());
     this.drawManager.start(pointer);
   }
@@ -77,6 +79,7 @@ export class PencilTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   start(pointer: Pointer) {
+    this.drawManager.setMode("brush");
     this.drawManager.setStrokeType(StrokeType.Pencil);
     this.drawManager.start(pointer);
   }
