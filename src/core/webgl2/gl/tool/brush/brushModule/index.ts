@@ -1,6 +1,7 @@
 import brushFrag from "./brush.frag?raw";
 import eraserFrag from "./eraser.frag?raw";
 import { createDist } from "../strokeModule/distModule";
+import { createDistPixel } from "../strokeModule/distPixelModule";
 import { createPencil } from "../strokeModule/pencilModule";
 import { createSpline } from "../strokeModule/splineModule";
 
@@ -81,6 +82,7 @@ class Brush {
   private readonly copyVAO: WebGLVertexArrayObject;
   private readonly splinePath: BrushStrokeModule;
   private readonly distPath: BrushStrokeModule;
+  private readonly distPixelPath: BrushStrokeModule;
   private readonly pencilPath: BrushStrokeModule;
   private alpha = 1;
   private brushSize = 1;
@@ -123,6 +125,11 @@ class Brush {
       height: this.height,
     });
     this.distPath = createDist(gl, {
+      alphaMapTexture: this.alphaMapTexture,
+      width: this.width,
+      height: this.height,
+    });
+    this.distPixelPath = createDistPixel(gl, {
       alphaMapTexture: this.alphaMapTexture,
       width: this.width,
       height: this.height,
@@ -216,7 +223,10 @@ class Brush {
 
   private getStrokeModule(type: BrushStrokeType) {
     if (type === "dist") return this.distPath;
-    if (type === "pencil") return this.pencilPath;
+    if (type === "pencil") {
+      if (this.brushSize > 20) return this.distPixelPath;
+      return this.pencilPath;
+    }
     return this.splinePath;
   }
 

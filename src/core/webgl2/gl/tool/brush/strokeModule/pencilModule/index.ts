@@ -23,6 +23,8 @@ interface MaskPoint {
   y: number;
 }
 
+const pencilMaskCache = new Map<number, MaskPoint[]>();
+
 export function createPencil(
   gl: WebGL2RenderingContext,
   options: CreatePencilOptions,
@@ -65,6 +67,9 @@ export function bresenhamLine(
 
 export function createPencilMask(diameter: number): MaskPoint[] {
   const size = Math.max(1, Math.round(diameter));
+  const cached = pencilMaskCache.get(size);
+  if (cached) return cached;
+
   const center = (size - 1) / 2;
   const radius = Math.max(Math.SQRT1_2, size / 2 - 0.4);
   const radiusSq = radius * radius;
@@ -81,12 +86,15 @@ export function createPencilMask(diameter: number): MaskPoint[] {
     }
   }
 
+  pencilMaskCache.set(size, points);
   return points;
 }
 
 class Pencil {
   private readonly width: number;
   private readonly height: number;
+  private readonly alphaMap: Uint8Array;
+  private readonly touchedAlphaIndexes: number[] = [];
   private alpha = 1;
   private diameter = 1;
   private mask = createPencilMask(1);
@@ -99,6 +107,7 @@ class Pencil {
   ) {
     this.width = options.width;
     this.height = options.height;
+    this.alphaMap = new Uint8Array(this.width * this.height);
     this.ensureAlphaMapTextureSize();
   }
 
@@ -107,14 +116,22 @@ class Pencil {
   }
 
   setDiameter(diameter: number) {
-    this.diameter = Math.max(1, Math.round(diameter));
-    this.mask = createPencilMask(this.diameter);
+    const nextDiameter = Math.max(1, Math.round(diameter));
+    if (this.diameter === nextDiameter) return;
+
+    this.diameter = nextDiameter;
+    this.mask = createPencilMask(nextDiameter);
   }
 
   start(point: PencilPoint): PencilRect | null {
+    this.clearAlphaCache();
     this.lastPoint = toPixelPoint(point);
     this.strokeRect = null;
-    return this.stamp(this.lastPoint);
+    const dirtyRect = this.stamp(this.lastPoint);
+    if (dirtyRect) {
+      this.uploadAlphaMap(dirtyRect);
+    }
+    return dirtyRect;
   }
 
   move(point: PencilPoint): PencilRect | null {
@@ -130,6 +147,9 @@ class Pencil {
       dirtyRect = unionNullableRect(dirtyRect, this.stamp(linePoint));
     }
 
+    if (dirtyRect) {
+      this.uploadAlphaMap(dirtyRect);
+    }
     this.lastPoint = end;
     return dirtyRect;
   }
@@ -138,6 +158,7 @@ class Pencil {
     const rect = this.strokeRect;
     this.lastPoint = null;
     this.strokeRect = null;
+    this.clearAlphaCache();
     return rect;
   }
 
@@ -179,7 +200,6 @@ class Pencil {
 
   private stamp(point: PencilPoint): PencilRect | null {
     const alphaByte = Math.round(this.alpha * 255);
-    const changedPixels: PencilPoint[] = [];
     let dirtyRect: PencilRect | null = null;
 
     for (const maskPoint of this.mask) {
@@ -187,7 +207,14 @@ class Pencil {
       const y = point.y + maskPoint.y;
       if (x < 0 || y < 0 || x >= this.width || y >= this.height) continue;
 
-      changedPixels.push({ x, y });
+      const alphaIndex = y * this.width + x;
+      if (this.alphaMap[alphaIndex] === 0) {
+        this.touchedAlphaIndexes.push(alphaIndex);
+      }
+      if (alphaByte > this.alphaMap[alphaIndex]) {
+        this.alphaMap[alphaIndex] = alphaByte;
+      }
+
       const pixelRect = {
         x,
         y,
@@ -198,36 +225,49 @@ class Pencil {
       this.strokeRect = unionRect(this.strokeRect, pixelRect);
     }
 
-    if (changedPixels.length === 0) return null;
-    this.uploadChangedPixels(changedPixels, alphaByte);
     return dirtyRect;
   }
 
-  private uploadChangedPixels(pixels: PencilPoint[], alphaByte: number) {
+  private uploadAlphaMap(rect: PencilRect) {
     this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.options.alphaMapTexture);
     this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
 
-    for (const pixel of pixels) {
-      this.gl.texSubImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        pixel.x,
-        pixel.y,
-        1,
-        1,
-        this.gl.RED,
-        this.gl.UNSIGNED_BYTE,
-        new Uint8Array([alphaByte]),
+    const data = new Uint8Array(rect.width * rect.height);
+    for (let y = 0; y < rect.height; y += 1) {
+      const sourceStart = (rect.y + y) * this.width + rect.x;
+      const targetStart = y * rect.width;
+      data.set(
+        this.alphaMap.subarray(sourceStart, sourceStart + rect.width),
+        targetStart,
       );
     }
+
+    this.gl.texSubImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      this.gl.RED,
+      this.gl.UNSIGNED_BYTE,
+      data,
+    );
+  }
+
+  private clearAlphaCache() {
+    for (const index of this.touchedAlphaIndexes) {
+      this.alphaMap[index] = 0;
+    }
+    this.touchedAlphaIndexes.length = 0;
   }
 }
 
 function toPixelPoint(point: PencilPoint): PencilPoint {
   return {
-    x: Math.round(point.x),
-    y: Math.round(point.y),
+    x: Math.floor(point.x),
+    y: Math.floor(point.y),
   };
 }
 

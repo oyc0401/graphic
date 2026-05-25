@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { observer } from "mobx-react-lite";
-import { paintState } from "../paintState";
+import { BrushId, paintState } from "../paintState";
 import { getLetter } from "../i18n/language";
 import { getLayerWorker } from "../worker/workerPool";
 import { syncCoreState } from "../history";
@@ -153,6 +153,10 @@ const CustomSlider = ({
 };
 
 export const BrushSizeSlider = observer(() => {
+  if (paintState.getBrushId() === BrushId.Pencil) {
+    return <IntegerBrushSizeSlider />;
+  }
+
   const sliderValue = clamp(
     sizeToPosition(paintState.getBrushSize()),
     SLIDER_MIN,
@@ -171,6 +175,35 @@ export const BrushSizeSlider = observer(() => {
           value={sliderValue}
           onChange={(nextValue) => {
             paintState.setBrushSize(positionToSize(nextValue / SIZE_SLIDER_MAX));
+          }}
+        />
+      </div>
+    </label>
+  );
+});
+
+const IntegerBrushSizeSlider = observer(() => {
+  const brushSize = Math.max(1, Math.round(paintState.getBrushSize()));
+  const sliderValue = clamp(
+    sizeToPosition(brushSize),
+    SLIDER_MIN,
+    SIZE_SLIDER_MAX,
+  );
+
+  return (
+    <label className="brush-control">
+      <p className="label">{getLetter("size")}</p>
+      <p className="value">{`${brushSize}px`}</p>
+      <div className="slider-area">
+        <CustomSlider
+          id="integer-size-slider"
+          min={SLIDER_MIN}
+          max={SIZE_SLIDER_MAX}
+          value={sliderValue}
+          onChange={(nextValue) => {
+            paintState.setBrushSize(
+              Math.round(positionToSize(nextValue / SIZE_SLIDER_MAX)),
+            );
           }}
         />
       </div>

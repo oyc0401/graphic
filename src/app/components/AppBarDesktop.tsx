@@ -394,7 +394,7 @@ const PencilToolButton = observer(() => {
   return (
     <button
       id="select-pencil"
-      className={`select-button ${isSelected ? "selected" : ""}`}
+      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
       onClick={() => toolManager.setPencilTool()}
     >
       <PencilIcon size={32} strokeWidth={2.2} />
