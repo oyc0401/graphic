@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pencil alpha map example</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #202020;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      .toolbar {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        background: rgba(24, 24, 24, 0.88);
+        color: #f2f2f2;
+        font: 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .toolbar input {
+        width: 130px;
+      }
+
+      .toolbar button {
+        height: 28px;
+        border: 0;
+        border-radius: 4px;
+        padding: 0 10px;
+        background: #f2f2f2;
+        color: #1a1a1a;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      canvas {
+        width: min(80vmin, 720px);
+        height: min(80vmin, 720px);
+        display: block;
+        image-rendering: pixelated;
+        touch-action: none;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <label for="diameter">Diameter</label>
+      <input id="diameter" type="range" min="1" max="20" step="1" value="3" />
+      <span id="diameter-value">3</span>
+      <label for="alpha">Alpha</label>
+      <input id="alpha" type="range" min="0" max="1" step="0.01" value="1" />
+      <span id="alpha-value">1.00</span>
+      <button id="clear" type="button">Clear</button>
+    </div>
+    <canvas id="canvas" width="100" height="100"></canvas>
+
+    <script type="module">
+      import { createPencil } from "./index.ts";
+
+      const canvas = document.querySelector("#canvas");
+      const diameterInput = document.querySelector("#diameter");
+      const diameterValue = document.querySelector("#diameter-value");
+      const alphaInput = document.querySelector("#alpha");
+      const alphaValue = document.querySelector("#alpha-value");
+      const clearButton = document.querySelector("#clear");
+      const gl = canvas.getContext("webgl2", {
+        alpha: false,
+        depth: false,
+        stencil: false,
+        antialias: false,
+      });
+
+      if (!gl) {
+        throw new Error("WebGL2 is required.");
+      }
+
+      const width = 100;
+      const height = 100;
+      const alphaMapTexture = gl.createTexture();
+      const pencil = createPencil(gl, {
+        alphaMapTexture,
+        width,
+        height,
+      });
+      const drawer = createAlphaMapDrawer(gl);
+
+      let active = false;
+      let moved = false;
+      let activeStrokeRect = null;
+
+      applyControls();
+      drawAlphaMap();
+
+      diameterInput.addEventListener("input", () => {
+        diameterValue.textContent = diameterInput.value;
+        pencil.setDiameter(Number(diameterInput.value));
+      });
+
+      alphaInput.addEventListener("input", () => {
+        alphaValue.textContent = Number(alphaInput.value).toFixed(2);
+        pencil.setAlpha(Number(alphaInput.value));
+      });
+
+      clearButton.addEventListener("click", () => {
+        clearAlphaMap({ x: 0, y: 0, width, height });
+        activeStrokeRect = null;
+        drawAlphaMap();
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        active = true;
+        moved = false;
+        activeStrokeRect = null;
+        canvas.setPointerCapture(event.pointerId);
+        const previewRect = pencil.start(toCanvasPoint(event));
+        drawAlphaMap(previewRect);
+        console.log("pencil previewRect", previewRect);
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (!active) return;
+
+        event.preventDefault();
+        moved = true;
+        const previewRect = pencil.move(toCanvasPoint(event));
+        drawAlphaMap(previewRect);
+        console.log("pencil previewRect", previewRect);
+      });
+
+      canvas.addEventListener("pointerup", (event) => {
+        if (!active) return;
+
+        event.preventDefault();
+        active = false;
+        canvas.releasePointerCapture(event.pointerId);
+        if (!moved) {
+          const previewRect = pencil.move(toCanvasPoint(event));
+          drawAlphaMap(previewRect);
+          console.log("pencil previewRect", previewRect);
+        }
+
+        activeStrokeRect = pencil.end();
+        drawAlphaMap(activeStrokeRect);
+        console.log("pencil strokeRect", activeStrokeRect);
+      });
+
+      canvas.addEventListener("pointercancel", (event) => {
+        if (!active) return;
+
+        event.preventDefault();
+        active = false;
+        moved = false;
+        canvas.releasePointerCapture(event.pointerId);
+
+        // cancel은 모듈 API가 아니다. 외부에서 stroke rect를 받아 preview를 버린다.
+        const canceledStrokeRect = pencil.end();
+        if (canceledStrokeRect) {
+          clearAlphaMap(canceledStrokeRect);
+        }
+        activeStrokeRect = null;
+        drawAlphaMap(canceledStrokeRect);
+        console.log("pencil canceledStrokeRect", canceledStrokeRect);
+      });
+
+      function applyControls() {
+        pencil.setDiameter(Number(diameterInput.value));
+        pencil.setAlpha(Number(alphaInput.value));
+      }
+
+      function toCanvasPoint(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (event.clientX - rect.left) * (canvas.width / rect.width),
+          y: (event.clientY - rect.top) * (canvas.height / rect.height),
+        };
+      }
+
+      function clearAlphaMap(rect) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, alphaMapTexture);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          gl.RED,
+          gl.UNSIGNED_BYTE,
+          new Uint8Array(rect.width * rect.height),
+        );
+      }
+
+      function drawAlphaMap(_dirtyRect = null) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.disable(gl.SCISSOR_TEST);
+        gl.viewport(0, 0, width, height);
+        gl.useProgram(drawer.program);
+        gl.bindVertexArray(drawer.vao);
+        gl.uniform1i(drawer.textureUniform, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, alphaMapTexture);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      function createAlphaMapDrawer(gl) {
+        const vertexShader = createShader(
+          gl,
+          gl.VERTEX_SHADER,
+          `#version 300 es
+          in vec2 a_position;
+          out vec2 v_texCoord;
+
+          void main() {
+            v_texCoord = a_position * 0.5 + 0.5;
+            gl_Position = vec4(a_position, 0.0, 1.0);
+          }`,
+        );
+        const fragmentShader = createShader(
+          gl,
+          gl.FRAGMENT_SHADER,
+          `#version 300 es
+          precision mediump float;
+
+          uniform sampler2D u_alphaMap;
+          in vec2 v_texCoord;
+          out vec4 outColor;
+
+          void main() {
+            float alpha = texture(u_alphaMap, v_texCoord).r;
+            float value = 1.0 - alpha;
+            outColor = vec4(value, value, value, 1.0);
+          }`,
+        );
+        const program = createProgram(gl, vertexShader, fragmentShader);
+        const buffer = gl.createBuffer();
+        const vao = gl.createVertexArray();
+
+        gl.bindVertexArray(vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+          gl.STATIC_DRAW,
+        );
+
+        const position = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+        return {
+          program,
+          vao,
+          textureUniform: gl.getUniformLocation(program, "u_alphaMap"),
+        };
+      }
+
+      function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          throw new Error(gl.getShaderInfoLog(shader));
+        }
+        return shader;
+      }
+
+      function createProgram(gl, vertexShader, fragmentShader) {
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          throw new Error(gl.getProgramInfoLog(program));
+        }
+        return program;
+      }
+    </script>
+  </body>
+</html>
