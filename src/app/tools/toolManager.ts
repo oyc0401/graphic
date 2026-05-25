@@ -32,6 +32,15 @@ export const toolManager = {
     getLayerWorker().setTool(BrushId.Brush);
     syncCoreState();
   },
+  setPencilTool() {
+    if (!canChangeMainTool()) return;
+    exitCurrentTool();
+
+    paintState.setBrushId(BrushId.Pencil);
+    paintState.setSelectedToolId(ToolId.Brush);
+    getLayerWorker().setTool(BrushId.Pencil);
+    syncCoreState();
+  },
   setEraserTool() {
     if (!canChangeMainTool()) return;
     exitCurrentTool();

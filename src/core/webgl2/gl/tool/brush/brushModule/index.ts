@@ -1,8 +1,8 @@
-import brushFrag from "../brush.frag?raw";
-import eraserFrag from "../eraser.frag?raw";
-import { createDist } from "../distModule";
-import { createPencil } from "../pencilModule";
-import { createSpline } from "../splineModule";
+import brushFrag from "./brush.frag?raw";
+import eraserFrag from "./eraser.frag?raw";
+import { createDist } from "../strokeModule/distModule";
+import { createPencil } from "../strokeModule/pencilModule";
+import { createSpline } from "../strokeModule/splineModule";
 
 export type BrushStrokeType = "spline" | "dist" | "pencil";
 export type BrushMode = "brush" | "eraser";

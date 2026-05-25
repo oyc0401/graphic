@@ -23,6 +23,7 @@ export enum ToolId {
 
 export enum BrushId {
   Brush = "brush",
+  Pencil = "pencil",
   Eraser = "eraser",
 }
 
@@ -77,6 +78,7 @@ class PaintState {
   // 도구별 브러시 크기 설정.
   private _brushSize = {
     [BrushId.Brush]: 5,
+    [BrushId.Pencil]: 1,
     [BrushId.Eraser]: 10,
     [SessionId.Mosaic]: 100,
     [LiquifyToolId.Push]: 100,
@@ -87,6 +89,7 @@ class PaintState {
   // 도구별 브러시 불투명도/강도 설정.
   private _brushAlpha = {
     [BrushId.Brush]: 100,
+    [BrushId.Pencil]: 100,
     [BrushId.Eraser]: 100,
     [SessionId.Mosaic]: 10,
     [LiquifyToolId.Push]: 50,

@@ -84,6 +84,9 @@ const commandHandlers = {
   setBrushTool() {
     toolManager.setBrushTool();
   },
+  setPencilTool() {
+    toolManager.setPencilTool();
+  },
   setEraserTool() {
     toolManager.setEraserTool();
   },

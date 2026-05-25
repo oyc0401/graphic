@@ -9,6 +9,7 @@ export type MainKeyboardShortcutAction =
   | "selectAll"
   | "deleteSelection"
   | "setBrushTool"
+  | "setPencilTool"
   | "setEraserTool"
   | "setLiquifyTool"
   | "setMosaicTool"
@@ -109,6 +110,10 @@ export const keyboardShortcuts = {
     {
       action: "setBrushTool",
       keys: ["b"],
+    },
+    {
+      action: "setPencilTool",
+      keys: ["p"],
     },
     {
       action: "setEraserTool",

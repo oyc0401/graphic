@@ -38,6 +38,7 @@ import {
   Expand,
   Grid2X2,
   LassoSelect,
+  Pencil as PencilIcon,
   Pipette,
   RotateCcw,
   RotateCw,
@@ -95,6 +96,7 @@ function AppBarMobile() {
 
             <SizeToggleButton />
             <BrushToolButton />
+            <PencilToolButton />
             <EraserToolButton />
 
             <MobileColorIndicatorButton />
@@ -392,6 +394,31 @@ const BrushToolButton = observer(() => {
       onClick={onClick}
     >
       <BrushIcon width={24} height={24} />
+    </button>
+  );
+});
+
+const PencilToolButton = observer(() => {
+  const isSelected =
+    paintState.getSelectedToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Pencil;
+
+  const toggleMenu = () => {
+    menuState.setShowSizeBar(!menuState.showSizeBar);
+  };
+
+  const onClick = () => {
+    toolManager.setPencilTool();
+    toggleMenu();
+  };
+
+  return (
+    <button
+      id="select-pencil"
+      className={`header-button ${isSelected ? "selected" : ""}`}
+      onClick={onClick}
+    >
+      <PencilIcon size={24} strokeWidth={2.2} />
     </button>
   );
 });

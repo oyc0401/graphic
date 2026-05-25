@@ -31,6 +31,7 @@ import {
   Expand,
   Grid2X2,
   LassoSelect,
+  Pencil as PencilIcon,
   Pipette,
   RotateCcw,
   RotateCw,
@@ -100,6 +101,7 @@ function AppBarDesktop() {
             <div className="div-bar"></div>
 
             <BrushToolButton />
+            <PencilToolButton />
             <EraserToolButton />
             <div className="div-bar"></div>
             <LiquifyToolButton />
@@ -380,6 +382,23 @@ const BrushToolButton = observer(() => {
     >
       <BrushIcon width={32} height={32} />
       <p>{getLetter("brush")}</p>
+    </button>
+  );
+});
+
+const PencilToolButton = observer(() => {
+  const isSelected =
+    paintState.getSelectedToolId() === ToolId.Brush &&
+    paintState.getBrushId() === BrushId.Pencil;
+
+  return (
+    <button
+      id="select-pencil"
+      className={`select-button ${isSelected ? "selected" : ""}`}
+      onClick={() => toolManager.setPencilTool()}
+    >
+      <PencilIcon size={32} strokeWidth={2.2} />
+      <p>{getLetter("pencil")}</p>
     </button>
   );
 });
