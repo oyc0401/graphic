@@ -1,5 +1,7 @@
 import strokeShaderSource from "./strokeShader.frag?raw";
 
+const ALPHA_MAP_TEXTURE_UNIT = 3;
+
 export interface DistPoint {
   x: number;
   y: number;
@@ -65,7 +67,10 @@ class Dist {
     this.alphaMapFramebuffer = this.createFramebuffer(options.alphaMapTexture);
 
     this.gl.useProgram(this.program);
-    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "u_pathMap"), 0);
+    this.gl.uniform1i(
+      this.gl.getUniformLocation(this.program, "u_pathMap"),
+      ALPHA_MAP_TEXTURE_UNIT,
+    );
     this.gl.uniform2f(
       this.gl.getUniformLocation(this.program, "u_resolution"),
       this.width,
@@ -117,7 +122,7 @@ class Dist {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
-    gl.activeTexture(gl.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     gl.bindTexture(gl.TEXTURE_2D, this.options.alphaMapTexture);
     gl.uniform1f(
       gl.getUniformLocation(this.program, "u_radius"),
@@ -185,7 +190,7 @@ class Dist {
   }
 
   private ensureAlphaMapTextureSize(texture: WebGLTexture) {
-    this.gl.activeTexture(this.gl.TEXTURE0);
+    this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     this.gl.texImage2D(
       this.gl.TEXTURE_2D,

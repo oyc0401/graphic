@@ -1,4 +1,3 @@
-import { createShader, createProgram, getGlHelper } from "../../utils/glHelper";
 import { getRenderingManager } from "../../render/render";
 import {
   TEXTURE_UNIT,
@@ -11,14 +10,31 @@ import { getManager } from "../../../../utils/cachedManager";
 import { getHistoryManager, HistoryObject } from "../../../../history/history";
 import { Rect } from "@/core/utils/rect";
 import { Pointer } from "@/core/types";
-import { SplinePathRenderer } from "./pathRenderer/SplinePathRenderer";
-import { PathRenderer } from "./pathRenderer/PathRenderer";
-import { ShaderPathRenderer } from "./pathRenderer/ShaderPathRenderer";
+import { createSpline, SplineRect } from "./splineModule";
+import { createDist, DistRect } from "./distModule";
+import { createPencil, PencilRect } from "./pencilModule";
 
 import brushFrag from "./brush.frag?raw";
 import eraserFrag from "./eraser.frag?raw";
 
 import * as twgl from "twgl.js";
+
+export enum StrokeType {
+  Spline = "spline",
+  Dist = "dist",
+  Pencil = "pencil",
+}
+
+type StrokeModuleRect = SplineRect | DistRect | PencilRect;
+
+interface BrushStrokeModule {
+  setAlpha(alpha: number): void;
+  setDiameter(diameter: number): void;
+  start(pointer: Pointer): StrokeModuleRect | null;
+  move(pointer: Pointer): StrokeModuleRect | null;
+  end(): StrokeModuleRect | null;
+}
+
 export function getBrushManager(canvas, gl) {
   const manager = getManager(gl, "brushManager", () =>
     makeBrushManager(canvas, gl),
@@ -86,37 +102,50 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
   const layerManager = getLayerManager(canvas, gl);
   const renderingManager = getRenderingManager(canvas, gl);
 
-  let splinePathRenderer = new SplinePathRenderer(gl, pathTex);
-  let shaerPathRenderer = new ShaderPathRenderer(gl, pathTex);
+  let splinePath = createSpline(gl, {
+    alphaMapTexture: pathTex,
+    width: paintOptions.width,
+    height: paintOptions.height,
+  });
+  let distPath = createDist(gl, {
+    alphaMapTexture: pathTex,
+    width: paintOptions.width,
+    height: paintOptions.height,
+  });
+  let pencilPath = createPencil(gl, {
+    alphaMapTexture: pathTex,
+    width: paintOptions.width,
+    height: paintOptions.height,
+  });
 
-  let pathRenderer: PathRenderer = splinePathRenderer;
-
-  const FALLBACK_SIZE = 1024;
+  let strokeType = StrokeType.Spline;
+  let strokeModule: BrushStrokeModule = splinePath;
 
   let brushManager = {
+    setStrokeType(type: StrokeType) {
+      strokeType = type;
+    },
     start(pointer: Pointer) {
-      if (paintOptions.radius < FALLBACK_SIZE) {
-        pathRenderer = splinePathRenderer;
-      } else {
-        pathRenderer = shaerPathRenderer;
-      }
-
-      pathRenderer.resetWorkSpace(paintOptions.width, paintOptions.height);
+      strokeModule = getStrokeModule(strokeType);
+      strokeModule.setAlpha(paintOptions.alpha);
+      strokeModule.setDiameter(paintOptions.radius * 2);
       scissorRect = null;
 
-      pathRenderer.start(pointer);
+      scissorRect = toRect(strokeModule.start(pointer));
 
       // CPU/GPU 알파 초기화(새 스트로크 시작 시)
     },
     stroke(start: Pointer, end: Pointer) {
       // 스플라인 포인트 누적: 기존 API 유지(매 프레임 end만 추가)
-      let rect = pathRenderer.stroke(end);
+      let rect = toRect(strokeModule.move(end));
       if (rect) {
         scissorRect = rect; // brush/eraser 렌더 영역으로 사용
       }
     },
     brush() {
       if (!scissorRect) return;
+
+      bindPathTexture();
 
       gl.useProgram(brushProgramInfo.program);
       twgl.setUniforms(brushProgramInfo, {
@@ -141,6 +170,9 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
     },
     eraser() {
       if (!scissorRect) return;
+
+      bindPathTexture();
+
       gl.useProgram(eraserProgramInfo.program);
 
       gl.enable(gl.SCISSOR_TEST);
@@ -160,7 +192,8 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
     },
     end(toolId) {
       // end할때 스플라인 마지막 곡선 그리기
-      let rect = pathRenderer.end();
+      const strokeRect = toRect(strokeModule.end());
+      let rect = strokeRect;
       if (rect) {
         scissorRect = rect; // brush/eraser 렌더 영역으로 사용
         if (toolId == "brush") {
@@ -173,8 +206,7 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
       scissorRect = null;
 
       // 기존 end 함수들
-      const strokeRect = pathRenderer.getStrokeDirtyRect();
-      if (strokeRect.isEmpty()) {
+      if (!strokeRect || strokeRect.isEmpty()) {
         return;
       }
       const { before, after } = sourceTextureManager.upload(
@@ -203,11 +235,14 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
 
       const historyManager = getHistoryManager(canvas, gl);
       historyManager.addUndo(newHistory);
+      clearAlphaMap(strokeRect);
     },
     cancel() {
       sourceTextureManager.restore();
-      pathRenderer.cancel();
-      pathRenderer.resetWorkSpace(paintOptions.width, paintOptions.height);
+      const strokeRect = toRect(strokeModule.end());
+      if (strokeRect && !strokeRect.isEmpty()) {
+        clearAlphaMap(strokeRect);
+      }
       scissorRect = null;
       renderingManager.render();
     },
@@ -219,11 +254,55 @@ function makeBrushManager(canvas, gl: WebGL2RenderingContext) {
       gl.clearColor(0, 0, 0, 0);
 
       // 캔버스/버퍼 준비
-      pathRenderer.resetWorkSpace(width, height);
+      recreateStrokeModules(width, height);
     },
   };
 
   brushManager.setSize();
 
   return brushManager;
+
+  function getStrokeModule(type: StrokeType): BrushStrokeModule {
+    if (type === StrokeType.Dist) return distPath;
+    if (type === StrokeType.Pencil) return pencilPath;
+    return splinePath;
+  }
+
+  function recreateStrokeModules(width: number, height: number) {
+    const options = {
+      alphaMapTexture: pathTex,
+      width,
+      height,
+    };
+    splinePath = createSpline(gl, options);
+    distPath = createDist(gl, options);
+    pencilPath = createPencil(gl, options);
+    strokeModule = getStrokeModule(strokeType);
+  }
+
+  function bindPathTexture() {
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PATHMAP);
+    gl.bindTexture(gl.TEXTURE_2D, pathTex);
+  }
+
+  function clearAlphaMap(rect: Rect) {
+    bindPathTexture();
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RED,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array(rect.width * rect.height),
+    );
+  }
+}
+
+function toRect(rect: StrokeModuleRect | null): Rect | null {
+  if (!rect) return null;
+  return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
 }

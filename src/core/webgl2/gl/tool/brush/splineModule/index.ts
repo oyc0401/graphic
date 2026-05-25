@@ -1,5 +1,7 @@
 import { calculateTangents, hermite } from "@/core/utils/spline";
 
+const ALPHA_MAP_TEXTURE_UNIT = 3;
+
 export interface SplinePoint {
   x: number;
   y: number;
@@ -99,7 +101,7 @@ class Spline {
   }
 
   private ensureAlphaMapTextureSize() {
-    this.gl.activeTexture(this.gl.TEXTURE0);
+    this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.options.alphaMapTexture);
     this.gl.texImage2D(
       this.gl.TEXTURE_2D,
@@ -172,7 +174,7 @@ class Spline {
 
       const shouldDraw =
         mode === "incremental"
-          ? i === Math.max(0, sliced.length - 3)
+          ? i === sliced.length - 3
           : i === sliced.length - 2;
 
       if (!shouldDraw) continue;
@@ -227,7 +229,7 @@ class Spline {
       }
     }
 
-    this.gl.activeTexture(this.gl.TEXTURE0);
+    this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.options.alphaMapTexture);
     this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
     this.gl.texSubImage2D(

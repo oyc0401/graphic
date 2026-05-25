@@ -1,3 +1,5 @@
+const ALPHA_MAP_TEXTURE_UNIT = 3;
+
 export interface PencilPoint {
   x: number;
   y: number;
@@ -140,7 +142,7 @@ class Pencil {
   }
 
   private ensureAlphaMapTextureSize() {
-    this.gl.activeTexture(this.gl.TEXTURE0);
+    this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.options.alphaMapTexture);
     this.gl.texImage2D(
       this.gl.TEXTURE_2D,
@@ -202,7 +204,7 @@ class Pencil {
   }
 
   private uploadChangedPixels(pixels: PencilPoint[], alphaByte: number) {
-    this.gl.activeTexture(this.gl.TEXTURE0);
+    this.gl.activeTexture(this.gl.TEXTURE0 + ALPHA_MAP_TEXTURE_UNIT);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.options.alphaMapTexture);
     this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
 

@@ -4,6 +4,7 @@ import {
   installTools,
   LiquifyTool as LiquifyStrokeTool,
   MosaicTool as MosaicStrokeTool,
+  PencilTool,
 } from "./gl/tool/tool";
 import type { ApplyTool } from "./gl/tool/tool";
 import { paintOptions } from "./gl/texture";
@@ -76,12 +77,14 @@ export class PaintService {
 
     let brushTool = new BrushTool(this.canvas, this.gl);
     let eraserTool = new EraserTool(this.canvas, this.gl);
+    let pencilTool = new PencilTool(this.canvas, this.gl);
     let liquifyTool = new LiquifyStrokeTool(this.canvas, this.gl);
     let mosaicTool = new MosaicStrokeTool(this.canvas, this.gl);
 
     this.tools = {
       brush: brushTool,
       eraser: eraserTool,
+      pencil: pencilTool,
       liquify: liquifyTool,
       mosaic: mosaicTool,
     };

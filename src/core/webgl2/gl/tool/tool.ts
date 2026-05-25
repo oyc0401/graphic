@@ -1,6 +1,7 @@
 import { getLiquifyManager, installLiquifyManager } from "./liquify/liquify";
-import { getBrushManager } from "./brush/brushTool";
+import { StrokeType, getBrushManager } from "./brush/brushTool";
 import { getMosaicManager, installMosaicManager } from "./mosaic/mosaic";
+import { paintOptions } from "../texture";
 
 interface Pointer {
   x: number;
@@ -32,6 +33,7 @@ export class BrushTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   start(pointer: Pointer) {
+    this.drawManager.setStrokeType(getBrushStrokeType());
     this.drawManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
@@ -53,6 +55,7 @@ export class EraserTool implements Tool {
     this.drawManager = getBrushManager(canvas, gl);
   }
   start(pointer: Pointer) {
+    this.drawManager.setStrokeType(getBrushStrokeType());
     this.drawManager.start(pointer);
   }
   stroke(p1: Pointer, p2: Pointer) {
@@ -61,6 +64,28 @@ export class EraserTool implements Tool {
   }
   end() {
     this.drawManager.end("eraser");
+  }
+  cancel() {
+    this.drawManager.cancel();
+  }
+}
+
+export class PencilTool implements Tool {
+  drawManager;
+
+  constructor(canvas, gl) {
+    this.drawManager = getBrushManager(canvas, gl);
+  }
+  start(pointer: Pointer) {
+    this.drawManager.setStrokeType(StrokeType.Pencil);
+    this.drawManager.start(pointer);
+  }
+  stroke(p1: Pointer, p2: Pointer) {
+    this.drawManager.stroke(p1, p2);
+    this.drawManager.brush();
+  }
+  end() {
+    this.drawManager.end("brush");
   }
   cancel() {
     this.drawManager.cancel();
@@ -112,4 +137,13 @@ export class MosaicTool implements Tool {
   cancel() {
     this.mosaicManager.cancel();
   }
+}
+
+const DIST_FALLBACK_RADIUS = 1024;
+
+function getBrushStrokeType() {
+  if (paintOptions.radius < DIST_FALLBACK_RADIUS) {
+    return StrokeType.Spline;
+  }
+  return StrokeType.Dist;
 }

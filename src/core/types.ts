@@ -3,7 +3,7 @@ export interface Pointer {
   y: number;
 }
 
-export type CoreTool = "brush" | "eraser";
+export type CoreTool = "brush" | "eraser" | "pencil";
 
 export type CoreSessionTool = "liquify" | "mosaic";
 
