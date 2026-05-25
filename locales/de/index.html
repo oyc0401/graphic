@@ -2,15 +2,32 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-    <title>Paint Online</title>
     <meta
-      name="description"
-      content="A simple and intuitive web-based drawing application. Offers various drawing tools and selection features."
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
 
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <title>PaintOn</title>
+    <meta name="description" content="PaintOn ist ein einfacher webbasierter Bildeditor mit Zeichenwerkzeugen, Auswahlfunktionen, Verflüssigen und Mosaik." />
+    <link rel="canonical" href="https://painton.app/de" />
+    <link rel="alternate" hreflang="en" href="https://painton.app/en" />
+    <link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
+    <link rel="alternate" hreflang="ja" href="https://painton.app/ja" />
+    <link rel="alternate" hreflang="es" href="https://painton.app/es" />
+    <link rel="alternate" hreflang="fr" href="https://painton.app/fr" />
+    <link rel="alternate" hreflang="de" href="https://painton.app/de" />
+    <link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
+    <link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
+    <link rel="alternate" hreflang="x-default" href="https://painton.app/en" />
+    <meta property="og:title" content="PaintOn" />
+    <meta property="og:description" content="PaintOn ist ein einfacher webbasierter Bildeditor mit Zeichenwerkzeugen, Auswahlfunktionen, Verflüssigen und Mosaik." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://painton.app/de" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
     <link href="/ui.css" rel="stylesheet" />
     <link href="/style.css" rel="stylesheet" />
   </head>
@@ -25,6 +42,9 @@
         <canvas id="canvas"></canvas>
       </div>
       <div id="selections">
+        <svg id="freeform-select-preview" aria-hidden="true">
+          <polyline id="freeform-select-preview-line"></polyline>
+        </svg>
         <div id="selection-area"></div>
         <div id="resize-area"></div>
         <div id="handle-rt" class="handle">
@@ -74,7 +94,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>
-      //eruda.init();
+      // eruda.init();
     </script>
   </body>
 </html>

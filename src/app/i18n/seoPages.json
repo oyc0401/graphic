@@ -1,0 +1,118 @@
+{
+  "siteUrl": "https://painton.app",
+  "defaultLocale": "en",
+  "locales": ["en", "ko", "ja", "es", "fr", "de", "zh", "ru"],
+  "pages": {
+    "home": {
+      "slug": "",
+      "meta": {
+        "en": {
+          "title": "PaintOn",
+          "description": "PaintOn is a simple and intuitive web-based image editor. It offers drawing tools, selection features, liquify, and mosaic editing."
+        },
+        "ko": {
+          "title": "PaintOn",
+          "description": "PaintOn은 간단하고 직관적인 웹 기반 이미지 편집기입니다. 드로잉 도구, 선택 기능, 유동화, 모자이크 편집을 제공합니다."
+        },
+        "ja": {
+          "title": "PaintOn",
+          "description": "PaintOnはシンプルで直感的なウェブ画像エディタです。描画ツール、選択機能、ゆがみ、モザイク編集を利用できます。"
+        },
+        "es": {
+          "title": "PaintOn",
+          "description": "PaintOn es un editor de imágenes web sencillo e intuitivo con herramientas de dibujo, selección, licuar y mosaico."
+        },
+        "fr": {
+          "title": "PaintOn",
+          "description": "PaintOn est un éditeur d'images web simple et intuitif avec dessin, sélection, liquify et mosaïque."
+        },
+        "de": {
+          "title": "PaintOn",
+          "description": "PaintOn ist ein einfacher webbasierter Bildeditor mit Zeichenwerkzeugen, Auswahlfunktionen, Verflüssigen und Mosaik."
+        },
+        "zh": {
+          "title": "PaintOn",
+          "description": "PaintOn 是一款简单直观的网页图像编辑器，提供绘图工具、选择功能、液化和马赛克编辑。"
+        },
+        "ru": {
+          "title": "PaintOn",
+          "description": "PaintOn — простой веб-редактор изображений с инструментами рисования, выделения, пластики и мозаики."
+        }
+      }
+    },
+    "liquify": {
+      "slug": "liquify",
+      "meta": {
+        "en": {
+          "title": "Liquify Image Online | PaintOn",
+          "description": "Use PaintOn's browser-based liquify tool to push, twirl, bloat, pucker, and restore image details without installing software."
+        },
+        "ko": {
+          "title": "온라인 유동화 도구",
+          "description": "설치 없이 브라우저에서 이미지를 밀기, 회전, 확장, 축소, 복원할 수 있는 온라인 유동화 도구입니다."
+        },
+        "ja": {
+          "title": "オンラインゆがみツール",
+          "description": "インストール不要で、画像をプッシュ、回転、膨張、収縮、復元できるブラウザベースのゆがみツールです。"
+        },
+        "es": {
+          "title": "Herramienta de Licuar Online",
+          "description": "Licua imágenes en el navegador con empujar, girar, inflar, contraer y restaurar sin instalar software."
+        },
+        "fr": {
+          "title": "Outil Liquify en Ligne",
+          "description": "Déformez une image dans le navigateur avec pousser, tourner, gonfler, pincer et restaurer, sans installation."
+        },
+        "de": {
+          "title": "Verflüssigen Online",
+          "description": "Bearbeiten Sie Bilder direkt im Browser mit Schieben, Drehen, Aufblähen, Zusammenziehen und Wiederherstellen."
+        },
+        "zh": {
+          "title": "在线液化工具",
+          "description": "无需安装软件，直接在浏览器中推动、旋转、膨胀、收缩和恢复图像细节。"
+        },
+        "ru": {
+          "title": "Пластика Изображений Онлайн",
+          "description": "Редактируйте изображение в браузере: сдвиг, вращение, раздутие, сжатие и восстановление без установки программ."
+        }
+      }
+    },
+    "mosaic": {
+      "slug": "mosaic",
+      "meta": {
+        "en": {
+          "title": "Mosaic Image Online | PaintOn",
+          "description": "Add pixel mosaic or blur mosaic effects to images in PaintOn and restore masked areas when needed."
+        },
+        "ko": {
+          "title": "온라인 모자이크 도구",
+          "description": "브라우저에서 이미지에 픽셀 모자이크와 블러 모자이크를 적용하고 필요한 영역은 복원할 수 있습니다."
+        },
+        "ja": {
+          "title": "オンラインモザイクツール",
+          "description": "ブラウザで画像にピクセルモザイクやぼかしモザイクを適用し、必要な範囲を復元できます。"
+        },
+        "es": {
+          "title": "Herramienta de Mosaico Online",
+          "description": "Aplica mosaico de píxeles o desenfoque a imágenes en el navegador y restaura áreas cuando lo necesites."
+        },
+        "fr": {
+          "title": "Outil Mosaïque en Ligne",
+          "description": "Ajoutez un effet mosaïque pixel ou flou aux images dans le navigateur et restaurez les zones nécessaires."
+        },
+        "de": {
+          "title": "Mosaik Online",
+          "description": "Fügen Sie Bildern im Browser Pixelmosaik oder Weichzeichnungs-Mosaik hinzu und stellen Sie Bereiche wieder her."
+        },
+        "zh": {
+          "title": "在线马赛克工具",
+          "description": "在浏览器中为图像添加像素马赛克或模糊马赛克效果，并可恢复需要的区域。"
+        },
+        "ru": {
+          "title": "Мозаика Изображений Онлайн",
+          "description": "Добавляйте пиксельную или размытую мозаику к изображениям в браузере и восстанавливайте нужные области."
+        }
+      }
+    }
+  }
+}

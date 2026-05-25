@@ -3,11 +3,25 @@ import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
+import { globSync } from "glob";
 
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function getHtmlInputs() {
+  const input = {
+    main: resolve(__dirname, "index.html"),
+  };
+
+  for (const file of globSync("locales/**/index.html", { cwd: __dirname })) {
+    const name = file.replace(/\/index\.html$/, "").replace(/\//g, "-");
+    input[name] = resolve(__dirname, file);
+  }
+
+  return input;
+}
 
 export default defineConfig({
   plugins: [react(), wasm(), topLevelAwait(), svgr()],
@@ -25,17 +39,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, "index.html"),
-        en: resolve(__dirname, "locales/en/index.html"),
-        ko: resolve(__dirname, "locales/ko/index.html"),
-        ja: resolve(__dirname, "locales/ja/index.html"),
-        es: resolve(__dirname, "locales/es/index.html"),
-        fr: resolve(__dirname, "locales/fr/index.html"),
-        de: resolve(__dirname, "locales/de/index.html"),
-        zh: resolve(__dirname, "locales/zh/index.html"),
-        ru: resolve(__dirname, "locales/ru/index.html"),
-      },
+      input: getHtmlInputs(),
     },
   },
 });
