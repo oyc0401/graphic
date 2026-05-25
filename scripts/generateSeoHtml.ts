@@ -16,10 +16,19 @@ type PageConfig = {
   >;
 };
 
+type RootConfig = {
+  locale: Locale;
+  meta: {
+    title: string;
+    description: string;
+  };
+};
+
 type SeoConfig = {
   siteUrl: string;
   defaultLocale: Locale;
   locales: Locale[];
+  root: RootConfig;
   pages: Record<PageId, PageConfig>;
 };
 
@@ -46,7 +55,13 @@ function pagePath(locale: Locale, page: PageId): string {
 
 function pageUrl(locale: Locale, page: PageId): string {
   const { siteUrl } = seoConfig;
-  return `${siteUrl}${pagePath(locale, page)}`;
+  return `${siteUrl.replace(/\/$/, "")}${pagePath(locale, page)}`;
+}
+
+function rootUrl(): string {
+  return seoConfig.siteUrl.endsWith("/")
+    ? seoConfig.siteUrl
+    : `${seoConfig.siteUrl}/`;
 }
 
 function outputPath(locale: Locale, page: PageId): string {
@@ -57,16 +72,61 @@ function outputPath(locale: Locale, page: PageId): string {
     : path.join(rootDir, "locales", locale, "index.html");
 }
 
+function xmlEscape(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
 function alternateLinks(page: PageId): string {
   const { defaultLocale, locales } = seoConfig;
   const links = locales.map((locale) => {
     const href = pageUrl(locale, page);
     return `    <link rel="alternate" hreflang="${escapeHtml(locale)}" href="${escapeHtml(href)}" />`;
   });
+  const xDefault = page === "home" ? rootUrl() : pageUrl(defaultLocale, page);
   links.push(
-    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(pageUrl(defaultLocale, page))}" />`,
+    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(xDefault)}" />`,
   );
   return links.join("\n");
+}
+
+function rootAlternateLinks(): string {
+  const links = seoConfig.locales.map((locale) => {
+    const href = pageUrl(locale, "home");
+    return `    <link rel="alternate" hreflang="${escapeHtml(locale)}" href="${escapeHtml(href)}" />`;
+  });
+  links.push(
+    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(rootUrl())}" />`,
+  );
+  return links.join("\n");
+}
+
+function alternateUrls(page: PageId): { hreflang: string; href: string }[] {
+  const alternates = seoConfig.locales.map((locale) => ({
+    hreflang: locale,
+    href: pageUrl(locale, page),
+  }));
+  alternates.push({
+    hreflang: "x-default",
+    href: page === "home" ? rootUrl() : pageUrl(seoConfig.defaultLocale, page),
+  });
+  return alternates;
+}
+
+function rootAlternateUrls(): { hreflang: string; href: string }[] {
+  const alternates = seoConfig.locales.map((locale) => ({
+    hreflang: locale,
+    href: pageUrl(locale, "home"),
+  }));
+  alternates.push({
+    hreflang: "x-default",
+    href: rootUrl(),
+  });
+  return alternates;
 }
 
 function replaceRequired(
@@ -148,6 +208,97 @@ function renderHtml(template: string, locale: Locale, page: PageId): string {
   return html;
 }
 
+function renderRootHtml(template: string): string {
+  const { root } = seoConfig;
+  let html = template;
+  html = replaceRequired(
+    html,
+    /<html lang="[^"]*">/,
+    `<html lang="${escapeHtml(root.locale)}">`,
+    "html lang",
+  );
+  html = replaceRequired(
+    html,
+    /    <title>.*<\/title>/,
+    `    <title>${escapeHtml(root.meta.title)}</title>`,
+    "title",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta name="description" content="[^"]*" \/>/,
+    `    <meta name="description" content="${escapeHtml(root.meta.description)}" />`,
+    "description",
+  );
+  html = replaceRequired(
+    html,
+    /    <link rel="canonical" href="[^"]*" \/>/,
+    `    <link rel="canonical" href="${escapeHtml(rootUrl())}" />`,
+    "canonical",
+  );
+  html = replaceRequired(
+    html,
+    /(?:    <link rel="alternate" hreflang="[^"]*" href="[^"]*" \/>\n)+/,
+    `${rootAlternateLinks()}\n`,
+    "alternate links",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta property="og:title" content="[^"]*" \/>/,
+    `    <meta property="og:title" content="${escapeHtml(root.meta.title)}" />`,
+    "og:title",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta property="og:description" content="[^"]*" \/>/,
+    `    <meta property="og:description" content="${escapeHtml(root.meta.description)}" />`,
+    "og:description",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta property="og:url" content="[^"]*" \/>/,
+    `    <meta property="og:url" content="${escapeHtml(rootUrl())}" />`,
+    "og:url",
+  );
+  html = replaceRequired(
+    html,
+    /window\.lang = "[^"]*";/,
+    `window.lang = "${escapeHtml(root.locale)}";`,
+    "window.lang",
+  );
+  return html;
+}
+
+function renderSitemapUrl(
+  loc: string,
+  alternates: { hreflang: string; href: string }[],
+): string {
+  const alternateLinks = alternates
+    .map(
+      ({ hreflang, href }) =>
+        `    <xhtml:link rel="alternate" hreflang="${xmlEscape(hreflang)}" href="${xmlEscape(href)}" />`,
+    )
+    .join("\n");
+
+  return `  <url>\n    <loc>${xmlEscape(loc)}</loc>\n${alternateLinks}\n  </url>`;
+}
+
+function renderSitemap(pageIds: PageId[]): string {
+  const urls = [
+    renderSitemapUrl(rootUrl(), rootAlternateUrls()),
+    ...seoConfig.locales.flatMap((locale) =>
+      pageIds.map((page) =>
+        renderSitemapUrl(pageUrl(locale, page), alternateUrls(page)),
+      ),
+    ),
+  ].join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`;
+}
+
+function renderRobotsTxt(): string {
+  return `User-agent: *\nAllow: /\n\nSitemap: ${rootUrl()}sitemap.xml\n`;
+}
+
 async function main(): Promise<void> {
   seoConfig = JSON.parse(await readFile(seoConfigPath, "utf8")) as SeoConfig;
   const template = await readFile(templatePath, "utf8");
@@ -164,12 +315,23 @@ async function main(): Promise<void> {
 
   await writeFile(
     path.join(rootDir, "index.html"),
-    renderHtml(template, defaultLocale, "home"),
+    renderRootHtml(template),
+    "utf8",
+  );
+
+  await writeFile(
+    path.join(rootDir, "public", "sitemap.xml"),
+    renderSitemap(pageIds),
+    "utf8",
+  );
+  await writeFile(
+    path.join(rootDir, "public", "robots.txt"),
+    renderRobotsTxt(),
     "utf8",
   );
 
   console.log(
-    `Generated ${locales.length * pageIds.length + 1} SEO HTML files.`,
+    `Generated ${locales.length * pageIds.length + 1} SEO HTML files, sitemap.xml, and robots.txt.`,
   );
 }
 

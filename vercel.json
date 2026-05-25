@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/liquify", "destination": "/en/liquify", "permanent": true },
+    { "source": "/mosaic", "destination": "/en/mosaic", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/en", "destination": "/locales/en/index.html" },
     { "source": "/en/liquify", "destination": "/locales/en/liquify/index.html" },

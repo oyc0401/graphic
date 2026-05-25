@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://painton.app/sitemap.xml

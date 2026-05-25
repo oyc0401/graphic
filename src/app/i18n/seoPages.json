@@ -2,6 +2,13 @@
   "siteUrl": "https://painton.app",
   "defaultLocale": "en",
   "locales": ["en", "ko", "ja", "es", "fr", "de", "zh", "ru"],
+  "root": {
+    "locale": "en",
+    "meta": {
+      "title": "PaintOn",
+      "description": "PaintOn is a browser-based image editor for drawing, liquify, and mosaic editing."
+    }
+  },
   "pages": {
     "home": {
       "slug": "",
