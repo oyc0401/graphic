@@ -19,11 +19,13 @@ import { bindView } from "./ui/view";
 import { getLayerWorker } from "./worker/workerPool";
 import { tranferCanvas } from "./canvas";
 import { addKeyboardEvent } from "./events/keyboardEvent";
-import { paintState } from "./paintState";
+import { paintState, SessionId } from "./paintState";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./file/initialImage";
+import { getInitialRouteSession } from "./file/initialRouteSession";
 import { installGestureAdapter } from "./events/gestureAdapter";
+import { toolManager } from "./tools/toolManager";
 
 const root = document.getElementById("appbar-root");
 if (root) {
@@ -72,6 +74,13 @@ async function main() {
   addKeyboardEvent();
 
   addClipboardEvent();
+
+  const initialRouteSession = getInitialRouteSession();
+  if (initialRouteSession === SessionId.Liquify) {
+    toolManager.setLiquifyTool();
+  } else if (initialRouteSession === SessionId.Mosaic) {
+    toolManager.setMosaicTool();
+  }
 
   console.log("Complete App!");
 
