@@ -105,6 +105,40 @@ function rootAlternateLinks(): string {
   return links.join("\n");
 }
 
+function jsonLdScript(data: Record<string, unknown>): string {
+  return `    <script type="application/ld+json">${JSON.stringify(data)}</script>`;
+}
+
+function softwareApplicationJsonLd(
+  name: string,
+  description: string,
+  url: string,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Web",
+    url,
+    description,
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+  };
+}
+
+function insertJsonLd(html: string, data: Record<string, unknown>): string {
+  return replaceRequired(
+    html,
+    /  <\/head>/,
+    `${jsonLdScript(data)}\n  </head>`,
+    "head close",
+  );
+}
+
 function alternateUrls(page: PageId): { hreflang: string; href: string }[] {
   const alternates = seoConfig.locales.map((locale) => ({
     hreflang: locale,
@@ -139,6 +173,18 @@ function replaceRequired(
     throw new Error(`Missing ${label} in index.html template.`);
   }
   return html.replace(pattern, replacement);
+}
+
+function normalizeTemplate(html: string): string {
+  return html
+    .replace(
+      /\n    <script type="application\/ld\+json">.*?<\/script>/gs,
+      "",
+    )
+    .replace(
+      /\n    <script src="https:\/\/cdn\.jsdelivr\.net\/npm\/eruda"><\/script>\n    <script>\n      \/\/ eruda\.init\(\);\n    <\/script>/g,
+      "",
+    );
 }
 
 function renderHtml(template: string, locale: Locale, page: PageId): string {
@@ -205,7 +251,10 @@ function renderHtml(template: string, locale: Locale, page: PageId): string {
     `window.lang = "${escapeHtml(locale)}";`,
     "window.lang",
   );
-  return html;
+  return insertJsonLd(
+    html,
+    softwareApplicationJsonLd(meta.title, meta.description, canonical),
+  );
 }
 
 function renderRootHtml(template: string): string {
@@ -265,7 +314,10 @@ function renderRootHtml(template: string): string {
     `window.lang = "${escapeHtml(root.locale)}";`,
     "window.lang",
   );
-  return html;
+  return insertJsonLd(
+    html,
+    softwareApplicationJsonLd(root.meta.title, root.meta.description, rootUrl()),
+  );
 }
 
 function renderSitemapUrl(
@@ -301,7 +353,7 @@ function renderRobotsTxt(): string {
 
 async function main(): Promise<void> {
   seoConfig = JSON.parse(await readFile(seoConfigPath, "utf8")) as SeoConfig;
-  const template = await readFile(templatePath, "utf8");
+  const template = normalizeTemplate(await readFile(templatePath, "utf8"));
   const { defaultLocale, locales, pages } = seoConfig;
   const pageIds = Object.keys(pages);
 
