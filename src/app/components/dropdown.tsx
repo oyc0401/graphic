@@ -35,11 +35,27 @@ export const MainMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside([menuRef, buttonRef], () => {
-    if (menuState.showMenu) {
-      menuState.setShowMenu(false);
-    }
-  });
+  useEffect(() => {
+    const listener = (event: PointerEvent) => {
+      const target = event.target as Node;
+      const languageMenu = document.getElementById("languageMenu");
+      if (
+        menuRef.current?.contains(target) ||
+        buttonRef.current?.contains(target) ||
+        languageMenu?.contains(target)
+      ) {
+        return;
+      }
+      if (menuState.showMenu) {
+        menuState.setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", listener);
+    return () => {
+      document.removeEventListener("pointerdown", listener);
+    };
+  }, []);
 
   useDropdownPosition(buttonRef, menuRef, menuState.showMenu, {
     padding: 0,
@@ -93,67 +109,147 @@ export const MainMenuToggleButton = observer(() => {
 
 export const LanguageMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
   const [open, setOpen] = useState(false);
-  useClickOutside([menuRef, buttonRef], () => {
-    if (open) {
-      setOpen(false);
-    }
-  });
 
-  useDropdownPosition2(buttonRef, menuRef, open, {
-    padding: 0,
-    direction: "right",
-  });
+  const getLanguageMenu = () => document.getElementById("languageMenu");
+
+  const getRouteTool = () => {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    if (segments.length === 1 && isLanguageRouteTool(segments[0])) {
+      return segments[0];
+    }
+    if (segments.length === 2 && isLanguageRouteTool(segments[1])) {
+      return segments[1];
+    }
+    return null;
+  };
+
+  const languageHref = (lang: string) => {
+    const tool = getRouteTool();
+    const path = tool ? `/${lang}/${tool}` : `/${lang}`;
+    return `${path}${window.location.search}${window.location.hash}`;
+  };
+
+  const updateLanguageLinks = () => {
+    const menu = getLanguageMenu();
+    if (!menu) return;
+
+    menu.querySelectorAll<HTMLAnchorElement>("a[data-lang]").forEach((link) => {
+      const lang = link.dataset.lang;
+      if (!lang) return;
+      link.href = languageHref(lang);
+    });
+  };
+
+  const closeMenu = () => {
+    getLanguageMenu()?.classList.add("hide");
+    setOpen(false);
+  };
+
+  const positionMenu = () => {
+    const button = buttonRef.current;
+    const menu = getLanguageMenu();
+    if (!button || !menu) return;
+
+    const padding = 0;
+    const rect = button.getBoundingClientRect();
+    updateLanguageLinks();
+    menu.classList.remove("hide");
+
+    const menuRect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = rect.right;
+    if (left + menuRect.width + padding > viewportWidth) {
+      left = rect.left - menuRect.width;
+    }
+    if (left + menuRect.width + padding > viewportWidth) {
+      left = viewportWidth - menuRect.width - padding;
+    }
+    if (left < padding) {
+      left = padding;
+    }
+
+    let top = rect.top;
+    if (top + menuRect.height + padding > viewportHeight) {
+      top = viewportHeight - menuRect.height - padding;
+    }
+    if (top < padding) {
+      top = padding;
+    }
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      getLanguageMenu()?.classList.add("hide");
+      return;
+    }
+
+    positionMenu();
+
+    const onPointerDown = (event: PointerEvent) => {
+      const button = buttonRef.current;
+      const menu = getLanguageMenu();
+      const target = event.target as Node;
+      if (button?.contains(target) || menu?.contains(target)) return;
+      closeMenu();
+    };
+
+    const onReposition = () => {
+      if (open) positionMenu();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+
+    const resizeObserver = new ResizeObserver(onReposition);
+    const button = buttonRef.current;
+    const menu = getLanguageMenu();
+    if (button) resizeObserver.observe(button);
+    if (menu) resizeObserver.observe(menu);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+      resizeObserver.disconnect();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      getLanguageMenu()?.classList.add("hide");
+    };
+  }, []);
 
   const toggleMenu = () => {
-    setOpen(!open);
+    setOpen((nextOpen) => !nextOpen);
   };
 
   return (
-    <>
-      <button id="language-button" onClick={toggleMenu} ref={buttonRef}>
-        <div className="menu-button-content">
-          <TranslateIcon />
-          <p>Language</p>
-        </div>
-      </button>
-
-      {open && (
-        <div className="sub-menu" ref={menuRef}>
-          {["en", "ko", "ja", "es", "fr", "de", "zh", "ru"].map((lang) => (
-            <button
-              key={lang}
-              onClick={() => {
-                const path =
-                  process.env.NODE_ENV === "production"
-                    ? `/${lang}`
-                    : `/locales/${lang}/index.html`;
-                window.location.href = path;
-              }}
-            >
-              <div className="menu-button-content">
-                <p>
-                  {{
-                    en: "English",
-                    ko: "한국어",
-                    ja: "日本語",
-                    es: "Español",
-                    fr: "Français",
-                    de: "Deutsch",
-                    zh: "中文",
-                    ru: "Русский",
-                  }[lang]}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </>
+    <button
+      id="language-button"
+      onClick={toggleMenu}
+      ref={buttonRef}
+      aria-expanded={open}
+      aria-controls="languageMenu"
+    >
+      <div className="menu-button-content">
+        <TranslateIcon />
+        <p>Language</p>
+      </div>
+    </button>
   );
 });
+
+function isLanguageRouteTool(segment: string) {
+  return segment === "liquify" || segment === "mosaic";
+}
 
 export const ColorIndicatorButton = observer(() => {
   const colorHex = rgbToHex(colorState.getRGB());
