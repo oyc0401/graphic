@@ -531,17 +531,19 @@ const ZoomToolButton = observer(() => {
   return (
     <button
       id="select-zoom"
-      className={`header-button ${isSelected ? "selected" : ""}`}
+      className="header-button"
       aria-label="zoom"
       onClick={() => {
         toolManager.setZoomTool();
         menuState.setShowTools(false);
       }}
+      style={{ background: "transparent", color: isSelected ? "#3587ff" : "#222222" }}
     >
       <Search
         color={isSelected ? "#3587ff" : "#222222"}
         size={24}
         strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
       />
     </button>
   );
@@ -553,17 +555,19 @@ const ColorPickerToolButton = observer(() => {
   return (
     <button
       id="select-color-picker"
-      className={`header-button ${isSelected ? "selected" : ""}`}
+      className="header-button"
       aria-label={getLetter("color_picker")}
       onClick={() => {
         toolManager.setColorPickerTool();
         menuState.setShowTools(false);
       }}
+      style={{ background: "transparent", color: isSelected ? "#3587ff" : "#222222" }}
     >
       <Pipette
         color={isSelected ? "#3587ff" : "#222222"}
         size={24}
         strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
       />
     </button>
   );

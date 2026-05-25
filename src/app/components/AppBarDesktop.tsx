@@ -456,14 +456,16 @@ const ZoomToolButton = observer(() => {
   return (
     <button
       id="select-zoom"
-      className={`select-mini ${isSelected ? "selected" : ""}`}
+      className="select-mini"
       aria-label="zoom"
       onClick={() => toolManager.setZoomTool()}
+      style={{ background: isSelected ? "#f5f5f5" : "transparent" }}
     >
       <Search
         color={isSelected ? "#3587ff" : "#222222"}
         size={20}
         strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
       />
     </button>
   );
@@ -475,14 +477,16 @@ const ColorPickerToolButton = observer(() => {
   return (
     <button
       id="select-color-picker"
-      className={`select-mini ${isSelected ? "selected" : ""}`}
+      className="select-mini"
       aria-label={getLetter("color_picker")}
       onClick={() => toolManager.setColorPickerTool()}
+      style={{ background: isSelected ? "#f5f5f5" : "transparent" }}
     >
       <Pipette
         color={isSelected ? "#3587ff" : "#222222"}
         size={20}
         strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
       />
     </button>
   );
