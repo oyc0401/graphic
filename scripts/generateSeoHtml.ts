@@ -245,6 +245,24 @@ function renderHtml(template: string, locale: Locale, page: PageId): string {
     `    <meta property="og:url" content="${escapeHtml(canonical)}" />`,
     "og:url",
   );
+  html = replaceRequired(
+    html,
+    /    <meta property="og:locale" content="[^"]*" \/>/,
+    `    <meta property="og:locale" content="${escapeHtml(locale)}" />`,
+    "og:locale",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta name="twitter:title" content="[^"]*" \/>/,
+    `    <meta name="twitter:title" content="${escapeHtml(meta.title)}" />`,
+    "twitter:title",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta name="twitter:description" content="[^"]*" \/>/,
+    `    <meta name="twitter:description" content="${escapeHtml(meta.description)}" />`,
+    "twitter:description",
+  );
   return insertJsonLd(
     html,
     softwareApplicationJsonLd(meta.title, meta.description, canonical),
@@ -301,6 +319,24 @@ function renderRootHtml(template: string): string {
     /    <meta property="og:url" content="[^"]*" \/>/,
     `    <meta property="og:url" content="${escapeHtml(rootUrl())}" />`,
     "og:url",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta property="og:locale" content="[^"]*" \/>/,
+    `    <meta property="og:locale" content="${escapeHtml(root.locale)}" />`,
+    "og:locale",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta name="twitter:title" content="[^"]*" \/>/,
+    `    <meta name="twitter:title" content="${escapeHtml(root.meta.title)}" />`,
+    "twitter:title",
+  );
+  html = replaceRequired(
+    html,
+    /    <meta name="twitter:description" content="[^"]*" \/>/,
+    `    <meta name="twitter:description" content="${escapeHtml(root.meta.description)}" />`,
+    "twitter:description",
   );
   return insertJsonLd(
     html,
