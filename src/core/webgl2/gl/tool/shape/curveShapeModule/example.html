@@ -115,6 +115,11 @@
         width,
         height,
       });
+      curveShape.setColor([
+        ...hexToColor(colorInput.value),
+        Number(alphaInput.value),
+      ]);
+      curveShape.setWidth(Number(strokeWidthInput.value));
 
       let active = false;
       let startPoint = null;
@@ -153,30 +158,37 @@
 
         const endPoint = toCanvasPoint(event);
         let dirtyRect = null;
+        curveShape.setColor([
+          ...hexToColor(colorInput.value),
+          Number(alphaInput.value),
+        ]);
+        curveShape.setWidth(Number(strokeWidthInput.value));
 
         if (!curveBaseLine) {
           curveBaseLine = {
             p1: startPoint,
             p2: endPoint,
           };
+          dirtyRect = curveShape.createCurve(
+            curveBaseLine.p1,
+            curveBaseLine.p2,
+            null,
+            null,
+          );
         } else if (!curveControlPoint) {
           curveControlPoint = endPoint;
+          dirtyRect = curveShape.createCurve(
+            curveBaseLine.p1,
+            curveBaseLine.p2,
+            curveControlPoint,
+            null,
+          );
         } else {
-          const controls = msPaintCurveControls(
+          dirtyRect = curveShape.createCurve(
             curveBaseLine.p1,
             curveBaseLine.p2,
             curveControlPoint,
             endPoint,
-          );
-          dirtyRect = curveShape.createCurve(
-            curveBaseLine.p1,
-            curveBaseLine.p2,
-            controls.c1,
-            controls.c2,
-            {
-              color: [...hexToColor(colorInput.value), Number(alphaInput.value)],
-              strokeWidth: Number(strokeWidthInput.value),
-            },
           );
           curveBaseLine = null;
           curveControlPoint = null;
@@ -185,24 +197,6 @@
         console.log("curve shape rect", dirtyRect);
         drawTexture(gl, resultTexture, width, height);
       });
-
-      function msPaintCurveControls(p1, p2, bendPoint, tangentPoint) {
-        const tangent = {
-          x: tangentPoint.x - bendPoint.x,
-          y: tangentPoint.y - bendPoint.y,
-        };
-
-        return {
-          c1: {
-            x: (8 * bendPoint.x - p1.x - p2.x - 2 * tangent.x) / 6,
-            y: (8 * bendPoint.y - p1.y - p2.y - 2 * tangent.y) / 6,
-          },
-          c2: {
-            x: (8 * bendPoint.x - p1.x - p2.x + 2 * tangent.x) / 6,
-            y: (8 * bendPoint.y - p1.y - p2.y + 2 * tangent.y) / 6,
-          },
-        };
-      }
 
       canvas.addEventListener("pointercancel", (event) => {
         if (!active) return;

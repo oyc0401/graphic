@@ -38,8 +38,8 @@ float curveDistance(vec2 point) {
   float distanceValue = 100000.0;
   vec2 previous = u_p1;
 
-  for (int i = 1; i <= 64; i++) {
-    float t = float(i) / 64.0;
+  for (int i = 1; i <= 100; i++) {
+    float t = float(i) / 100.0;
     vec2 current = cubicBezier(t);
     distanceValue = min(distanceValue, segmentDistance(point, previous, current));
     previous = current;

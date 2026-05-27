@@ -14,11 +14,6 @@ export interface CurveShapeRect {
   height: number;
 }
 
-export interface CurveShapeStyle {
-  color: CurveShapeColor;
-  strokeWidth: number;
-}
-
 export interface CreateCurveShapeOptions {
   imageTexture: WebGLTexture;
   resultTexture: WebGLTexture;
@@ -50,6 +45,8 @@ class CurveShape {
   private readonly resultFramebuffer: WebGLFramebuffer;
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
+  private color: CurveShapeColor = [0, 0, 0, 1];
+  private strokeWidth = 1;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -65,19 +62,27 @@ class CurveShape {
     this.bindStaticUniforms();
   }
 
+  setColor(color: CurveShapeColor) {
+    this.color = [...color];
+  }
+
+  setWidth(width: number) {
+    this.strokeWidth = Math.max(1, width);
+  }
+
   createCurve(
     p1: CurveShapePoint,
     p2: CurveShapePoint,
-    c1: CurveShapePoint,
-    c2: CurveShapePoint,
-    style: CurveShapeStyle,
+    c1: CurveShapePoint | null,
+    c2: CurveShapePoint | null,
   ): CurveShapeRect | null {
+    const curve = resolveCurvePoints(p1, p2, c1, c2);
     const dirtyRect = curveDirtyRect(
-      p1,
-      p2,
-      c1,
-      c2,
-      style.strokeWidth,
+      curve.p1,
+      curve.p2,
+      curve.c1,
+      curve.c2,
+      this.strokeWidth,
       this.options.width,
       this.options.height,
     );
@@ -90,18 +95,34 @@ class CurveShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.imageTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.program, "u_color"),
-      style.color[0],
-      style.color[1],
-      style.color[2],
-      style.color[3],
+      this.color[0],
+      this.color[1],
+      this.color[2],
+      this.color[3],
     );
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_p1"), p1.x, p1.y);
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_p2"), p2.x, p2.y);
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_c1"), c1.x, c1.y);
-    gl.uniform2f(gl.getUniformLocation(this.program, "u_c2"), c2.x, c2.y);
+    gl.uniform2f(
+      gl.getUniformLocation(this.program, "u_p1"),
+      curve.p1.x,
+      curve.p1.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(this.program, "u_p2"),
+      curve.p2.x,
+      curve.p2.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(this.program, "u_c1"),
+      curve.c1.x,
+      curve.c1.y,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(this.program, "u_c2"),
+      curve.c2.x,
+      curve.c2.y,
+    );
     gl.uniform1f(
       gl.getUniformLocation(this.program, "u_strokeWidth"),
-      Math.max(1, style.strokeWidth),
+      this.strokeWidth,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
@@ -180,6 +201,42 @@ class CurveShape {
   }
 }
 
+function resolveCurvePoints(
+  p1: CurveShapePoint,
+  p2: CurveShapePoint,
+  c1: CurveShapePoint | null,
+  c2: CurveShapePoint | null,
+) {
+  if (!c1 && c2) {
+    throw new Error("Curve shape c2 requires c1.");
+  }
+
+  if (!c1) {
+    return {
+      p1,
+      p2,
+      c1: p1,
+      c2: p2,
+    };
+  }
+
+  if (!c2) {
+    return {
+      p1,
+      p2,
+      c1,
+      c2: c1,
+    };
+  }
+
+  return {
+    p1,
+    p2,
+    c1,
+    c2,
+  };
+}
+
 function curveDirtyRect(
   p1: CurveShapePoint,
   p2: CurveShapePoint,
@@ -189,19 +246,11 @@ function curveDirtyRect(
   width: number,
   height: number,
 ): CurveShapeRect {
-  const inset = Math.max(0, Math.ceil(strokeWidth / 2));
-  let left = p1.x;
-  let top = p1.y;
-  let right = p1.x;
-  let bottom = p1.y;
-
-  for (let i = 1; i <= 64; i++) {
-    const point = cubicBezier(i / 64, p1, p2, c1, c2);
-    left = Math.min(left, point.x);
-    top = Math.min(top, point.y);
-    right = Math.max(right, point.x);
-    bottom = Math.max(bottom, point.y);
-  }
+  const inset = Math.trunc(Math.max(1, strokeWidth) * 1.1);
+  const left = Math.min(p1.x, p2.x, c1.x, c2.x);
+  const top = Math.min(p1.y, p2.y, c1.y, c2.y);
+  const right = Math.max(p1.x, p2.x, c1.x, c2.x);
+  const bottom = Math.max(p1.y, p2.y, c1.y, c2.y);
 
   return clampRect(
     Math.floor(left - inset),
@@ -211,28 +260,6 @@ function curveDirtyRect(
     width,
     height,
   );
-}
-
-function cubicBezier(
-  t: number,
-  p1: CurveShapePoint,
-  p2: CurveShapePoint,
-  c1: CurveShapePoint,
-  c2: CurveShapePoint,
-): CurveShapePoint {
-  const inv = 1 - t;
-  return {
-    x:
-      inv * inv * inv * p1.x +
-      3 * inv * inv * t * c1.x +
-      3 * inv * t * t * c2.x +
-      t * t * t * p2.x,
-    y:
-      inv * inv * inv * p1.y +
-      3 * inv * inv * t * c1.y +
-      3 * inv * t * t * c2.y +
-      t * t * t * p2.y,
-  };
 }
 
 function clampRect(

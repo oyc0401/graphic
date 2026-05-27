@@ -115,6 +115,11 @@
         width,
         height,
       });
+      lineShape.setColor([
+        ...hexToColor(colorInput.value),
+        Number(alphaInput.value),
+      ]);
+      lineShape.setWidth(Number(strokeWidthInput.value));
 
       let active = false;
       let startPoint = null;
@@ -148,10 +153,12 @@
         canvas.releasePointerCapture(event.pointerId);
 
         const endPoint = toCanvasPoint(event);
-        const dirtyRect = lineShape.createLine(startPoint, endPoint, {
-          color: [...hexToColor(colorInput.value), Number(alphaInput.value)],
-          strokeWidth: Number(strokeWidthInput.value),
-        });
+        lineShape.setColor([
+          ...hexToColor(colorInput.value),
+          Number(alphaInput.value),
+        ]);
+        lineShape.setWidth(Number(strokeWidthInput.value));
+        const dirtyRect = lineShape.createLine(startPoint, endPoint);
         console.log("line shape rect", dirtyRect);
         drawTexture(gl, resultTexture, width, height);
       });

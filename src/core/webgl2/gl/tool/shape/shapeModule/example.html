@@ -125,6 +125,11 @@
         width,
         height,
       });
+      shape.setColor([
+        ...hexToColor(colorInput.value),
+        Number(alphaInput.value),
+      ]);
+      shape.setWidth(Number(strokeWidthInput.value));
 
       let active = false;
       let startPoint = null;
@@ -159,14 +164,15 @@
 
         const endPoint = toCanvasPoint(event);
         const rect = pointsToRect(startPoint, endPoint);
-        const style = {
-          color: [...hexToColor(colorInput.value), Number(alphaInput.value)],
-          strokeWidth: Number(strokeWidthInput.value),
-        };
+        shape.setColor([
+          ...hexToColor(colorInput.value),
+          Number(alphaInput.value),
+        ]);
+        shape.setWidth(Number(strokeWidthInput.value));
         const dirtyRect =
           shapeTypeInput.value === "ellipse"
-            ? shape.createEllipse(rect, style)
-            : shape.createRectangle(rect, style);
+            ? shape.createEllipse(rect)
+            : shape.createRectangle(rect);
         console.log("shape rect", dirtyRect);
         drawTexture(gl, resultTexture, width, height);
       });

@@ -19,14 +19,13 @@ const lineShape = createLineShape(gl, {
   height,
 });
 
+lineShape.setColor([0, 0, 0, 1]);
+lineShape.setWidth(8);
+
 // 이걸 하면 resultTexture가 수정됌
 const rect1 = lineShape.createLine(
   { x: 10, y: 10 },
   { x: 220, y: 120 },
-  {
-    color: [0, 0, 0, 1],
-    strokeWidth: 8,
-  },
 );
 
 // 외부에서는 이 rect를 가지고 resultTexture를 기반으로 히스토리를 만들거임.

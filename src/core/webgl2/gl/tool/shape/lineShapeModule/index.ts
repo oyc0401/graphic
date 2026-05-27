@@ -14,11 +14,6 @@ export interface LineShapeRect {
   height: number;
 }
 
-export interface LineShapeStyle {
-  color: LineShapeColor;
-  strokeWidth: number;
-}
-
 export interface CreateLineShapeOptions {
   imageTexture: WebGLTexture;
   resultTexture: WebGLTexture;
@@ -50,6 +45,8 @@ class LineShape {
   private readonly resultFramebuffer: WebGLFramebuffer;
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
+  private color: LineShapeColor = [0, 0, 0, 1];
+  private strokeWidth = 1;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -65,19 +62,23 @@ class LineShape {
     this.bindStaticUniforms();
   }
 
-  createLine(
-    p1: LineShapePoint,
-    p2: LineShapePoint,
-    style: LineShapeStyle,
-  ): LineShapeRect | null {
+  setColor(color: LineShapeColor) {
+    this.color = [...color];
+  }
+
+  setWidth(width: number) {
+    this.strokeWidth = Math.max(1, width);
+  }
+
+  createLine(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect | null {
     const dirtyRect = lineDirtyRect(
       p1,
       p2,
-      style.strokeWidth,
+      this.strokeWidth,
       this.options.width,
       this.options.height,
     );
-    return this.draw(p1, p2, style, dirtyRect);
+    return this.draw(p1, p2, dirtyRect);
   }
 
   destroy() {
@@ -90,7 +91,6 @@ class LineShape {
   private draw(
     p1: LineShapePoint,
     p2: LineShapePoint,
-    style: LineShapeStyle,
     dirtyRect: LineShapeRect,
   ): LineShapeRect | null {
     if (dirtyRect.width === 0 || dirtyRect.height === 0) return null;
@@ -102,16 +102,16 @@ class LineShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.imageTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.program, "u_color"),
-      style.color[0],
-      style.color[1],
-      style.color[2],
-      style.color[3],
+      this.color[0],
+      this.color[1],
+      this.color[2],
+      this.color[3],
     );
     gl.uniform2f(gl.getUniformLocation(this.program, "u_p1"), p1.x, p1.y);
     gl.uniform2f(gl.getUniformLocation(this.program, "u_p2"), p2.x, p2.y);
     gl.uniform1f(
       gl.getUniformLocation(this.program, "u_strokeWidth"),
-      Math.max(1, style.strokeWidth),
+      this.strokeWidth,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);

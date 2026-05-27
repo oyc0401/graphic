@@ -19,16 +19,15 @@ const curveShape = createCurveShape(gl, {
   height,
 });
 
+curveShape.setColor([1, 0, 0, 0.8]);
+curveShape.setWidth(12);
+
 // 이걸 하면 resultTexture가 수정됌
 const rect = curveShape.createCurve(
   { x: 260, y: 160 },
   { x: 520, y: 160 },
   { x: 320, y: 40 },
-  { x: 460, y: 280 },
-  {
-    color: [1, 0, 0, 0.8],
-    strokeWidth: 12,
-  },
+  null,
 );
 
 // 외부에서는 이 rect를 가지고 resultTexture를 기반으로 히스토리를 만들거임.

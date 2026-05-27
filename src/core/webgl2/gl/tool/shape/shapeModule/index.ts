@@ -9,11 +9,6 @@ export interface ShapeRect {
   height: number;
 }
 
-export interface ShapeStyle {
-  color: ShapeColor;
-  strokeWidth: number;
-}
-
 export interface CreateShapeOptions {
   imageTexture: WebGLTexture;
   resultTexture: WebGLTexture;
@@ -50,6 +45,8 @@ class Shape {
   private readonly resultFramebuffer: WebGLFramebuffer;
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
+  private color: ShapeColor = [0, 0, 0, 1];
+  private strokeWidth = 1;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -65,12 +62,20 @@ class Shape {
     this.bindStaticUniforms();
   }
 
-  createRectangle(rect: ShapeRect, style: ShapeStyle): ShapeRect | null {
-    return this.draw(SHAPE_TYPE.RECTANGLE, rect, style);
+  setColor(color: ShapeColor) {
+    this.color = [...color];
   }
 
-  createEllipse(rect: ShapeRect, style: ShapeStyle): ShapeRect | null {
-    return this.draw(SHAPE_TYPE.ELLIPSE, rect, style);
+  setWidth(width: number) {
+    this.strokeWidth = Math.max(1, width);
+  }
+
+  createRectangle(rect: ShapeRect): ShapeRect | null {
+    return this.draw(SHAPE_TYPE.RECTANGLE, rect);
+  }
+
+  createEllipse(rect: ShapeRect): ShapeRect | null {
+    return this.draw(SHAPE_TYPE.ELLIPSE, rect);
   }
 
   destroy() {
@@ -80,14 +85,10 @@ class Shape {
     gl.deleteVertexArray(this.vao);
   }
 
-  private draw(
-    shapeType: number,
-    rect: ShapeRect,
-    style: ShapeStyle,
-  ): ShapeRect | null {
+  private draw(shapeType: number, rect: ShapeRect): ShapeRect | null {
     const dirtyRect = shapeDirtyRect(
       rect,
-      style.strokeWidth,
+      this.strokeWidth,
       this.options.width,
       this.options.height,
     );
@@ -100,10 +101,10 @@ class Shape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.imageTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.program, "u_color"),
-      style.color[0],
-      style.color[1],
-      style.color[2],
-      style.color[3],
+      this.color[0],
+      this.color[1],
+      this.color[2],
+      this.color[3],
     );
     gl.uniform4f(
       gl.getUniformLocation(this.program, "u_shapeRect"),
@@ -114,7 +115,7 @@ class Shape {
     );
     gl.uniform1f(
       gl.getUniformLocation(this.program, "u_strokeWidth"),
-      Math.max(1, style.strokeWidth),
+      this.strokeWidth,
     );
     gl.uniform1i(gl.getUniformLocation(this.program, "u_shapeType"), shapeType);
 
