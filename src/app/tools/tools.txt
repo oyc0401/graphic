@@ -18,3 +18,15 @@ liquify-restore (픽셀유동화 세션, 브러시, 브러시)
 zoom (캔버스 영향X, 임시도구 가능)
 colorPicker (캔버스 영향X, 임시도구 가능)
 floodFill (down만 있는 도구)
+
+
+startShape(shape);
+  createRectShape(px: number, py: number, width: number, height: number): void;
+  createEllipseShape(px: number, py: number, width: number, height: number): void;
+
+startLine();
+  createLineShape(p1: Pointer, p2: Pointer): void;
+  createCurveShape(p1: Pointer, p2: Pointer, c1 :Pointer): void;
+
+  applyShape(): void;
+  discardShape(): void;

@@ -7,6 +7,8 @@ export type CoreTool = "brush" | "eraser" | "pencil";
 
 export type CoreSessionTool = "liquify" | "mosaic";
 
+export type ShapeKind = "rect" | "ellipse" | "line" | "curve";
+
 export type MosaicMode = "pixel" | "blur" | "restore";
 
 export type LiquifyTool =

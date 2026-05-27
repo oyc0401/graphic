@@ -28,6 +28,7 @@ import type {
   LiquifyTool,
   MosaicMode,
   Pointer,
+  ShapeKind,
 } from "../types";
 import { getSessionManager } from "./session/session";
 import { getLiquifyManager } from "./gl/tool/liquify/liquify";
@@ -220,6 +221,23 @@ export class PaintService {
   cancel() {
     this.getTool()?.cancel();
   }
+  startShape(kind: ShapeKind): void {
+    void kind;
+  }
+  setRectShape(x: number, y: number, width: number, height: number): void {
+    void x;
+    void y;
+    void width;
+    void height;
+  }
+  setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void {
+    void p1;
+    void p2;
+    void c1;
+    void c2;
+  }
+  applyShape(): void {}
+  discardShape(): void {}
   createSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);

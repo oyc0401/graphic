@@ -1,4 +1,10 @@
-import type { CoreSessionTool, CoreTool, MosaicMode, Pointer } from "./types.js";
+import type {
+  CoreSessionTool,
+  CoreTool,
+  MosaicMode,
+  Pointer,
+  ShapeKind,
+} from "./types.js";
 import type { HistoryResponse } from "./history/history";
 
 // 이거 안쓰는 코드임
@@ -32,6 +38,13 @@ export interface RendererInterface {
   commitSession(): void;
   discardSession(): void;
   getHistoryCount(): { undoCount: number; redoCount: number };
+
+  // === 도형 ===
+  startShape(kind: ShapeKind): void;
+  setRectShape(px: number, py: number, width: number, height: number): void;
+  setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void;
+  applyShape(): void;
+  discardShape(): void;
 
   // === 선택 영역 ===
   createSelection(px: number, py: number, w: number, h: number): void;

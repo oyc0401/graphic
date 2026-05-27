@@ -8,6 +8,7 @@ import type {
   LiquifyTool,
   MosaicMode,
   Pointer,
+  ShapeKind,
 } from "../types.js";
 import { HistoryResponse } from "../history/history";
 
@@ -186,6 +187,43 @@ export class WebGL2Controller {
   // 현재 진행 중인 그리기나 편집 동작을 취소한다.
   cancel(): void {
     paint.cancel();
+  }
+
+  // 편집 중인 도형의 종류를 정하고 도형 draft를 시작한다.
+  startShape(kind: ShapeKind): void {
+    paint.startShape(kind);
+  }
+
+  // 활성 사각형/타원 도형의 bounds 좌표를 갱신한다.
+  setRectShape(px: number, py: number, width: number, height: number): void {
+    const { x, y } = toWebglCoord2(
+      px,
+      py,
+      width,
+      height,
+      paintOptions.height,
+    );
+    paint.setRectShape(x, y, width, height);
+  }
+
+  // 활성 직선/곡선 도형의 점 좌표를 갱신한다.
+  setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void {
+    paint.setLineShape(
+      toWebglCoord(p1, paintOptions.height),
+      toWebglCoord(p2, paintOptions.height),
+      c1 ? toWebglCoord(c1, paintOptions.height) : undefined,
+      c2 ? toWebglCoord(c2, paintOptions.height) : undefined,
+    );
+  }
+
+  // 활성 도형을 레이어에 확정한다.
+  applyShape(): void {
+    paint.applyShape();
+  }
+
+  // 활성 도형을 버린다.
+  discardShape(): void {
+    paint.discardShape();
   }
 
   // 이미지의 지정한 사각형 영역을 선택한다.
