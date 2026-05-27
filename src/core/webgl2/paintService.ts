@@ -34,6 +34,7 @@ import { getSessionManager } from "./session/session";
 import { getLiquifyManager } from "./gl/tool/liquify/liquify";
 import { getMosaicManager } from "./gl/tool/mosaic/mosaic";
 import { floodFill } from "./gl/tool/floodFill/floodFill";
+import { getShapeManager } from "./gl/tool/shape/shapeTool";
 
 export class PaintService {
   canvas: OffscreenCanvas;
@@ -222,22 +223,20 @@ export class PaintService {
     this.getTool()?.cancel();
   }
   startShape(kind: ShapeKind): void {
-    void kind;
+    getShapeManager(this.canvas, this.gl).start(kind);
   }
   setRectShape(x: number, y: number, width: number, height: number): void {
-    void x;
-    void y;
-    void width;
-    void height;
+    getShapeManager(this.canvas, this.gl).setRect(x, y, width, height);
   }
   setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void {
-    void p1;
-    void p2;
-    void c1;
-    void c2;
+    getShapeManager(this.canvas, this.gl).setLine(p1, p2, c1, c2);
   }
-  applyShape(): void {}
-  discardShape(): void {}
+  applyShape(): void {
+    getShapeManager(this.canvas, this.gl).apply();
+  }
+  discardShape(): void {
+    getShapeManager(this.canvas, this.gl).discard();
+  }
   createSelection(x, y, width, height) {
     let selectionManager = getSelectionManager(this.canvas, this.gl);
     selectionManager.select(x, y, width, height);
