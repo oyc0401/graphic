@@ -206,6 +206,23 @@ export class WebGL2Controller {
     paint.setRectShape(x, y, width, height);
   }
 
+  // 활성 사각형/타원 도형의 draft 위치와 크기를 이동/변형한다.
+  transformShape(px: number, py: number, width: number, height: number): void {
+    const { x, y } = toWebglCoord2(
+      px,
+      py,
+      width,
+      height,
+      paintOptions.height,
+    );
+    paint.transformShape(x, y, width, height);
+  }
+
+  // 활성 도형의 이동/변형 작업을 완료하고 위치 히스토리를 만든다.
+  completeTransformShape(): void {
+    paint.completeTransformShape();
+  }
+
   // 활성 직선/곡선 도형의 점 좌표를 갱신한다.
   setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void {
     paint.setLineShape(

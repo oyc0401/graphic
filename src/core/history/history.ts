@@ -1,5 +1,5 @@
 import { getUndoByte, paintConfig } from "@/paint.config";
-import type { MosaicMode } from "@/core/types";
+import type { MosaicMode, ShapeKind } from "@/core/types";
 import { getManager } from "../utils/cachedManager";
 import { PixelStore } from "./PixelStore";
 import { Rect } from "@/core/utils/rect";
@@ -43,6 +43,14 @@ interface HistoryCommand {
     flipH?: boolean;
     flipV?: boolean;
   };
+  shape?: {
+    show: boolean;
+    kind: ShapeKind | null;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 export interface HistoryResponse {
@@ -60,6 +68,14 @@ export interface HistoryResponse {
     height: number;
     flipH?: boolean;
     flipV?: boolean;
+  };
+  shape?: {
+    show: boolean;
+    kind: ShapeKind | null;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
   };
   mosaicStrength?: number;
   mosaicMode?: MosaicMode;
@@ -162,6 +178,7 @@ export class HistoryStack {
 
     return {
       selection: response.selection,
+      shape: response.shape,
       position: response.position,
       undoCount: this.undoStack.length,
       redoCount: this.redoStack.length,
@@ -179,6 +196,7 @@ export class HistoryStack {
 
     return {
       selection: response.selection,
+      shape: response.shape,
       position: response.position,
       undoCount: this.undoStack.length,
       redoCount: this.redoStack.length,

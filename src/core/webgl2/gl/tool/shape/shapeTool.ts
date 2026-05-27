@@ -31,7 +31,9 @@ class ShapeManager {
   private readonly lineModule;
   private readonly curveModule;
   private activeKind: ShapeKind | null = null;
-  private draftRect: ShapeRect | null = null;
+  private shapeRect: ShapeRect | null = null;
+  private beforeShapeRect: ShapeRect | null = null;
+  private draftDirtyRect: ShapeRect | null = null;
 
   constructor(
     private canvas: OffscreenCanvas,
@@ -55,7 +57,9 @@ class ShapeManager {
   start(kind: ShapeKind) {
     const restoredRect = this.restoreDraft();
     this.activeKind = kind;
-    this.draftRect = null;
+    this.shapeRect = null;
+    this.beforeShapeRect = null;
+    this.draftDirtyRect = null;
     if (restoredRect) {
       this.renderingManager.render(this.toAppRect(restoredRect) ?? undefined);
     }
@@ -64,16 +68,9 @@ class ShapeManager {
   setRect(x: number, y: number, width: number, height: number) {
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
 
-    const restoredRect = this.restoreDraft();
-    this.applyOptions();
     const rect = { x, y, width, height };
-    const dirtyRect =
-      this.activeKind === "ellipse"
-        ? this.shapeModule.createEllipse(rect)
-        : this.shapeModule.createRectangle(rect);
-
-    this.draftRect = dirtyRect;
-    this.renderUnion(restoredRect, dirtyRect);
+    this.drawRectDraft(rect);
+    this.beforeShapeRect = { ...rect };
   }
 
   setLine(
@@ -91,12 +88,45 @@ class ShapeManager {
         ? this.curveModule.createCurve(p1, p2, c1 ?? null, c2 ?? null)
         : this.lineModule.createLine(p1, p2);
 
-    this.draftRect = dirtyRect;
+    this.draftDirtyRect = dirtyRect;
     this.renderUnion(restoredRect, dirtyRect);
   }
 
+  transformRect(x: number, y: number, width: number, height: number) {
+    if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
+    this.drawRectDraft({ x, y, width, height });
+  }
+
+  completeTransform() {
+    if (!this.activeKind || !this.beforeShapeRect || !this.shapeRect) return;
+    if (isSameRect(this.beforeShapeRect, this.shapeRect)) return;
+
+    const beforePosition = { ...this.beforeShapeRect };
+    const afterPosition = { ...this.shapeRect };
+    const kind = this.activeKind;
+
+    const history = new HistoryObject({
+      undo: async () => {
+        this.activeKind = kind;
+        this.drawRectDraft(beforePosition);
+        this.beforeShapeRect = { ...beforePosition };
+        return { shape: this.getHistoryShape(true) };
+      },
+      redo: async () => {
+        this.activeKind = kind;
+        this.drawRectDraft(afterPosition);
+        this.beforeShapeRect = { ...afterPosition };
+        return { shape: this.getHistoryShape(true) };
+      },
+      byteSize: 0,
+    });
+
+    this.beforeShapeRect = { ...this.shapeRect };
+    getHistoryManager(this.canvas, this.gl).addUndo(history);
+  }
+
   apply() {
-    const rect = this.toAppRect(this.draftRect);
+    const rect = this.toAppRect(this.draftDirtyRect);
     if (!rect || rect.isEmpty()) {
       this.clearDraft();
       return;
@@ -114,12 +144,12 @@ class ShapeManager {
       undo: async () => {
         await before.apply();
         await this.renderingManager.render(rect);
-        return {};
+        return { shape: this.getHiddenHistoryShape() };
       },
       redo: async () => {
         await after.apply();
         await this.renderingManager.render(rect);
-        return {};
+        return { shape: this.getHiddenHistoryShape() };
       },
       byteSize,
     });
@@ -152,8 +182,23 @@ class ShapeManager {
     this.curveModule.setWidth(width);
   }
 
+  private drawRectDraft(rect: ShapeRect) {
+    if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
+
+    const restoredRect = this.restoreDraft();
+    this.applyOptions();
+    const dirtyRect =
+      this.activeKind === "ellipse"
+        ? this.shapeModule.createEllipse(rect)
+        : this.shapeModule.createRectangle(rect);
+
+    this.shapeRect = { ...rect };
+    this.draftDirtyRect = dirtyRect;
+    this.renderUnion(restoredRect, dirtyRect);
+  }
+
   private restoreDraft(): ShapeRect | null {
-    const rect = this.draftRect;
+    const rect = this.draftDirtyRect;
     if (!rect || rect.width === 0 || rect.height === 0) return null;
 
     this.gl.bindFramebuffer(
@@ -174,13 +219,38 @@ class ShapeManager {
       this.gl.NEAREST,
     );
 
-    this.draftRect = null;
+    this.draftDirtyRect = null;
     return rect;
   }
 
   private clearDraft() {
     this.activeKind = null;
-    this.draftRect = null;
+    this.shapeRect = null;
+    this.beforeShapeRect = null;
+    this.draftDirtyRect = null;
+  }
+
+  private getHistoryShape(show: boolean) {
+    const rect = this.shapeRect ?? { x: 0, y: 0, width: 0, height: 0 };
+    return {
+      show,
+      kind: this.activeKind,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
+
+  private getHiddenHistoryShape() {
+    return {
+      show: false,
+      kind: null,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
   }
 
   private renderUnion(a: ShapeRect | null, b: ShapeRect | null) {
@@ -208,4 +278,13 @@ class ShapeManager {
     if (!rect || rect.width === 0 || rect.height === 0) return null;
     return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
   }
+}
+
+function isSameRect(a: ShapeRect, b: ShapeRect) {
+  return (
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height
+  );
 }

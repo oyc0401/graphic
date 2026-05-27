@@ -42,6 +42,8 @@ export interface RendererInterface {
   // === 도형 ===
   startShape(kind: ShapeKind): void;
   setRectShape(px: number, py: number, width: number, height: number): void;
+  transformShape(px: number, py: number, width: number, height: number): void;
+  completeTransformShape(): void;
   setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void;
   applyShape(): void;
   discardShape(): void;

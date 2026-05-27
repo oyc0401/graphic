@@ -228,6 +228,12 @@ export class PaintService {
   setRectShape(x: number, y: number, width: number, height: number): void {
     getShapeManager(this.canvas, this.gl).setRect(x, y, width, height);
   }
+  transformShape(x: number, y: number, width: number, height: number): void {
+    getShapeManager(this.canvas, this.gl).transformRect(x, y, width, height);
+  }
+  completeTransformShape(): void {
+    getShapeManager(this.canvas, this.gl).completeTransform();
+  }
   setLineShape(p1: Pointer, p2: Pointer, c1?: Pointer, c2?: Pointer): void {
     getShapeManager(this.canvas, this.gl).setLine(p1, p2, c1, c2);
   }
