@@ -38,6 +38,7 @@ import {
   Expand,
   Grid2X2,
   LassoSelect,
+  PaintBucket,
   Pencil as PencilIcon,
   Pipette,
   RotateCcw,
@@ -49,6 +50,7 @@ import {
 import {
   BrushAlphaSlider,
   BrushSizeSlider,
+  FloodFillToleranceSlider,
   MosaicStrengthSlider,
 } from "./BrushSliders";
 
@@ -291,6 +293,7 @@ const ToolsToggleButton = observer(() => {
         <div className="tools-bar" ref={menuRef}>
           <SelectionToolButton />
           <FreeformSelectionToolButton />
+          <FloodFillToolButton />
           <LiquifyToolButton />
           <MosaicToolButton />
           <ZoomToolButton />
@@ -335,7 +338,11 @@ const SizeToggleButton = observer(() => {
 
       {menuState.showSizeBar && (
         <div className="size-bar" ref={menuRef}>
-          <BrushSizeSlider />
+          {paintState.getSelectedToolId() === ToolId.FloodFill ? (
+            <FloodFillToleranceSlider />
+          ) : (
+            <BrushSizeSlider />
+          )}
           {paintState.getSessionId() === SessionId.Mosaic ? (
             <MosaicStrengthSlider />
           ) : (
@@ -475,6 +482,24 @@ const FreeformSelectionToolButton = observer(() => {
       onClick={() => toolManager.setFreeformSelectTool()}
     >
       <LassoSelect size={24} strokeWidth={2.2} />
+    </button>
+  );
+});
+
+const FloodFillToolButton = observer(() => {
+  const isSelected = paintState.getSelectedToolId() === ToolId.FloodFill;
+
+  return (
+    <button
+      id="select-flood-fill"
+      aria-label={getLetter("flood_fill")}
+      className={`header-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+      onClick={() => {
+        toolManager.setFloodFillTool();
+        menuState.setShowTools(false);
+      }}
+    >
+      <PaintBucket size={24} strokeWidth={2.2} />
     </button>
   );
 });

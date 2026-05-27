@@ -118,6 +118,17 @@ export class WebGL2Controller {
     return paint.sampleColor(x, y);
   }
 
+  // 지정한 화면 좌표와 비슷한 색으로 이어진 영역을 현재 색상으로 채운다.
+  floodFill(p: Pointer, tolerance: number): boolean {
+    return paint.floodFill(
+      {
+        x: Math.floor(p.x),
+        y: paintOptions.height - Math.floor(p.y) - 1,
+      },
+      tolerance,
+    );
+  }
+
   // 브러시, 지우개, 선택 같은 현재 사용 도구를 변경한다.
   setTool(toolId: CoreTool): void {
     paint.setTool(toolId);

@@ -182,6 +182,28 @@ export const BrushSizeSlider = observer(() => {
   );
 });
 
+export const FloodFillToleranceSlider = observer(() => {
+  const tolerance = clamp(Math.round(paintState.getBrushSize()), 0, 100);
+
+  return (
+    <label className="brush-control">
+      <p className="label">{getLetter("tolerance")}</p>
+      <p className="value">{tolerance}</p>
+      <div className="slider-area">
+        <CustomSlider
+          id="flood-fill-tolerance-slider"
+          min={0}
+          max={100}
+          value={tolerance}
+          onChange={(nextValue) => {
+            paintState.setBrushSize(nextValue);
+          }}
+        />
+      </div>
+    </label>
+  );
+});
+
 const IntegerBrushSizeSlider = observer(() => {
   const brushSize = Math.max(1, Math.round(paintState.getBrushSize()));
   const sliderValue = clamp(

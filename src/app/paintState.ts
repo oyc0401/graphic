@@ -17,6 +17,7 @@ export enum ToolId {
   Brush = "brush",
   Select = "select",
   FreeformSelect = "freeformSelect",
+  FloodFill = "floodFill",
   Zoom = "zoom",
   ColorPicker = "colorPicker",
 }
@@ -56,7 +57,11 @@ type LiquifyBrushSettingsId =
   | typeof LIQUIFY_SCALE_SETTINGS_ID
   | LiquifyToolId.Restore;
 
-type BrushSettingsId = BrushId | SessionId.Mosaic | LiquifyBrushSettingsId;
+type BrushSettingsId =
+  | BrushId
+  | SessionId.Mosaic
+  | ToolId.FloodFill
+  | LiquifyBrushSettingsId;
 
 class PaintState {
   // 현재 활성 편집 세션. null이면 일반 편집 상태다.
@@ -80,6 +85,7 @@ class PaintState {
     [BrushId.Brush]: 5,
     [BrushId.Pencil]: 1,
     [BrushId.Eraser]: 10,
+    [ToolId.FloodFill]: 0,
     [SessionId.Mosaic]: 100,
     [LiquifyToolId.Push]: 100,
     [LIQUIFY_TWIRL_SETTINGS_ID]: 100,
@@ -91,6 +97,7 @@ class PaintState {
     [BrushId.Brush]: 100,
     [BrushId.Pencil]: 100,
     [BrushId.Eraser]: 100,
+    [ToolId.FloodFill]: 100,
     [SessionId.Mosaic]: 10,
     [LiquifyToolId.Push]: 50,
     [LIQUIFY_TWIRL_SETTINGS_ID]: 50,
@@ -150,9 +157,16 @@ class PaintState {
     this._cursorY = y;
   }
   setBrushSize(size: number) {
-    this._brushSize[this.getBrushSettingsId()] = size;
+    const settingsId = this.getBrushSettingsId();
+    const nextSize =
+      settingsId === ToolId.FloodFill
+        ? Math.max(0, Math.min(100, Math.round(size)))
+        : size;
+    this._brushSize[settingsId] = nextSize;
+    if (settingsId === ToolId.FloodFill) return;
+
     const worker = getLayerWorker();
-    worker?.setStrokeSize(size);
+    worker?.setStrokeSize(nextSize);
   }
   setBrushAlpha(alpha: number) {
     this._brushAlpha[this.getBrushSettingsId()] = alpha;
@@ -222,7 +236,11 @@ class PaintState {
   /** .etc */
 
   private getBrushSettingsId(): BrushSettingsId {
-    if (!this._sessionId) return this._brushId;
+    if (!this._sessionId) {
+      return this._selectedToolId === ToolId.FloodFill
+        ? ToolId.FloodFill
+        : this._brushId;
+    }
     if (this._sessionId === SessionId.Liquify) {
       return this.getLiquifyBrushSettingsId();
     }

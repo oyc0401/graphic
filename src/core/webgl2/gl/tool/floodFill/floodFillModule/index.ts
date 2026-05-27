@@ -325,10 +325,9 @@ class FloodFill {
 
   private copyRect(pixels: Uint8Array, rect: FloodFillRect) {
     const rectPixels = new Uint8Array(rect.width * rect.height * 4);
-    const yOffset = this.height - rect.y - rect.height;
 
     for (let row = 0; row < rect.height; row++) {
-      const sourceStart = ((yOffset + row) * this.width + rect.x) * 4;
+      const sourceStart = ((rect.y + row) * this.width + rect.x) * 4;
       const targetStart = row * rect.width * 4;
       rectPixels.set(pixels.subarray(sourceStart, sourceStart + rect.width * 4), targetStart);
     }
@@ -338,16 +337,14 @@ class FloodFill {
 
   private writeRect(rect: FloodFillRect, pixels: Uint8Array) {
     const gl = this.gl;
-    const yOffset = this.height - rect.y - rect.height;
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.options.resultTexture);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, rect.x, yOffset, rect.width, rect.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, rect.x, rect.y, rect.width, rect.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
   }
 
   private pixelIndex(x: number, y: number) {
-    const row = this.height - y - 1;
-    return (row * this.width + x) * 4;
+    return (y * this.width + x) * 4;
   }
 }
 

@@ -32,6 +32,7 @@ import type {
 import { getSessionManager } from "./session/session";
 import { getLiquifyManager } from "./gl/tool/liquify/liquify";
 import { getMosaicManager } from "./gl/tool/mosaic/mosaic";
+import { floodFill } from "./gl/tool/floodFill/floodFill";
 
 export class PaintService {
   canvas: OffscreenCanvas;
@@ -148,6 +149,9 @@ export class PaintService {
       g: Math.min(255, pixel[1] + 255 - alpha),
       b: Math.min(255, pixel[2] + 255 - alpha),
     };
+  }
+  floodFill(point: Pointer, tolerance: number): boolean {
+    return floodFill(this.canvas, this.gl, point, tolerance);
   }
   setTool(toolId: CoreTool): void {
     if (paintOptions.toolId != toolId) {

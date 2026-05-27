@@ -8,6 +8,7 @@ import {
 } from "../paintState";
 import { BrushTool } from "./BrushTool";
 import { ColorPickerTool } from "./ColorPickerTool";
+import { FloodFillTool } from "./FloodFillTool";
 import { FreeformSelectTool } from "./FreeformSelectTool";
 import { LiquifySessionTool } from "./LiquifyTool";
 import { MosaicSessionTool } from "./MosaicTool";
@@ -21,6 +22,7 @@ import { zoomTool } from "./ZoomTool";
 
 const brushTool = new BrushTool();
 const colorPickerTool = new ColorPickerTool();
+const floodFillTool = new FloodFillTool();
 const liquifySessionTool = new LiquifySessionTool();
 const mosaicSessionTool = new MosaicSessionTool();
 const selectTool = new SelectTool();
@@ -66,6 +68,8 @@ export function getCurrentTool(): Tool | null {
       return selectTool;
     case ToolId.FreeformSelect:
       return freeformSelectTool;
+    case ToolId.FloodFill:
+      return floodFillTool;
     case ToolId.Zoom:
       return zoomTool;
     case ToolId.ColorPicker:

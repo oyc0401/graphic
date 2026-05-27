@@ -31,6 +31,7 @@ import {
   Expand,
   Grid2X2,
   LassoSelect,
+  PaintBucket,
   Pencil as PencilIcon,
   Pipette,
   RotateCcw,
@@ -42,6 +43,7 @@ import {
 import {
   BrushAlphaSlider,
   BrushSizeSlider,
+  FloodFillToleranceSlider,
   MosaicStrengthSlider,
 } from "./BrushSliders";
 
@@ -95,6 +97,7 @@ function AppBarDesktop() {
 
             <div className="div-bar"></div>
             <div className="mini-buttons">
+              <FloodFillToolButton />
               <ZoomToolButton />
               <ColorPickerToolButton />
             </div>
@@ -109,7 +112,11 @@ function AppBarDesktop() {
             <div className="div-bar"></div>
             {/* ===== 슬라이더 ===== */}
             <div className="brush-control-group">
-              <BrushSizeSlider />
+              {paintState.getSelectedToolId() === ToolId.FloodFill ? (
+                <FloodFillToleranceSlider />
+              ) : (
+                <BrushSizeSlider />
+              )}
 
               <BrushAlphaSlider />
             </div>
@@ -365,6 +372,27 @@ const FreeformSelectionToolButton = observer(() => {
     >
       <LassoSelect size={32} strokeWidth={2.2} />
       <p>{getLetter("freeform_select")}</p>
+    </button>
+  );
+});
+
+const FloodFillToolButton = observer(() => {
+  const isSelected = paintState.getSelectedToolId() === ToolId.FloodFill;
+
+  return (
+    <button
+      id="select-flood-fill"
+      className="select-mini"
+      aria-label={getLetter("flood_fill")}
+      onClick={() => toolManager.setFloodFillTool()}
+      style={{ background: isSelected ? "#f5f5f5" : "transparent" }}
+    >
+      <PaintBucket
+        color={isSelected ? "#3587ff" : "#222222"}
+        size={20}
+        strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
+      />
     </button>
   );
 });

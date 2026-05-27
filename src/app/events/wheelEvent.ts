@@ -1,4 +1,4 @@
-import { paintState } from "../paintState";
+import { paintState, ToolId } from "../paintState";
 import {
   getPixelRatio,
   MAX_SCALE,
@@ -33,6 +33,13 @@ export function addWheelListener() {
         );
       } else if (event.altKey) {
         const brushSize = paintState.getBrushSize();
+        if (paintState.getSelectedToolId() === ToolId.FloodFill) {
+          const delta = event.deltaY > 0 ? -1 : 1;
+          paintState.setBrushSize(clamp(brushSize + delta, 0, 100));
+          renderChangedPosition();
+          return;
+        }
+
         const percent =
           event.deltaY > 0 ? (brushSize - 1) / 1.1 : (brushSize + 1) * 1.1;
         const newSize = Math.round(clamp(percent, 1, 3000));

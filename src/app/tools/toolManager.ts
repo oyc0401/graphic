@@ -66,6 +66,14 @@ export const toolManager = {
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
+  setFloodFillTool() {
+    if (!canChangeMainTool()) return;
+    exitCurrentTool();
+
+    paintState.setSelectedToolId(ToolId.FloodFill);
+    getLayerWorker().setTool(paintState.getBrushId());
+    syncCoreState();
+  },
   setZoomTool() {
     if (!canChangeMainTool()) return;
     exitCurrentTool();
