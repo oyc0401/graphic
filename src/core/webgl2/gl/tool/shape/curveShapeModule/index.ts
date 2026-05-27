@@ -21,9 +21,19 @@ export interface CreateCurveShapeOptions {
   height: number;
 }
 
+interface ResolvedCurvePoints {
+  p1: CurveShapePoint;
+  p2: CurveShapePoint;
+  c1: CurveShapePoint;
+  c2: CurveShapePoint;
+}
+
 const TEXTURE_UNIT = {
   SOURCE: 0,
+  ALPHA_MAP: 1,
 };
+
+const CURVE_SEGMENTS = 100;
 
 const FULL_QUAD_VERTEX_SHADER = `#version 300 es
 in vec2 a_position;
@@ -43,8 +53,11 @@ export function createCurveShape(
 
 class CurveShape {
   private readonly resultFramebuffer: WebGLFramebuffer;
+  private readonly alphaMapTexture: WebGLTexture;
   private readonly program: WebGLProgram;
   private readonly vao: WebGLVertexArrayObject;
+  private tempCanvas!: OffscreenCanvas | HTMLCanvasElement;
+  private tempCtx!: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
   private color: CurveShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
 
@@ -53,12 +66,14 @@ class CurveShape {
     private options: CreateCurveShapeOptions,
   ) {
     this.resultFramebuffer = this.createFramebuffer(options.resultTexture);
+    this.alphaMapTexture = this.createAlphaMapTexture();
     this.program = createProgram(
       gl,
       createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER),
       createShader(gl, gl.FRAGMENT_SHADER, curveFrag),
     );
     this.vao = this.createFullQuadVAO();
+    this.ensureTempCanvasSize(options.width, options.height);
     this.bindStaticUniforms();
   }
 
@@ -87,42 +102,21 @@ class CurveShape {
       this.options.height,
     );
     if (dirtyRect.width === 0 || dirtyRect.height === 0) return null;
+    this.drawCurveToAlphaMap(curve, dirtyRect);
 
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE);
     gl.bindTexture(gl.TEXTURE_2D, this.options.imageTexture);
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHA_MAP);
+    gl.bindTexture(gl.TEXTURE_2D, this.alphaMapTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.program, "u_color"),
       this.color[0],
       this.color[1],
       this.color[2],
       this.color[3],
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.program, "u_p1"),
-      curve.p1.x,
-      curve.p1.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.program, "u_p2"),
-      curve.p2.x,
-      curve.p2.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.program, "u_c1"),
-      curve.c1.x,
-      curve.c1.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.program, "u_c2"),
-      curve.c2.x,
-      curve.c2.y,
-    );
-    gl.uniform1f(
-      gl.getUniformLocation(this.program, "u_strokeWidth"),
-      this.strokeWidth,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
@@ -138,6 +132,7 @@ class CurveShape {
   destroy() {
     const gl = this.gl;
     gl.deleteFramebuffer(this.resultFramebuffer);
+    gl.deleteTexture(this.alphaMapTexture);
     gl.deleteProgram(this.program);
     gl.deleteVertexArray(this.vao);
   }
@@ -149,11 +144,126 @@ class CurveShape {
       gl.getUniformLocation(this.program, "u_source"),
       TEXTURE_UNIT.SOURCE,
     );
+    gl.uniform1i(
+      gl.getUniformLocation(this.program, "u_alphaMap"),
+      TEXTURE_UNIT.ALPHA_MAP,
+    );
     gl.uniform2f(
       gl.getUniformLocation(this.program, "u_resolution"),
       this.options.width,
       this.options.height,
     );
+  }
+
+  private drawCurveToAlphaMap(
+    curve: ResolvedCurvePoints,
+    dirtyRect: CurveShapeRect,
+  ) {
+    this.tempCtx.clearRect(
+      dirtyRect.x,
+      dirtyRect.y,
+      dirtyRect.width,
+      dirtyRect.height,
+    );
+    this.tempCtx.strokeStyle = "black";
+    this.tempCtx.lineWidth = this.strokeWidth;
+    this.tempCtx.lineCap = "round";
+    this.tempCtx.lineJoin = "round";
+    this.tempCtx.beginPath();
+    this.tempCtx.moveTo(curve.p1.x, curve.p1.y);
+
+    for (let i = 1; i <= CURVE_SEGMENTS; i += 1) {
+      const point = cubicBezier(i / CURVE_SEGMENTS, curve);
+      this.tempCtx.lineTo(point.x, point.y);
+    }
+
+    this.tempCtx.stroke();
+    this.uploadAlphaMap(dirtyRect);
+  }
+
+  private uploadAlphaMap(rect: CurveShapeRect) {
+    const img = this.tempCtx.getImageData(
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+    ).data;
+    const alpha = new Uint8Array(rect.width * rect.height);
+
+    for (let i = 0; i < alpha.length; i += 1) {
+      alpha[i] = img[i * 4 + 3];
+    }
+
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.ALPHA_MAP);
+    gl.bindTexture(gl.TEXTURE_2D, this.alphaMapTexture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RED,
+      gl.UNSIGNED_BYTE,
+      alpha,
+    );
+  }
+
+  private createAlphaMapTexture() {
+    const texture = this.gl.createTexture();
+    if (!texture) {
+      throw new Error("Failed to create curve shape alpha map texture.");
+    }
+
+    this.gl.activeTexture(this.gl.TEXTURE0 + TEXTURE_UNIT.ALPHA_MAP);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.R8,
+      this.options.width,
+      this.options.height,
+      0,
+      this.gl.RED,
+      this.gl.UNSIGNED_BYTE,
+      null,
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_WRAP_S,
+      this.gl.CLAMP_TO_EDGE,
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_WRAP_T,
+      this.gl.CLAMP_TO_EDGE,
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      this.gl.NEAREST,
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MAG_FILTER,
+      this.gl.NEAREST,
+    );
+    return texture;
+  }
+
+  private ensureTempCanvasSize(width: number, height: number) {
+    if (typeof OffscreenCanvas !== "undefined") {
+      this.tempCanvas = new OffscreenCanvas(width, height);
+      this.tempCtx = this.tempCanvas.getContext("2d")!;
+    } else {
+      this.tempCanvas = document.createElement("canvas");
+      this.tempCanvas.width = width;
+      this.tempCanvas.height = height;
+      this.tempCtx = this.tempCanvas.getContext("2d")!;
+    }
+    this.tempCtx.imageSmoothingEnabled = false;
   }
 
   private createFramebuffer(texture: WebGLTexture) {
@@ -260,6 +370,22 @@ function curveDirtyRect(
     width,
     height,
   );
+}
+
+function cubicBezier(t: number, curve: ResolvedCurvePoints): CurveShapePoint {
+  const inv = 1 - t;
+  return {
+    x:
+      inv * inv * inv * curve.p1.x +
+      3 * inv * inv * t * curve.c1.x +
+      3 * inv * t * t * curve.c2.x +
+      t * t * t * curve.p2.x,
+    y:
+      inv * inv * inv * curve.p1.y +
+      3 * inv * inv * t * curve.c1.y +
+      3 * inv * t * t * curve.c2.y +
+      t * t * t * curve.p2.y,
+  };
 }
 
 function clampRect(
