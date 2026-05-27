@@ -1,0 +1,16 @@
+# PaintOn
+
+> PaintOn is a browser-based image editor for drawing, selection, liquify, and mosaic editing.
+
+PaintOn runs in the browser and provides image editing tools without requiring users to install desktop software. It supports direct image editing workflows, including brush drawing, selection, liquify deformation, and mosaic effects.
+
+## Core Pages
+
+- [PaintOn](https://painton.app/): Main browser-based image editor.
+- [Liquify Image Online](https://painton.app/en/liquify): Tool page for pushing, twirling, bloating, puckering, and restoring image details.
+- [Mosaic Image Online](https://painton.app/en/mosaic): Tool page for applying pixel mosaic and blur mosaic effects, with restore support for masked areas.
+
+## Site Metadata
+
+- [Sitemap](https://painton.app/sitemap.xml): Canonical and localized public URLs.
+- [Robots](https://painton.app/robots.txt): Crawler access policy.
