@@ -56,9 +56,9 @@ class FloodFill {
     if (this.alpha === 0) return null;
 
     const pixels = this.readResult();
-    const seedRaw = this.readPixel(pixels, seedPoint.x, seedPoint.y);
-    const seedStraight = toStraightPixel(seedRaw);
-    const seedLab = rgbToOklab(seedStraight);
+    const beforePixels = new Uint8Array(pixels);
+    const seedIndex = this.pixelIndex(seedPoint.x, seedPoint.y);
+    const seed = this.readSeed(pixels, seedIndex);
     const fillColor = this.getFillColor();
     const visited = new Uint8Array(this.width * this.height);
     const queued = new Uint8Array(this.width * this.height);
@@ -67,22 +67,20 @@ class FloodFill {
     this.dirtyRect = null;
     this.enqueue(queue, queued, seedPoint.x, seedPoint.y);
 
+    const oklabStart = performance.now();
     while (queue.length > 0) {
       const current = queue.pop()!;
-      if (!this.canFill(pixels, visited, current.x, current.y, seedRaw, seedStraight, seedLab)) {
+      if (!this.canFill(pixels, visited, current.x, current.y, seed)) {
         continue;
       }
 
       let left = current.x;
-      while (left - 1 >= 0 && this.canFill(pixels, visited, left - 1, current.y, seedRaw, seedStraight, seedLab)) {
+      while (left - 1 >= 0 && this.canFill(pixels, visited, left - 1, current.y, seed)) {
         left--;
       }
 
       let right = current.x;
-      while (
-        right + 1 < this.width &&
-        this.canFill(pixels, visited, right + 1, current.y, seedRaw, seedStraight, seedLab)
-      ) {
+      while (right + 1 < this.width && this.canFill(pixels, visited, right + 1, current.y, seed)) {
         right++;
       }
 
@@ -92,10 +90,13 @@ class FloodFill {
           this.dirtyRect = unionRect(this.dirtyRect, pointRect({ x, y: current.y }, this.width, this.height));
         }
 
-        this.enqueueIfFillable(queue, queued, pixels, visited, x, current.y - 1, seedRaw, seedStraight, seedLab);
-        this.enqueueIfFillable(queue, queued, pixels, visited, x, current.y + 1, seedRaw, seedStraight, seedLab);
+        this.enqueueIfFillable(queue, queued, pixels, visited, x, current.y - 1, seed);
+        this.enqueueIfFillable(queue, queued, pixels, visited, x, current.y + 1, seed);
       }
     }
+    const oklabMs = performance.now() - oklabStart;
+    const rgbaMs = this.measureRgbaDistanceFill(beforePixels, seedPoint, seed);
+    console.log(`[FloodFill] OKLab ${oklabMs.toFixed(2)}ms, RGBA distance estimate ${rgbaMs.toFixed(2)}ms`);
 
     const rect = this.dirtyRect;
     if (!rect || rect.width === 0 || rect.height === 0) {
@@ -142,13 +143,22 @@ class FloodFill {
     return pixels;
   }
 
-  private readPixel(pixels: Uint8Array, x: number, y: number) {
-    const index = this.pixelIndex(x, y);
+  private readSeed(pixels: Uint8Array, index: number): FloodFillSeed {
+    const r = pixels[index];
+    const g = pixels[index + 1];
+    const b = pixels[index + 2];
+    const a = pixels[index + 3];
+    const straight = toStraightComponents(r, g, b, a);
+    const lab = rgbToOklabComponents(straight.r, straight.g, straight.b);
     return {
-      r: pixels[index],
-      g: pixels[index + 1],
-      b: pixels[index + 2],
-      a: pixels[index + 3],
+      rawR: r,
+      rawG: g,
+      rawB: b,
+      rawA: a,
+      straightA: straight.a,
+      labL: lab.l,
+      labA: lab.a,
+      labB: lab.b,
     };
   }
 
@@ -174,22 +184,13 @@ class FloodFill {
     return true;
   }
 
-  private canFill(
-    pixels: Uint8Array,
-    visited: Uint8Array,
-    x: number,
-    y: number,
-    seedRaw: FloodFillRawPixel,
-    seedStraight: FloodFillStraightPixel,
-    seedLab: FloodFillLab,
-  ) {
+  private canFill(pixels: Uint8Array, visited: Uint8Array, x: number, y: number, seed: FloodFillSeed) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
 
     const visitIndex = y * this.width + x;
     if (visited[visitIndex]) return false;
 
-    const pixel = this.readPixel(pixels, x, y);
-    return this.isSimilar(pixel, seedRaw, seedStraight, seedLab);
+    return this.isSimilarAtIndex(pixels, this.pixelIndex(x, y), seed);
   }
 
   private enqueueIfFillable(
@@ -199,15 +200,13 @@ class FloodFill {
     visited: Uint8Array,
     x: number,
     y: number,
-    seedRaw: FloodFillRawPixel,
-    seedStraight: FloodFillStraightPixel,
-    seedLab: FloodFillLab,
+    seed: FloodFillSeed,
   ) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
 
     const queueIndex = y * this.width + x;
     if (queued[queueIndex]) return;
-    if (!this.canFill(pixels, visited, x, y, seedRaw, seedStraight, seedLab)) {
+    if (!this.canFill(pixels, visited, x, y, seed)) {
       return;
     }
 
@@ -220,24 +219,100 @@ class FloodFill {
     queue.push({ x, y });
   }
 
-  private isSimilar(
-    pixel: FloodFillRawPixel,
-    seedRaw: FloodFillRawPixel,
-    seedStraight: FloodFillStraightPixel,
-    seedLab: FloodFillLab,
-  ) {
+  private isSimilarAtIndex(pixels: Uint8Array, index: number, seed: FloodFillSeed) {
+    const r = pixels[index];
+    const g = pixels[index + 1];
+    const b = pixels[index + 2];
+    const a = pixels[index + 3];
+
     if (this.tolerance === 0) {
-      return pixel.r === seedRaw.r && pixel.g === seedRaw.g && pixel.b === seedRaw.b && pixel.a === seedRaw.a;
+      return r === seed.rawR && g === seed.rawG && b === seed.rawB && a === seed.rawA;
     }
 
-    const straightPixel = toStraightPixel(pixel);
-    const pixelLab = rgbToOklab(straightPixel);
-    const dl = pixelLab.l - seedLab.l;
-    const da = pixelLab.a - seedLab.a;
-    const db = pixelLab.b - seedLab.b;
-    return (
-      dl * dl + da * da + db * db <= this.toleranceSq && Math.abs(straightPixel.a - seedStraight.a) <= this.tolerance
-    );
+    const straight = toStraightComponents(r, g, b, a);
+    const lab = rgbToOklabComponents(straight.r, straight.g, straight.b);
+    const dl = lab.l - seed.labL;
+    const da = lab.a - seed.labA;
+    const db = lab.b - seed.labB;
+    return dl * dl + da * da + db * db <= this.toleranceSq && Math.abs(straight.a - seed.straightA) <= this.tolerance;
+  }
+
+  private measureRgbaDistanceFill(pixels: Uint8Array, seedPoint: FloodFillRect, seed: FloodFillSeed) {
+    const visited = new Uint8Array(this.width * this.height);
+    const queued = new Uint8Array(this.width * this.height);
+    const queue: FloodFillPoint[] = [];
+
+    this.enqueue(queue, queued, seedPoint.x, seedPoint.y);
+
+    const start = performance.now();
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      if (!this.canFillRgbaDistance(pixels, visited, current.x, current.y, seed)) {
+        continue;
+      }
+
+      let left = current.x;
+      while (left - 1 >= 0 && this.canFillRgbaDistance(pixels, visited, left - 1, current.y, seed)) {
+        left--;
+      }
+
+      let right = current.x;
+      while (right + 1 < this.width && this.canFillRgbaDistance(pixels, visited, right + 1, current.y, seed)) {
+        right++;
+      }
+
+      for (let x = left; x <= right; x++) {
+        visited[current.y * this.width + x] = 1;
+        this.enqueueRgbaIfFillable(queue, queued, pixels, visited, x, current.y - 1, seed);
+        this.enqueueRgbaIfFillable(queue, queued, pixels, visited, x, current.y + 1, seed);
+      }
+    }
+
+    return performance.now() - start;
+  }
+
+  private canFillRgbaDistance(pixels: Uint8Array, visited: Uint8Array, x: number, y: number, seed: FloodFillSeed) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return false;
+
+    const visitIndex = y * this.width + x;
+    if (visited[visitIndex]) return false;
+
+    return this.isSimilarRgbaDistanceAtIndex(pixels, this.pixelIndex(x, y), seed);
+  }
+
+  private enqueueRgbaIfFillable(
+    queue: FloodFillPoint[],
+    queued: Uint8Array,
+    pixels: Uint8Array,
+    visited: Uint8Array,
+    x: number,
+    y: number,
+    seed: FloodFillSeed,
+  ) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+
+    const queueIndex = y * this.width + x;
+    if (queued[queueIndex]) return;
+    if (!this.canFillRgbaDistance(pixels, visited, x, y, seed)) return;
+
+    this.enqueue(queue, queued, x, y);
+  }
+
+  private isSimilarRgbaDistanceAtIndex(pixels: Uint8Array, index: number, seed: FloodFillSeed) {
+    const r = pixels[index];
+    const g = pixels[index + 1];
+    const b = pixels[index + 2];
+    const a = pixels[index + 3];
+
+    if (this.tolerance === 0) {
+      return r === seed.rawR && g === seed.rawG && b === seed.rawB && a === seed.rawA;
+    }
+
+    const dr = (r - seed.rawR) / 255;
+    const dg = (g - seed.rawG) / 255;
+    const db = (b - seed.rawB) / 255;
+    const da = (a - seed.rawA) / 255;
+    return dr * dr + dg * dg + db * db + da * da <= this.toleranceSq;
   }
 
   private getFillColor(): FloodFillColorByte {
@@ -276,24 +351,21 @@ class FloodFill {
   }
 }
 
-interface FloodFillRawPixel {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
-
-interface FloodFillStraightPixel {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
-
 interface FloodFillColorByte {
   r: number;
   g: number;
   b: number;
+}
+
+interface FloodFillSeed {
+  rawR: number;
+  rawG: number;
+  rawB: number;
+  rawA: number;
+  straightA: number;
+  labL: number;
+  labA: number;
+  labB: number;
 }
 
 interface FloodFillLab {
@@ -306,8 +378,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function toStraightPixel(pixel: FloodFillRawPixel): FloodFillStraightPixel {
-  if (pixel.a === 0) {
+function toStraightComponents(r: number, g: number, b: number, a: number) {
+  if (a === 0) {
     return {
       r: 0,
       g: 0,
@@ -316,19 +388,19 @@ function toStraightPixel(pixel: FloodFillRawPixel): FloodFillStraightPixel {
     };
   }
 
-  const factor = 255 / pixel.a;
+  const factor = 255 / a;
   return {
-    r: clamp(pixel.r * factor, 0, 255),
-    g: clamp(pixel.g * factor, 0, 255),
-    b: clamp(pixel.b * factor, 0, 255),
-    a: pixel.a / 255,
+    r: clamp(r * factor, 0, 255),
+    g: clamp(g * factor, 0, 255),
+    b: clamp(b * factor, 0, 255),
+    a: a / 255,
   };
 }
 
-function rgbToOklab(pixel: FloodFillStraightPixel): FloodFillLab {
-  const r = srgbToLinear(pixel.r / 255);
-  const g = srgbToLinear(pixel.g / 255);
-  const b = srgbToLinear(pixel.b / 255);
+function rgbToOklabComponents(red: number, green: number, blue: number): FloodFillLab {
+  const r = srgbToLinear(red / 255);
+  const g = srgbToLinear(green / 255);
+  const b = srgbToLinear(blue / 255);
 
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
