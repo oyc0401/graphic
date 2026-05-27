@@ -6,8 +6,9 @@ import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
 import { createCurveShape } from "./curveShapeModule";
+import { createEllipse } from "./ellipseModule";
 import { createLineShape } from "./lineShapeModule";
-import { createShape } from "./shapeModule";
+import { createRectangle } from "./rectangleModule";
 
 type ShapeRect = {
   x: number;
@@ -27,7 +28,8 @@ class ShapeManager {
   private readonly sourceTextureManager;
   private readonly layerManager;
   private readonly renderingManager;
-  private readonly shapeModule;
+  private readonly rectangleModule;
+  private readonly ellipseModule;
   private readonly lineModule;
   private readonly curveModule;
   private activeKind: ShapeKind | null = null;
@@ -49,7 +51,14 @@ class ShapeManager {
       width: paintOptions.width,
       height: paintOptions.height,
     };
-    this.shapeModule = createShape(gl, options);
+    this.rectangleModule = createRectangle(gl, {
+      ...options,
+      shapeTexture: gl.createTexture()!,
+    });
+    this.ellipseModule = createEllipse(gl, {
+      ...options,
+      shapeTexture: gl.createTexture()!,
+    });
     this.lineModule = createLineShape(gl, options);
     this.curveModule = createCurveShape(gl, options);
   }
@@ -174,8 +183,10 @@ class ShapeManager {
     ];
     const width = paintOptions.radius * 2;
 
-    this.shapeModule.setColor(color);
-    this.shapeModule.setWidth(width);
+    this.rectangleModule.setColor(color);
+    this.rectangleModule.setWidth(width);
+    this.ellipseModule.setColor(color);
+    this.ellipseModule.setWidth(width);
     this.lineModule.setColor(color);
     this.lineModule.setWidth(width);
     this.curveModule.setColor(color);
@@ -189,8 +200,8 @@ class ShapeManager {
     this.applyOptions();
     const dirtyRect =
       this.activeKind === "ellipse"
-        ? this.shapeModule.createEllipse(rect)
-        : this.shapeModule.createRectangle(rect);
+        ? this.ellipseModule.create(rect)
+        : this.rectangleModule.create(rect);
 
     this.shapeRect = { ...rect };
     this.draftDirtyRect = dirtyRect;

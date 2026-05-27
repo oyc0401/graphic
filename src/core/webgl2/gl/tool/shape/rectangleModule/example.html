@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shape module example</title>
+    <title>Rectangle module example</title>
     <style>
       html,
       body {
@@ -37,18 +37,14 @@
         color: #f3f3f3;
       }
 
-      select,
       button {
         height: 28px;
         border: 0;
         border-radius: 4px;
+        padding: 0 10px;
         background: #f3f3f3;
         color: #202020;
         font: inherit;
-      }
-
-      button {
-        padding: 0 10px;
         cursor: pointer;
       }
 
@@ -73,10 +69,6 @@
   </head>
   <body>
     <div class="toolbar">
-      <select id="shape-type">
-        <option value="rectangle">Rectangle</option>
-        <option value="ellipse">Ellipse</option>
-      </select>
       <label>
         Width
         <input id="stroke-width" type="range" min="1" max="80" value="16" />
@@ -88,7 +80,7 @@
     <canvas id="canvas" width="768" height="512"></canvas>
 
     <script type="module">
-      import { createShape } from "./index.ts";
+      import { createRectangle } from "./index.ts";
 
       const canvas = document.querySelector("#canvas");
       const gl = canvas.getContext("webgl2", {
@@ -101,20 +93,18 @@
 
       const width = canvas.width;
       const height = canvas.height;
-      const shapeTypeInput = document.querySelector("#shape-type");
       const strokeWidthInput = document.querySelector("#stroke-width");
       const colorInput = document.querySelector("#color");
       const applyButton = document.querySelector("#apply");
       const resetButton = document.querySelector("#reset");
       const renderVertexShader = `#version 300 es
-        layout(location = 0) in vec2 a_position;
+        in vec2 a_position;
         out vec2 v_texCoord;
 
         void main() {
           v_texCoord = a_position * 0.5 + 0.5;
           gl_Position = vec4(a_position, 0.0, 1.0);
         }`;
-
       const renderFragmentShader = `#version 300 es
         precision mediump float;
 
@@ -157,8 +147,8 @@
       const shapeTexture = gl.createTexture();
       const resultTexture = createTexture(gl, width, height);
       const renderProgram = createProgram(gl, renderVertexShader, renderFragmentShader);
-      const renderVAO = createQuadVAO(gl);
-      const shape = createShape(gl, {
+      const renderVAO = createQuadVAO(gl, renderProgram);
+      const rectangle = createRectangle(gl, {
         shapeTexture,
         imageTexture,
         resultTexture,
@@ -201,7 +191,7 @@
 
       applyButton.addEventListener("click", () => {
         if (!draftRect) return;
-        shape.apply(draftRect);
+        rectangle.apply(draftRect);
         copyTexture(gl, resultTexture, imageTexture, width, height);
         draftRect = null;
         applyButton.disabled = true;
@@ -211,18 +201,11 @@
       resetButton.addEventListener("click", reset);
 
       function updateDraft(rect) {
-        setShapeOptions();
-        draftRect =
-          shapeTypeInput.value === "ellipse"
-            ? shape.createEllipse(rect)
-            : shape.createRectangle(rect);
+        rectangle.setColor([...hexToRGB(colorInput.value), 1]);
+        rectangle.setWidth(Number(strokeWidthInput.value));
+        draftRect = rectangle.create(rect);
         applyButton.disabled = !draftRect;
         render();
-      }
-
-      function setShapeOptions() {
-        shape.setColor([...hexToRGB(colorInput.value), 1]);
-        shape.setWidth(Number(strokeWidthInput.value));
       }
 
       function reset() {
@@ -324,7 +307,7 @@
         gl.bindTexture(gl.TEXTURE_2D, texture);
       }
 
-      function createQuadVAO(gl) {
+      function createQuadVAO(gl, program) {
         const buffer = gl.createBuffer();
         const vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
@@ -334,8 +317,9 @@
           new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
           gl.STATIC_DRAW,
         );
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        const position = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
         return vao;
       }
 
@@ -363,7 +347,6 @@
         }
         return program;
       }
-
     </script>
   </body>
 </html>
