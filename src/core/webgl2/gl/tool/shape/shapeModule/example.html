@@ -3,33 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shape example</title>
+    <title>Shape module example</title>
     <style>
       html,
       body {
         margin: 0;
         width: 100%;
         height: 100%;
-        background: #1f1f1f;
+        background: #242424;
       }
 
       body {
         display: grid;
         place-items: center;
-      }
-
-      .toolbar {
-        position: fixed;
-        top: 16px;
-        left: 16px;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 6px;
-        background: rgba(24, 24, 24, 0.86);
-        color: #f2f2f2;
         font:
           13px/1.2 system-ui,
           -apple-system,
@@ -38,161 +24,245 @@
           sans-serif;
       }
 
-      .toolbar input[type="range"] {
-        width: 130px;
+      .toolbar {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        background: rgba(32, 32, 32, 0.9);
+        color: #f3f3f3;
       }
 
-      .toolbar select,
-      .toolbar button {
+      select,
+      button {
         height: 28px;
         border: 0;
         border-radius: 4px;
-        background: #f2f2f2;
-        color: #1a1a1a;
+        background: #f3f3f3;
+        color: #202020;
         font: inherit;
       }
 
-      .toolbar button {
+      button {
         padding: 0 10px;
         cursor: pointer;
       }
 
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+
+      input[type="range"] {
+        width: 120px;
+      }
+
       canvas {
-        max-width: 100vw;
-        max-height: 100vh;
-        width: auto;
-        height: auto;
-        display: block;
+        width: 768px;
+        height: 512px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 32px);
+        border: 1px solid #555;
+        background: #fff;
       }
     </style>
   </head>
   <body>
     <div class="toolbar">
-      <label for="shape-type">Shape</label>
       <select id="shape-type">
         <option value="rectangle">Rectangle</option>
         <option value="ellipse">Ellipse</option>
       </select>
-      <label for="stroke-width">Width</label>
-      <input id="stroke-width" type="range" min="1" max="80" step="1" value="12" />
-      <span id="stroke-width-value">12</span>
-      <label for="alpha">Alpha</label>
-      <input id="alpha" type="range" min="0" max="1" step="0.01" value="1" />
-      <span id="alpha-value">1.00</span>
-      <input id="color" type="color" value="#ff0000" />
+      <label>
+        Width
+        <input id="stroke-width" type="range" min="1" max="80" value="16" />
+      </label>
+      <input id="color" type="color" value="#e03030" />
+      <button id="apply" type="button" disabled>Apply</button>
       <button id="reset" type="button">Reset</button>
     </div>
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" width="768" height="512"></canvas>
 
     <script type="module">
       import { createShape } from "./index.ts";
 
-      const image = await loadImage("/cat_3k.jpg");
       const canvas = document.querySelector("#canvas");
-      const shapeTypeInput = document.querySelector("#shape-type");
-      const strokeWidthInput = document.querySelector("#stroke-width");
-      const strokeWidthValue = document.querySelector("#stroke-width-value");
-      const alphaInput = document.querySelector("#alpha");
-      const alphaValue = document.querySelector("#alpha-value");
-      const colorInput = document.querySelector("#color");
-      const resetButton = document.querySelector("#reset");
       const gl = canvas.getContext("webgl2", {
         alpha: false,
         depth: false,
         stencil: false,
         antialias: false,
       });
+      if (!gl) throw new Error("WebGL2 is required.");
 
-      if (!gl) {
-        throw new Error("WebGL2 is required.");
-      }
+      const width = canvas.width;
+      const height = canvas.height;
+      const shapeTypeInput = document.querySelector("#shape-type");
+      const strokeWidthInput = document.querySelector("#stroke-width");
+      const colorInput = document.querySelector("#color");
+      const applyButton = document.querySelector("#apply");
+      const resetButton = document.querySelector("#reset");
+      const renderVertexShader = `#version 300 es
+        layout(location = 0) in vec2 a_position;
+        out vec2 v_texCoord;
 
-      const width = image.naturalWidth;
-      const height = image.naturalHeight;
-      canvas.width = width;
-      canvas.height = height;
+        void main() {
+          v_texCoord = a_position * 0.5 + 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }`;
 
-      const imageTexture = createImageTexture(gl, image);
-      const resultTexture = gl.createTexture();
-      createEmptyResultTexture(gl, resultTexture, width, height);
-      let copyProgram = null;
-      let copyVAO = null;
-      copyTexture(gl, imageTexture, resultTexture, width, height);
+      const renderFragmentShader = `#version 300 es
+        precision mediump float;
 
+        uniform sampler2D u_result;
+        uniform sampler2D u_shape;
+        uniform vec2 u_resolution;
+        uniform vec4 u_shapeRect;
+
+        in vec2 v_texCoord;
+        out vec4 outColor;
+
+        void main() {
+          vec4 resultColor = texture(u_result, v_texCoord);
+          if (u_shapeRect.z <= 0.0 || u_shapeRect.w <= 0.0) {
+            outColor = resultColor;
+            return;
+          }
+
+          vec2 point = v_texCoord * u_resolution;
+          bool inside =
+            point.x >= u_shapeRect.x &&
+            point.y >= u_shapeRect.y &&
+            point.x < u_shapeRect.x + u_shapeRect.z &&
+            point.y < u_shapeRect.y + u_shapeRect.w;
+          if (!inside) {
+            outColor = resultColor;
+            return;
+          }
+
+          vec2 shapeCoord = (point - u_shapeRect.xy) / u_resolution;
+          vec4 shapeColor = texture(u_shape, shapeCoord);
+          float alpha = shapeColor.a;
+          outColor = vec4(
+            resultColor.rgb * (1.0 - alpha) + shapeColor.rgb,
+            resultColor.a + alpha * (1.0 - resultColor.a)
+          );
+        }`;
+
+      const imageTexture = createTexture(gl, width, height);
+      const shapeTexture = gl.createTexture();
+      const resultTexture = createTexture(gl, width, height);
+      const renderProgram = createProgram(gl, renderVertexShader, renderFragmentShader);
+      const renderVAO = createQuadVAO(gl);
       const shape = createShape(gl, {
+        shapeTexture,
         imageTexture,
         resultTexture,
         width,
         height,
       });
-      shape.setColor([
-        ...hexToColor(colorInput.value),
-        Number(alphaInput.value),
-      ]);
-      shape.setWidth(Number(strokeWidthInput.value));
 
-      let active = false;
       let startPoint = null;
-      drawTexture(gl, resultTexture, width, height);
+      let draftRect = null;
 
-      strokeWidthInput.addEventListener("input", () => {
-        strokeWidthValue.textContent = strokeWidthInput.value;
-      });
-
-      alphaInput.addEventListener("input", () => {
-        alphaValue.textContent = Number(alphaInput.value).toFixed(2);
-      });
-
-      resetButton.addEventListener("click", () => {
-        copyTexture(gl, imageTexture, resultTexture, width, height);
-        drawTexture(gl, resultTexture, width, height);
-      });
+      reset();
 
       canvas.addEventListener("pointerdown", (event) => {
         event.preventDefault();
-        active = true;
         startPoint = toCanvasPoint(event);
         canvas.setPointerCapture(event.pointerId);
       });
 
-      canvas.addEventListener("pointerup", (event) => {
-        if (!active) return;
-
+      canvas.addEventListener("pointermove", (event) => {
+        if (!startPoint) return;
         event.preventDefault();
-        active = false;
-        canvas.releasePointerCapture(event.pointerId);
+        updateDraft(pointsToRect(startPoint, toCanvasPoint(event)));
+      });
 
-        const endPoint = toCanvasPoint(event);
-        const rect = pointsToRect(startPoint, endPoint);
-        shape.setColor([
-          ...hexToColor(colorInput.value),
-          Number(alphaInput.value),
-        ]);
-        shape.setWidth(Number(strokeWidthInput.value));
-        const dirtyRect =
-          shapeTypeInput.value === "ellipse"
-            ? shape.createEllipse(rect)
-            : shape.createRectangle(rect);
-        console.log("shape rect", dirtyRect);
-        drawTexture(gl, resultTexture, width, height);
+      canvas.addEventListener("pointerup", (event) => {
+        if (!startPoint) return;
+        event.preventDefault();
+        updateDraft(pointsToRect(startPoint, toCanvasPoint(event)));
+        startPoint = null;
+        canvas.releasePointerCapture(event.pointerId);
       });
 
       canvas.addEventListener("pointercancel", (event) => {
-        if (!active) return;
-
-        event.preventDefault();
-        active = false;
+        startPoint = null;
+        draftRect = null;
+        applyButton.disabled = true;
         canvas.releasePointerCapture(event.pointerId);
+        render();
       });
 
+      applyButton.addEventListener("click", () => {
+        if (!draftRect) return;
+        shape.apply(draftRect);
+        copyTexture(gl, resultTexture, imageTexture, width, height);
+        draftRect = null;
+        applyButton.disabled = true;
+        render();
+      });
+
+      resetButton.addEventListener("click", reset);
+
+      function updateDraft(rect) {
+        setShapeOptions();
+        draftRect =
+          shapeTypeInput.value === "ellipse"
+            ? shape.createEllipse(rect)
+            : shape.createRectangle(rect);
+        applyButton.disabled = !draftRect;
+        render();
+      }
+
+      function setShapeOptions() {
+        shape.setColor([...hexToRGB(colorInput.value), 1]);
+        shape.setWidth(Number(strokeWidthInput.value));
+      }
+
+      function reset() {
+        fillTexture(gl, imageTexture, width, height, [1, 1, 1, 1]);
+        copyTexture(gl, imageTexture, resultTexture, width, height);
+        draftRect = null;
+        applyButton.disabled = true;
+        render();
+      }
+
+      function render() {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.useProgram(renderProgram);
+        gl.bindVertexArray(renderVAO);
+        bindTexture(gl, 0, resultTexture);
+        bindTexture(gl, 1, shapeTexture);
+        gl.uniform1i(gl.getUniformLocation(renderProgram, "u_result"), 0);
+        gl.uniform1i(gl.getUniformLocation(renderProgram, "u_shape"), 1);
+        gl.uniform2f(gl.getUniformLocation(renderProgram, "u_resolution"), width, height);
+        gl.uniform4f(
+          gl.getUniformLocation(renderProgram, "u_shapeRect"),
+          draftRect?.x ?? 0,
+          draftRect?.y ?? 0,
+          draftRect?.width ?? 0,
+          draftRect?.height ?? 0,
+        );
+        gl.viewport(0, 0, width, height);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
       function pointsToRect(start, end) {
-        const x = Math.min(start.x, end.x);
-        const y = Math.min(start.y, end.y);
+        const x = Math.floor(Math.min(start.x, end.x));
+        const y = Math.floor(Math.min(start.y, end.y));
+        const right = Math.ceil(Math.max(start.x, end.x));
+        const bottom = Math.ceil(Math.max(start.y, end.y));
         return {
           x,
           y,
-          width: Math.max(1, Math.abs(end.x - start.x)),
-          height: Math.max(1, Math.abs(end.y - start.y)),
+          width: Math.max(1, right - x),
+          height: Math.max(1, bottom - y),
         };
       }
 
@@ -204,118 +274,69 @@
         };
       }
 
-      function hexToColor(value) {
-        const r = Number.parseInt(value.slice(1, 3), 16) / 255;
-        const g = Number.parseInt(value.slice(3, 5), 16) / 255;
-        const b = Number.parseInt(value.slice(5, 7), 16) / 255;
-        return [r, g, b];
+      function hexToRGB(value) {
+        return [
+          Number.parseInt(value.slice(1, 3), 16) / 255,
+          Number.parseInt(value.slice(3, 5), 16) / 255,
+          Number.parseInt(value.slice(5, 7), 16) / 255,
+        ];
       }
 
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = reject;
-          image.src = src;
-        });
-      }
-
-      function createImageTexture(gl, image) {
+      function createTexture(gl, width, height) {
         const texture = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        return texture;
-      }
-
-      function createEmptyResultTexture(gl, texture, width, height) {
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        bindTexture(gl, 0, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        return texture;
+      }
+
+      function fillTexture(gl, texture, width, height, color) {
+        const framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+        gl.clearColor(color[0], color[1], color[2], color[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.deleteFramebuffer(framebuffer);
       }
 
       function copyTexture(gl, sourceTexture, targetTexture, width, height) {
         const framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture, 0);
-        drawTextureToCurrentFramebuffer(gl, sourceTexture, width, height);
+        gl.useProgram(renderProgram);
+        gl.bindVertexArray(renderVAO);
+        bindTexture(gl, 0, sourceTexture);
+        bindTexture(gl, 1, shapeTexture);
+        gl.uniform1i(gl.getUniformLocation(renderProgram, "u_result"), 0);
+        gl.uniform1i(gl.getUniformLocation(renderProgram, "u_shape"), 1);
+        gl.uniform2f(gl.getUniformLocation(renderProgram, "u_resolution"), width, height);
+        gl.uniform4f(gl.getUniformLocation(renderProgram, "u_shapeRect"), 0, 0, 0, 0);
+        gl.viewport(0, 0, width, height);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.deleteFramebuffer(framebuffer);
       }
 
-      function drawTexture(gl, texture, width, height) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        drawTextureToCurrentFramebuffer(gl, texture, width, height);
-      }
-
-      function drawTextureToCurrentFramebuffer(gl, texture, width, height) {
-        const program = getCopyProgram(gl);
-        const vao = getCopyVAO(gl, program);
-        gl.useProgram(program);
-        gl.bindVertexArray(vao);
-        gl.activeTexture(gl.TEXTURE0);
+      function bindTexture(gl, textureUnit, texture) {
+        gl.activeTexture(gl.TEXTURE0 + textureUnit);
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
-        gl.viewport(0, 0, width, height);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
 
-      function getCopyProgram(gl) {
-        if (copyProgram) return copyProgram;
-        copyProgram = createProgram(
-          gl,
-          createShader(
-            gl,
-            gl.VERTEX_SHADER,
-            `#version 300 es
-            in vec2 a_position;
-            out vec2 v_texCoord;
-            void main() {
-              v_texCoord = a_position * 0.5 + 0.5;
-              gl_Position = vec4(a_position, 0.0, 1.0);
-            }`,
-          ),
-          createShader(
-            gl,
-            gl.FRAGMENT_SHADER,
-            `#version 300 es
-            precision mediump float;
-            uniform sampler2D u_texture;
-            in vec2 v_texCoord;
-            out vec4 outColor;
-            void main() {
-              outColor = texture(u_texture, v_texCoord);
-            }`,
-          ),
-        );
-        return copyProgram;
-      }
-
-      function getCopyVAO(gl, program) {
-        if (copyVAO) return copyVAO;
+      function createQuadVAO(gl) {
         const buffer = gl.createBuffer();
-        copyVAO = gl.createVertexArray();
-        gl.bindVertexArray(copyVAO);
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(
           gl.ARRAY_BUFFER,
           new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
           gl.STATIC_DRAW,
         );
-        const position = gl.getAttribLocation(program, "a_position");
-        gl.enableVertexAttribArray(position);
-        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-        return copyVAO;
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        return vao;
       }
 
       function createShader(gl, type, source) {
@@ -328,16 +349,21 @@
         return shader;
       }
 
-      function createProgram(gl, vertexShader, fragmentShader) {
+      function createProgram(gl, vertexSource, fragmentSource) {
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
         const program = gl.createProgram();
         gl.attachShader(program, vertexShader);
         gl.attachShader(program, fragmentShader);
         gl.linkProgram(program);
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
           throw new Error(gl.getProgramInfoLog(program));
         }
         return program;
       }
+
     </script>
   </body>
 </html>

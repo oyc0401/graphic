@@ -26,6 +26,12 @@ interface ShapeProgram {
   program: WebGLProgram;
 }
 
+interface NormalizedShapeRect {
+  textureWidth: number;
+  textureHeight: number;
+  targetRect: ShapeRect;
+}
+
 const TEXTURE_UNIT = {
   IMAGE: 0,
   SHAPE: 1,
@@ -99,12 +105,12 @@ class Shape {
   }
 
   apply(rect: ShapeRect): ShapeRect | null {
-    const targetRect = normalizeTargetRect(
+    const shapeRect = normalizeShapeRect(
       rect,
       this.options.width,
       this.options.height,
     );
-    if (!targetRect) return null;
+    if (!shapeRect) return null;
 
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
@@ -113,17 +119,22 @@ class Shape {
     bindTexture(gl, TEXTURE_UNIT.SHAPE, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
+      shapeRect.targetRect.x,
+      shapeRect.targetRect.y,
+      shapeRect.targetRect.width,
+      shapeRect.targetRect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
-    drawFullQuad(gl, this.options.width, this.options.height, targetRect);
+    drawFullQuad(
+      gl,
+      this.options.width,
+      this.options.height,
+      shapeRect.targetRect,
+    );
 
     this.clearShapeTexture();
-    return targetRect;
+    return shapeRect.targetRect;
   }
 
   destroy() {
@@ -140,22 +151,32 @@ class Shape {
     shapeProgram: ShapeProgram,
     rect: ShapeRect,
   ): ShapeRect | null {
-    const targetRect = normalizeTargetRect(
+    const shapeRect = normalizeShapeRect(
       rect,
       this.options.width,
       this.options.height,
     );
-    if (!targetRect) return null;
+    if (!shapeRect) return null;
 
-    const shapeWidth = Math.max(1, Math.ceil(rect.width));
-    const shapeHeight = Math.max(1, Math.ceil(rect.height));
-    const key = this.createShapeKey(shapeProgram.kind, shapeWidth, shapeHeight);
-    if (this.renderedShape?.key === key) return targetRect;
+    const key = this.createShapeKey(
+      shapeProgram.kind,
+      shapeRect.textureWidth,
+      shapeRect.textureHeight,
+    );
+    if (this.renderedShape?.key === key) return shapeRect.targetRect;
 
     this.clearShapeTexture();
-    this.drawShapeTexture(shapeProgram.program, shapeWidth, shapeHeight);
-    this.renderedShape = { key, width: shapeWidth, height: shapeHeight };
-    return targetRect;
+    this.drawShapeTexture(
+      shapeProgram.program,
+      shapeRect.textureWidth,
+      shapeRect.textureHeight,
+    );
+    this.renderedShape = {
+      key,
+      width: shapeRect.textureWidth,
+      height: shapeRect.textureHeight,
+    };
+    return shapeRect.targetRect;
   }
 
   private drawShapeTexture(
@@ -217,8 +238,8 @@ class Shape {
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }
 
   private clearShapeTexture() {
@@ -248,30 +269,36 @@ class Shape {
   }
 }
 
-function normalizeTargetRect(
+function normalizeShapeRect(
   rect: ShapeRect,
   canvasWidth: number,
   canvasHeight: number,
-): ShapeRect | null {
-  const width = Math.ceil(rect.width);
-  const height = Math.ceil(rect.height);
-  if (width <= 0 || height <= 0) return null;
+): NormalizedShapeRect | null {
+  const left = Math.floor(rect.x);
+  const top = Math.floor(rect.y);
+  const right = Math.ceil(rect.x + rect.width);
+  const bottom = Math.ceil(rect.y + rect.height);
+  const textureWidth = right - left;
+  const textureHeight = bottom - top;
+  if (textureWidth <= 0 || textureHeight <= 0) return null;
 
-  const x = Math.floor(rect.x);
-  const y = Math.floor(rect.y);
-  const right = Math.min(canvasWidth, x + width);
-  const bottom = Math.min(canvasHeight, y + height);
-  const clampedX = Math.max(0, x);
-  const clampedY = Math.max(0, y);
-  const clampedWidth = Math.max(0, right - clampedX);
-  const clampedHeight = Math.max(0, bottom - clampedY);
+  const clampedX = Math.max(0, left);
+  const clampedY = Math.max(0, top);
+  const clampedRight = Math.min(canvasWidth, right);
+  const clampedBottom = Math.min(canvasHeight, bottom);
+  const clampedWidth = Math.max(0, clampedRight - clampedX);
+  const clampedHeight = Math.max(0, clampedBottom - clampedY);
 
   if (clampedWidth === 0 || clampedHeight === 0) return null;
   return {
-    x: clampedX,
-    y: clampedY,
-    width: clampedWidth,
-    height: clampedHeight,
+    textureWidth,
+    textureHeight,
+    targetRect: {
+      x: clampedX,
+      y: clampedY,
+      width: clampedWidth,
+      height: clampedHeight,
+    },
   };
 }
 

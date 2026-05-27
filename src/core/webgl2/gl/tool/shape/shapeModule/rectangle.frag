@@ -10,19 +10,19 @@ in vec2 v_texCoord;
 out vec4 outColor;
 
 float rectangleAlpha(vec2 point, vec2 size, float strokeWidth) {
-  float stroke = min(strokeWidth, min(size.x, size.y));
-  vec2 innerOrigin = vec2(stroke);
-  vec2 innerMaxPos = size - vec2(stroke);
+  float stroke = min(strokeWidth, min(size.x, size.y) * 0.5);
+  vec2 innerMin = vec2(stroke);
+  vec2 innerMax = size - vec2(stroke);
   bool insideOuter =
     point.x >= 0.0 &&
     point.y >= 0.0 &&
     point.x < size.x &&
     point.y < size.y;
   bool insideInner =
-    point.x >= innerOrigin.x &&
-    point.y >= innerOrigin.y &&
-    point.x < innerMaxPos.x &&
-    point.y < innerMaxPos.y;
+    point.x >= innerMin.x &&
+    point.y >= innerMin.y &&
+    point.x < innerMax.x &&
+    point.y < innerMax.y;
 
   return insideOuter && !insideInner ? 1.0 : 0.0;
 }
