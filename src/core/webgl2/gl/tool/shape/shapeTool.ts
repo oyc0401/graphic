@@ -63,7 +63,10 @@ class ShapeManager {
       ...options,
       shapeTexture: gl.createTexture()!,
     });
-    this.curveModule = createCurveShape(gl, options);
+    this.curveModule = createCurveShape(gl, {
+      ...options,
+      shapeTexture: gl.createTexture()!,
+    });
   }
 
   start(kind: ShapeKind) {
@@ -97,7 +100,7 @@ class ShapeManager {
     this.applyOptions();
     const dirtyRect =
       this.activeKind === "curve"
-        ? this.curveModule.createCurve(p1, p2, c1 ?? null, c2 ?? null)
+        ? this.curveModule.create(p1, p2, c1 ?? null, c2 ?? null)
         : this.lineModule.create(p1, p2);
 
     this.draftDirtyRect = dirtyRect;

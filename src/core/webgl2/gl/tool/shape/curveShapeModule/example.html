@@ -103,6 +103,7 @@
       canvas.height = height;
 
       const imageTexture = createImageTexture(gl, image);
+      const shapeTexture = gl.createTexture();
       const resultTexture = gl.createTexture();
       createEmptyResultTexture(gl, resultTexture, width, height);
       let copyProgram = null;
@@ -110,6 +111,7 @@
       copyTexture(gl, imageTexture, resultTexture, width, height);
 
       const curveShape = createCurveShape(gl, {
+        shapeTexture,
         imageTexture,
         resultTexture,
         width,
@@ -169,7 +171,13 @@
             p1: startPoint,
             p2: endPoint,
           };
-          dirtyRect = curveShape.createCurve(
+          curveShape.create(
+            curveBaseLine.p1,
+            curveBaseLine.p2,
+            null,
+            null,
+          );
+          dirtyRect = curveShape.apply(
             curveBaseLine.p1,
             curveBaseLine.p2,
             null,
@@ -177,14 +185,26 @@
           );
         } else if (!curveControlPoint) {
           curveControlPoint = endPoint;
-          dirtyRect = curveShape.createCurve(
+          curveShape.create(
+            curveBaseLine.p1,
+            curveBaseLine.p2,
+            curveControlPoint,
+            null,
+          );
+          dirtyRect = curveShape.apply(
             curveBaseLine.p1,
             curveBaseLine.p2,
             curveControlPoint,
             null,
           );
         } else {
-          dirtyRect = curveShape.createCurve(
+          curveShape.create(
+            curveBaseLine.p1,
+            curveBaseLine.p2,
+            curveControlPoint,
+            endPoint,
+          );
+          dirtyRect = curveShape.apply(
             curveBaseLine.p1,
             curveBaseLine.p2,
             curveControlPoint,
