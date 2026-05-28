@@ -103,6 +103,7 @@
       canvas.height = height;
 
       const imageTexture = createImageTexture(gl, image);
+      const shapeTexture = gl.createTexture();
       const resultTexture = gl.createTexture();
       createEmptyResultTexture(gl, resultTexture, width, height);
       let copyProgram = null;
@@ -110,6 +111,7 @@
       copyTexture(gl, imageTexture, resultTexture, width, height);
 
       const lineShape = createLineShape(gl, {
+        shapeTexture,
         imageTexture,
         resultTexture,
         width,
@@ -158,7 +160,8 @@
           Number(alphaInput.value),
         ]);
         lineShape.setWidth(Number(strokeWidthInput.value));
-        const dirtyRect = lineShape.createLine(startPoint, endPoint);
+        lineShape.create(startPoint, endPoint);
+        const dirtyRect = lineShape.apply(startPoint, endPoint);
         console.log("line shape rect", dirtyRect);
         drawTexture(gl, resultTexture, width, height);
       });
