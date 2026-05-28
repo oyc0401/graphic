@@ -158,6 +158,12 @@ class Ellipse {
       Math.min(Math.round(this.strokeWidth), width, height),
     );
 
+    if (stroke > 1) {
+      drawFilledEllipseStroke(pixels, width, height, stroke, this.color);
+      this.uploadPixels(width, height, pixels);
+      return;
+    }
+
     for (let inset = 0; inset < stroke; inset += 1) {
       const left = inset;
       const top = inset;
@@ -176,6 +182,10 @@ class Ellipse {
       );
     }
 
+    this.uploadPixels(width, height, pixels);
+  }
+
+  private uploadPixels(width: number, height: number, pixels: Uint8Array) {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SHAPE);
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
@@ -333,6 +343,48 @@ function normalizeRect(
       height: clampedHeight,
     },
   };
+}
+
+function drawFilledEllipseStroke(
+  pixels: Uint8Array,
+  textureWidth: number,
+  textureHeight: number,
+  stroke: number,
+  color: EllipseColor,
+) {
+  const outerRadiusX = textureWidth * 0.5;
+  const outerRadiusY = textureHeight * 0.5;
+  const innerRadiusX = outerRadiusX - stroke;
+  const innerRadiusY = outerRadiusY - stroke;
+  const fillInner = innerRadiusX <= 0 || innerRadiusY <= 0;
+  const centerX = outerRadiusX;
+  const centerY = outerRadiusY;
+
+  for (let y = 0; y < textureHeight; y += 1) {
+    const pointY = y + 0.5 - centerY;
+    for (let x = 0; x < textureWidth; x += 1) {
+      const pointX = x + 0.5 - centerX;
+      if (!isInsideEllipse(pointX, pointY, outerRadiusX, outerRadiusY)) {
+        continue;
+      }
+      if (
+        !fillInner &&
+        isInsideEllipse(pointX, pointY, innerRadiusX, innerRadiusY)
+      ) {
+        continue;
+      }
+      plot(pixels, textureWidth, textureHeight, x, y, color);
+    }
+  }
+}
+
+function isInsideEllipse(
+  x: number,
+  y: number,
+  radiusX: number,
+  radiusY: number,
+) {
+  return (x * x) / (radiusX * radiusX) + (y * y) / (radiusY * radiusY) <= 1;
 }
 
 function drawMidpointEllipse(
