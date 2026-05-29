@@ -17,10 +17,9 @@ type ShapeRect = {
   height: number;
 };
 
-export function getShapeManager(
-  canvas: OffscreenCanvas,
-  gl: WebGL2RenderingContext,
-) {
+const EMPTY_RECT: ShapeRect = { x: 0, y: 0, width: 0, height: 0 };
+
+export function getShapeManager(canvas: OffscreenCanvas, gl: WebGL2RenderingContext) {
   return getManager(gl, "shapeManager", () => new ShapeManager(canvas, gl));
 }
 
@@ -28,6 +27,7 @@ class ShapeManager {
   private readonly sourceTextureManager;
   private readonly layerManager;
   private readonly renderingManager;
+  private readonly shapeTexture: WebGLTexture;
   private readonly rectangleModule;
   private readonly ellipseModule;
   private readonly lineModule;
@@ -35,7 +35,7 @@ class ShapeManager {
   private activeKind: ShapeKind | null = null;
   private shapeRect: ShapeRect | null = null;
   private beforeShapeRect: ShapeRect | null = null;
-  private draftDirtyRect: ShapeRect | null = null;
+  private shapePos: ShapeRect = { ...EMPTY_RECT };
 
   constructor(
     private canvas: OffscreenCanvas,
@@ -45,38 +45,27 @@ class ShapeManager {
     this.layerManager = getLayerManager(canvas, gl);
     this.renderingManager = getRenderingManager(canvas, gl);
 
-    const options = {
+    this.shapeTexture = gl.createTexture()!;
+    const shapeOptions = {
       imageTexture: this.sourceTextureManager.texture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+      shapeTexture: this.shapeTexture,
       width: paintOptions.width,
       height: paintOptions.height,
     };
-    this.rectangleModule = createRectangle(gl, {
-      ...options,
-      shapeTexture: gl.createTexture()!,
-    });
-    this.ellipseModule = createEllipse(gl, {
-      ...options,
-      shapeTexture: gl.createTexture()!,
-    });
-    this.lineModule = createLineShape(gl, {
-      ...options,
-      shapeTexture: gl.createTexture()!,
-    });
-    this.curveModule = createCurveShape(gl, {
-      ...options,
-      shapeTexture: gl.createTexture()!,
-    });
+    this.rectangleModule = createRectangle(gl, shapeOptions);
+    this.ellipseModule = createEllipse(gl, shapeOptions);
+    this.lineModule = createLineShape(gl, shapeOptions);
+    this.curveModule = createCurveShape(gl, shapeOptions);
   }
 
   start(kind: ShapeKind) {
-    const restoredRect = this.restoreDraft();
+    const previousRect = this.hideShapePreview();
     this.activeKind = kind;
     this.shapeRect = null;
     this.beforeShapeRect = null;
-    this.draftDirtyRect = null;
-    if (restoredRect) {
-      this.renderingManager.render(this.toAppRect(restoredRect) ?? undefined);
+    if (!isEmptyRect(previousRect)) {
+      this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
     }
   }
 
@@ -88,23 +77,19 @@ class ShapeManager {
     this.beforeShapeRect = { ...rect };
   }
 
-  setLine(
-    p1: Pointer,
-    p2: Pointer,
-    c1?: Pointer | null,
-    c2?: Pointer | null,
-  ) {
+  setLine(p1: Pointer, p2: Pointer, c1?: Pointer | null, c2?: Pointer | null) {
     if (this.activeKind !== "line" && this.activeKind !== "curve") return;
 
-    const restoredRect = this.restoreDraft();
+    const previousRect = this.hideShapePreview();
     this.applyOptions();
-    const dirtyRect =
+    const renderRect =
       this.activeKind === "curve"
         ? this.curveModule.create(p1, p2, c1 ?? null, c2 ?? null)
         : this.lineModule.create(p1, p2);
 
-    this.draftDirtyRect = dirtyRect;
-    this.renderUnion(restoredRect, dirtyRect);
+    this.shapePos = renderRect;
+    paintOptions.showShape = !isEmptyRect(renderRect);
+    this.renderUnion(previousRect, renderRect);
   }
 
   transformRect(x: number, y: number, width: number, height: number) {
@@ -141,19 +126,21 @@ class ShapeManager {
   }
 
   apply() {
-    const appliedRect = this.applyDraft(this.draftDirtyRect);
-    const rect = this.toAppRect(appliedRect);
-    if (!rect || rect.isEmpty()) {
+    if (!paintOptions.showShape || isEmptyRect(this.shapePos)) {
       this.clearDraft();
       return;
     }
 
-    const { before, after } = this.sourceTextureManager.upload(
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-    );
+    const renderRect = { ...this.shapePos };
+    const appliedRect = this.applyDraft(renderRect);
+    const rect = this.toAppRect(appliedRect);
+    if (!rect || rect.isEmpty()) {
+      this.clearDraft();
+      this.renderingManager.render(this.toAppRect(renderRect) ?? undefined);
+      return;
+    }
+
+    const { before, after } = this.sourceTextureManager.upload(rect.x, rect.y, rect.width, rect.height);
 
     const byteSize = rect.width * rect.height * 4 * 2;
     const history = new HistoryObject({
@@ -172,13 +159,26 @@ class ShapeManager {
 
     getHistoryManager(this.canvas, this.gl).addUndo(history);
     this.clearDraft();
-    this.renderingManager.render(rect);
+    this.renderingManager.render(this.toAppRect(this.unionRect(renderRect, appliedRect)) ?? rect);
   }
 
   discard() {
-    const restoredRect = this.restoreDraft();
+    const previousRect = this.hideShapePreview();
     this.clearDraft();
-    this.renderingManager.render(this.toAppRect(restoredRect) ?? undefined);
+    this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
+  }
+
+  getPosition() {
+    return {
+      x: this.shapePos.x,
+      y: this.shapePos.y,
+      width: this.shapePos.width,
+      height: this.shapePos.height,
+    };
+  }
+
+  getTexture() {
+    return this.shapeTexture;
   }
 
   private applyOptions() {
@@ -203,58 +203,38 @@ class ShapeManager {
   private drawRectDraft(rect: ShapeRect) {
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
 
-    const restoredRect = this.restoreDraft();
+    const previousRect = this.hideShapePreview();
     this.applyOptions();
-    const dirtyRect =
-      this.activeKind === "ellipse"
-        ? this.ellipseModule.create(rect)
-        : this.rectangleModule.create(rect);
+    const renderRect =
+      this.activeKind === "ellipse" ? this.ellipseModule.create(rect) : this.rectangleModule.create(rect);
 
     this.shapeRect = { ...rect };
-    this.draftDirtyRect = dirtyRect;
-    this.renderUnion(restoredRect, dirtyRect);
+    this.shapePos = renderRect;
+    paintOptions.showShape = !isEmptyRect(renderRect);
+    this.renderUnion(previousRect, renderRect);
   }
 
-  private applyDraft(rect: ShapeRect | null): ShapeRect | null {
-    if (!this.activeKind || !rect) return null;
+  private applyDraft(rect: ShapeRect): ShapeRect {
     if (this.activeKind === "rect") return this.rectangleModule.apply(rect);
     if (this.activeKind === "ellipse") return this.ellipseModule.apply(rect);
     if (this.activeKind === "line") return this.lineModule.apply(rect);
     if (this.activeKind === "curve") return this.curveModule.apply(rect);
-    return null;
+    return { ...EMPTY_RECT };
   }
 
-  private restoreDraft(): ShapeRect | null {
-    const rect = this.draftDirtyRect;
-    if (!rect || rect.width === 0 || rect.height === 0) return null;
-
-    this.gl.bindFramebuffer(
-      this.gl.READ_FRAMEBUFFER,
-      this.sourceTextureManager.sourceFBO,
-    );
-    this.gl.bindFramebuffer(this.gl.DRAW_FRAMEBUFFER, this.layerManager.layerFBO);
-    this.gl.blitFramebuffer(
-      rect.x,
-      rect.y,
-      rect.x + rect.width,
-      rect.y + rect.height,
-      rect.x,
-      rect.y,
-      rect.x + rect.width,
-      rect.y + rect.height,
-      this.gl.COLOR_BUFFER_BIT,
-      this.gl.NEAREST,
-    );
-
-    this.draftDirtyRect = null;
+  private hideShapePreview() {
+    const rect = paintOptions.showShape ? { ...this.shapePos } : { ...EMPTY_RECT };
+    paintOptions.showShape = false;
+    this.shapePos = { ...EMPTY_RECT };
     return rect;
   }
 
   private clearDraft() {
+    paintOptions.showShape = false;
     this.activeKind = null;
     this.shapeRect = null;
     this.beforeShapeRect = null;
-    this.draftDirtyRect = null;
+    this.shapePos = { ...EMPTY_RECT };
   }
 
   private getHistoryShape(show: boolean) {
@@ -307,11 +287,10 @@ class ShapeManager {
   }
 }
 
+function isEmptyRect(rect: ShapeRect) {
+  return rect.width <= 0 || rect.height <= 0;
+}
+
 function isSameRect(a: ShapeRect, b: ShapeRect) {
-  return (
-    a.x === b.x &&
-    a.y === b.y &&
-    a.width === b.width &&
-    a.height === b.height
-  );
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }

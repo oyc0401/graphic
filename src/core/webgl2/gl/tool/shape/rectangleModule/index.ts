@@ -18,6 +18,8 @@ export interface CreateRectangleOptions {
   height: number;
 }
 
+type CachedShapeTexture = WebGLTexture & { shapeKey?: string };
+
 interface NormalizedRect {
   textureWidth: number;
   textureHeight: number;
@@ -39,10 +41,7 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createRectangle(
-  gl: WebGL2RenderingContext,
-  options: CreateRectangleOptions,
-) {
+export function createRectangle(gl: WebGL2RenderingContext, options: CreateRectangleOptions) {
   return new Rectangle(gl, options);
 }
 
@@ -54,10 +53,6 @@ class Rectangle {
   private readonly vao: WebGLVertexArrayObject;
   private color: RectangleColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedRect: {
-    key: string;
-    targetRect: RectangleRect;
-  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -82,40 +77,28 @@ class Rectangle {
 
   setColor(color: RectangleColor) {
     this.color = [...color];
-    if (this.renderedRect) this.renderedRect.key = "";
   }
 
   setWidth(width: number) {
     this.strokeWidth = Math.max(1, width);
-    if (this.renderedRect) this.renderedRect.key = "";
   }
 
   create(rect: RectangleRect): RectangleRect {
-    const normalized = normalizeRect(
-      rect,
-      this.options.width,
-      this.options.height,
-    );
+    const normalized = normalizeRect(rect, this.options.width, this.options.height);
+    const key = this.createRectKey(normalized.textureWidth, normalized.textureHeight);
 
-    const key = this.createRectKey(
-      normalized.textureWidth,
-      normalized.textureHeight,
-    );
-    if (this.renderedRect?.key !== key) {
+    if (getShapeKey(this.options.shapeTexture) !== key) {
       this.clearShapeTexture();
-      if (normalized.textureWidth > 0 && normalized.textureHeight > 0) {
-        this.drawRectangle(normalized.textureWidth, normalized.textureHeight);
-      }
+      this.drawRectangle(normalized.textureWidth, normalized.textureHeight);
+      setShapeKey(this.options.shapeTexture, key);
     }
-    this.renderedRect = {
-      key,
-      targetRect: normalized.targetRect,
-    };
-    return normalized.visibleRect;
+    return normalized.targetRect;
   }
 
   apply(rect: RectangleRect): RectangleRect {
-    const targetRect = this.renderedRect?.targetRect ?? rect;
+    const normalized = normalizeRect(rect, this.options.width, this.options.height);
+    const targetRect = normalized.targetRect;
+    const visibleRect = normalized.visibleRect;
 
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
@@ -134,20 +117,15 @@ class Rectangle {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      rect.x,
-      rect.y,
-      Math.max(0, rect.width),
-      Math.max(0, rect.height),
-    );
+    gl.scissor(visibleRect.x, visibleRect.y, Math.max(0, visibleRect.width), Math.max(0, visibleRect.height));
     gl.viewport(0, 0, this.options.width, this.options.height);
-    if (rect.width > 0 && rect.height > 0) {
+    if (visibleRect.width > 0 && visibleRect.height > 0) {
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return rect;
+    return visibleRect;
   }
 
   destroy() {
@@ -163,11 +141,7 @@ class Rectangle {
     const gl = this.gl;
     gl.useProgram(this.rectangleProgram);
     gl.bindVertexArray(this.vao);
-    gl.uniform2f(
-      gl.getUniformLocation(this.rectangleProgram, "u_resolution"),
-      width,
-      height,
-    );
+    gl.uniform2f(gl.getUniformLocation(this.rectangleProgram, "u_resolution"), width, height);
     gl.uniform4f(
       gl.getUniformLocation(this.rectangleProgram, "u_color"),
       this.color[0],
@@ -175,10 +149,7 @@ class Rectangle {
       this.color[2],
       this.color[3],
     );
-    gl.uniform1f(
-      gl.getUniformLocation(this.rectangleProgram, "u_strokeWidth"),
-      this.strokeWidth,
-    );
+    gl.uniform1f(gl.getUniformLocation(this.rectangleProgram, "u_strokeWidth"), this.strokeWidth);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
@@ -191,19 +162,9 @@ class Rectangle {
   private bindApplyUniforms() {
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_image"),
-      TEXTURE_UNIT.IMAGE,
-    );
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_shape"),
-      TEXTURE_UNIT.SHAPE,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.applyProgram, "u_resolution"),
-      this.options.width,
-      this.options.height,
-    );
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_image"), TEXTURE_UNIT.IMAGE);
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_shape"), TEXTURE_UNIT.SHAPE);
+    gl.uniform2f(gl.getUniformLocation(this.applyProgram, "u_resolution"), this.options.width, this.options.height);
   }
 
   private initializeShapeTexture() {
@@ -228,25 +189,17 @@ class Rectangle {
   }
 
   private clearShapeTexture() {
-    if (!this.renderedRect) return;
-
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      0,
-      0,
-      this.renderedRect.targetRect.width,
-      this.renderedRect.targetRect.height,
-    );
+    gl.disable(gl.SCISSOR_TEST);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.disable(gl.SCISSOR_TEST);
-    this.renderedRect = null;
+    setShapeKey(this.options.shapeTexture, "");
   }
 
   private createRectKey(width: number, height: number) {
     return [
+      "rectangle",
       width,
       height,
       this.strokeWidth,
@@ -264,17 +217,8 @@ class Rectangle {
     }
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
-    this.gl.framebufferTexture2D(
-      this.gl.FRAMEBUFFER,
-      this.gl.COLOR_ATTACHMENT0,
-      this.gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-    if (
-      this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !==
-      this.gl.FRAMEBUFFER_COMPLETE
-    ) {
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, texture, 0);
+    if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
       throw new Error("Rectangle framebuffer is incomplete.");
     }
     return framebuffer;
@@ -309,11 +253,15 @@ class Rectangle {
   }
 }
 
-function normalizeRect(
-  rect: RectangleRect,
-  canvasWidth: number,
-  canvasHeight: number,
-): NormalizedRect {
+function getShapeKey(texture: WebGLTexture) {
+  return (texture as CachedShapeTexture).shapeKey ?? "";
+}
+
+function setShapeKey(texture: WebGLTexture, key: string) {
+  (texture as CachedShapeTexture).shapeKey = key;
+}
+
+function normalizeRect(rect: RectangleRect, canvasWidth: number, canvasHeight: number): NormalizedRect {
   const left = Math.floor(rect.x);
   const top = Math.floor(rect.y);
   const right = Math.ceil(rect.x + rect.width);
@@ -321,14 +269,7 @@ function normalizeRect(
   const textureWidth = Math.max(0, right - left);
   const textureHeight = Math.max(0, bottom - top);
 
-  const visibleRect = intersectRect(
-    left,
-    top,
-    right,
-    bottom,
-    canvasWidth,
-    canvasHeight,
-  );
+  const visibleRect = intersectRect(left, top, right, bottom, canvasWidth, canvasHeight);
   return {
     textureWidth,
     textureHeight,
@@ -362,11 +303,7 @@ function intersectRect(
   };
 }
 
-function createShader(
-  gl: WebGL2RenderingContext,
-  type: number,
-  source: string,
-) {
+function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
   const shader = gl.createShader(type);
   if (!shader) {
     throw new Error("Failed to create rectangle shader.");
@@ -375,18 +312,12 @@ function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(
-      gl.getShaderInfoLog(shader) ?? "Rectangle shader compile failed.",
-    );
+    throw new Error(gl.getShaderInfoLog(shader) ?? "Rectangle shader compile failed.");
   }
   return shader;
 }
 
-function createProgram(
-  gl: WebGL2RenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader,
-) {
+function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
   const program = gl.createProgram();
   if (!program) {
     throw new Error("Failed to create rectangle program.");
@@ -396,9 +327,7 @@ function createProgram(
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(
-      gl.getProgramInfoLog(program) ?? "Rectangle program link failed.",
-    );
+    throw new Error(gl.getProgramInfoLog(program) ?? "Rectangle program link failed.");
   }
   return program;
 }

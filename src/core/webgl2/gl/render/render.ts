@@ -2,6 +2,7 @@ import { TEXTURE_UNIT, paintOptions } from "../texture";
 import { getLayerManager } from "../layer";
 
 import { getSelectionManager } from "../select/selection";
+import { getShapeManager } from "../tool/shape/shapeTool";
 
 import { getBufferManager, getFullQuadShader, getVertexManager } from "../vertexShader";
 
@@ -15,6 +16,7 @@ import backgroundFrag from "./background.frag?raw";
 import renderFrag from "./render.frag?raw";
 import gridFrag from "./grid.frag?raw";
 import selectionFrag from "./selection.frag?raw";
+import shapeFrag from "./shape.frag?raw";
 
 export function getRenderingManager(canvas, gl) {
   const manager = getManager(gl, "rendering", () => makeRenderingManager(canvas, gl));
@@ -155,6 +157,39 @@ function makeRenderingManager(canvas, gl) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
+  /**
+   * 도형 preview 렌더링
+   */
+
+  const shapeProgramInfo = twgl.createProgramInfo(gl, [vertexManager.vsSource, shapeFrag]);
+
+  twgl.setBuffersAndAttributes(gl, shapeProgramInfo, vertexManager.quadBufferInfo);
+  gl.useProgram(shapeProgramInfo.program);
+
+  gl.uniform1i(gl.getUniformLocation(shapeProgramInfo.program, "u_shape"), TEXTURE_UNIT.SHAPE);
+
+  function renderShape() {
+    let shapeManager = getShapeManager(canvas, gl);
+    let shapePos = shapeManager.getPosition();
+    gl.useProgram(shapeProgramInfo.program);
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SHAPE);
+    gl.bindTexture(gl.TEXTURE_2D, shapeManager.getTexture());
+
+    twgl.setUniforms(shapeProgramInfo, {
+      u_pos: [paintOptions.x, paintOptions.y],
+      u_resolution: [paintOptions.width, paintOptions.height],
+      u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
+      u_magnification: paintOptions.magnification,
+      u_shapePos: [shapePos.x, shapePos.y],
+      u_shapeSize: [shapePos.width, shapePos.height],
+    });
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);
+    gl.viewport(0, 0, paintOptions.screenWidth, paintOptions.screenHeight);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
   function renderNow(rect: Rect) {
     getSelectionManager(canvas, gl);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
@@ -188,6 +223,10 @@ function makeRenderingManager(canvas, gl) {
       }
     }
     layerManager.bindCurrentLayer();
+
+    if (paintOptions.showShape) {
+      renderShape();
+    }
 
     gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_COLOR);
 

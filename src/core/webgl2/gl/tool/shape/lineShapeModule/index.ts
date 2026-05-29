@@ -23,6 +23,8 @@ export interface CreateLineShapeOptions {
   height: number;
 }
 
+type CachedShapeTexture = WebGLTexture & { shapeKey?: string };
+
 interface NormalizedLine {
   textureWidth: number;
   textureHeight: number;
@@ -46,10 +48,7 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createLineShape(
-  gl: WebGL2RenderingContext,
-  options: CreateLineShapeOptions,
-) {
+export function createLineShape(gl: WebGL2RenderingContext, options: CreateLineShapeOptions) {
   return new LineShape(gl, options);
 }
 
@@ -61,10 +60,6 @@ class LineShape {
   private readonly vao: WebGLVertexArrayObject;
   private color: LineShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedLine: {
-    key: string;
-    targetRect: LineShapeRect;
-  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -89,36 +84,33 @@ class LineShape {
 
   setColor(color: LineShapeColor) {
     this.color = [...color];
-    if (this.renderedLine) this.renderedLine.key = "";
   }
 
   setWidth(width: number) {
     this.strokeWidth = Math.max(1, width);
-    if (this.renderedLine) this.renderedLine.key = "";
   }
 
   create(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect {
-    const normalized = normalizeLine(
-      p1,
-      p2,
-      this.strokeWidth,
-      this.options.width,
-      this.options.height,
-    );
+    const normalized = normalizeLine(p1, p2, this.strokeWidth, this.options.width, this.options.height);
     const key = this.createLineKey(normalized);
-    if (this.renderedLine?.key !== key) {
+    if (getShapeKey(this.options.shapeTexture) !== key) {
       this.clearShapeTexture();
       this.drawLine(normalized);
+      setShapeKey(this.options.shapeTexture, key);
     }
-    this.renderedLine = {
-      key,
-      targetRect: normalized.targetRect,
-    };
-    return normalized.visibleRect;
+    return normalized.targetRect;
   }
 
   apply(rect: LineShapeRect): LineShapeRect {
-    const targetRect = this.renderedLine?.targetRect ?? rect;
+    const targetRect = normalizeTargetRect(rect);
+    const visibleRect = intersectRect(
+      targetRect.x,
+      targetRect.y,
+      targetRect.x + targetRect.width,
+      targetRect.y + targetRect.height,
+      this.options.width,
+      this.options.height,
+    );
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -136,15 +128,15 @@ class LineShape {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(rect.x, rect.y, Math.max(0, rect.width), Math.max(0, rect.height));
+    gl.scissor(visibleRect.x, visibleRect.y, Math.max(0, visibleRect.width), Math.max(0, visibleRect.height));
     gl.viewport(0, 0, this.options.width, this.options.height);
-    if (rect.width > 0 && rect.height > 0) {
+    if (visibleRect.width > 0 && visibleRect.height > 0) {
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return rect;
+    return visibleRect;
   }
 
   destroy() {
@@ -167,25 +159,10 @@ class LineShape {
       this.color[2],
       this.color[3],
     );
-    gl.uniform1f(
-      gl.getUniformLocation(this.lineProgram, "u_strokeWidth"),
-      this.strokeWidth,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.lineProgram, "u_resolution"),
-      line.textureWidth,
-      line.textureHeight,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.lineProgram, "u_p1"),
-      line.p1.x,
-      line.p1.y,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.lineProgram, "u_p2"),
-      line.p2.x,
-      line.p2.y,
-    );
+    gl.uniform1f(gl.getUniformLocation(this.lineProgram, "u_strokeWidth"), this.strokeWidth);
+    gl.uniform2f(gl.getUniformLocation(this.lineProgram, "u_resolution"), line.textureWidth, line.textureHeight);
+    gl.uniform2f(gl.getUniformLocation(this.lineProgram, "u_p1"), line.p1.x, line.p1.y);
+    gl.uniform2f(gl.getUniformLocation(this.lineProgram, "u_p2"), line.p2.x, line.p2.y);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
@@ -198,19 +175,9 @@ class LineShape {
   private bindApplyUniforms() {
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_image"),
-      TEXTURE_UNIT.IMAGE,
-    );
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_shape"),
-      TEXTURE_UNIT.SHAPE,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.applyProgram, "u_resolution"),
-      this.options.width,
-      this.options.height,
-    );
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_image"), TEXTURE_UNIT.IMAGE);
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_shape"), TEXTURE_UNIT.SHAPE);
+    gl.uniform2f(gl.getUniformLocation(this.applyProgram, "u_resolution"), this.options.width, this.options.height);
   }
 
   private initializeShapeTexture() {
@@ -235,25 +202,17 @@ class LineShape {
   }
 
   private clearShapeTexture() {
-    if (!this.renderedLine) return;
-
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      0,
-      0,
-      this.renderedLine.targetRect.width,
-      this.renderedLine.targetRect.height,
-    );
+    gl.disable(gl.SCISSOR_TEST);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.disable(gl.SCISSOR_TEST);
-    this.renderedLine = null;
+    setShapeKey(this.options.shapeTexture, "");
   }
 
   private createLineKey(line: NormalizedLine) {
     return [
+      "line",
       line.textureWidth,
       line.textureHeight,
       line.p1.x,
@@ -275,17 +234,8 @@ class LineShape {
     }
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
-    this.gl.framebufferTexture2D(
-      this.gl.FRAMEBUFFER,
-      this.gl.COLOR_ATTACHMENT0,
-      this.gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-    if (
-      this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !==
-      this.gl.FRAMEBUFFER_COMPLETE
-    ) {
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, texture, 0);
+    if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
       throw new Error("Line shape framebuffer is incomplete.");
     }
     return framebuffer;
@@ -318,6 +268,14 @@ class LineShape {
     this.gl.enableVertexAttribArray(position);
     this.gl.vertexAttribPointer(position, 2, this.gl.FLOAT, false, 0, 0);
   }
+}
+
+function getShapeKey(texture: WebGLTexture) {
+  return (texture as CachedShapeTexture).shapeKey ?? "";
+}
+
+function setShapeKey(texture: WebGLTexture, key: string) {
+  (texture as CachedShapeTexture).shapeKey = key;
 }
 
 function normalizeLine(
@@ -375,15 +333,24 @@ function intersectRect(
   };
 }
 
+function normalizeTargetRect(rect: LineShapeRect): LineShapeRect {
+  const left = Math.floor(rect.x);
+  const top = Math.floor(rect.y);
+  const right = Math.ceil(rect.x + rect.width);
+  const bottom = Math.ceil(rect.y + rect.height);
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function createShader(
-  gl: WebGL2RenderingContext,
-  type: number,
-  source: string,
-) {
+function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
   const shader = gl.createShader(type);
   if (!shader) {
     throw new Error("Failed to create line shape shader.");
@@ -392,18 +359,12 @@ function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(
-      gl.getShaderInfoLog(shader) ?? "Line shape shader compile failed.",
-    );
+    throw new Error(gl.getShaderInfoLog(shader) ?? "Line shape shader compile failed.");
   }
   return shader;
 }
 
-function createProgram(
-  gl: WebGL2RenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader,
-) {
+function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
   const program = gl.createProgram();
   if (!program) {
     throw new Error("Failed to create line shape program.");
@@ -413,9 +374,7 @@ function createProgram(
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(
-      gl.getProgramInfoLog(program) ?? "Line shape program link failed.",
-    );
+    throw new Error(gl.getProgramInfoLog(program) ?? "Line shape program link failed.");
   }
   return program;
 }

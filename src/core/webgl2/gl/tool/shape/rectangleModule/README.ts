@@ -26,15 +26,15 @@ const rectangle = createRectangle(gl, {
 rectangle.setColor([0, 0, 0, 1]);
 rectangle.setWidth(12);
 
-// 이걸 하면 shapeTexture가 수정되고, rect1은 캔버스에 실제로 보이는 visibleRect임
+// 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
 // rect를 받으면 지금 그린 shapeTexture의 0,0,w,h의 부분을 캔버스의 x,y,w,h부분에 렌더링 해주세요.
-// 내부적으로 이전에 그린 width, height가 같으면, shapeTexture는 그리나 마나 똑같기때문에 최적화를 위해 그리지 않는다.
+// 내부적으로 마지막에 그린 shape와 width, height가 같으면, shapeTexture는 그리나 마나 똑같기때문에 최적화를 위해 그리지 않는다.
 const rect1 = rectangle.create({ x: 10, y: 10, width: 200, height: 120 });
 
 // 외부에서는 이 rect를 가지고 shapeTexture를 화면에 렌더링 시킬거고
 render(); // 매 프레임마다 자동 수행되는 렌더함수
 
-// apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시킴.
+// apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시키고, rect2는 실제 반영된 visibleRect임.
 // 그리고 이 작업을 하면, shapeRender플래그가 꺼진다.
 const rect2 = rectangle.apply(rect1);
 

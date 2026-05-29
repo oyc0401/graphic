@@ -22,6 +22,8 @@ export interface CreateCurveShapeOptions {
   height: number;
 }
 
+type CachedShapeTexture = WebGLTexture & { shapeKey?: string };
+
 interface NormalizedCurve {
   textureWidth: number;
   textureHeight: number;
@@ -53,10 +55,7 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createCurveShape(
-  gl: WebGL2RenderingContext,
-  options: CreateCurveShapeOptions,
-) {
+export function createCurveShape(gl: WebGL2RenderingContext, options: CreateCurveShapeOptions) {
   return new CurveShape(gl, options);
 }
 
@@ -69,10 +68,6 @@ class CurveShape {
   private tempCtx!: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
   private color: CurveShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedCurve: {
-    key: string;
-    targetRect: CurveShapeRect;
-  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -93,12 +88,10 @@ class CurveShape {
 
   setColor(color: CurveShapeColor) {
     this.color = [...color];
-    if (this.renderedCurve) this.renderedCurve.key = "";
   }
 
   setWidth(width: number) {
     this.strokeWidth = Math.max(1, width);
-    if (this.renderedCurve) this.renderedCurve.key = "";
   }
 
   create(
@@ -117,20 +110,25 @@ class CurveShape {
       this.options.width,
       this.options.height,
     );
-    const key = this.createCurveKey(curve, normalized);
-    if (this.renderedCurve?.key !== key) {
+    const key = this.createCurveKey(normalized);
+    if (getShapeKey(this.options.shapeTexture) !== key) {
       this.clearShapeTexture();
       this.drawCurveToShapeTexture(curve, normalized);
+      setShapeKey(this.options.shapeTexture, key);
     }
-    this.renderedCurve = {
-      key,
-      targetRect: normalized.targetRect,
-    };
-    return normalized.visibleRect;
+    return normalized.targetRect;
   }
 
   apply(rect: CurveShapeRect): CurveShapeRect {
-    const targetRect = this.renderedCurve?.targetRect ?? rect;
+    const targetRect = normalizeTargetRect(rect);
+    const visibleRect = intersectRect(
+      targetRect.x,
+      targetRect.y,
+      targetRect.x + targetRect.width,
+      targetRect.y + targetRect.height,
+      this.options.width,
+      this.options.height,
+    );
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -148,15 +146,15 @@ class CurveShape {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(rect.x, rect.y, Math.max(0, rect.width), Math.max(0, rect.height));
+    gl.scissor(visibleRect.x, visibleRect.y, Math.max(0, visibleRect.width), Math.max(0, visibleRect.height));
     gl.viewport(0, 0, this.options.width, this.options.height);
-    if (rect.width > 0 && rect.height > 0) {
+    if (visibleRect.width > 0 && visibleRect.height > 0) {
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return rect;
+    return visibleRect;
   }
 
   destroy() {
@@ -170,25 +168,12 @@ class CurveShape {
   private bindApplyUniforms() {
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_image"),
-      TEXTURE_UNIT.IMAGE,
-    );
-    gl.uniform1i(
-      gl.getUniformLocation(this.applyProgram, "u_shape"),
-      TEXTURE_UNIT.SHAPE,
-    );
-    gl.uniform2f(
-      gl.getUniformLocation(this.applyProgram, "u_resolution"),
-      this.options.width,
-      this.options.height,
-    );
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_image"), TEXTURE_UNIT.IMAGE);
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_shape"), TEXTURE_UNIT.SHAPE);
+    gl.uniform2f(gl.getUniformLocation(this.applyProgram, "u_resolution"), this.options.width, this.options.height);
   }
 
-  private drawCurveToShapeTexture(
-    curve: ResolvedCurvePoints,
-    normalized: NormalizedCurve,
-  ) {
+  private drawCurveToShapeTexture(curve: ResolvedCurvePoints, normalized: NormalizedCurve) {
     const dirtyRect = normalized.targetRect;
     this.ensureTempCanvasSize(dirtyRect.width, dirtyRect.height);
     this.tempCtx.clearRect(0, 0, dirtyRect.width, dirtyRect.height);
@@ -224,17 +209,7 @@ class CurveShape {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SHAPE);
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      0,
-      0,
-      width,
-      height,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      pixels,
-    );
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
   }
 
   private initializeShapeTexture() {
@@ -259,38 +234,27 @@ class CurveShape {
   }
 
   private clearShapeTexture() {
-    if (!this.renderedCurve) return;
-
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
-    gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      0,
-      0,
-      this.renderedCurve.targetRect.width,
-      this.renderedCurve.targetRect.height,
-    );
+    gl.disable(gl.SCISSOR_TEST);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.disable(gl.SCISSOR_TEST);
-    this.renderedCurve = null;
+    setShapeKey(this.options.shapeTexture, "");
   }
 
-  private createCurveKey(
-    curve: ResolvedCurvePoints,
-    normalized: NormalizedCurve,
-  ) {
+  private createCurveKey(curve: NormalizedCurve) {
     return [
-      normalized.textureWidth,
-      normalized.textureHeight,
-      curve.p1.x,
-      curve.p1.y,
-      curve.p2.x,
-      curve.p2.y,
-      curve.c1.x,
-      curve.c1.y,
-      curve.c2.x,
-      curve.c2.y,
+      "curve",
+      curve.textureWidth,
+      curve.textureHeight,
+      curve.curve.p1.x,
+      curve.curve.p1.y,
+      curve.curve.p2.x,
+      curve.curve.p2.y,
+      curve.curve.c1.x,
+      curve.curve.c1.y,
+      curve.curve.c2.x,
+      curve.curve.c2.y,
       this.strokeWidth,
       this.color[0],
       this.color[1],
@@ -300,11 +264,7 @@ class CurveShape {
   }
 
   private ensureTempCanvasSize(width: number, height: number) {
-    if (
-      this.tempCanvas &&
-      this.tempCanvas.width >= width &&
-      this.tempCanvas.height >= height
-    ) {
+    if (this.tempCanvas && this.tempCanvas.width >= width && this.tempCanvas.height >= height) {
       return;
     }
 
@@ -327,17 +287,8 @@ class CurveShape {
     }
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
-    this.gl.framebufferTexture2D(
-      this.gl.FRAMEBUFFER,
-      this.gl.COLOR_ATTACHMENT0,
-      this.gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-    if (
-      this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !==
-      this.gl.FRAMEBUFFER_COMPLETE
-    ) {
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, texture, 0);
+    if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
       throw new Error("Curve shape framebuffer is incomplete.");
     }
     return framebuffer;
@@ -363,6 +314,14 @@ class CurveShape {
     this.gl.vertexAttribPointer(position, 2, this.gl.FLOAT, false, 0, 0);
     return vao;
   }
+}
+
+function getShapeKey(texture: WebGLTexture) {
+  return (texture as CachedShapeTexture).shapeKey ?? "";
+}
+
+function setShapeKey(texture: WebGLTexture, key: string) {
+  (texture as CachedShapeTexture).shapeKey = key;
 }
 
 function resolveCurvePoints(
@@ -426,14 +385,7 @@ function normalizeCurve(
     throw new Error("Curve shape rect is empty.");
   }
 
-  const visibleRect = intersectRect(
-    dirtyLeft,
-    dirtyTop,
-    dirtyRight,
-    dirtyBottom,
-    width,
-    height,
-  );
+  const visibleRect = intersectRect(dirtyLeft, dirtyTop, dirtyRight, dirtyBottom, width, height);
   return {
     textureWidth,
     textureHeight,
@@ -473,6 +425,19 @@ function intersectRect(
   };
 }
 
+function normalizeTargetRect(rect: CurveShapeRect): CurveShapeRect {
+  const left = Math.floor(rect.x);
+  const top = Math.floor(rect.y);
+  const right = Math.ceil(rect.x + rect.width);
+  const bottom = Math.ceil(rect.y + rect.height);
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
+
 function cubicBezier(t: number, curve: ResolvedCurvePoints): CurveShapePoint {
   const inv = 1 - t;
   return {
@@ -493,11 +458,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function createShader(
-  gl: WebGL2RenderingContext,
-  type: number,
-  source: string,
-) {
+function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
   const shader = gl.createShader(type);
   if (!shader) {
     throw new Error("Failed to create curve shape shader.");
@@ -506,18 +467,12 @@ function createShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(
-      gl.getShaderInfoLog(shader) ?? "Curve shape shader compile failed.",
-    );
+    throw new Error(gl.getShaderInfoLog(shader) ?? "Curve shape shader compile failed.");
   }
   return shader;
 }
 
-function createProgram(
-  gl: WebGL2RenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader,
-) {
+function createProgram(gl: WebGL2RenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader) {
   const program = gl.createProgram();
   if (!program) {
     throw new Error("Failed to create curve shape program.");
@@ -527,9 +482,7 @@ function createProgram(
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(
-      gl.getProgramInfoLog(program) ?? "Curve shape program link failed.",
-    );
+    throw new Error(gl.getProgramInfoLog(program) ?? "Curve shape program link failed.");
   }
   return program;
 }

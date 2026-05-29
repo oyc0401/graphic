@@ -26,13 +26,13 @@ const lineShape = createLineShape(gl, {
 lineShape.setColor([0, 0, 0, 1]);
 lineShape.setWidth(8);
 
-// 이걸 하면 shapeTexture가 수정되고, rect1은 캔버스에 실제로 보이는 visibleRect임
+// 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
 const rect1 = lineShape.create({ x: 10, y: 10 }, { x: 220, y: 120 });
 
 // 외부에서는 이 rect를 가지고 shapeTexture를 화면에 렌더링 시킬거고
 render(); // 매 프레임마다 자동 수행되는 렌더함수
 
-// apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시킴.
+// apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시키고, rect2는 실제 반영된 visibleRect임.
 const rect2 = lineShape.apply(rect1);
 
 // 반영시킨 이후에 외부에서 rect2부분을 가지고 스냅샷을 만들고 히스토리를 만든다.
