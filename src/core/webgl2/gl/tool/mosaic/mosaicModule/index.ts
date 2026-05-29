@@ -1,9 +1,20 @@
 import { createMosaicMask } from "./maskModule";
+import type { MosaicPoint, MosaicRect } from "./maskModule";
 import { createMosaicRender } from "./renderModule";
-import { unionRect } from "./rect";
-import type { MosaicPoint, MosaicRect } from "./rect";
 
-export type { MosaicPoint, MosaicRect } from "./rect";
+export type { MosaicPoint, MosaicRect } from "./maskModule";
+
+function unionRect(a: MosaicRect | null, b: MosaicRect | null): MosaicRect | null {
+  if (!a) return b;
+  if (!b) return a;
+
+  const left = Math.min(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const right = Math.max(a.x + a.width, b.x + b.width);
+  const bottom = Math.max(a.y + a.height, b.y + b.height);
+
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
 
 export type MosaicMode = "pixel" | "blur" | "restore";
 type MosaicEffectMode = Exclude<MosaicMode, "restore">;
@@ -29,9 +40,11 @@ class Mosaic {
   private readonly renderer: ReturnType<typeof createMosaicRender>;
   private mode: MosaicEffectMode = "pixel";
   private committedMode: MosaicEffectMode = "pixel";
+  private isRestoring = false;
   private strength = 0.5;
   private committedStrength = 0.5;
   private dirtyRect: MosaicRect | null = null;
+  private maskRect: MosaicRect | null = null;
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -62,31 +75,33 @@ class Mosaic {
 
     this.strength = nextStrength;
     this.renderer.setStrength(nextStrength);
-    if (this.mask.getMaskRect()) {
-      this.markDirty(this.mask.getMaskRect());
-    }
+    this.markDirty(this.maskRect);
   }
 
   setMode(mode: MosaicMode) {
     if (mode === "restore") {
-      this.mask.setRestoring(true);
+      this.isRestoring = true;
       return;
     }
 
-    this.mask.setRestoring(false);
+    this.isRestoring = false;
     if (this.mode === mode) return;
 
     this.mode = mode;
     this.renderer.setMode(mode);
-    this.markDirty(this.mask.getMaskRect());
+    this.markDirty(this.maskRect);
   }
 
   start(point: MosaicPoint): MosaicRect | null {
-    return this.markDirty(this.mask.start(point));
+    const rect = this.isRestoring ? this.mask.restoreStart(point) : this.mask.start(point);
+    this.maskRect = unionRect(this.maskRect, rect);
+    return this.markDirty(rect);
   }
 
   move(point: MosaicPoint): MosaicRect | null {
-    return this.markDirty(this.mask.move(point));
+    const rect = this.isRestoring ? this.mask.restoreMove(point) : this.mask.move(point);
+    this.maskRect = unionRect(this.maskRect, rect);
+    return this.markDirty(rect);
   }
 
   end(): MosaicRect | null {
@@ -101,21 +116,19 @@ class Mosaic {
     this.committedMode = this.mode;
     this.committedStrength = this.strength;
     this.dirtyRect = null;
-    return rect ?? this.mask.getMaskRect();
+    return rect ?? this.maskRect;
   }
 
   cancel() {
-    const rect = this.mask.cancel();
-    this.markDirty(rect);
+    this.mask.end();
+    this.dirtyRect = null;
     if (this.mode !== this.committedMode) {
       this.mode = this.committedMode;
       this.renderer.setMode(this.committedMode);
-      this.markDirty(this.mask.getMaskRect());
     }
     if (this.strength !== this.committedStrength) {
       this.strength = this.committedStrength;
       this.renderer.setStrength(this.committedStrength);
-      this.markDirty(this.mask.getMaskRect());
     }
   }
 

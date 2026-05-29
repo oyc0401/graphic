@@ -1,8 +1,6 @@
 import blurHorizontalFrag from "../blurHorizontal.frag?raw";
 import blurVerticalFrag from "../blurVertical.frag?raw";
-import renderFrag from "../render.frag?raw";
-import type { MosaicRect } from "../rect";
-import type { MosaicMode } from "..";
+import renderFrag from "./render.frag?raw";
 
 type MosaicEffectMode = Exclude<MosaicMode, "restore">;
 
@@ -199,7 +197,11 @@ class MosaicRender {
 
   private createPrograms() {
     const gl = this.gl;
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER);
+    const vertexShader = createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      FULL_QUAD_VERTEX_SHADER,
+    );
     this.quadBuffer = createFullQuadBuffer(gl);
 
     this.renderProgram = createProgram(

@@ -1,7 +1,61 @@
-import maskFrag from "../mask.frag?raw";
-import restoreMaskFrag from "../restoreMask.frag?raw";
-import { strokeRect, unionRect } from "../rect";
-import type { MosaicPoint, MosaicRect } from "../rect";
+import maskFrag from "./mask.frag?raw";
+import restoreMaskFrag from "./restoreMask.frag?raw";
+
+export interface MosaicPoint {
+  x: number;
+  y: number;
+}
+
+export interface MosaicRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function strokeRect(
+  start: MosaicPoint,
+  end: MosaicPoint,
+  radius: number,
+  width: number,
+  height: number,
+): MosaicRect {
+  const left = Math.floor(Math.min(start.x, end.x) - radius);
+  const top = Math.floor(Math.min(start.y, end.y) - radius);
+  const right = Math.ceil(Math.max(start.x, end.x) + radius);
+  const bottom = Math.ceil(Math.max(start.y, end.y) + radius);
+  return clampRect(left, top, right, bottom, width, height);
+}
+
+function unionRect(a: MosaicRect | null, b: MosaicRect): MosaicRect {
+  if (!a) return b;
+
+  const left = Math.min(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const right = Math.max(a.x + a.width, b.x + b.width);
+  const bottom = Math.max(a.y + a.height, b.y + b.height);
+
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function clampRect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  width: number,
+  height: number,
+): MosaicRect {
+  const x = clamp(left, 0, width);
+  const y = clamp(top, 0, height);
+  const ex = clamp(right, 0, width);
+  const ey = clamp(bottom, 0, height);
+  return { x, y, width: Math.max(0, ex - x), height: Math.max(0, ey - y) };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
 export interface CreateMosaicMaskOptions {
   sourceMaskTexture: WebGLTexture;
@@ -35,10 +89,8 @@ class MosaicMask {
   private width: number;
   private height: number;
   private radius = 10;
-  private restoring = false;
   private lastPoint: MosaicPoint | null = null;
   private strokeRect: MosaicRect | null = null;
-  private maskRect: MosaicRect | null = null;
 
   private tempMaskTexture: WebGLTexture;
   private sourceMaskFBO: WebGLFramebuffer;
@@ -77,19 +129,10 @@ class MosaicMask {
     this.radius = Math.max(0, radius);
   }
 
-  setRestoring(restoring: boolean) {
-    this.restoring = restoring;
-  }
-
-  getMaskRect() {
-    return this.maskRect;
-  }
-
   start(point: MosaicPoint): MosaicRect | null {
     this.lastPoint = point;
-    const rect = this.drawMask(point, point);
+    const rect = this.paint(point, point);
     this.strokeRect = unionRect(this.strokeRect, rect);
-    this.maskRect = unionRect(this.maskRect, rect);
     return rect;
   }
 
@@ -98,24 +141,32 @@ class MosaicMask {
       return this.start(point);
     }
 
-    const rect = this.drawMask(this.lastPoint, point);
+    const rect = this.paint(this.lastPoint, point);
     this.lastPoint = point;
     this.strokeRect = unionRect(this.strokeRect, rect);
-    this.maskRect = unionRect(this.maskRect, rect);
+    return rect;
+  }
+
+  restoreStart(point: MosaicPoint): MosaicRect | null {
+    this.lastPoint = point;
+    const rect = this.restore(point, point);
+    this.strokeRect = unionRect(this.strokeRect, rect);
+    return rect;
+  }
+
+  restoreMove(point: MosaicPoint): MosaicRect | null {
+    if (!this.lastPoint) {
+      return this.restoreStart(point);
+    }
+
+    const rect = this.restore(this.lastPoint, point);
+    this.lastPoint = point;
+    this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
   end(): MosaicRect | null {
     const rect = this.strokeRect;
-    this.strokeRect = null;
-    this.lastPoint = null;
-    return rect;
-  }
-
-  cancel(): MosaicRect | null {
-    const rect = this.strokeRect;
-    this.copyMaskRect(rect, this.sourceMaskFBO, this.maskFBO);
-    this.copyMaskRect(rect, this.sourceMaskFBO, this.tempMaskFBO);
     this.strokeRect = null;
     this.lastPoint = null;
     return rect;
@@ -137,9 +188,6 @@ class MosaicMask {
 
   private setTextureSize(width: number, height: number) {
     const gl = this.gl;
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.options.sourceMaskTexture);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
     gl.bindTexture(gl.TEXTURE_2D, this.options.maskTexture);
@@ -201,7 +249,11 @@ class MosaicMask {
 
   private createPrograms() {
     const gl = this.gl;
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER);
+    const vertexShader = createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      FULL_QUAD_VERTEX_SHADER,
+    );
     this.quadBuffer = createFullQuadBuffer(gl);
 
     this.maskProgram = createProgram(
@@ -235,7 +287,10 @@ class MosaicMask {
       TEXTURE_UNIT.MASK,
     );
 
-    this.uMaskResolution = gl.getUniformLocation(this.maskProgram, "u_resolution")!;
+    this.uMaskResolution = gl.getUniformLocation(
+      this.maskProgram,
+      "u_resolution",
+    )!;
     this.uMaskStart = gl.getUniformLocation(this.maskProgram, "u_start")!;
     this.uMaskEnd = gl.getUniformLocation(this.maskProgram, "u_end")!;
     this.uMaskRadius = gl.getUniformLocation(this.maskProgram, "u_radius")!;
@@ -268,23 +323,29 @@ class MosaicMask {
     )!;
   }
 
-  private drawMask(start: MosaicPoint, end: MosaicPoint): MosaicRect {
+  private paint(start: MosaicPoint, end: MosaicPoint): MosaicRect {
     const rect = strokeRect(start, end, this.radius, this.width, this.height);
     const gl = this.gl;
 
-    if (this.restoring) {
-      gl.useProgram(this.restoreMaskProgram);
-      gl.bindVertexArray(this.restoreMaskVAO);
-      gl.uniform2f(this.uRestoreMaskStart, start.x, start.y);
-      gl.uniform2f(this.uRestoreMaskEnd, end.x, end.y);
-      gl.uniform1f(this.uRestoreMaskRadius, this.radius);
-    } else {
-      gl.useProgram(this.maskProgram);
-      gl.bindVertexArray(this.maskVAO);
-      gl.uniform2f(this.uMaskStart, start.x, start.y);
-      gl.uniform2f(this.uMaskEnd, end.x, end.y);
-      gl.uniform1f(this.uMaskRadius, this.radius);
-    }
+    gl.useProgram(this.maskProgram);
+    gl.bindVertexArray(this.maskVAO);
+    gl.uniform2f(this.uMaskStart, start.x, start.y);
+    gl.uniform2f(this.uMaskEnd, end.x, end.y);
+    gl.uniform1f(this.uMaskRadius, this.radius);
+
+    this.drawMaskPass(rect);
+    return rect;
+  }
+
+  private restore(start: MosaicPoint, end: MosaicPoint): MosaicRect {
+    const rect = strokeRect(start, end, this.radius, this.width, this.height);
+    const gl = this.gl;
+
+    gl.useProgram(this.restoreMaskProgram);
+    gl.bindVertexArray(this.restoreMaskVAO);
+    gl.uniform2f(this.uRestoreMaskStart, start.x, start.y);
+    gl.uniform2f(this.uRestoreMaskEnd, end.x, end.y);
+    gl.uniform1f(this.uRestoreMaskRadius, this.radius);
 
     this.drawMaskPass(rect);
     return rect;
