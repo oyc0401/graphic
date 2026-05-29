@@ -32,6 +32,8 @@ export class LiquifyManager implements LiquifyManagerInterface {
   private layerManager: any;
   private renderingManager: any;
   private liquify: ReturnType<typeof createLiquify> | null = null;
+  private sourceDisplacementTexture: WebGLTexture | null = null;
+  private displacementTexture: WebGLTexture | null = null;
   private toolId: LiquifyTool = "push";
   private changedRect: Rect | null = null;
   private active = false;
@@ -58,10 +60,24 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
   private createLiquify() {
     this.sourceTextureManager.uploadFromLayer(paintOptions.layerId);
+    const sourceDisplacementTexture = createDisplacementTexture(
+      this.gl,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    const displacementTexture = createDisplacementTexture(
+      this.gl,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    this.sourceDisplacementTexture = sourceDisplacementTexture;
+    this.displacementTexture = displacementTexture;
 
     this.liquify = createLiquify(this.gl, {
       imageTexture: this.sourceTextureManager.texture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+      sourceDisplacementTexture,
+      displacementTexture,
       width: paintOptions.width,
       height: paintOptions.height,
     });
@@ -104,12 +120,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.liquify.setRadius(paintOptions.radius);
     this.liquify.setStrength(paintOptions.alpha);
-    if (this.toolId === "restore") {
-      this.liquify.restoreStart(pointer);
-      return;
-    }
-
-    this.liquify.start(pointer);
+    const rect =
+      this.toolId === "restore"
+        ? this.liquify.restoreStart(pointer)
+        : this.liquify.start(pointer);
+    this.markChanged(rect);
   }
 
   push(pointer: Pointer) {
@@ -153,7 +168,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   end() {
-    this.liquify?.makeHistory();
+    if (!this.liquify) return;
+
+    this.markChanged(this.liquify.end());
   }
 
   cancel() {
@@ -164,25 +181,15 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   async undo() {
-    if (!this.liquify) return null;
-    if (this.liquify.getHistoryCount().undoCount === 0) return null;
-
-    this.liquify.undo();
-    this.render();
-    return this.liquify.getHistoryCount();
+    return null;
   }
 
   async redo() {
-    if (!this.liquify) return null;
-    if (this.liquify.getHistoryCount().redoCount === 0) return null;
-
-    this.liquify.redo();
-    this.render();
-    return this.liquify.getHistoryCount();
+    return null;
   }
 
   getHistoryCount() {
-    return this.liquify?.getHistoryCount() ?? { undoCount: 0, redoCount: 0 };
+    return { undoCount: 0, redoCount: 0 };
   }
 
   exit() {
@@ -226,6 +233,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.liquify?.destroy();
     this.liquify = null;
+    this.destroyDisplacementTextures();
     this.active = false;
     this.changedRect = null;
   }
@@ -237,6 +245,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.renderingManager.render();
     this.liquify?.destroy();
     this.liquify = null;
+    this.destroyDisplacementTextures();
     this.active = false;
     this.changedRect = null;
   }
@@ -246,4 +255,30 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   setSize: () => void = () => {};
+
+  private destroyDisplacementTextures() {
+    if (this.sourceDisplacementTexture) {
+      this.gl.deleteTexture(this.sourceDisplacementTexture);
+    }
+    if (this.displacementTexture) {
+      this.gl.deleteTexture(this.displacementTexture);
+    }
+    this.sourceDisplacementTexture = null;
+    this.displacementTexture = null;
+  }
+}
+
+function createDisplacementTexture(
+  gl: WebGL2RenderingContext,
+  width: number,
+  height: number,
+) {
+  const texture = gl.createTexture()!;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  return texture;
 }

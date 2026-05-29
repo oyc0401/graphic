@@ -94,10 +94,14 @@
       const resultTexture = gl.createTexture();
       createEmptyResultTexture(gl, resultTexture, width, height);
       copyTexture(gl, imageTexture, resultTexture, width, height);
+      const sourceMaskTexture = createMaskTexture(gl, width, height);
+      const maskTexture = createMaskTexture(gl, width, height);
 
       const mosaic = createMosaic(gl, {
         imageTexture,
         resultTexture,
+        sourceMaskTexture,
+        maskTexture,
         width,
         height,
       });
@@ -151,7 +155,7 @@
           mosaic.render();
           drawTexture(gl, resultTexture, width, height);
         }
-        mosaic.makeHistory();
+        mosaic.end();
       });
 
       canvas.addEventListener("pointercancel", (event) => {
@@ -222,6 +226,28 @@
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      }
+
+      function createMaskTexture(gl, width, height) {
+        const texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.R32F,
+          width,
+          height,
+          0,
+          gl.RED,
+          gl.FLOAT,
+          null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        return texture;
       }
 
       function copyTexture(gl, sourceTexture, targetTexture, width, height) {

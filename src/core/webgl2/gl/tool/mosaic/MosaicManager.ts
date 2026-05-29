@@ -32,6 +32,8 @@ export class MosaicManager implements MosaicManagerInterface {
   private layerManager: any;
   private renderingManager: any;
   private mosaic: ReturnType<typeof createMosaic> | null = null;
+  private sourceMaskTexture: WebGLTexture | null = null;
+  private maskTexture: WebGLTexture | null = null;
   private changedRect: Rect | null = null;
   private active = false;
   private mode: Exclude<MosaicMode, "restore"> = "pixel";
@@ -60,10 +62,24 @@ export class MosaicManager implements MosaicManagerInterface {
 
   private createMosaic() {
     this.sourceTextureManager.uploadFromLayer(paintOptions.layerId);
+    const sourceMaskTexture = createMaskTexture(
+      this.gl,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    const maskTexture = createMaskTexture(
+      this.gl,
+      paintOptions.width,
+      paintOptions.height,
+    );
+    this.sourceMaskTexture = sourceMaskTexture;
+    this.maskTexture = maskTexture;
 
     this.mosaic = createMosaic(this.gl, {
       imageTexture: this.sourceTextureManager.texture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+      sourceMaskTexture,
+      maskTexture,
       width: paintOptions.width,
       height: paintOptions.height,
     });
@@ -109,7 +125,7 @@ export class MosaicManager implements MosaicManagerInterface {
     if (!this.mosaic) return;
 
     this.mosaic.setRadius(paintOptions.radius);
-    this.mosaic.start(pointer);
+    this.markChanged(this.mosaic.start(pointer));
   }
 
   push(pointer: Pointer) {
@@ -129,7 +145,9 @@ export class MosaicManager implements MosaicManagerInterface {
   }
 
   end() {
-    this.mosaic?.makeHistory();
+    if (!this.mosaic) return;
+
+    this.markChanged(this.mosaic.end());
   }
 
   cancel() {
@@ -140,33 +158,15 @@ export class MosaicManager implements MosaicManagerInterface {
   }
 
   async undo() {
-    if (!this.mosaic) return null;
-    if (this.mosaic.getHistoryCount().undoCount === 0) return null;
-
-    this.mosaic.undo();
-    this.render();
-    return {
-      ...this.mosaic.getHistoryCount(),
-      mosaicStrength: Math.round(this.mosaic.getStrength() * 100),
-      mosaicMode: this.mosaic.getMode(),
-    };
+    return null;
   }
 
   async redo() {
-    if (!this.mosaic) return null;
-    if (this.mosaic.getHistoryCount().redoCount === 0) return null;
-
-    this.mosaic.redo();
-    this.render();
-    return {
-      ...this.mosaic.getHistoryCount(),
-      mosaicStrength: Math.round(this.mosaic.getStrength() * 100),
-      mosaicMode: this.mosaic.getMode(),
-    };
+    return null;
   }
 
   getHistoryCount() {
-    return this.mosaic?.getHistoryCount() ?? { undoCount: 0, redoCount: 0 };
+    return { undoCount: 0, redoCount: 0 };
   }
 
   exit() {
@@ -210,6 +210,7 @@ export class MosaicManager implements MosaicManagerInterface {
 
     this.mosaic?.destroy();
     this.mosaic = null;
+    this.destroyMaskTextures();
     this.active = false;
     this.changedRect = null;
   }
@@ -221,6 +222,7 @@ export class MosaicManager implements MosaicManagerInterface {
     this.renderingManager.render();
     this.mosaic?.destroy();
     this.mosaic = null;
+    this.destroyMaskTextures();
     this.active = false;
     this.changedRect = null;
   }
@@ -249,4 +251,30 @@ export class MosaicManager implements MosaicManagerInterface {
   }
 
   setSize: () => void = () => {};
+
+  private destroyMaskTextures() {
+    if (this.sourceMaskTexture) {
+      this.gl.deleteTexture(this.sourceMaskTexture);
+    }
+    if (this.maskTexture) {
+      this.gl.deleteTexture(this.maskTexture);
+    }
+    this.sourceMaskTexture = null;
+    this.maskTexture = null;
+  }
+}
+
+function createMaskTexture(
+  gl: WebGL2RenderingContext,
+  width: number,
+  height: number,
+) {
+  const texture = gl.createTexture()!;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  return texture;
 }

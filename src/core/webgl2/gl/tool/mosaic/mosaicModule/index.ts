@@ -3,7 +3,7 @@ import blurVerticalFrag from "./blurVertical.frag?raw";
 import maskFrag from "./mask.frag?raw";
 import renderFrag from "./render.frag?raw";
 import restoreMaskFrag from "./restoreMask.frag?raw";
-import { pointRect, strokeRect, unionRect } from "./rect";
+import { strokeRect, unionRect } from "./rect";
 import type { MosaicPoint, MosaicRect } from "./rect";
 
 export type { MosaicPoint, MosaicRect } from "./rect";
@@ -14,6 +14,8 @@ type MosaicEffectMode = Exclude<MosaicMode, "restore">;
 export interface CreateMosaicOptions {
   imageTexture: WebGLTexture;
   resultTexture: WebGLTexture;
+  sourceMaskTexture: WebGLTexture;
+  maskTexture: WebGLTexture;
   width: number;
   height: number;
 }
@@ -55,16 +57,12 @@ class Mosaic {
   private dirtyRect: MosaicRect | null = null;
   private maskRect: MosaicRect | null = null;
   private pendingMaskRect: MosaicRect | null = null;
-  private history: MosaicHistory[] = [];
-  private redoHistory: MosaicHistory[] = [];
 
-  private maskTexture: WebGLTexture;
   private tempMaskTexture: WebGLTexture;
-  private committedMaskTexture: WebGLTexture;
   private blurTexture: WebGLTexture;
+  private sourceMaskFBO: WebGLFramebuffer;
   private maskFBO: WebGLFramebuffer;
   private tempMaskFBO: WebGLFramebuffer;
-  private committedMaskFBO: WebGLFramebuffer;
   private blurFBO: WebGLFramebuffer;
   private resultFBO: WebGLFramebuffer;
 
@@ -139,9 +137,14 @@ class Mosaic {
     }
   }
 
-  start(point: MosaicPoint) {
+  start(point: MosaicPoint): MosaicRect | null {
     this.lastPoint = point;
-    this.strokeRect = pointRect(point, this.radius, this.width, this.height);
+    const rect = this.drawMask(point, point);
+    this.strokeRect = unionRect(this.strokeRect, rect);
+    this.dirtyRect = unionRect(this.dirtyRect, rect);
+    this.maskRect = unionRect(this.maskRect, rect);
+    this.pendingMaskRect = unionRect(this.pendingMaskRect, rect);
+    return rect;
   }
 
   move(point: MosaicPoint): MosaicRect | null {
@@ -159,7 +162,7 @@ class Mosaic {
     return rect;
   }
 
-  makeHistory() {
+  end(): MosaicRect | null {
     const modeChanged = this.mode !== this.committedMode;
     const strengthChanged = this.strength !== this.committedStrength;
     const hasMask = !!this.maskRect && this.maskRect.width !== 0 && this.maskRect.height !== 0;
@@ -171,34 +174,26 @@ class Mosaic {
       !hasPendingMask &&
       (!hasMask || (!modeChanged && !strengthChanged))
     ) {
-      return;
+      this.strokeRect = null;
+      this.pendingMaskRect = null;
+      this.lastPoint = null;
+      return null;
     }
 
     const rect = this.pendingMaskRect;
-    const history: MosaicHistory = {
-      rect,
-      before: rect ? this.readMask(rect, this.committedMaskFBO) : null,
-      after: rect ? this.readMask(rect, this.maskFBO) : null,
-      beforeMode: this.committedMode,
-      afterMode: this.mode,
-      beforeStrength: this.committedStrength,
-      afterStrength: this.strength,
-    };
 
-    this.history.push(history);
-    this.redoHistory = [];
-    this.copyMaskRect(rect, this.maskFBO, this.committedMaskFBO);
     this.committedMode = this.mode;
     this.committedStrength = this.strength;
     this.strokeRect = null;
     this.pendingMaskRect = null;
     this.lastPoint = null;
+    return rect ?? this.maskRect;
   }
 
   cancel() {
     const rect = this.pendingMaskRect;
-    this.copyMaskRect(rect, this.committedMaskFBO, this.maskFBO);
-    this.copyMaskRect(rect, this.committedMaskFBO, this.tempMaskFBO);
+    this.copyMaskRect(rect, this.sourceMaskFBO, this.maskFBO);
+    this.copyMaskRect(rect, this.sourceMaskFBO, this.tempMaskFBO);
 
     if (rect) {
       this.dirtyRect = unionRect(this.dirtyRect, rect);
@@ -215,55 +210,6 @@ class Mosaic {
     this.strokeRect = null;
     this.pendingMaskRect = null;
     this.lastPoint = null;
-  }
-
-  undo() {
-    const history = this.history.pop();
-    if (!history) return;
-
-    this.redoHistory.push(history);
-    if (history.rect && history.before) {
-      this.writeMask(history.rect, history.before);
-      this.dirtyRect = unionRect(this.dirtyRect, history.rect);
-    }
-    if (this.mode !== history.beforeMode && this.maskRect) {
-      this.dirtyRect = unionRect(this.dirtyRect, this.maskRect);
-    }
-    if (this.strength !== history.beforeStrength && this.maskRect) {
-      this.dirtyRect = unionRect(this.dirtyRect, this.maskRect);
-    }
-    this.mode = history.beforeMode;
-    this.committedMode = history.beforeMode;
-    this.strength = history.beforeStrength;
-    this.committedStrength = history.beforeStrength;
-  }
-
-  redo() {
-    const history = this.redoHistory.pop();
-    if (!history) return;
-
-    this.history.push(history);
-    if (history.rect && history.after) {
-      this.writeMask(history.rect, history.after);
-      this.dirtyRect = unionRect(this.dirtyRect, history.rect);
-    }
-    if (this.mode !== history.afterMode && this.maskRect) {
-      this.dirtyRect = unionRect(this.dirtyRect, this.maskRect);
-    }
-    if (this.strength !== history.afterStrength && this.maskRect) {
-      this.dirtyRect = unionRect(this.dirtyRect, this.maskRect);
-    }
-    this.mode = history.afterMode;
-    this.committedMode = history.afterMode;
-    this.strength = history.afterStrength;
-    this.committedStrength = history.afterStrength;
-  }
-
-  getHistoryCount() {
-    return {
-      undoCount: this.history.length,
-      redoCount: this.redoHistory.length,
-    };
   }
 
   getStrength() {
@@ -295,7 +241,7 @@ class Mosaic {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.IMAGE);
     gl.bindTexture(gl.TEXTURE_2D, this.options.imageTexture);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
+    gl.bindTexture(gl.TEXTURE_2D, this.options.maskTexture);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFBO);
     gl.enable(gl.SCISSOR_TEST);
@@ -311,13 +257,11 @@ class Mosaic {
   destroy() {
     const gl = this.gl;
 
-    gl.deleteTexture(this.maskTexture);
     gl.deleteTexture(this.tempMaskTexture);
-    gl.deleteTexture(this.committedMaskTexture);
     gl.deleteTexture(this.blurTexture);
+    gl.deleteFramebuffer(this.sourceMaskFBO);
     gl.deleteFramebuffer(this.maskFBO);
     gl.deleteFramebuffer(this.tempMaskFBO);
-    gl.deleteFramebuffer(this.committedMaskFBO);
     gl.deleteFramebuffer(this.blurFBO);
     gl.deleteFramebuffer(this.resultFBO);
     gl.deleteProgram(this.maskProgram);
@@ -337,18 +281,10 @@ class Mosaic {
     const gl = this.gl;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R32F,
-      width,
-      height,
-      0,
-      gl.RED,
-      gl.FLOAT,
-      null,
-    );
+    gl.bindTexture(gl.TEXTURE_2D, this.options.sourceMaskTexture);
+
+    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
+    gl.bindTexture(gl.TEXTURE_2D, this.options.maskTexture);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.tempMaskTexture);
@@ -363,21 +299,6 @@ class Mosaic {
       gl.FLOAT,
       null,
     );
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
-    gl.bindTexture(gl.TEXTURE_2D, this.committedMaskTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.R32F,
-      width,
-      height,
-      0,
-      gl.RED,
-      gl.FLOAT,
-      null,
-    );
-
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.BLUR);
     gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
     gl.texImage2D(
@@ -420,6 +341,17 @@ class Mosaic {
     gl.uniform2f(this.uBlurHorizontalResolution, width, height);
     gl.useProgram(this.blurVerticalProgram);
     gl.uniform2f(this.uBlurVerticalResolution, width, height);
+
+    this.copyMaskRect(
+      { x: 0, y: 0, width, height },
+      this.sourceMaskFBO,
+      this.maskFBO,
+    );
+    this.copyMaskRect(
+      { x: 0, y: 0, width, height },
+      this.sourceMaskFBO,
+      this.tempMaskFBO,
+    );
   }
 
   private checkExtensions() {
@@ -440,10 +372,18 @@ class Mosaic {
   private createTextures() {
     const gl = this.gl;
 
-    this.maskTexture = createFloatTexture(gl);
     this.tempMaskTexture = createFloatTexture(gl);
-    this.committedMaskTexture = createFloatTexture(gl);
     this.blurTexture = createColorTexture(gl);
+
+    this.sourceMaskFBO = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sourceMaskFBO);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this.options.sourceMaskTexture,
+      0,
+    );
 
     this.maskFBO = gl.createFramebuffer()!;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.maskFBO);
@@ -451,7 +391,7 @@ class Mosaic {
       gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
-      this.maskTexture,
+      this.options.maskTexture,
       0,
     );
 
@@ -462,16 +402,6 @@ class Mosaic {
       gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
       this.tempMaskTexture,
-      0,
-    );
-
-    this.committedMaskFBO = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.committedMaskFBO);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.committedMaskTexture,
       0,
     );
 
@@ -681,7 +611,7 @@ class Mosaic {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.BLUR);
     gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
+    gl.bindTexture(gl.TEXTURE_2D, this.options.maskTexture);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFBO);
     gl.scissor(rect.x, rect.y, rect.width, rect.height);
@@ -721,7 +651,7 @@ class Mosaic {
     const gl = this.gl;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
+    gl.bindTexture(gl.TEXTURE_2D, this.options.maskTexture);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.tempMaskFBO);
     gl.enable(gl.SCISSOR_TEST);
@@ -747,45 +677,6 @@ class Mosaic {
     gl.disable(gl.SCISSOR_TEST);
   }
 
-  private readMask(rect: MosaicRect, framebuffer: WebGLFramebuffer) {
-    const gl = this.gl;
-    const pixels = new Float32Array(rect.width * rect.height);
-
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer);
-    gl.readPixels(
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-      gl.RED,
-      gl.FLOAT,
-      pixels,
-    );
-
-    return pixels;
-  }
-
-  private writeMask(rect: MosaicRect, mask: Float32Array) {
-    const gl = this.gl;
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.MASK);
-    gl.bindTexture(gl.TEXTURE_2D, this.maskTexture);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-      gl.RED,
-      gl.FLOAT,
-      mask,
-    );
-
-    this.copyMaskRect(rect, this.maskFBO, this.tempMaskFBO);
-    this.copyMaskRect(rect, this.maskFBO, this.committedMaskFBO);
-  }
-
   private copyMaskRect(
     rect: MosaicRect | null,
     readFramebuffer: WebGLFramebuffer,
@@ -809,16 +700,6 @@ class Mosaic {
       gl.NEAREST,
     );
   }
-}
-
-interface MosaicHistory {
-  rect: MosaicRect | null;
-  before: Float32Array | null;
-  after: Float32Array | null;
-  beforeMode: MosaicEffectMode;
-  afterMode: MosaicEffectMode;
-  beforeStrength: number;
-  afterStrength: number;
 }
 
 function createFloatTexture(gl: WebGL2RenderingContext) {
