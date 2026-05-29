@@ -1,5 +1,6 @@
 import { paintConfig } from "@/paint.config";
-import { getHistoryManager, HistoryObject, Snapshot } from "../../../history/history";
+import { getHistoryManager, HistoryObject } from "../../../history/history";
+import type { Snapshot } from "../texture";
 import { PixelStore } from "../../../history/PixelStore";
 
 import { getLayerManager } from "../layer";

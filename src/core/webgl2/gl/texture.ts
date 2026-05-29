@@ -1,9 +1,16 @@
 import { getLayerManager } from "./layer";
 import { getManager } from "../../utils/cachedManager";
 import { getBitmapManager } from "../../canvas/bitmap";
-import { Snapshot } from "../../history/history";
 import { Rect } from "@/core/utils/rect";
 import { PixelStore } from "../../history/PixelStore";
+
+export interface Snapshot {
+  layerId;
+  pixelReader?: PixelStore<any>;
+  rect: Rect;
+  apply: () => Promise<void>;
+  selectionRect?: Rect;
+}
 export const TEXTURE_UNIT = {
   TEMP: 0, // 다용도 (Blit용, 셰이더에서 접근 X!)
   LAYER: 1, // 그림을 그릴 대상

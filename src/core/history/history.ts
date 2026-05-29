@@ -1,8 +1,6 @@
 import { getUndoByte, paintConfig } from "@/paint.config";
 import type { MosaicMode, ShapeKind } from "@/core/types";
 import { getManager } from "../utils/cachedManager";
-import { PixelStore } from "./PixelStore";
-import { Rect } from "@/core/utils/rect";
 
 export class HistoryObject {
   id;
@@ -89,14 +87,6 @@ export interface HistoryResponse {
 // 그리고 드로우 2를 수행하고, 이미지1 에서 Rect2에 해당되는 부분을 텍스쳐화 한다.
 // 히스토리에 imageDirty와 Rect2와 텍스쳐를 넣는다.
 
-export interface Snapshot {
-  layerId;
-  pixelReader?: PixelStore<any>;
-  rect: Rect;
-  apply: () => Promise<void>;
-  selectionRect?: Rect;
-}
-
 // 4096 * 4096 이미지 일정분의 ㄷ바이트 크기를 최대 제한으로 설정
 const MAX_TOTAL_BYTES = getUndoByte(); // RGBA, 10개
 
@@ -116,12 +106,9 @@ function trimStackByCount(stack: HistoryObject[], maxCount: number): void {
   }
 }
 
-function trimStack(stack: HistoryObject[], overflow: boolean): void {
-  if (!overflow) {
-    // 바이트 제한과 개수 제한 모두 적용
-    trimStackByBytes(stack, MAX_TOTAL_BYTES);
-    trimStackByCount(stack, paintConfig.maxHistoryItems);
-  }
+function trimStack(stack: HistoryObject[]): void {
+  trimStackByBytes(stack, MAX_TOTAL_BYTES);
+  trimStackByCount(stack, paintConfig.maxHistoryItems);
 }
 
 export interface HistoryCount {
@@ -139,31 +126,23 @@ export class HistoryStack {
     newHistory: HistoryObject,
     options: {
       resetRedo?: boolean;
-      overflow?: boolean;
     } = {},
   ) {
-    const { resetRedo = true, overflow = false } = options;
+    const { resetRedo = true } = options;
     this.undoStack.push(newHistory);
 
-    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
-    trimStack(this.undoStack, overflow);
+    trimStack(this.undoStack);
 
     if (resetRedo && this.redoStack.length != 0) {
-      // 이때 큐에 다 못들어간 히스토리가 남아있지 않게
-      // 히스토리에 객체 먼저 넣고 readPixel 큐잉 하기
-      // 객체 안에서 readPixel하게!
       this.redoStack = [];
     }
 
     this.logCurrent();
   }
 
-  private addRedo(newHistory: HistoryObject, overflow: boolean = false) {
+  private addRedo(newHistory: HistoryObject) {
     this.redoStack.push(newHistory);
-
-    // 바이트 크기와 개수 제한 (overflow가 true가 아닌 경우)
-    trimStack(this.redoStack, overflow);
-
+    trimStack(this.redoStack);
     this.logCurrent();
   }
 
