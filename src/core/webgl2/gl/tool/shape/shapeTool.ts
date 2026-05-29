@@ -36,6 +36,7 @@ class ShapeManager {
   private shapeRect: ShapeRect | null = null;
   private beforeShapeRect: ShapeRect | null = null;
   private shapePos: ShapeRect = { ...EMPTY_RECT };
+  private hasInitialHistory: boolean = false;
 
   constructor(
     private canvas: OffscreenCanvas,
@@ -64,6 +65,7 @@ class ShapeManager {
     this.activeKind = kind;
     this.shapeRect = null;
     this.beforeShapeRect = null;
+    this.hasInitialHistory = false;
     if (!isEmptyRect(previousRect)) {
       this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
     }
@@ -73,12 +75,67 @@ class ShapeManager {
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
 
     const rect = { x, y, width, height };
+
+    if (!this.hasInitialHistory) {
+      this.hasInitialHistory = true;
+      const kind = this.activeKind;
+      const initialRect = { ...rect };
+      const history = new HistoryObject({
+        undo: async () => {
+          const previousRect = this.hideShapePreview();
+          this.activeKind = null;
+          this.shapeRect = null;
+          this.beforeShapeRect = null;
+          this.hasInitialHistory = false;
+          this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
+          return { shape: this.getHiddenHistoryShape() };
+        },
+        redo: async () => {
+          this.activeKind = kind;
+          this.hasInitialHistory = true;
+          this.drawRectDraft(initialRect);
+          this.beforeShapeRect = { ...initialRect };
+          return { shape: this.getHistoryShape(true) };
+        },
+        byteSize: 0,
+      });
+      getHistoryManager(this.canvas, this.gl).addUndo(history);
+    }
+
     this.drawRectDraft(rect);
     this.beforeShapeRect = { ...rect };
   }
 
   setLine(p1: Pointer, p2: Pointer, c1?: Pointer | null, c2?: Pointer | null) {
     if (this.activeKind !== "line" && this.activeKind !== "curve") return;
+
+    if (!this.hasInitialHistory) {
+      this.hasInitialHistory = true;
+      const kind = this.activeKind;
+      const initialP1 = { ...p1 };
+      const initialP2 = { ...p2 };
+      const initialC1 = c1 ? { ...c1 } : null;
+      const initialC2 = c2 ? { ...c2 } : null;
+      const history = new HistoryObject({
+        undo: async () => {
+          const previousRect = this.hideShapePreview();
+          this.activeKind = null;
+          this.shapeRect = null;
+          this.beforeShapeRect = null;
+          this.hasInitialHistory = false;
+          this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
+          return { shape: this.getHiddenHistoryShape() };
+        },
+        redo: async () => {
+          this.activeKind = kind;
+          this.hasInitialHistory = true;
+          this.setLine(initialP1, initialP2, initialC1, initialC2);
+          return { shape: this.getHistoryShape(true) };
+        },
+        byteSize: 0,
+      });
+      getHistoryManager(this.canvas, this.gl).addUndo(history);
+    }
 
     const previousRect = this.hideShapePreview();
     this.applyOptions();
@@ -145,12 +202,14 @@ class ShapeManager {
     const byteSize = rect.width * rect.height * 4 * 2;
     const history = new HistoryObject({
       undo: async () => {
+        paintOptions.showShape = false;
         await before.apply();
         await this.renderingManager.render(rect);
         return { shape: this.getHiddenHistoryShape() };
       },
       redo: async () => {
         await after.apply();
+        this.clearDraft();
         await this.renderingManager.render(rect);
         return { shape: this.getHiddenHistoryShape() };
       },
@@ -235,10 +294,11 @@ class ShapeManager {
     this.shapeRect = null;
     this.beforeShapeRect = null;
     this.shapePos = { ...EMPTY_RECT };
+    this.hasInitialHistory = false;
   }
 
   private getHistoryShape(show: boolean) {
-    const rect = this.shapeRect ?? { x: 0, y: 0, width: 0, height: 0 };
+    const rect = this.shapeRect ?? this.shapePos;
     return {
       show,
       kind: this.activeKind,
