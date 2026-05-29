@@ -17,6 +17,13 @@ type ShapeRect = {
   height: number;
 };
 
+type LinePoints = {
+  p1: Pointer;
+  p2: Pointer;
+  c1: Pointer | null;
+  c2: Pointer | null;
+};
+
 const EMPTY_RECT: ShapeRect = { x: 0, y: 0, width: 0, height: 0 };
 
 export function getShapeManager(canvas: OffscreenCanvas, gl: WebGL2RenderingContext) {
@@ -37,6 +44,7 @@ class ShapeManager {
   private beforeShapeRect: ShapeRect | null = null;
   private shapePos: ShapeRect = { ...EMPTY_RECT };
   private hasInitialHistory: boolean = false;
+  private linePoints: LinePoints | null = null;
 
   constructor(
     private canvas: OffscreenCanvas,
@@ -66,6 +74,7 @@ class ShapeManager {
     this.shapeRect = null;
     this.beforeShapeRect = null;
     this.hasInitialHistory = false;
+    this.linePoints = null;
     if (!isEmptyRect(previousRect)) {
       this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
     }
@@ -79,10 +88,17 @@ class ShapeManager {
     if (!this.hasInitialHistory) {
       this.hasInitialHistory = true;
       const kind = this.activeKind;
-      const initialRect = { ...rect };
+
+      // Captures state at undo time so redo can restore the correct shape
+      let redoState: { shapeRect: ShapeRect | null; beforeShapeRect: ShapeRect | null } | null = null;
+
       const history = new HistoryObject({
         undo: async () => {
           const previousRect = this.hideShapePreview();
+          redoState = {
+            shapeRect: this.shapeRect ? { ...this.shapeRect } : null,
+            beforeShapeRect: this.beforeShapeRect ? { ...this.beforeShapeRect } : null,
+          };
           this.activeKind = null;
           this.shapeRect = null;
           this.beforeShapeRect = null;
@@ -91,10 +107,12 @@ class ShapeManager {
           return { shape: this.getHiddenHistoryShape() };
         },
         redo: async () => {
+          if (!redoState?.shapeRect) return { shape: this.getHiddenHistoryShape() };
           this.activeKind = kind;
           this.hasInitialHistory = true;
-          this.drawRectDraft(initialRect);
-          this.beforeShapeRect = { ...initialRect };
+          // drawRectDraft re-creates the shape texture and sets showShape=true
+          this.drawRectDraft(redoState.shapeRect);
+          this.beforeShapeRect = redoState.beforeShapeRect;
           return { shape: this.getHistoryShape(true) };
         },
         byteSize: 0,
@@ -109,27 +127,35 @@ class ShapeManager {
   setLine(p1: Pointer, p2: Pointer, c1?: Pointer | null, c2?: Pointer | null) {
     if (this.activeKind !== "line" && this.activeKind !== "curve") return;
 
+    // Always track latest endpoints so undo/redo can re-create the texture
+    this.linePoints = { p1: { ...p1 }, p2: { ...p2 }, c1: c1 ? { ...c1 } : null, c2: c2 ? { ...c2 } : null };
+
     if (!this.hasInitialHistory) {
       this.hasInitialHistory = true;
       const kind = this.activeKind;
-      const initialP1 = { ...p1 };
-      const initialP2 = { ...p2 };
-      const initialC1 = c1 ? { ...c1 } : null;
-      const initialC2 = c2 ? { ...c2 } : null;
+
+      // Captures state at undo time so redo can restore the correct shape
+      let redoState: { linePoints: LinePoints | null } | null = null;
+
       const history = new HistoryObject({
         undo: async () => {
           const previousRect = this.hideShapePreview();
+          redoState = { linePoints: this.linePoints ? cloneLinePoints(this.linePoints) : null };
           this.activeKind = null;
           this.shapeRect = null;
           this.beforeShapeRect = null;
           this.hasInitialHistory = false;
+          this.linePoints = null;
           this.renderingManager.render(this.toAppRect(previousRect) ?? undefined);
           return { shape: this.getHiddenHistoryShape() };
         },
         redo: async () => {
+          if (!redoState?.linePoints) return { shape: this.getHiddenHistoryShape() };
           this.activeKind = kind;
           this.hasInitialHistory = true;
-          this.setLine(initialP1, initialP2, initialC1, initialC2);
+          this.linePoints = cloneLinePoints(redoState.linePoints);
+          // setLine re-creates the texture, sets showShape, and renders
+          this.setLine(redoState.linePoints.p1, redoState.linePoints.p2, redoState.linePoints.c1, redoState.linePoints.c2);
           return { shape: this.getHistoryShape(true) };
         },
         byteSize: 0,
@@ -199,18 +225,47 @@ class ShapeManager {
 
     const { before, after } = this.sourceTextureManager.upload(rect.x, rect.y, rect.width, rect.height);
 
+    // Capture all shape state before clearDraft wipes it
+    const savedKind = this.activeKind;
+    const savedShapeRect = this.shapeRect ? { ...this.shapeRect } : null;
+    const savedBeforeShapeRect = this.beforeShapeRect ? { ...this.beforeShapeRect } : null;
+    const savedShapePos = { ...this.shapePos };
+    const savedLinePoints = this.linePoints ? cloneLinePoints(this.linePoints) : null;
+
+    // The union area covers both the overlay position and the committed area
+    const unionArea = this.toAppRect(this.unionRect(savedShapePos, appliedRect));
+
     const byteSize = rect.width * rect.height * 4 * 2;
     const history = new HistoryObject({
       undo: async () => {
-        paintOptions.showShape = false;
         await before.apply();
-        await this.renderingManager.render(rect);
-        return { shape: this.getHiddenHistoryShape() };
+        this.activeKind = savedKind;
+        this.hasInitialHistory = true;
+
+        if (savedKind === "rect" || savedKind === "ellipse") {
+          // drawRectDraft re-creates the shape texture (cleared by applyDraft) and sets showShape=true
+          this.drawRectDraft(savedShapeRect ?? savedShapePos);
+          this.beforeShapeRect = savedBeforeShapeRect;
+        } else {
+          // Re-create line/curve texture
+          this.linePoints = savedLinePoints;
+          this.applyOptions();
+          const { p1, p2, c1, c2 } = savedLinePoints!;
+          const newRenderRect =
+            savedKind === "curve"
+              ? this.curveModule.create(p1, p2, c1, c2)
+              : this.lineModule.create(p1, p2);
+          this.shapePos = newRenderRect;
+          paintOptions.showShape = !isEmptyRect(newRenderRect);
+        }
+
+        await this.renderingManager.render(unionArea ?? rect);
+        return { shape: this.getHistoryShape(true) };
       },
       redo: async () => {
         await after.apply();
         this.clearDraft();
-        await this.renderingManager.render(rect);
+        await this.renderingManager.render(unionArea ?? rect);
         return { shape: this.getHiddenHistoryShape() };
       },
       byteSize,
@@ -295,6 +350,7 @@ class ShapeManager {
     this.beforeShapeRect = null;
     this.shapePos = { ...EMPTY_RECT };
     this.hasInitialHistory = false;
+    this.linePoints = null;
   }
 
   private getHistoryShape(show: boolean) {
@@ -345,6 +401,15 @@ class ShapeManager {
     if (!rect || rect.width === 0 || rect.height === 0) return null;
     return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
   }
+}
+
+function cloneLinePoints(pts: LinePoints): LinePoints {
+  return {
+    p1: { ...pts.p1 },
+    p2: { ...pts.p2 },
+    c1: pts.c1 ? { ...pts.c1 } : null,
+    c2: pts.c2 ? { ...pts.c2 } : null,
+  };
 }
 
 function isEmptyRect(rect: ShapeRect) {

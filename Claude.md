@@ -1,40 +1,5 @@
-twgl을 쓸 때 import \* as twgl from "twgl.js"; 로 임포트 할것
-
-gl.uniform1i(
-gl.getUniformLocation(selectionProgramInfo.program, "u_selection"),
-TEXTURE_UNIT.RENDERED_SELECTION,
-);
-과 같이 유니폼 설정하는건 twgl으로 절대 절대 바꾸지 말 것.
-
-twgl으로 프로그램 만들기 표준:
-const vertexManager = getVertexManager(gl);
-
-const renderProgramInfo = twgl.createProgramInfo(gl, [
-vertexManager.vsSource,
-renderFrag,
-]);
-
-twgl.setBuffersAndAttributes(
-gl,
-renderProgramInfo,
-vertexManager.quadBufferInfo,
-);
-
-참고:
-bufferManager.createFullQuadVAO(brushProgramInfo.program); 를
-twgl.setBuffersAndAttributes(
-gl,
-brushProgramInfo,
-vertexManager.quadBufferInfo,
-);
-이걸로 변경하기
-
-텍스쳐 만들때
-
-let pathTex = twgl.createTexture(gl, {
-wrap: gl.CLAMP_TO_EDGE,
-minMag: gl.LINEAR,
-auto: false,
-});
-
-이렇게 auto는 꼭 false로 하기.
+SOLID원칙을 준수하라.
+성급한 추상화는 극도로 혐오한다.
+외부에 노출하는 인터페이스/메서드/파라미터/함수, 데이터의 원천을 다루는 state/store/스키마의 선언을 변경하는건 아주 신중해야하고, 사람의 승인이 꼭 필요하다. 변경을 하지 말라는게 절대 아니다. 변경하는게 더 나으면 사용자에게 인지는 꼭 시키라는 것이다.
+서로 다른 모듈끼리 의존성을 가지면 안된다.
+테스트가 구현을 따라가면 안됌.
