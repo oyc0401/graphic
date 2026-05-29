@@ -121,15 +121,18 @@ export class PaintService {
 
   setStrokeColor(r, g, b) {
     paintOptions.setColor({ r, g, b });
+    getShapeManager(this.canvas, this.gl).updateOptions();
   }
 
   setStrokeSize(strokeSize) {
     let radius = strokeSize / 2; // 거리기반으로 하다보니 내부 로직 결과가 이렇게 됌..
     paintOptions.setRadius(radius);
+    getShapeManager(this.canvas, this.gl).updateOptions();
   }
 
   setAlpha(alpha) {
     paintOptions.setAlpha(alpha);
+    getShapeManager(this.canvas, this.gl).updateOptions();
   }
   sampleColor(x: number, y: number) {
     const layerManager = getLayerManager(this.canvas, this.gl);

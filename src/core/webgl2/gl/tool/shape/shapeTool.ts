@@ -175,6 +175,26 @@ class ShapeManager {
     this.renderUnion(previousRect, renderRect);
   }
 
+  updateOptions() {
+    if (!paintOptions.showShape) return;
+
+    if (this.activeKind === "rect" || this.activeKind === "ellipse") {
+      if (!this.shapeRect) return;
+      this.drawRectDraft(this.shapeRect);
+    } else if ((this.activeKind === "line" || this.activeKind === "curve") && this.linePoints) {
+      const previousRect = this.hideShapePreview();
+      this.applyOptions();
+      const { p1, p2, c1, c2 } = this.linePoints;
+      const renderRect =
+        this.activeKind === "curve"
+          ? this.curveModule.create(p1, p2, c1, c2)
+          : this.lineModule.create(p1, p2);
+      this.shapePos = renderRect;
+      paintOptions.showShape = !isEmptyRect(renderRect);
+      this.renderUnion(previousRect, renderRect);
+    }
+  }
+
   transformRect(x: number, y: number, width: number, height: number) {
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
     this.drawRectDraft({ x, y, width, height });
