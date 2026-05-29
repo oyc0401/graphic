@@ -4,8 +4,9 @@ import { HistoryObject, getHistoryManager } from "../../../../history/history";
 import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
-import { createLiquify } from "./liquifyModule";
-import type { LiquifyRect } from "./liquifyModule";
+import { createLiquifyDisplacement } from "./liquifyModule/displacementModule";
+import type { LiquifyRect } from "./liquifyModule/displacementModule";
+import { createLiquifyRender } from "./liquifyModule/renderModule";
 
 interface LiquifyManagerInterface {
   enter(): void;
@@ -25,18 +26,34 @@ interface LiquifyManagerInterface {
   setSize: () => void;
 }
 
+interface StrokeHistory {
+  rect: LiquifyRect;
+  before: Float32Array;
+  after: Float32Array;
+}
+
 export class LiquifyManager implements LiquifyManagerInterface {
   protected gl: WebGL2RenderingContext;
   private canvas: HTMLCanvasElement;
   private sourceTextureManager: any;
   private layerManager: any;
   private renderingManager: any;
-  private liquify: ReturnType<typeof createLiquify> | null = null;
+
+  private displacement: ReturnType<typeof createLiquifyDisplacement> | null = null;
+  private renderModule: ReturnType<typeof createLiquifyRender> | null = null;
+
   private sourceDisplacementTexture: WebGLTexture | null = null;
   private displacementTexture: WebGLTexture | null = null;
+  private sourceDisplacementFBO: WebGLFramebuffer | null = null;
+  private displacementFBO: WebGLFramebuffer | null = null;
+
   private toolId: LiquifyTool = "push";
+  private pendingRect: LiquifyRect | null = null;
   private changedRect: Rect | null = null;
   private active = false;
+
+  private strokeHistory: StrokeHistory[] = [];
+  private historyIndex = -1;
 
   private constructor(canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
     this.canvas = canvas;
@@ -58,32 +75,34 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.renderingManager = getRenderingManager(this.canvas, this.gl);
   }
 
-  private createLiquify() {
+  private createModules() {
     this.sourceTextureManager.uploadFromLayer(paintOptions.layerId);
-    const sourceDisplacementTexture = createDisplacementTexture(
-      this.gl,
-      paintOptions.width,
-      paintOptions.height,
-    );
-    const displacementTexture = createDisplacementTexture(
-      this.gl,
-      paintOptions.width,
-      paintOptions.height,
-    );
+
+    const width = paintOptions.width;
+    const height = paintOptions.height;
+
+    const sourceDisplacementTexture = createDisplacementTexture(this.gl, width, height);
+    const displacementTexture = createDisplacementTexture(this.gl, width, height);
     this.sourceDisplacementTexture = sourceDisplacementTexture;
     this.displacementTexture = displacementTexture;
 
-    this.liquify = createLiquify(this.gl, {
-      imageTexture: this.sourceTextureManager.texture,
-      resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+    this.sourceDisplacementFBO = createFramebuffer(this.gl, sourceDisplacementTexture);
+    this.displacementFBO = createFramebuffer(this.gl, displacementTexture);
+
+    this.displacement = createLiquifyDisplacement(this.gl, {
       sourceDisplacementTexture,
       displacementTexture,
-      width: paintOptions.width,
-      height: paintOptions.height,
+      width,
+      height,
     });
 
-    this.liquify.setRadius(paintOptions.radius);
-    this.liquify.setStrength(paintOptions.alpha);
+    this.renderModule = createLiquifyRender(this.gl, {
+      imageTexture: this.sourceTextureManager.texture,
+      resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
+      displacementTexture,
+      width,
+      height,
+    });
   }
 
   private markChanged(rect: LiquifyRect | null) {
@@ -103,93 +122,166 @@ export class LiquifyManager implements LiquifyManagerInterface {
   }
 
   private toAppRect(rect: LiquifyRect | null): Rect | undefined {
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      return undefined;
-    }
+    if (!rect || rect.width === 0 || rect.height === 0) return undefined;
     return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
+  }
+
+  private readDisplacementPixels(fbo: WebGLFramebuffer, rect: LiquifyRect): Float32Array {
+    const gl = this.gl;
+    const pixels = new Float32Array(rect.width * rect.height * 2);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+    gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RG, gl.FLOAT, pixels);
+    return pixels;
+  }
+
+  private writeDisplacementPixels(
+    texture: WebGLTexture,
+    rect: LiquifyRect,
+    pixels: Float32Array,
+  ) {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texSubImage2D(
+      gl.TEXTURE_2D, 0,
+      rect.x, rect.y, rect.width, rect.height,
+      gl.RG, gl.FLOAT, pixels,
+    );
+  }
+
+  private commitDisplacementToSource(rect: LiquifyRect) {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.displacementFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.sourceDisplacementFBO);
+    gl.blitFramebuffer(
+      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
+      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
+      gl.COLOR_BUFFER_BIT, gl.NEAREST,
+    );
+  }
+
+  private revertDisplacementFromSource(rect: LiquifyRect) {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.displacementFBO);
+    gl.blitFramebuffer(
+      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
+      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
+      gl.COLOR_BUFFER_BIT, gl.NEAREST,
+    );
   }
 
   enter() {
     this.changedRect = null;
-    this.createLiquify();
+    this.strokeHistory = [];
+    this.historyIndex = -1;
+    this.createModules();
     this.active = true;
   }
 
   start(pointer: Pointer) {
-    if (!this.liquify) return;
+    if (!this.displacement) return;
 
-    this.liquify.setRadius(paintOptions.radius);
-    this.liquify.setStrength(paintOptions.alpha);
-    const rect =
+    this.displacement.setRadius(paintOptions.radius);
+    this.displacement.setStrength(paintOptions.alpha);
+    this.pendingRect =
       this.toolId === "restore"
-        ? this.liquify.restoreStart(pointer)
-        : this.liquify.start(pointer);
-    this.markChanged(rect);
+        ? this.displacement.restoreStart(pointer)
+        : this.displacement.start(pointer);
   }
 
   push(pointer: Pointer) {
-    if (!this.liquify) return;
+    if (!this.displacement) return;
     if (this.toolId !== "push" && this.toolId !== "restore") return;
 
-    this.liquify.setRadius(paintOptions.radius);
-    this.liquify.setStrength(paintOptions.alpha);
-    const rect =
+    this.displacement.setRadius(paintOptions.radius);
+    this.displacement.setStrength(paintOptions.alpha);
+    this.pendingRect =
       this.toolId === "restore"
-        ? this.liquify.restoreMove(pointer)
-        : this.liquify.move(pointer);
-    this.markChanged(rect);
+        ? this.displacement.restoreMove(pointer)
+        : this.displacement.move(pointer);
   }
 
   apply(pointer: Pointer) {
-    if (!this.liquify) return;
+    if (!this.displacement) return;
 
-    this.liquify.setRadius(paintOptions.radius);
-    this.liquify.setStrength(paintOptions.alpha);
-
-    const rect =
-      this.toolId === "twirlClockwise"
-        ? this.liquify.spin(pointer)
-        : this.toolId === "twirlCounterClockwise"
-          ? this.liquify.rightSpin(pointer)
-          : this.toolId === "bloat"
-          ? this.liquify.bloat(pointer)
-          : this.toolId === "pucker"
-            ? this.liquify.pucker(pointer)
-            : null;
-
-    this.markChanged(rect);
+    this.displacement.setRadius(paintOptions.radius);
+    this.displacement.setStrength(paintOptions.alpha);
+    this.pendingRect =
+      this.toolId === "twirlClockwise" ? this.displacement.spin(pointer)
+      : this.toolId === "twirlCounterClockwise" ? this.displacement.rightSpin(pointer)
+      : this.toolId === "bloat" ? this.displacement.bloat(pointer)
+      : this.toolId === "pucker" ? this.displacement.pucker(pointer)
+      : null;
   }
 
   render() {
-    if (!this.liquify) return;
+    if (!this.renderModule) return;
 
-    const rect = this.liquify.render();
+    const rect = this.renderModule.render(this.pendingRect);
+    this.pendingRect = null;
     this.renderingManager.render(this.toAppRect(rect));
   }
 
   end() {
-    if (!this.liquify) return;
+    if (!this.displacement) return;
 
-    this.markChanged(this.liquify.end());
+    const strokeRect = this.displacement.end();
+    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+
+    const before = this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect);
+    this.commitDisplacementToSource(strokeRect);
+    const after = this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect);
+
+    this.strokeHistory = this.strokeHistory.slice(0, this.historyIndex + 1);
+    this.strokeHistory.push({ rect: strokeRect, before, after });
+    this.historyIndex++;
+
+    this.markChanged(strokeRect);
   }
 
   cancel() {
-    if (!this.liquify) return;
+    if (!this.displacement) return;
 
-    this.liquify.cancel();
+    const strokeRect = this.displacement.end();
+    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+
+    this.revertDisplacementFromSource(strokeRect);
+    this.pendingRect = strokeRect;
     this.render();
   }
 
   async undo() {
-    return null;
+    if (this.historyIndex < 0) return null;
+
+    const entry = this.strokeHistory[this.historyIndex];
+    this.historyIndex--;
+
+    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.before);
+    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.before);
+    this.pendingRect = entry.rect;
+    this.render();
+    return {};
   }
 
   async redo() {
-    return null;
+    if (this.historyIndex >= this.strokeHistory.length - 1) return null;
+
+    this.historyIndex++;
+    const entry = this.strokeHistory[this.historyIndex];
+
+    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.after);
+    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.after);
+    this.pendingRect = entry.rect;
+    this.render();
+    return {};
   }
 
   getHistoryCount() {
-    return { undoCount: 0, redoCount: 0 };
+    return {
+      undoCount: this.historyIndex + 1,
+      redoCount: this.strokeHistory.length - 1 - this.historyIndex,
+    };
   }
 
   exit() {
@@ -231,9 +323,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
       historyManager.addUndo(newHistory);
     }
 
-    this.liquify?.destroy();
-    this.liquify = null;
-    this.destroyDisplacementTextures();
+    this.destroyModules();
     this.active = false;
     this.changedRect = null;
   }
@@ -243,9 +333,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
     this.sourceTextureManager.restore();
     this.renderingManager.render();
-    this.liquify?.destroy();
-    this.liquify = null;
-    this.destroyDisplacementTextures();
+    this.destroyModules();
     this.active = false;
     this.changedRect = null;
   }
@@ -256,13 +344,24 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
   setSize: () => void = () => {};
 
+  private destroyModules() {
+    this.displacement?.destroy();
+    this.displacement = null;
+    this.renderModule?.destroy();
+    this.renderModule = null;
+    this.destroyDisplacementTextures();
+    this.strokeHistory = [];
+    this.historyIndex = -1;
+  }
+
   private destroyDisplacementTextures() {
-    if (this.sourceDisplacementTexture) {
-      this.gl.deleteTexture(this.sourceDisplacementTexture);
-    }
-    if (this.displacementTexture) {
-      this.gl.deleteTexture(this.displacementTexture);
-    }
+    const gl = this.gl;
+    if (this.sourceDisplacementFBO) gl.deleteFramebuffer(this.sourceDisplacementFBO);
+    if (this.displacementFBO) gl.deleteFramebuffer(this.displacementFBO);
+    if (this.sourceDisplacementTexture) gl.deleteTexture(this.sourceDisplacementTexture);
+    if (this.displacementTexture) gl.deleteTexture(this.displacementTexture);
+    this.sourceDisplacementFBO = null;
+    this.displacementFBO = null;
     this.sourceDisplacementTexture = null;
     this.displacementTexture = null;
   }
@@ -281,4 +380,13 @@ function createDisplacementTexture(
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   return texture;
+}
+
+function createFramebuffer(gl: WebGL2RenderingContext, texture: WebGLTexture) {
+  const framebuffer = gl.createFramebuffer()!;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0,
+  );
+  return framebuffer;
 }
