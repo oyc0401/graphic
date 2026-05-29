@@ -261,7 +261,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.before);
     this.pendingRect = entry.rect;
     this.render();
-    return {};
+    return this.getHistoryCount();
   }
 
   async redo() {
@@ -274,7 +274,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.after);
     this.pendingRect = entry.rect;
     this.render();
-    return {};
+    return this.getHistoryCount();
   }
 
   getHistoryCount() {

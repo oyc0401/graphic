@@ -1,5 +1,5 @@
-import blurHorizontalFrag from "../blurHorizontal.frag?raw";
-import blurVerticalFrag from "../blurVertical.frag?raw";
+import blurHorizontalFrag from "./blurHorizontal.frag?raw";
+import blurVerticalFrag from "./blurVertical.frag?raw";
 import renderFrag from "./render.frag?raw";
 
 interface MosaicRect {

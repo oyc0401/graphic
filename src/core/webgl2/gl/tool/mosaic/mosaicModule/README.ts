@@ -47,6 +47,7 @@ render.render(previewRect2);
 
 const strokeRect = mask.end(); // 이 스트로크 전체의 bounding rect 반환
 // 외부에서 strokeRect 범위의 maskTexture를 sourceMaskTexture에 커밋하고 히스토리를 만든다.
+// allStrokesRect에 strokeRect를 누적한다.
 
 // cancel일 때
 const previewRect3 = mask.start({ x: 200, y: 200 });
@@ -56,15 +57,16 @@ render.render(previewRect4);
 
 const strokeRect2 = mask.end();
 // strokeRect2 범위의 maskTexture에 sourceMaskTexture로 덮어쓰고 render한다. 히스토리는 만들지 않음.
+// allStrokesRect에는 추가하지 않는다.
 render.render(strokeRect2);
 
 // 모드 변경: blur (가우시안 블러)
-let allRect = render.setMode("blur"); // 이걸 하면 내부적으로 스트로크된 모든부분이 저장된 rect를 리턴한다.
-render.render(allRect);
+render.setMode("blur");
+render.render(allStrokesRect); // 지금까지 커밋된 모든 strokeRect의 합산
 
 // 모드 변경: pixel (픽셀화)
-let allRect2 = render.setMode("pixel");
-render.render(allRect2);
+render.setMode("pixel");
+render.render(allStrokesRect);
 
 // restore: mask를 지워서 원본으로 복원
 const restoreRect1 = mask.restoreStart({ x: 100, y: 200 });
