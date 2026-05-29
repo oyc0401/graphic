@@ -1,66 +1,75 @@
+import { createMosaicMask } from "./maskModule";
+import { mosaicRenderModule } from "./renderModule";
+
 const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2")!;
 
-// 원본 이미지가 담긴 텍스처
+const width = canvas.width;
+const height = canvas.height;
+
+// 원본이미지가 담긴 텍스쳐
 const imageTexture = gl.createTexture()!;
 
-// 모자이크 결과가 기록되는 텍스처
+// 결과 텍스쳐. 화면에 그대로 보여진다.
 const resultTexture = gl.createTexture()!;
 
-// mask맵은 외부에서 소유하고, mosaic 모듈은 이 텍스쳐를 수정만 합니다.
+// sourceMaskTexture: 스트로크 시작 시점의 mask 스냅샷 (read-only 기준)
+// maskTexture: 스트로크 중 실제로 수정되는 mask
+// 두 모듈이 이 텍스쳐들을 공유한다.
 const sourceMaskTexture = gl.createTexture()!;
 const maskTexture = gl.createTexture()!;
 
-const mosaic = createMosaic(gl, {
-  imageTexture,
-  resultTexture,
+const mask = createMosaicMask(gl, {
   sourceMaskTexture,
   maskTexture,
   width,
   height,
 });
 
-mosaic.setRadius(50);
-mosaic.setStrength(0.5); // 이걸 하면, 모자이크 강도가 바뀌고, 기존 mask맵 영역이 다시 렌더링 대상이 됌
-mosaic.render(); // 이걸 하면 resultTexture의 dirtyRect 영역이 모자이크로 수정됌
+const render = mosaicRenderModule(gl, {
+  imageTexture,
+  resultTexture,
+  maskTexture,
+  width,
+  height,
+});
 
-// 이걸 하면 mask맵 수정됌
-mosaic.start({ x, y });
-mosaic.move({ x, y });
-mosaic.move({ x, y });
-const rect1 = mosaic.end();
-mosaic.render(); // 이걸 하면 resultTexture의 dirtyRect 영역이 모자이크로 수정됌
+mask.setRadius(50);
+render.setStrength(0.5);
 
-mosaic.start({ x, y });
-mosaic.move({ x, y });
-mosaic.cancel();
+// 페인트 스트로크: start -> move... -> end
+// mask가 dirty rect를 반환 → 해당 영역만 render한다.
+const previewRect1 = mask.start({ x: 100, y: 100 });
+render.render(previewRect1); // mask맵을 보고 특정부분을 렌더링
 
-mosaic.setMode("blur"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 mask맵 영역이 다시 렌더링 대상이 됌
-mosaic.render();
-mosaic.setMode("pixel"); // 이걸 하면 모자이크 모드가 바뀌고, 기존 mask맵 영역이 다시 렌더링 대상이 됌
-mosaic.render();
-const rect2 = mosaic.end();
+const previewRect2 = mask.move({ x: 130, y: 110 });
+render.render(previewRect2);
 
-// 이걸 하면 mask맵이 원본 상태로 복원됌
-mosaic.restoreStart({ x, y });
-mosaic.restoreMove({ x, y });
-mosaic.restoreMove({ x, y });
-const rect3 = mosaic.end();
+const strokeRect = mask.end(); // 이 스트로크 전체의 bounding rect 반환
+// 외부에서 strokeRect 범위의 maskTexture를 sourceMaskTexture에 커밋하고 히스토리를 만든다.
 
-mosaic.render(); // 이걸 하면 resultTexture 수정됌
+// cancel일 때
+const previewRect3 = mask.start({ x: 200, y: 200 });
+render.render(previewRect3);
+const previewRect4 = mask.move({ x: 230, y: 210 });
+render.render(previewRect4);
 
-// undo/redo는 mosaic 내부에 없다.
-// end()가 리턴한 rect와 외부 소유 texture로 모듈 밖에서 히스토리를 관리한다.
+const strokeRect2 = mask.end();
+// strokeRect2 범위의 maskTexture에 sourceMaskTexture로 덮어쓰고 render한다. 히스토리는 만들지 않음.
+render.render(strokeRect2);
 
-// 대충 resultTexture를 화면 어딘가에 렌더링한다는 함수
-function render() {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(0, 0, canvas.width, canvas.height);
+// 모드 변경: blur (가우시안 블러)
+let allRect = render.setMode("blur"); // 이걸 하면 내부적으로 스트로크된 모든부분이 저장된 rect를 리턴한다.
+render.render(allRect);
 
-  gl.bindTexture(gl.TEXTURE_2D, resultTexture);
+// 모드 변경: pixel (픽셀화)
+let allRect2 = render.setMode("pixel");
+render.render(allRect2);
 
-  // resultTexture를 읽는 셰이더와 fullscreen quad는 있다고 치자.
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-}
-
-render();
+// restore: mask를 지워서 원본으로 복원
+const restoreRect1 = mask.restoreStart({ x: 100, y: 200 });
+render.render(restoreRect1);
+const restoreRect2 = mask.restoreMove({ x: 130, y: 210 });
+render.render(restoreRect2);
+const restoreStrokeRect = mask.end();
+render.render(restoreStrokeRect);

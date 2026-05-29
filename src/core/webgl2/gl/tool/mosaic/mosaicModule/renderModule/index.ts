@@ -83,14 +83,6 @@ class MosaicRender {
     this.mode = mode;
   }
 
-  getStrength() {
-    return this.strength;
-  }
-
-  getMode() {
-    return this.mode;
-  }
-
   render(rect: MosaicRect | null): MosaicRect | null {
     if (!rect || rect.width === 0 || rect.height === 0) {
       return null;
