@@ -38,12 +38,7 @@ const rect1 = curveShape.create(
 render(); // 매 프레임마다 자동 수행되는 렌더함수
 
 // apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시킴.
-const rect2 = curveShape.apply(
-  { x: 260, y: 160 },
-  { x: 520, y: 160 },
-  { x: 320, y: 40 },
-  null,
-);
+const rect2 = curveShape.apply(rect1);
 
 // 반영시킨 이후에 외부에서 rect2부분을 가지고 스냅샷을 만들고 히스토리를 만든다.
 

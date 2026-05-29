@@ -94,7 +94,7 @@ class LineShape {
     if (this.renderedLine) this.renderedLine.key = "";
   }
 
-  create(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect | null {
+  create(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect {
     const normalized = normalizeLine(
       p1,
       p2,
@@ -102,8 +102,6 @@ class LineShape {
       this.options.width,
       this.options.height,
     );
-    if (!normalized) return null;
-
     const key = this.createLineKey(normalized);
     if (this.renderedLine?.key !== key) {
       this.clearShapeTexture();
@@ -117,16 +115,7 @@ class LineShape {
     return normalized.targetRect;
   }
 
-  apply(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect | null {
-    const normalized = normalizeLine(
-      p1,
-      p2,
-      this.strokeWidth,
-      this.options.width,
-      this.options.height,
-    );
-    if (!normalized) return null;
-
+  apply(rect: LineShapeRect): LineShapeRect {
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -136,26 +125,21 @@ class LineShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
-    );
+    gl.scissor(rect.x, rect.y, rect.width, rect.height);
     gl.viewport(0, 0, this.options.width, this.options.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return normalized.targetRect;
+    return rect;
   }
 
   destroy() {
@@ -332,15 +316,15 @@ function normalizeLine(
   strokeWidth: number,
   width: number,
   height: number,
-): NormalizedLine | null {
+): NormalizedLine {
   const inset = Math.max(0, Math.ceil(strokeWidth / 2));
   const left = Math.floor(Math.min(p1.x, p2.x) - inset);
   const top = Math.floor(Math.min(p1.y, p2.y) - inset);
   const right = Math.ceil(Math.max(p1.x, p2.x) + inset);
   const bottom = Math.ceil(Math.max(p1.y, p2.y) + inset);
-  const textureWidth = right - left;
-  const textureHeight = bottom - top;
-  if (textureWidth <= 0 || textureHeight <= 0) return null;
+  if (right <= left || bottom <= top) {
+    throw new Error("Line shape rect is empty.");
+  }
 
   const x = clamp(left, 0, width);
   const y = clamp(top, 0, height);
@@ -349,18 +333,20 @@ function normalizeLine(
   const clampedWidth = Math.max(0, ex - x);
   const clampedHeight = Math.max(0, ey - y);
 
-  if (clampedWidth === 0 || clampedHeight === 0) return null;
+  if (clampedWidth === 0 || clampedHeight === 0) {
+    throw new Error("Line shape is outside the canvas.");
+  }
   return {
-    textureWidth,
-    textureHeight,
+    textureWidth: clampedWidth,
+    textureHeight: clampedHeight,
     targetRect: {
       x,
       y,
       width: clampedWidth,
       height: clampedHeight,
     },
-    p1: { x: p1.x - left, y: p1.y - top },
-    p2: { x: p2.x - left, y: p2.y - top },
+    p1: { x: p1.x - x, y: p1.y - y },
+    p2: { x: p2.x - x, y: p2.y - y },
   };
 }
 

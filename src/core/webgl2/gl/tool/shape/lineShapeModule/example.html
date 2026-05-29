@@ -160,8 +160,8 @@
           Number(alphaInput.value),
         ]);
         lineShape.setWidth(Number(strokeWidthInput.value));
-        lineShape.create(startPoint, endPoint);
-        const dirtyRect = lineShape.apply(startPoint, endPoint);
+        const draftRect = lineShape.create(startPoint, endPoint);
+        const dirtyRect = lineShape.apply(draftRect);
         console.log("line shape rect", dirtyRect);
         drawTexture(gl, resultTexture, width, height);
       });

@@ -141,7 +141,8 @@ class ShapeManager {
   }
 
   apply() {
-    const rect = this.toAppRect(this.draftDirtyRect);
+    const appliedRect = this.applyDraft(this.draftDirtyRect);
+    const rect = this.toAppRect(appliedRect);
     if (!rect || rect.isEmpty()) {
       this.clearDraft();
       return;
@@ -212,6 +213,15 @@ class ShapeManager {
     this.shapeRect = { ...rect };
     this.draftDirtyRect = dirtyRect;
     this.renderUnion(restoredRect, dirtyRect);
+  }
+
+  private applyDraft(rect: ShapeRect | null): ShapeRect | null {
+    if (!this.activeKind || !rect) return null;
+    if (this.activeKind === "rect") return this.rectangleModule.apply(rect);
+    if (this.activeKind === "ellipse") return this.ellipseModule.apply(rect);
+    if (this.activeKind === "line") return this.lineModule.apply(rect);
+    if (this.activeKind === "curve") return this.curveModule.apply(rect);
+    return null;
   }
 
   private restoreDraft(): ShapeRect | null {

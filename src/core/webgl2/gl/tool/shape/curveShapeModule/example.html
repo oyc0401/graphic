@@ -171,45 +171,30 @@
             p1: startPoint,
             p2: endPoint,
           };
-          curveShape.create(
+          const draftRect = curveShape.create(
             curveBaseLine.p1,
             curveBaseLine.p2,
             null,
             null,
           );
-          dirtyRect = curveShape.apply(
-            curveBaseLine.p1,
-            curveBaseLine.p2,
-            null,
-            null,
-          );
+          dirtyRect = curveShape.apply(draftRect);
         } else if (!curveControlPoint) {
           curveControlPoint = endPoint;
-          curveShape.create(
+          const draftRect = curveShape.create(
             curveBaseLine.p1,
             curveBaseLine.p2,
             curveControlPoint,
             null,
           );
-          dirtyRect = curveShape.apply(
-            curveBaseLine.p1,
-            curveBaseLine.p2,
-            curveControlPoint,
-            null,
-          );
+          dirtyRect = curveShape.apply(draftRect);
         } else {
-          curveShape.create(
+          const draftRect = curveShape.create(
             curveBaseLine.p1,
             curveBaseLine.p2,
             curveControlPoint,
             endPoint,
           );
-          dirtyRect = curveShape.apply(
-            curveBaseLine.p1,
-            curveBaseLine.p2,
-            curveControlPoint,
-            endPoint,
-          );
+          dirtyRect = curveShape.apply(draftRect);
           curveBaseLine = null;
           curveControlPoint = null;
         }

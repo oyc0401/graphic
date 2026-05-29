@@ -102,7 +102,7 @@ class CurveShape {
     p2: CurveShapePoint,
     c1: CurveShapePoint | null,
     c2: CurveShapePoint | null,
-  ): CurveShapeRect | null {
+  ): CurveShapeRect {
     const curve = resolveCurvePoints(p1, p2, c1, c2);
     const normalized = normalizeCurve(
       curve.p1,
@@ -113,8 +113,6 @@ class CurveShape {
       this.options.width,
       this.options.height,
     );
-    if (!normalized) return null;
-
     const key = this.createCurveKey(curve, normalized);
     if (this.renderedCurve?.key !== key) {
       this.clearShapeTexture();
@@ -128,24 +126,7 @@ class CurveShape {
     return normalized.targetRect;
   }
 
-  apply(
-    p1: CurveShapePoint,
-    p2: CurveShapePoint,
-    c1: CurveShapePoint | null,
-    c2: CurveShapePoint | null,
-  ): CurveShapeRect | null {
-    const curve = resolveCurvePoints(p1, p2, c1, c2);
-    const normalized = normalizeCurve(
-      curve.p1,
-      curve.p2,
-      curve.c1,
-      curve.c2,
-      this.strokeWidth,
-      this.options.width,
-      this.options.height,
-    );
-    if (!normalized) return null;
-
+  apply(rect: CurveShapeRect): CurveShapeRect {
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -155,26 +136,21 @@ class CurveShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
-    );
+    gl.scissor(rect.x, rect.y, rect.width, rect.height);
     gl.viewport(0, 0, this.options.width, this.options.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return normalized.targetRect;
+    return rect;
   }
 
   destroy() {
@@ -423,7 +399,7 @@ function normalizeCurve(
   strokeWidth: number,
   width: number,
   height: number,
-): NormalizedCurve | null {
+): NormalizedCurve {
   const inset = Math.trunc(Math.max(1, strokeWidth) * 1.1);
   const left = Math.min(p1.x, p2.x, c1.x, c2.x);
   const top = Math.min(p1.y, p2.y, c1.y, c2.y);
@@ -436,7 +412,9 @@ function normalizeCurve(
   const dirtyBottom = Math.ceil(bottom + inset);
   const textureWidth = dirtyRight - dirtyLeft;
   const textureHeight = dirtyBottom - dirtyTop;
-  if (textureWidth <= 0 || textureHeight <= 0) return null;
+  if (textureWidth <= 0 || textureHeight <= 0) {
+    throw new Error("Curve shape rect is empty.");
+  }
 
   const x = clamp(dirtyLeft, 0, width);
   const y = clamp(dirtyTop, 0, height);
@@ -445,10 +423,12 @@ function normalizeCurve(
   const clampedWidth = Math.max(0, ex - x);
   const clampedHeight = Math.max(0, ey - y);
 
-  if (clampedWidth === 0 || clampedHeight === 0) return null;
+  if (clampedWidth === 0 || clampedHeight === 0) {
+    throw new Error("Curve shape is outside the canvas.");
+  }
   return {
-    textureWidth,
-    textureHeight,
+    textureWidth: clampedWidth,
+    textureHeight: clampedHeight,
     targetRect: {
       x,
       y,
