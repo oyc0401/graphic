@@ -2,7 +2,14 @@ import blurHorizontalFrag from "../blurHorizontal.frag?raw";
 import blurVerticalFrag from "../blurVertical.frag?raw";
 import renderFrag from "./render.frag?raw";
 
-type MosaicEffectMode = Exclude<MosaicMode, "restore">;
+interface MosaicRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+type MosaicEffectMode = "pixel" | "blur";
 
 export interface CreateMosaicRenderOptions {
   imageTexture: WebGLTexture;
