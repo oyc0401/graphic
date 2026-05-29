@@ -123,6 +123,8 @@
       // ── FBO ──────────────────────────────────────────────────────
       const sourceFBO = createFBO(sourceTexture);
       const resultFBO = createFBO(resultTexture);
+      const sourceDisplacementFBO = createFBO(sourceDisplacementTexture);
+      const displacementFBO = createFBO(displacementTexture);
 
       // ── 소스 이미지 그리기 (격자 패턴) ──────────────────────────
       drawGridToTexture(sourceTexture, W, H);
@@ -265,8 +267,17 @@
         if (!active) return;
         active = false;
         canvas.releasePointerCapture(e.pointerId);
-        const canceledRect = displacement.cancel();
-        if (canceledRect) renderPreview(canceledRect);
+        const canceledRect = displacement.end();
+        if (canceledRect) {
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, sourceDisplacementFBO);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, displacementFBO);
+          gl.blitFramebuffer(
+            canceledRect.x, canceledRect.y, canceledRect.x + canceledRect.width, canceledRect.y + canceledRect.height,
+            canceledRect.x, canceledRect.y, canceledRect.x + canceledRect.width, canceledRect.y + canceledRect.height,
+            gl.COLOR_BUFFER_BIT, gl.NEAREST,
+          );
+          renderPreview(canceledRect);
+        }
         renderToScreen();
       });
 

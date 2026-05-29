@@ -3,8 +3,6 @@ import liquifyPushFrag from "./push.frag?raw";
 import restoreFrag from "./restore.frag?raw";
 import liquifyScaleFrag from "./scale.frag?raw";
 import liquifyTwirlFrag from "./spin.frag?raw";
-import { pointRect, strokeRect, unionRect } from "../rect";
-import type { LiquifyPoint, LiquifyRect } from "../rect";
 
 export interface CreateLiquifyDisplacementOptions {
   sourceDisplacementTexture: WebGLTexture;
@@ -170,15 +168,6 @@ class LiquifyDisplacement {
     return rect;
   }
 
-  cancel(): LiquifyRect | null {
-    const rect = this.strokeRect;
-    this.copyDisplacementRect(rect, this.sourceDisplacementFBO, this.displacementFBO);
-    this.copyDisplacementRect(rect, this.sourceDisplacementFBO, this.tempDisplacementFBO);
-    this.strokeRect = null;
-    this.lastPoint = null;
-    return rect;
-  }
-
   destroy() {
     const gl = this.gl;
 
@@ -202,14 +191,21 @@ class LiquifyDisplacement {
     const gl = this.gl;
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
-    gl.bindTexture(gl.TEXTURE_2D, this.options.sourceDisplacementTexture);
-
-    gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.DISPLACEMENT);
     gl.bindTexture(gl.TEXTURE_2D, this.options.displacementTexture);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.TEMP);
     gl.bindTexture(gl.TEXTURE_2D, this.tempDisplacementTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RG32F,
+      width,
+      height,
+      0,
+      gl.RG,
+      gl.FLOAT,
+      null,
+    );
 
     gl.useProgram(this.pushProgram);
     gl.uniform2f(this.uPushResolution, width, height);
@@ -239,8 +235,13 @@ class LiquifyDisplacement {
       throw new Error("EXT_color_buffer_float is required for liquify.");
     }
 
-    if (!gl.getExtension("OES_texture_float_linear") && !gl.getExtension("EXT_texture_filter_float")) {
-      throw new Error("Float texture linear filtering is required for liquify.");
+    if (
+      !gl.getExtension("OES_texture_float_linear") &&
+      !gl.getExtension("EXT_texture_filter_float")
+    ) {
+      throw new Error(
+        "Float texture linear filtering is required for liquify.",
+      );
     }
   }
 
@@ -249,14 +250,27 @@ class LiquifyDisplacement {
 
     this.tempDisplacementTexture = createFloatTexture(gl);
 
-    this.sourceDisplacementFBO = createFramebuffer(gl, this.options.sourceDisplacementTexture);
-    this.displacementFBO = createFramebuffer(gl, this.options.displacementTexture);
-    this.tempDisplacementFBO = createFramebuffer(gl, this.tempDisplacementTexture);
+    this.sourceDisplacementFBO = createFramebuffer(
+      gl,
+      this.options.sourceDisplacementTexture,
+    );
+    this.displacementFBO = createFramebuffer(
+      gl,
+      this.options.displacementTexture,
+    );
+    this.tempDisplacementFBO = createFramebuffer(
+      gl,
+      this.tempDisplacementTexture,
+    );
   }
 
   private createPrograms() {
     const gl = this.gl;
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER);
+    const vertexShader = createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      FULL_QUAD_VERTEX_SHADER,
+    );
     this.quadBuffer = createFullQuadBuffer(gl);
 
     this.pushProgram = createProgram(
@@ -281,7 +295,11 @@ class LiquifyDisplacement {
     );
 
     this.pushVAO = createFullQuadVAO(gl, this.quadBuffer, this.pushProgram);
-    this.restoreVAO = createFullQuadVAO(gl, this.quadBuffer, this.restoreProgram);
+    this.restoreVAO = createFullQuadVAO(
+      gl,
+      this.quadBuffer,
+      this.restoreProgram,
+    );
     this.twirlVAO = createFullQuadVAO(gl, this.quadBuffer, this.twirlProgram);
     this.scaleVAO = createFullQuadVAO(gl, this.quadBuffer, this.scaleProgram);
 
@@ -309,7 +327,10 @@ class LiquifyDisplacement {
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.PRIMITIVE);
     gl.bindTexture(gl.TEXTURE_2D, this.primitiveTexture);
 
-    this.uPushResolution = gl.getUniformLocation(this.pushProgram, "u_resolution")!;
+    this.uPushResolution = gl.getUniformLocation(
+      this.pushProgram,
+      "u_resolution",
+    )!;
     this.uPushStart = gl.getUniformLocation(this.pushProgram, "u_start")!;
     this.uPushEnd = gl.getUniformLocation(this.pushProgram, "u_end")!;
     this.uPushRadius = gl.getUniformLocation(this.pushProgram, "u_radius")!;
@@ -325,11 +346,20 @@ class LiquifyDisplacement {
       TEXTURE_UNIT.DISPLACEMENT,
     );
 
-    this.uRestoreResolution = gl.getUniformLocation(this.restoreProgram, "u_resolution")!;
+    this.uRestoreResolution = gl.getUniformLocation(
+      this.restoreProgram,
+      "u_resolution",
+    )!;
     this.uRestoreStart = gl.getUniformLocation(this.restoreProgram, "u_start")!;
     this.uRestoreEnd = gl.getUniformLocation(this.restoreProgram, "u_end")!;
-    this.uRestoreRadius = gl.getUniformLocation(this.restoreProgram, "u_radius")!;
-    this.uRestoreStrength = gl.getUniformLocation(this.restoreProgram, "u_strength")!;
+    this.uRestoreRadius = gl.getUniformLocation(
+      this.restoreProgram,
+      "u_radius",
+    )!;
+    this.uRestoreStrength = gl.getUniformLocation(
+      this.restoreProgram,
+      "u_strength",
+    )!;
   }
 
   private setupTwirlProgram() {
@@ -341,11 +371,20 @@ class LiquifyDisplacement {
       TEXTURE_UNIT.DISPLACEMENT,
     );
 
-    this.uTwirlResolution = gl.getUniformLocation(this.twirlProgram, "u_resolution")!;
+    this.uTwirlResolution = gl.getUniformLocation(
+      this.twirlProgram,
+      "u_resolution",
+    )!;
     this.uTwirlCenter = gl.getUniformLocation(this.twirlProgram, "u_center")!;
     this.uTwirlRadius = gl.getUniformLocation(this.twirlProgram, "u_radius")!;
-    this.uTwirlStrength = gl.getUniformLocation(this.twirlProgram, "u_strength")!;
-    this.uTwirlDirection = gl.getUniformLocation(this.twirlProgram, "u_direction")!;
+    this.uTwirlStrength = gl.getUniformLocation(
+      this.twirlProgram,
+      "u_strength",
+    )!;
+    this.uTwirlDirection = gl.getUniformLocation(
+      this.twirlProgram,
+      "u_direction",
+    )!;
   }
 
   private setupScaleProgram() {
@@ -357,11 +396,20 @@ class LiquifyDisplacement {
       TEXTURE_UNIT.DISPLACEMENT,
     );
 
-    this.uScaleResolution = gl.getUniformLocation(this.scaleProgram, "u_resolution")!;
+    this.uScaleResolution = gl.getUniformLocation(
+      this.scaleProgram,
+      "u_resolution",
+    )!;
     this.uScaleCenter = gl.getUniformLocation(this.scaleProgram, "u_center")!;
     this.uScaleRadius = gl.getUniformLocation(this.scaleProgram, "u_radius")!;
-    this.uScaleStrength = gl.getUniformLocation(this.scaleProgram, "u_strength")!;
-    this.uScaleDirection = gl.getUniformLocation(this.scaleProgram, "u_direction")!;
+    this.uScaleStrength = gl.getUniformLocation(
+      this.scaleProgram,
+      "u_strength",
+    )!;
+    this.uScaleDirection = gl.getUniformLocation(
+      this.scaleProgram,
+      "u_direction",
+    )!;
   }
 
   private push(start: LiquifyPoint, end: LiquifyPoint): LiquifyRect {
@@ -436,7 +484,11 @@ class LiquifyDisplacement {
     gl.viewport(0, 0, this.width, this.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    this.copyDisplacementRect(rect, this.tempDisplacementFBO, this.displacementFBO);
+    this.copyDisplacementRect(
+      rect,
+      this.tempDisplacementFBO,
+      this.displacementFBO,
+    );
     gl.disable(gl.SCISSOR_TEST);
   }
 
@@ -574,4 +626,83 @@ function createPrimitiveTexture(
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   return texture;
+}
+
+export interface LiquifyPoint {
+  x: number;
+  y: number;
+}
+
+export interface LiquifyRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function pointRect(
+  point: LiquifyPoint,
+  radius: number,
+  width: number,
+  height: number,
+): LiquifyRect {
+  const left = Math.floor(point.x - radius);
+  const top = Math.floor(point.y - radius);
+  const right = Math.ceil(point.x + radius);
+  const bottom = Math.ceil(point.y + radius);
+  return clampRect(left, top, right, bottom, width, height);
+}
+
+export function strokeRect(
+  start: LiquifyPoint,
+  end: LiquifyPoint,
+  radius: number,
+  width: number,
+  height: number,
+): LiquifyRect {
+  const left = Math.floor(Math.min(start.x, end.x) - radius);
+  const top = Math.floor(Math.min(start.y, end.y) - radius);
+  const right = Math.ceil(Math.max(start.x, end.x) + radius);
+  const bottom = Math.ceil(Math.max(start.y, end.y) + radius);
+  return clampRect(left, top, right, bottom, width, height);
+}
+
+export function unionRect(a: LiquifyRect | null, b: LiquifyRect): LiquifyRect {
+  if (!a) return b;
+
+  const left = Math.min(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const right = Math.max(a.x + a.width, b.x + b.width);
+  const bottom = Math.max(a.y + a.height, b.y + b.height);
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function clampRect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  width: number,
+  height: number,
+): LiquifyRect {
+  const x = clamp(left, 0, width);
+  const y = clamp(top, 0, height);
+  const ex = clamp(right, 0, width);
+  const ey = clamp(bottom, 0, height);
+  return {
+    x,
+    y,
+    width: Math.max(0, ex - x),
+    height: Math.max(0, ey - y),
+  };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }

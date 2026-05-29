@@ -1,4 +1,3 @@
-import type { LiquifyRect } from "../rect";
 import renderFrag from "./render.frag?raw";
 
 export interface CreateLiquifyRenderOptions {
@@ -106,8 +105,13 @@ class LiquifyRender {
       throw new Error("EXT_color_buffer_float is required for liquify.");
     }
 
-    if (!gl.getExtension("OES_texture_float_linear") && !gl.getExtension("EXT_texture_filter_float")) {
-      throw new Error("Float texture linear filtering is required for liquify.");
+    if (
+      !gl.getExtension("OES_texture_float_linear") &&
+      !gl.getExtension("EXT_texture_filter_float")
+    ) {
+      throw new Error(
+        "Float texture linear filtering is required for liquify.",
+      );
     }
   }
 
@@ -117,7 +121,11 @@ class LiquifyRender {
 
   private createPrograms() {
     const gl = this.gl;
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, FULL_QUAD_VERTEX_SHADER);
+    const vertexShader = createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      FULL_QUAD_VERTEX_SHADER,
+    );
     this.quadBuffer = createFullQuadBuffer(gl);
     this.renderProgram = createProgram(
       gl,
@@ -135,7 +143,10 @@ class LiquifyRender {
       gl.getUniformLocation(this.renderProgram, "u_displacement"),
       TEXTURE_UNIT.DISPLACEMENT,
     );
-    this.uRenderResolution = gl.getUniformLocation(this.renderProgram, "u_resolution")!;
+    this.uRenderResolution = gl.getUniformLocation(
+      this.renderProgram,
+      "u_resolution",
+    )!;
   }
 }
 
@@ -201,4 +212,11 @@ function createFullQuadVAO(
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
   return vao;
+}
+
+interface LiquifyRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }

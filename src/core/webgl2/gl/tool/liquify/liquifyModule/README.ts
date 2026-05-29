@@ -1,82 +1,88 @@
+import { createLiquifyDisplacement } from "./displacementModule";
+import { liquifyRenderModule } from "./renderModule";
+
 const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2")!;
 
+const width = canvas.width;
+const height = canvas.height;
+
 // 원본이미지가 담긴 텍스쳐
-const texture = gl.createTexture()!;
+const imageTexture = gl.createTexture()!;
 
-// 해당 텍스쳐는 정확히 그대로 화면 어딘가에 보여집니다.
-const renderTexture = gl.createTexture()!;
+// 결과 텍스쳐. 화면에 그대로 보여진다.
+const resultTexture = gl.createTexture()!;
 
-// 변위맵은 외부에서 소유하고, liquify 모듈은 이 텍스쳐를 수정만 합니다.
+// sourceDisplacementTexture: 스트로크 시작 시점의 displacement 스냅샷 (read-only 기준)
+// displacementTexture: 스트로크 중 실제로 수정되는 displacement
+// 두 모듈이 이 텍스쳐들을 공유한다.
 const sourceDisplacementTexture = gl.createTexture()!;
 const displacementTexture = gl.createTexture()!;
 
-const liquify = createLiquify(gl, {
-  imageTexture: texture,
-  resultTexture: renderTexture,
+const displacement = createLiquifyDisplacement(gl, {
   sourceDisplacementTexture,
   displacementTexture,
   width,
   height,
 });
 
-liquify.setRadius(50);
-liquify.setStrength(0.5);
+const render = liquifyRenderModule(gl, {
+  imageTexture,
+  resultTexture,
+  displacementTexture,
+  width,
+  height,
+});
 
-// 이걸 하면 변위맵이 수정됌
-liquify.start({ x, y });
-liquify.move({ x, y });
-liquify.move({ x, y });
+displacement.setRadius(50);
+displacement.setStrength(0.5);
 
-// makeHistory() 대신 end()가 변경된 rect를 리턴한다.
-// 변경이 발생한 뒤에만 호출한다는 걸 보장하면 non-nullable.
-// 히스토리 생성은 모듈 밖에서 담당한다.
-const rect = liquify.end(); // LiquifyRect
+// push 스트로크: start -> move... -> end
+// displacement가 dirty rect를 반환 → 해당 영역만 render한다.
+const previewRect1 = displacement.start({ x: 100, y: 100 });
+render.render(previewRect1); // 변위맵을 보고 특정부분을 렌더링
 
-liquify.start({ x, y });
-liquify.move({ x, y });
-liquify.cancel(); // 취소하면 변위맵이 이전 상태로 복원됌
+const previewRect2 = displacement.move({ x: 130, y: 110 });
+render.render(previewRect2);
 
-// 이걸 하면 변위맵이 수정됌
-liquify.spin({ x, y });
-liquify.spin({ x, y });
-liquify.spin({ x, y });
-let rect1 = liquify.end();
+const strokeRect = displacement.end(); // 이 스트로크 전체의 bounding rect 반환
+// 외부에서 strokeRect 범위의 displacementTexture를 sourceDisplacementTexture에 커밋하고 히스토리를 만든다.
 
-// 이걸 하면 변위맵이 수정됌
-liquify.rightSpin({ x, y });
-let rect2 = liquify.end();
+// cancel일 때
+const previewRect3 = displacement.start({ x: 200, y: 200 });
+render.render(previewRect3);
+const previewRect4 = displacement.move({ x: 230, y: 210 });
+render.render(previewRect4);
 
-// 이걸 하면 변위맵이 수정됌
-liquify.bloat({ x, y });
-liquify.bloat({ x, y });
-let rect3 = liquify.end();
+const strokeRect2 = displacement.end();
+// strokeRect2 범위의 displacementTexture에 sourceDisplacementTexture로 덮어쓰고 render한다. 히스토리는 만들지 않음.
+render.render(strokeRect2);
 
-// 이걸 하면 변위맵이 수정됌
-liquify.pucker({ x, y });
-liquify.pucker({ x, y });
-let rect4 = liquify.end();
+// spin (시계 반대 방향 트윌)
+const spinRect = displacement.spin({ x: 300, y: 300 });
+render.render(spinRect);
+const spinStrokeRect = displacement.end();
+render.render(spinStrokeRect);
 
-// 이걸 하면 변위맵이 원본 상태로 복원됌
-liquify.restoreStart({ x, y });
-liquify.restoreMove({ x, y });
-liquify.restoreMove({ x, y });
-let rect5 = liquify.end();
+// rightSpin (시계 방향 트윌)
+const rightSpinRect = displacement.rightSpin({ x: 350, y: 300 });
+render.render(rightSpinRect);
+render.render(displacement.end());
 
-liquify.render(); // 이걸 하면 resultTexture 수정됌
+// bloat (팽창)
+const bloatRect = displacement.bloat({ x: 400, y: 300 });
+render.render(bloatRect);
+render.render(displacement.end());
 
-// undo/redo는 liquify 내부에 없다.
-// end()가 리턴한 rect와 외부 소유 texture로 모듈 밖에서 히스토리를 관리한다.
+// pucker (수축)
+const puckerRect = displacement.pucker({ x: 450, y: 300 });
+render.render(puckerRect);
+render.render(displacement.end());
 
-// 대중 resultTexture를 화면 어딘가에 렌더링한다는 함수
-function render() {
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(0, 0, canvas.width, canvas.height);
-
-  gl.bindTexture(gl.TEXTURE_2D, renderTexture);
-
-  // renderTexture를 읽는 셰이더와 fullscreen quad는 있다고 치자.
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-}
-
-render();
+// restore: displacement를 지워서 원본으로 복원
+const restoreRect1 = displacement.restoreStart({ x: 100, y: 200 });
+render.render(restoreRect1);
+const restoreRect2 = displacement.restoreMove({ x: 130, y: 210 });
+render.render(restoreRect2);
+const restoreStrokeRect = displacement.end();
+render.render(restoreStrokeRect);
