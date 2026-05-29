@@ -26,7 +26,7 @@ const rectangle = createRectangle(gl, {
 rectangle.setColor([0, 0, 0, 1]);
 rectangle.setWidth(12);
 
-// 이걸 하면 shapeTexture가 수정됌
+// 이걸 하면 shapeTexture가 수정되고, rect1은 캔버스에 실제로 보이는 visibleRect임
 // rect를 받으면 지금 그린 shapeTexture의 0,0,w,h의 부분을 캔버스의 x,y,w,h부분에 렌더링 해주세요.
 // 내부적으로 이전에 그린 width, height가 같으면, shapeTexture는 그리나 마나 똑같기때문에 최적화를 위해 그리지 않는다.
 const rect1 = rectangle.create({ x: 10, y: 10, width: 200, height: 120 });
@@ -36,7 +36,7 @@ render(); // 매 프레임마다 자동 수행되는 렌더함수
 
 // apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시킴.
 // 그리고 이 작업을 하면, shapeRender플래그가 꺼진다.
-const rect2 = rectangle.apply({ x: 10, y: 10, width: 200, height: 120 });
+const rect2 = rectangle.apply(rect1);
 
 // 반영시킨 이후에 외부에서 rect2부분을 가지고 스냅샷을 만들고 히스토리를 만든다.
 

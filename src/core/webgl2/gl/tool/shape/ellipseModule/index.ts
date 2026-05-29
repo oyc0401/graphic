@@ -21,6 +21,7 @@ interface NormalizedRect {
   textureWidth: number;
   textureHeight: number;
   targetRect: EllipseRect;
+  visibleRect: EllipseRect;
 }
 
 const TEXTURE_UNIT = {
@@ -51,8 +52,10 @@ class Ellipse {
   private readonly vao: WebGLVertexArrayObject;
   private color: EllipseColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedRect: { key: string; width: number; height: number } | null =
-    null;
+  private renderedRect: {
+    key: string;
+    targetRect: EllipseRect;
+  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -80,13 +83,12 @@ class Ellipse {
     if (this.renderedRect) this.renderedRect.key = "";
   }
 
-  create(rect: EllipseRect): EllipseRect | null {
+  create(rect: EllipseRect): EllipseRect {
     const normalized = normalizeRect(
       rect,
       this.options.width,
       this.options.height,
     );
-    if (!normalized) return null;
 
     const key = this.createRectKey(
       normalized.textureWidth,
@@ -94,23 +96,19 @@ class Ellipse {
     );
     if (this.renderedRect?.key !== key) {
       this.clearShapeTexture();
-      this.drawEllipse(normalized.textureWidth, normalized.textureHeight);
-      this.renderedRect = {
-        key,
-        width: normalized.textureWidth,
-        height: normalized.textureHeight,
-      };
+      if (normalized.textureWidth > 0 && normalized.textureHeight > 0) {
+        this.drawEllipse(normalized.textureWidth, normalized.textureHeight);
+      }
     }
-    return normalized.targetRect;
+    this.renderedRect = {
+      key,
+      targetRect: normalized.targetRect,
+    };
+    return normalized.visibleRect;
   }
 
-  apply(rect: EllipseRect): EllipseRect | null {
-    const normalized = normalizeRect(
-      rect,
-      this.options.width,
-      this.options.height,
-    );
-    if (!normalized) return null;
+  apply(rect: EllipseRect): EllipseRect {
+    const targetRect = this.renderedRect?.targetRect ?? rect;
 
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
@@ -121,26 +119,28 @@ class Ellipse {
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
+      targetRect.x,
+      targetRect.y,
+      targetRect.width,
+      targetRect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(
-      normalized.targetRect.x,
-      normalized.targetRect.y,
-      normalized.targetRect.width,
-      normalized.targetRect.height,
+      rect.x,
+      rect.y,
+      Math.max(0, rect.width),
+      Math.max(0, rect.height),
     );
     gl.viewport(0, 0, this.options.width, this.options.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (rect.width > 0 && rect.height > 0) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
-    return normalized.targetRect;
+    return rect;
   }
 
   destroy() {
@@ -248,7 +248,12 @@ class Ellipse {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(0, 0, this.renderedRect.width, this.renderedRect.height);
+    gl.scissor(
+      0,
+      0,
+      this.renderedRect.targetRect.width,
+      this.renderedRect.targetRect.height,
+    );
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.SCISSOR_TEST);
@@ -316,32 +321,52 @@ function normalizeRect(
   rect: EllipseRect,
   canvasWidth: number,
   canvasHeight: number,
-): NormalizedRect | null {
+): NormalizedRect {
   const left = Math.floor(rect.x);
   const top = Math.floor(rect.y);
   const right = Math.ceil(rect.x + rect.width);
   const bottom = Math.ceil(rect.y + rect.height);
-  const textureWidth = right - left;
-  const textureHeight = bottom - top;
-  if (textureWidth <= 0 || textureHeight <= 0) return null;
+  const textureWidth = Math.max(0, right - left);
+  const textureHeight = Math.max(0, bottom - top);
 
-  const clampedX = Math.max(0, left);
-  const clampedY = Math.max(0, top);
-  const clampedRight = Math.min(canvasWidth, right);
-  const clampedBottom = Math.min(canvasHeight, bottom);
-  const clampedWidth = Math.max(0, clampedRight - clampedX);
-  const clampedHeight = Math.max(0, clampedBottom - clampedY);
-
-  if (clampedWidth === 0 || clampedHeight === 0) return null;
+  const visibleRect = intersectRect(
+    left,
+    top,
+    right,
+    bottom,
+    canvasWidth,
+    canvasHeight,
+  );
   return {
     textureWidth,
     textureHeight,
     targetRect: {
-      x: clampedX,
-      y: clampedY,
-      width: clampedWidth,
-      height: clampedHeight,
+      x: left,
+      y: top,
+      width: textureWidth,
+      height: textureHeight,
     },
+    visibleRect,
+  };
+}
+
+function intersectRect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  width: number,
+  height: number,
+): EllipseRect {
+  const x = Math.max(0, left);
+  const y = Math.max(0, top);
+  const ex = Math.min(width, right);
+  const ey = Math.min(height, bottom);
+  return {
+    x,
+    y,
+    width: Math.max(0, ex - x),
+    height: Math.max(0, ey - y),
   };
 }
 

@@ -26,7 +26,7 @@ const lineShape = createLineShape(gl, {
 lineShape.setColor([0, 0, 0, 1]);
 lineShape.setWidth(8);
 
-// 이걸 하면 shapeTexture가 수정됌
+// 이걸 하면 shapeTexture가 수정되고, rect1은 캔버스에 실제로 보이는 visibleRect임
 const rect1 = lineShape.create({ x: 10, y: 10 }, { x: 220, y: 120 });
 
 // 외부에서는 이 rect를 가지고 shapeTexture를 화면에 렌더링 시킬거고

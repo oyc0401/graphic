@@ -26,7 +26,7 @@ const curveShape = createCurveShape(gl, {
 curveShape.setColor([1, 0, 0, 0.8]);
 curveShape.setWidth(12);
 
-// 이걸 하면 shapeTexture가 수정됌
+// 이걸 하면 shapeTexture가 수정되고, rect1은 캔버스에 실제로 보이는 visibleRect임
 const rect1 = curveShape.create(
   { x: 260, y: 160 },
   { x: 520, y: 160 },

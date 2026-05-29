@@ -27,6 +27,7 @@ interface NormalizedLine {
   textureWidth: number;
   textureHeight: number;
   targetRect: LineShapeRect;
+  visibleRect: LineShapeRect;
   p1: LineShapePoint;
   p2: LineShapePoint;
 }
@@ -60,8 +61,10 @@ class LineShape {
   private readonly vao: WebGLVertexArrayObject;
   private color: LineShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedLine: { key: string; width: number; height: number } | null =
-    null;
+  private renderedLine: {
+    key: string;
+    targetRect: LineShapeRect;
+  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -106,16 +109,16 @@ class LineShape {
     if (this.renderedLine?.key !== key) {
       this.clearShapeTexture();
       this.drawLine(normalized);
-      this.renderedLine = {
-        key,
-        width: normalized.textureWidth,
-        height: normalized.textureHeight,
-      };
     }
-    return normalized.targetRect;
+    this.renderedLine = {
+      key,
+      targetRect: normalized.targetRect,
+    };
+    return normalized.visibleRect;
   }
 
   apply(rect: LineShapeRect): LineShapeRect {
+    const targetRect = this.renderedLine?.targetRect ?? rect;
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -125,17 +128,19 @@ class LineShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
+      targetRect.x,
+      targetRect.y,
+      targetRect.width,
+      targetRect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(rect.x, rect.y, rect.width, rect.height);
+    gl.scissor(rect.x, rect.y, Math.max(0, rect.width), Math.max(0, rect.height));
     gl.viewport(0, 0, this.options.width, this.options.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (rect.width > 0 && rect.height > 0) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
@@ -235,7 +240,12 @@ class LineShape {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(0, 0, this.renderedLine.width, this.renderedLine.height);
+    gl.scissor(
+      0,
+      0,
+      this.renderedLine.targetRect.width,
+      this.renderedLine.targetRect.height,
+    );
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.SCISSOR_TEST);
@@ -326,27 +336,42 @@ function normalizeLine(
     throw new Error("Line shape rect is empty.");
   }
 
+  const visibleRect = intersectRect(left, top, right, bottom, width, height);
+  const textureWidth = right - left;
+  const textureHeight = bottom - top;
+
+  return {
+    textureWidth,
+    textureHeight,
+    targetRect: {
+      x: left,
+      y: top,
+      width: textureWidth,
+      height: textureHeight,
+    },
+    visibleRect,
+    p1: { x: p1.x - left, y: p1.y - top },
+    p2: { x: p2.x - left, y: p2.y - top },
+  };
+}
+
+function intersectRect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  width: number,
+  height: number,
+): LineShapeRect {
   const x = clamp(left, 0, width);
   const y = clamp(top, 0, height);
   const ex = clamp(right, 0, width);
   const ey = clamp(bottom, 0, height);
-  const clampedWidth = Math.max(0, ex - x);
-  const clampedHeight = Math.max(0, ey - y);
-
-  if (clampedWidth === 0 || clampedHeight === 0) {
-    throw new Error("Line shape is outside the canvas.");
-  }
   return {
-    textureWidth: clampedWidth,
-    textureHeight: clampedHeight,
-    targetRect: {
-      x,
-      y,
-      width: clampedWidth,
-      height: clampedHeight,
-    },
-    p1: { x: p1.x - x, y: p1.y - y },
-    p2: { x: p2.x - x, y: p2.y - y },
+    x,
+    y,
+    width: Math.max(0, ex - x),
+    height: Math.max(0, ey - y),
   };
 }
 

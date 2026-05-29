@@ -26,6 +26,8 @@ interface NormalizedCurve {
   textureWidth: number;
   textureHeight: number;
   targetRect: CurveShapeRect;
+  visibleRect: CurveShapeRect;
+  curve: ResolvedCurvePoints;
 }
 
 interface ResolvedCurvePoints {
@@ -67,8 +69,10 @@ class CurveShape {
   private tempCtx!: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
   private color: CurveShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
-  private renderedCurve: { key: string; width: number; height: number } | null =
-    null;
+  private renderedCurve: {
+    key: string;
+    targetRect: CurveShapeRect;
+  } | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -117,16 +121,16 @@ class CurveShape {
     if (this.renderedCurve?.key !== key) {
       this.clearShapeTexture();
       this.drawCurveToShapeTexture(curve, normalized);
-      this.renderedCurve = {
-        key,
-        width: normalized.textureWidth,
-        height: normalized.textureHeight,
-      };
     }
-    return normalized.targetRect;
+    this.renderedCurve = {
+      key,
+      targetRect: normalized.targetRect,
+    };
+    return normalized.visibleRect;
   }
 
   apply(rect: CurveShapeRect): CurveShapeRect {
+    const targetRect = this.renderedCurve?.targetRect ?? rect;
     const gl = this.gl;
     gl.useProgram(this.applyProgram);
     gl.bindVertexArray(this.vao);
@@ -136,17 +140,19 @@ class CurveShape {
     gl.bindTexture(gl.TEXTURE_2D, this.options.shapeTexture);
     gl.uniform4f(
       gl.getUniformLocation(this.applyProgram, "u_targetRect"),
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
+      targetRect.x,
+      targetRect.y,
+      targetRect.width,
+      targetRect.height,
     );
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(rect.x, rect.y, rect.width, rect.height);
+    gl.scissor(rect.x, rect.y, Math.max(0, rect.width), Math.max(0, rect.height));
     gl.viewport(0, 0, this.options.width, this.options.height);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (rect.width > 0 && rect.height > 0) {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
     gl.disable(gl.SCISSOR_TEST);
 
     this.clearShapeTexture();
@@ -184,38 +190,29 @@ class CurveShape {
     normalized: NormalizedCurve,
   ) {
     const dirtyRect = normalized.targetRect;
-    this.tempCtx.clearRect(
-      dirtyRect.x,
-      dirtyRect.y,
-      dirtyRect.width,
-      dirtyRect.height,
-    );
+    this.ensureTempCanvasSize(dirtyRect.width, dirtyRect.height);
+    this.tempCtx.clearRect(0, 0, dirtyRect.width, dirtyRect.height);
     this.tempCtx.strokeStyle = "black";
     this.tempCtx.lineWidth = this.strokeWidth;
     this.tempCtx.lineCap = "round";
     this.tempCtx.lineJoin = "round";
     this.tempCtx.beginPath();
-    this.tempCtx.moveTo(curve.p1.x, curve.p1.y);
+    this.tempCtx.moveTo(normalized.curve.p1.x, normalized.curve.p1.y);
 
     for (let i = 1; i <= CURVE_SEGMENTS; i += 1) {
-      const point = cubicBezier(i / CURVE_SEGMENTS, curve);
+      const point = cubicBezier(i / CURVE_SEGMENTS, normalized.curve);
       this.tempCtx.lineTo(point.x, point.y);
     }
 
     this.tempCtx.stroke();
-    this.uploadShapeTexture(dirtyRect);
+    this.uploadShapeTexture(dirtyRect.width, dirtyRect.height);
   }
 
-  private uploadShapeTexture(rect: CurveShapeRect) {
-    const img = this.tempCtx.getImageData(
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-    ).data;
-    const pixels = new Uint8Array(rect.width * rect.height * 4);
+  private uploadShapeTexture(width: number, height: number) {
+    const img = this.tempCtx.getImageData(0, 0, width, height).data;
+    const pixels = new Uint8Array(width * height * 4);
 
-    for (let i = 0; i < rect.width * rect.height; i += 1) {
+    for (let i = 0; i < width * height; i += 1) {
       const alpha = (img[i * 4 + 3] / 255) * this.color[3];
       pixels[i * 4] = Math.round(this.color[0] * alpha * 255);
       pixels[i * 4 + 1] = Math.round(this.color[1] * alpha * 255);
@@ -232,8 +229,8 @@ class CurveShape {
       0,
       0,
       0,
-      rect.width,
-      rect.height,
+      width,
+      height,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
       pixels,
@@ -267,7 +264,12 @@ class CurveShape {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shapeFramebuffer);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(0, 0, this.renderedCurve.width, this.renderedCurve.height);
+    gl.scissor(
+      0,
+      0,
+      this.renderedCurve.targetRect.width,
+      this.renderedCurve.targetRect.height,
+    );
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.SCISSOR_TEST);
@@ -298,6 +300,14 @@ class CurveShape {
   }
 
   private ensureTempCanvasSize(width: number, height: number) {
+    if (
+      this.tempCanvas &&
+      this.tempCanvas.width >= width &&
+      this.tempCanvas.height >= height
+    ) {
+      return;
+    }
+
     if (typeof OffscreenCanvas !== "undefined") {
       this.tempCanvas = new OffscreenCanvas(width, height);
       this.tempCtx = this.tempCanvas.getContext("2d")!;
@@ -416,25 +426,50 @@ function normalizeCurve(
     throw new Error("Curve shape rect is empty.");
   }
 
-  const x = clamp(dirtyLeft, 0, width);
-  const y = clamp(dirtyTop, 0, height);
-  const ex = clamp(dirtyRight, 0, width);
-  const ey = clamp(dirtyBottom, 0, height);
-  const clampedWidth = Math.max(0, ex - x);
-  const clampedHeight = Math.max(0, ey - y);
-
-  if (clampedWidth === 0 || clampedHeight === 0) {
-    throw new Error("Curve shape is outside the canvas.");
-  }
+  const visibleRect = intersectRect(
+    dirtyLeft,
+    dirtyTop,
+    dirtyRight,
+    dirtyBottom,
+    width,
+    height,
+  );
   return {
-    textureWidth: clampedWidth,
-    textureHeight: clampedHeight,
+    textureWidth,
+    textureHeight,
     targetRect: {
-      x,
-      y,
-      width: clampedWidth,
-      height: clampedHeight,
+      x: dirtyLeft,
+      y: dirtyTop,
+      width: textureWidth,
+      height: textureHeight,
     },
+    visibleRect,
+    curve: {
+      p1: { x: p1.x - dirtyLeft, y: p1.y - dirtyTop },
+      p2: { x: p2.x - dirtyLeft, y: p2.y - dirtyTop },
+      c1: { x: c1.x - dirtyLeft, y: c1.y - dirtyTop },
+      c2: { x: c2.x - dirtyLeft, y: c2.y - dirtyTop },
+    },
+  };
+}
+
+function intersectRect(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  width: number,
+  height: number,
+): CurveShapeRect {
+  const x = clamp(left, 0, width);
+  const y = clamp(top, 0, height);
+  const ex = clamp(right, 0, width);
+  const ey = clamp(bottom, 0, height);
+  return {
+    x,
+    y,
+    width: Math.max(0, ex - x),
+    height: Math.max(0, ey - y),
   };
 }
 
