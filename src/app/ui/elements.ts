@@ -21,6 +21,7 @@ function elements() {
     zoomArea: $id("zoom-area"),
 
     selectionArea: $id("selection-area"),
+    shapeArea: $id("shape-area"),
     freeformSelectPreview: $id<SVGSVGElement>("freeform-select-preview"),
     freeformSelectPreviewLine: $id<SVGPolylineElement>(
       "freeform-select-preview-line",
@@ -30,6 +31,10 @@ function elements() {
     handleRT: $id("handle-rt"),
     handleRB: $id("handle-rb"),
     handleLB: $id("handle-lb"),
+    shapeHandleLT: $id("shape-handle-lt"),
+    shapeHandleRT: $id("shape-handle-rt"),
+    shapeHandleRB: $id("shape-handle-rb"),
+    shapeHandleLB: $id("shape-handle-lb"),
     resizeHandleLT: $id("resize-handle-lt"),
     resizeHandleRT: $id("resize-handle-rt"),
     resizeHandleRB: $id("resize-handle-rb"),
@@ -37,6 +42,8 @@ function elements() {
 
     selectionSizeBox: $id("selection-size"),
     selectionText: $id("selection-text"),
+    shapeSizeBox: $id("shape-size"),
+    shapeText: $id("shape-text"),
     resizeSizeBox: $id("resize-size"),
     resizeText: $id("resize-text"),
 

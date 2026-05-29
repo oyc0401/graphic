@@ -13,6 +13,7 @@ import {
 import { els, getElements } from "./ui/elements";
 import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
+import { applyShape, shape } from "./shape";
 import { addClipboardEvent } from "./file/file";
 
 import { bindView } from "./ui/view";
@@ -100,6 +101,7 @@ function debugSetting() {
   globalThis.position = position;
   globalThis.paintState = paintState;
   globalThis.selection = selection;
+  globalThis.shape = shape;
 
   window.addEventListener("resize", async function () {
     // debounce(async () => {
@@ -133,8 +135,9 @@ function debugSetting() {
 
   globalThis.changeLayer = function (layerId = 1) {
     let worker = getLayerWorker();
-    // 레이어 바꾸기 전에 무조건 툴, 선택창 종료하기!
+    // 레이어 바꾸기 전에 무조건 툴, 선택창, 도형 종료하기!
     applySelection();
+    applyShape();
     worker.setLayerId(layerId);
   };
 }

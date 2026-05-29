@@ -115,6 +115,7 @@ canvas {
 /* 선택창 ui */
 
 #selection-area,
+#shape-area,
 #resize-area {
   border: 1px dashed rgba(255, 255, 255, 0.5);
   position: absolute;
@@ -170,6 +171,18 @@ canvas {
   transform: translate(0, -1px);
 }
 
+#shape-handle-rt {
+  transform: translate(-1px, 0);
+}
+
+#shape-handle-rb {
+  transform: translate(-1px, -1px);
+}
+
+#shape-handle-lb {
+  transform: translate(0, -1px);
+}
+
 .resize-handle {
   --resize-handle-size: 7px;
   --resize-handle-width: 3px;
@@ -218,6 +231,7 @@ canvas {
 }
 
 #selection-size,
+#shape-size,
 #resize-size {
   display: flex;
   flex-direction: row;
@@ -229,6 +243,7 @@ canvas {
 }
 
 #selection-text,
+#shape-text,
 #resize-text {
   background: rgba(200, 200, 200, 0.5);
   margin-top: 16px;

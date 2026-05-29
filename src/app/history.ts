@@ -2,8 +2,9 @@ import { makeAutoObservable } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
 import { selection } from "./selection";
+import { beforeShapePos, shape } from "./shape";
 import { position } from "./position";
-import { MosaicToolId } from "./paintState";
+import { MosaicToolId, ShapeId } from "./paintState";
 
 class HistoryState {
   undoCount = 0;
@@ -78,6 +79,24 @@ export async function undo() {
     selection.setFlip(flipH, flipV);
 
   }
+
+  if (historyResponse.shape) {
+    let { show, kind, x, y, width, height } = historyResponse.shape;
+
+    let realY = position.height - y - height;
+    shape.setKind(kind as ShapeId | null);
+    shape.setX(x);
+    shape.setY(realY);
+    shape.setWidth(width);
+    shape.setHeight(height);
+    shape.setShowHandle(show);
+    shape.setShowHint(show);
+    shape.setVisible(show);
+    beforeShapePos.x = x;
+    beforeShapePos.y = realY;
+    beforeShapePos.width = width;
+    beforeShapePos.height = height;
+  }
 }
 
 export async function redo() {
@@ -112,5 +131,23 @@ export async function redo() {
     selection.setVisible(show);
     selection.setFlip(flipH, flipV);
 
+  }
+
+  if (historyResponse.shape) {
+    let { show, kind, x, y, width, height } = historyResponse.shape;
+
+    let realY = position.height - y - height;
+    shape.setKind(kind as ShapeId | null);
+    shape.setX(x);
+    shape.setY(realY);
+    shape.setWidth(width);
+    shape.setHeight(height);
+    shape.setShowHandle(show);
+    shape.setShowHint(show);
+    shape.setVisible(show);
+    beforeShapePos.x = x;
+    beforeShapePos.y = realY;
+    beforeShapePos.width = width;
+    beforeShapePos.height = height;
   }
 }

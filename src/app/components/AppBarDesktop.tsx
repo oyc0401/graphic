@@ -3,6 +3,7 @@ import {
   LiquifyToolId,
   MosaicToolId,
   paintState,
+  ShapeId,
   SessionId,
   ToolId,
 } from "../paintState";
@@ -37,6 +38,8 @@ import {
   RotateCcw,
   RotateCw,
   Search,
+  Square,
+  Circle as CircleIcon,
   Shrink,
   Waves,
 } from "lucide-react";
@@ -94,6 +97,8 @@ function AppBarDesktop() {
           <div id="menu-bar">
             <SelectionToolButton />
             <FreeformSelectionToolButton />
+            <ShapeToolButton shapeId={ShapeId.Rect} />
+            <ShapeToolButton shapeId={ShapeId.Ellipse} />
 
             <div className="div-bar"></div>
             <div className="mini-buttons">
@@ -372,6 +377,31 @@ const FreeformSelectionToolButton = observer(() => {
     >
       <LassoSelect size={32} strokeWidth={2.2} />
       <p>{getLetter("freeform_select")}</p>
+    </button>
+  );
+});
+
+const ShapeToolButton = observer(({ shapeId }: { shapeId: ShapeId }) => {
+  const isSelected =
+    paintState.getSelectedToolId() === ToolId.Shape &&
+    paintState.getShapeId() === shapeId;
+  const label =
+    shapeId === ShapeId.Rect ? getLetter("shape_rect") : getLetter("shape_ellipse");
+  const icon =
+    shapeId === ShapeId.Rect ? (
+      <Square size={32} strokeWidth={2.2} />
+    ) : (
+      <CircleIcon size={32} strokeWidth={2.2} />
+    );
+
+  return (
+    <button
+      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+      aria-label={label}
+      onClick={() => toolManager.setShapeTool(shapeId)}
+    >
+      {icon}
+      <p>{label}</p>
     </button>
   );
 });

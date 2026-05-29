@@ -17,9 +17,15 @@ export enum ToolId {
   Brush = "brush",
   Select = "select",
   FreeformSelect = "freeformSelect",
+  Shape = "shape",
   FloodFill = "floodFill",
   Zoom = "zoom",
   ColorPicker = "colorPicker",
+}
+
+export enum ShapeId {
+  Rect = "rect",
+  Ellipse = "ellipse",
 }
 
 export enum BrushId {
@@ -75,6 +81,8 @@ class PaintState {
   private _selectedToolId: ToolId = ToolId.Brush;
   // brush/eraser 같은 브러시 계열 코어 도구.
   private _brushId: BrushId = BrushId.Brush;
+  // 도형 도구 안에서 사용하는 하위 도형.
+  private _shapeId: ShapeId = ShapeId.Rect;
   // 리퀴파이 세션 안에서 사용하는 하위 툴.
   private _liquifyToolId: LiquifyToolId = LiquifyToolId.Push;
   // 모자이크 세션 안에서 사용하는 하위 툴.
@@ -133,6 +141,9 @@ class PaintState {
   }
   setBrushId(brushId: BrushId) {
     this._brushId = brushId;
+  }
+  setShapeId(shapeId: ShapeId) {
+    this._shapeId = shapeId;
   }
   setLiquifyToolId(toolId: LiquifyToolId) {
     this._liquifyToolId = toolId;
@@ -201,6 +212,9 @@ class PaintState {
   }
   getBrushId() {
     return this._brushId;
+  }
+  getShapeId() {
+    return this._shapeId;
   }
   getLiquifyToolId() {
     return this._liquifyToolId;

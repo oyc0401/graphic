@@ -17,6 +17,9 @@ import { resizeTool } from "./resizeTool";
 import { SelectTool } from "./SelectTool";
 import { selection } from "../selection";
 import { selectionTool } from "./SelectionTool";
+import { shape } from "../shape";
+import { ShapeCreateTool } from "./ShapeCreateTool";
+import { shapeTool } from "./ShapeTool";
 import type { Tool } from "./Tool";
 import { zoomTool } from "./ZoomTool";
 
@@ -27,6 +30,7 @@ const liquifySessionTool = new LiquifySessionTool();
 const mosaicSessionTool = new MosaicSessionTool();
 const selectTool = new SelectTool();
 const freeformSelectTool = new FreeformSelectTool();
+const shapeCreateTool = new ShapeCreateTool();
 
 export function getCurrentTool(): Tool | null {
   switch (paintState.getInputMode()) {
@@ -53,6 +57,15 @@ export function getCurrentTool(): Tool | null {
   }
 
   if (
+    shape.visible &&
+    paintState.getInputMode() === InputMode.DEFAULT &&
+    paintState.getSessionId() === null &&
+    paintState.getTemporaryToolId() === null
+  ) {
+    return shapeTool;
+  }
+
+  if (
     selection.visible &&
     paintState.getInputMode() === InputMode.DEFAULT &&
     paintState.getSessionId() === null &&
@@ -68,6 +81,8 @@ export function getCurrentTool(): Tool | null {
       return selectTool;
     case ToolId.FreeformSelect:
       return freeformSelectTool;
+    case ToolId.Shape:
+      return shapeCreateTool;
     case ToolId.FloodFill:
       return floodFillTool;
     case ToolId.Zoom:

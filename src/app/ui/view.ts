@@ -3,10 +3,12 @@ import { InputMode, paintState, ToolId } from "../paintState";
 import { autorun } from "mobx";
 import { els } from "./elements";
 import { selection } from "../selection";
+import { shape } from "../shape";
 import { getPixelRatio, position, to_canvas_coord } from "../position";
 import { zoomRect } from "./zoomState";
 import { resizeTool } from "../tools/resizeTool";
 import { selectionTool } from "../tools/SelectionTool";
+import { shapeTool } from "../tools/ShapeTool";
 import { canvasResizeState } from "../canvasResizeState";
 import { getCurrentTool } from "../tools/activeTool";
 import {
@@ -21,6 +23,7 @@ const TOOL_CURSOR_CLASSES = ["zoom", "select", "colorPicker"] as const;
 export function bindView() {
   bindCursorUI();
   bindSelectionUI();
+  bindShapeUI();
   bindFreeformSelectPreviewUI();
   bindCanvasResizeHover();
   bindCanvasResizeUI();
@@ -72,29 +75,39 @@ function bindCursorUI() {
       paintState.getSessionId() === null &&
       paintState.getTemporaryToolId() === null &&
       selection.visible;
+    const isShapeTool =
+      paintState.getInputMode() === InputMode.DEFAULT &&
+      paintState.getSessionId() === null &&
+      paintState.getTemporaryToolId() === null &&
+      shape.visible;
     const isCanvasResize =
       canvasResizeState.active || canvasResizeState.hover !== null;
     const resizeHover = canvasResizeState.hover;
     const nwse =
       (isSelectionTool && selection.hover == "nwse-resize") ||
+      (isShapeTool && shape.hover == "nwse-resize") ||
       (isCanvasResize && resizeHover === "nwse-resize");
     const nesw =
       (isSelectionTool && selection.hover == "nesw-resize") ||
+      (isShapeTool && shape.hover == "nesw-resize") ||
       (isCanvasResize && resizeHover === "nesw-resize");
 
     container.classList.toggle("nwse-resize", nwse);
     container.classList.toggle("nesw-resize", nesw);
     container.classList.toggle(
       "ns-resize",
-      isSelectionTool && selection.hover == "ns-resize",
+      (isSelectionTool && selection.hover == "ns-resize") ||
+        (isShapeTool && shape.hover == "ns-resize"),
     );
     container.classList.toggle(
       "ew-resize",
-      isSelectionTool && selection.hover == "ew-resize",
+      (isSelectionTool && selection.hover == "ew-resize") ||
+        (isShapeTool && shape.hover == "ew-resize"),
     );
     container.classList.toggle(
       "move",
-      isSelectionTool && selection.hover == "move",
+      (isSelectionTool && selection.hover == "move") ||
+        (isShapeTool && shape.hover == "move"),
     );
   });
 
@@ -281,6 +294,95 @@ function bindSelectionUI() {
   });
 }
 
+function bindShapeUI() {
+  const positionHandles = (
+    handles: {
+      lt: HTMLElement;
+      rt: HTMLElement;
+      rb: HTMLElement;
+      lb: HTMLElement;
+    },
+    rect: { x: number; y: number; width: number; height: number },
+  ) => {
+    const dpr = getPixelRatio();
+    const sLeft = ((rect.x + position.x) * position.scale) / dpr;
+    const sTop = ((rect.y + position.y) * position.scale) / dpr;
+    const sWidth = (rect.width * position.scale) / dpr;
+    const sHeight = (rect.height * position.scale) / dpr;
+
+    const offset = 3;
+    const setPos = (handle: HTMLElement, left: number, top: number) => {
+      handle.style.left = `${left - offset}px`;
+      handle.style.top = `${top - offset}px`;
+    };
+
+    setPos(handles.lt, sLeft, sTop);
+    setPos(handles.rt, sLeft + sWidth, sTop);
+    setPos(handles.rb, sLeft + sWidth, sTop + sHeight);
+    setPos(handles.lb, sLeft, sTop + sHeight);
+  };
+
+  const setHandleVisibility = (handles: HTMLElement[], visible: boolean) => {
+    for (const h of handles) {
+      h.style.visibility = visible ? "visible" : "hidden";
+    }
+  };
+
+  autorun(() => {
+    const visible = shape.showHint;
+    const showSizeBox = shape.showHint;
+
+    els.shapeArea.style.visibility = visible ? "visible" : "hidden";
+    els.shapeSizeBox.style.visibility = showSizeBox ? "visible" : "hidden";
+
+    const rect = shape.showHint
+      ? shape
+      : { x: 0, y: 0, width: position.width, height: position.height };
+
+    const dpr = getPixelRatio();
+    const scaledLeft = ((rect.x + position.x) * position.scale) / dpr;
+    const scaledTop = ((rect.y + position.y) * position.scale) / dpr;
+    const scaledWidth = (rect.width * position.scale) / dpr;
+    const scaledHeight = (rect.height * position.scale) / dpr;
+
+    if (visible) {
+      els.shapeArea.style.left = `${scaledLeft}px`;
+      els.shapeArea.style.top = `${scaledTop}px`;
+      els.shapeArea.style.width = `${scaledWidth}px`;
+      els.shapeArea.style.height = `${scaledHeight}px`;
+
+      els.shapeSizeBox.style.left = `${scaledLeft}px`;
+      els.shapeSizeBox.style.top = `${scaledTop + scaledHeight}px`;
+      els.shapeSizeBox.style.width = `${scaledWidth}px`;
+
+      els.shapeText.innerText = `${rect.width} x ${rect.height}`;
+    }
+  });
+
+  autorun(() => {
+    const shapeHandles = [
+      els.shapeHandleLT,
+      els.shapeHandleRT,
+      els.shapeHandleRB,
+      els.shapeHandleLB,
+    ];
+
+    setHandleVisibility(shapeHandles, shape.showHandle);
+
+    if (shape.showHandle) {
+      positionHandles(
+        {
+          lt: els.shapeHandleLT,
+          rt: els.shapeHandleRT,
+          rb: els.shapeHandleRB,
+          lb: els.shapeHandleLB,
+        },
+        shape,
+      );
+    }
+  });
+}
+
 function canShowCanvasResizeHandle() {
   if (paintState.getPointerdown()) return false;
 
@@ -302,14 +404,27 @@ function canShowSelectionHover() {
   );
 }
 
+function canShowShapeHover() {
+  return (
+    !paintState.getPointerdown() &&
+    paintState.getInputMode() === InputMode.DEFAULT &&
+    paintState.getSessionId() === null &&
+    paintState.getTemporaryToolId() === null &&
+    shape.visible &&
+    shape.showHandle
+  );
+}
+
 function bindCanvasResizeHover() {
   els.container.addEventListener("pointermove", (event) => {
     resizeTool.updateHover(event, canShowCanvasResizeHandle());
+    shapeTool.updateHover(event, canShowShapeHover());
     selectionTool.updateHover(event, canShowSelectionHover());
   });
 
   els.container.addEventListener("pointerleave", (event) => {
     resizeTool.updateHover(event, false);
+    shapeTool.updateHover(event, false);
     selectionTool.updateHover(event, false);
   });
 }

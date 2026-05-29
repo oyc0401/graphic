@@ -3,10 +3,13 @@ import {
   LiquifyToolId,
   MosaicToolId,
   paintState,
+  ShapeId,
   SessionId,
   ToolId,
 } from "../paintState";
 import { historyState, syncCoreState } from "../history";
+import { applySelection } from "../selection";
+import { applyShape, shape } from "../shape";
 import { getLayerWorker } from "../worker/workerPool";
 import { getCurrentTool } from "./activeTool";
 
@@ -63,6 +66,20 @@ export const toolManager = {
     exitCurrentTool();
 
     paintState.setSelectedToolId(ToolId.FreeformSelect);
+    getLayerWorker().setTool(paintState.getBrushId());
+    syncCoreState();
+  },
+  setShapeTool(shapeId: ShapeId = paintState.getShapeId()) {
+    if (!canChangeMainTool()) return;
+    if (shape.visible && paintState.getShapeId() !== shapeId) {
+      applyShape();
+      syncCoreState();
+    }
+    applySelection();
+    exitCurrentTool();
+
+    paintState.setSelectedToolId(ToolId.Shape);
+    paintState.setShapeId(shapeId);
     getLayerWorker().setTool(paintState.getBrushId());
     syncCoreState();
   },
