@@ -1,5 +1,5 @@
-import renderFrag from "../render.frag?raw";
 import type { LiquifyRect } from "../rect";
+import renderFrag from "./render.frag?raw";
 
 export interface CreateLiquifyRenderOptions {
   imageTexture: WebGLTexture;

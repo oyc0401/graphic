@@ -1,8 +1,8 @@
-import { getEaseInOutLiquifyLookup } from "../liquifyLookup";
-import liquifyPushFrag from "../push.frag?raw";
-import restoreFrag from "../restore.frag?raw";
-import liquifyScaleFrag from "../scale.frag?raw";
-import liquifyTwirlFrag from "../spin.frag?raw";
+import { getEaseInOutLiquifyLookup } from "./liquifyLookup";
+import liquifyPushFrag from "./push.frag?raw";
+import restoreFrag from "./restore.frag?raw";
+import liquifyScaleFrag from "./scale.frag?raw";
+import liquifyTwirlFrag from "./spin.frag?raw";
 import { pointRect, strokeRect, unionRect } from "../rect";
 import type { LiquifyPoint, LiquifyRect } from "../rect";
 
