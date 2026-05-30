@@ -2,7 +2,7 @@ import { describe, it } from "vitest";
 import { mosaicMaskModule } from "./maskModule";
 import { mosaicRenderModule } from "./renderModule";
 
-describe("mosaicModule", () => {
+describe("mosaicModule 사용법", () => {
   it("스펙을 만족해야 한다", () => {
     const _: () => void = () => {
       const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
