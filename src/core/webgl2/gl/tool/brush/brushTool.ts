@@ -5,8 +5,8 @@ import { getManager } from "../../../../utils/cachedManager";
 import { HistoryObject, getHistoryManager } from "../../../../history/history";
 import { Rect } from "@/core/utils/rect";
 import type { Pointer } from "@/core/types";
-import { createDist } from "./strokeModule/distModule";
-import { createDistPixel } from "./strokeModule/distPixelModule";
+import { createCapsule } from "./strokeModule/capsuleModule";
+import { createCapsuleHard } from "./strokeModule/capsuleHardModule";
 import { createPencil } from "./strokeModule/pencilModule";
 import { createSpline } from "./strokeModule/splineModule";
 import { createBrushRender } from "./renderModule";
@@ -179,8 +179,8 @@ class BrushManager {
     const resultFBO = createFramebuffer(gl, resultTexture);
 
     const splinePath = createSpline(gl, { alphaMapTexture, width, height });
-    const distPath = createDist(gl, { alphaMapTexture, width, height });
-    const distPixelPath = createDistPixel(gl, { alphaMapTexture, width, height });
+    const distPath = createCapsule(gl, { alphaMapTexture, width, height });
+    const distPixelPath = createCapsuleHard(gl, { alphaMapTexture, width, height });
     const pencilPath = createPencil(gl, { alphaMapTexture, width, height });
 
     return { alphaMapTexture, renderModule, splinePath, distPath, distPixelPath, pencilPath, imageFBO, resultFBO };

@@ -2,19 +2,19 @@ import strokeShaderSource from "./strokeShader.frag?raw";
 
 const ALPHA_MAP_TEXTURE_UNIT = 3;
 
-export interface DistPoint {
+export interface CapsulePoint {
   x: number;
   y: number;
 }
 
-export interface DistRect {
+export interface CapsuleRect {
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-export interface CreateDistOptions {
+export interface CreateCapsuleOptions {
   alphaMapTexture: WebGLTexture;
   width: number;
   height: number;
@@ -29,14 +29,14 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createDist(
+export function createCapsule(
   gl: WebGL2RenderingContext,
-  options: CreateDistOptions,
+  options: CreateCapsuleOptions,
 ) {
   return new Dist(gl, options);
 }
 
-class Dist {
+class Capsule {
   private readonly width: number;
   private readonly height: number;
   private readonly tempAlphaMapTexture: WebGLTexture;
@@ -46,12 +46,12 @@ class Dist {
   private readonly vao: WebGLVertexArrayObject;
   private alpha = 1;
   private diameter = 1;
-  private lastPoint: DistPoint | null = null;
-  private strokeRect: DistRect | null = null;
+  private lastPoint: CapsulePoint | null = null;
+  private strokeRect: CapsuleRect | null = null;
 
   constructor(
     private gl: WebGL2RenderingContext,
-    private options: CreateDistOptions,
+    private options: CreateCapsuleOptions,
   ) {
     this.width = options.width;
     this.height = options.height;
@@ -86,13 +86,13 @@ class Dist {
     this.diameter = Math.max(1, diameter);
   }
 
-  start(point: DistPoint): DistRect | null {
+  start(point: CapsulePoint): CapsuleRect | null {
     this.lastPoint = point;
     this.strokeRect = null;
     return this.drawLine(point, point);
   }
 
-  move(point: DistPoint): DistRect | null {
+  move(point: CapsulePoint): CapsuleRect | null {
     if (!this.lastPoint) {
       return this.start(point);
     }
@@ -102,14 +102,14 @@ class Dist {
     return rect;
   }
 
-  end(): DistRect | null {
+  end(): CapsuleRect | null {
     const rect = this.strokeRect;
     this.lastPoint = null;
     this.strokeRect = null;
     return rect;
   }
 
-  private drawLine(start: DistPoint, end: DistPoint): DistRect | null {
+  private drawLine(start: CapsulePoint, end: CapsulePoint): CapsuleRect | null {
     const rect = strokeRect(
       start,
       end,
@@ -250,12 +250,12 @@ class Dist {
 }
 
 function strokeRect(
-  start: DistPoint,
-  end: DistPoint,
+  start: CapsulePoint,
+  end: CapsulePoint,
   radius: number,
   width: number,
   height: number,
-): DistRect {
+): CapsuleRect {
   return clampRect(
     Math.floor(Math.min(start.x, end.x) - radius - 1),
     Math.floor(Math.min(start.y, end.y) - radius - 1),
@@ -266,7 +266,7 @@ function strokeRect(
   );
 }
 
-function unionRect(a: DistRect | null, b: DistRect): DistRect {
+function unionRect(a: CapsuleRect | null, b: CapsuleRect): CapsuleRect {
   if (!a) return b;
 
   const left = Math.min(a.x, b.x);
@@ -289,7 +289,7 @@ function clampRect(
   bottom: number,
   width: number,
   height: number,
-): DistRect {
+): CapsuleRect {
   const x = clamp(left, 0, width);
   const y = clamp(top, 0, height);
   const ex = clamp(right, 0, width);
