@@ -1,12 +1,15 @@
 import { describe, it } from "vitest";
-import { liquifyRenderModule } from "./index";
+import { LiquifyRenderModule } from "./index";
 
 describe("liquifyRenderModule", () => {
   it("스펙을 만족해야 한다", () => {
     const _: () => void = () => {
       const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
       const gl = canvas.getContext("webgl2")!;
-      const width = 0, height = 0, x = 0, y = 0;
+      const width = 0,
+        height = 0,
+        x = 0,
+        y = 0;
 
       // 원본이미지가 담긴 텍스쳐
       const texture = gl.createTexture()!;
@@ -21,7 +24,7 @@ describe("liquifyRenderModule", () => {
         render(rect: { x: number; y: number; width: number; height: number } | null): void;
       }
 
-      const liquify: LiquifyRenderInterface = liquifyRenderModule(gl, {
+      const liquify: LiquifyRenderInterface = LiquifyRenderModule(gl, {
         imageTexture: texture,
         resultTexture: renderTexture,
         displacementTexture,

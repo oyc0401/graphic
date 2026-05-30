@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { createCapsule } from "./index";
+import { CapsuleModule } from "./index";
 
 describe("capsuleModule", () => {
   it("스펙을 만족해야 한다", () => {

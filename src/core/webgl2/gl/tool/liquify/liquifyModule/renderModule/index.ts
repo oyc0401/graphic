@@ -22,7 +22,7 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createLiquifyRender(
+export function LiquifyRenderModule(
   gl: WebGL2RenderingContext,
   options: CreateLiquifyRenderOptions,
 ) {

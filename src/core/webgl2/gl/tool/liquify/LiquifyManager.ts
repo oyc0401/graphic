@@ -7,7 +7,7 @@ import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
 import { createLiquifyDisplacement } from "./liquifyModule/displacementModule";
 import type { LiquifyRect } from "./liquifyModule/displacementModule";
-import { createLiquifyRender } from "./liquifyModule/renderModule";
+import { LiquifyRenderModule } from "./liquifyModule/renderModule";
 
 interface LiquifyManagerInterface {
   enter(): void;
@@ -40,8 +40,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
   private layerManager: any;
   private renderingManager: any;
 
-  private displacement: ReturnType<typeof createLiquifyDisplacement> | null = null;
-  private renderModule: ReturnType<typeof createLiquifyRender> | null = null;
+  private displacement: ReturnType<typeof createLiquifyDisplacement> | null =
+    null;
+  private renderModule: ReturnType<typeof LiquifyRenderModule> | null = null;
 
   private sourceDisplacementTexture: WebGLTexture | null = null;
   private displacementTexture: WebGLTexture | null = null;
@@ -82,12 +83,23 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const width = paintOptions.width;
     const height = paintOptions.height;
 
-    const sourceDisplacementTexture = createDisplacementTexture(this.gl, width, height);
-    const displacementTexture = createDisplacementTexture(this.gl, width, height);
+    const sourceDisplacementTexture = createDisplacementTexture(
+      this.gl,
+      width,
+      height,
+    );
+    const displacementTexture = createDisplacementTexture(
+      this.gl,
+      width,
+      height,
+    );
     this.sourceDisplacementTexture = sourceDisplacementTexture;
     this.displacementTexture = displacementTexture;
 
-    this.sourceDisplacementFBO = createFramebuffer(this.gl, sourceDisplacementTexture);
+    this.sourceDisplacementFBO = createFramebuffer(
+      this.gl,
+      sourceDisplacementTexture,
+    );
     this.displacementFBO = createFramebuffer(this.gl, displacementTexture);
 
     this.displacement = createLiquifyDisplacement(this.gl, {
@@ -97,7 +109,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
       height,
     });
 
-    this.renderModule = createLiquifyRender(this.gl, {
+    this.renderModule = LiquifyRenderModule(this.gl, {
       imageTexture: this.sourceTextureManager.texture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
       displacementTexture,
@@ -127,11 +139,22 @@ export class LiquifyManager implements LiquifyManagerInterface {
     return Rect.fromWidth(rect.x, rect.y, rect.width, rect.height);
   }
 
-  private readDisplacementPixels(fbo: WebGLFramebuffer, rect: LiquifyRect): Float32Array {
+  private readDisplacementPixels(
+    fbo: WebGLFramebuffer,
+    rect: LiquifyRect,
+  ): Float32Array {
     const gl = this.gl;
     const pixels = new Float32Array(rect.width * rect.height * 2);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-    gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RG, gl.FLOAT, pixels);
+    gl.readPixels(
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RG,
+      gl.FLOAT,
+      pixels,
+    );
     return pixels;
   }
 
@@ -144,9 +167,15 @@ export class LiquifyManager implements LiquifyManagerInterface {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texSubImage2D(
-      gl.TEXTURE_2D, 0,
-      rect.x, rect.y, rect.width, rect.height,
-      gl.RG, gl.FLOAT, pixels,
+      gl.TEXTURE_2D,
+      0,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      gl.RG,
+      gl.FLOAT,
+      pixels,
     );
   }
 
@@ -155,9 +184,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.displacementFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.sourceDisplacementFBO);
     gl.blitFramebuffer(
-      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
-      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
-      gl.COLOR_BUFFER_BIT, gl.NEAREST,
+      rect.x,
+      rect.y,
+      rect.x + rect.width,
+      rect.y + rect.height,
+      rect.x,
+      rect.y,
+      rect.x + rect.width,
+      rect.y + rect.height,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
     );
   }
 
@@ -166,9 +202,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.sourceDisplacementFBO);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.displacementFBO);
     gl.blitFramebuffer(
-      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
-      rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
-      gl.COLOR_BUFFER_BIT, gl.NEAREST,
+      rect.x,
+      rect.y,
+      rect.x + rect.width,
+      rect.y + rect.height,
+      rect.x,
+      rect.y,
+      rect.x + rect.width,
+      rect.y + rect.height,
+      gl.COLOR_BUFFER_BIT,
+      gl.NEAREST,
     );
   }
 
@@ -209,11 +252,15 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.displacement.setRadius(paintOptions.radius);
     this.displacement.setStrength(paintOptions.alpha);
     this.pendingRect =
-      this.toolId === "twirlClockwise" ? this.displacement.spin(pointer)
-      : this.toolId === "twirlCounterClockwise" ? this.displacement.rightSpin(pointer)
-      : this.toolId === "bloat" ? this.displacement.bloat(pointer)
-      : this.toolId === "pucker" ? this.displacement.pucker(pointer)
-      : null;
+      this.toolId === "twirlClockwise"
+        ? this.displacement.spin(pointer)
+        : this.toolId === "twirlCounterClockwise"
+          ? this.displacement.rightSpin(pointer)
+          : this.toolId === "bloat"
+            ? this.displacement.bloat(pointer)
+            : this.toolId === "pucker"
+              ? this.displacement.pucker(pointer)
+              : null;
   }
 
   render() {
@@ -228,11 +275,20 @@ export class LiquifyManager implements LiquifyManagerInterface {
     if (!this.displacement) return;
 
     const strokeRect = this.displacement.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0)
+      return;
 
-    const before = PixelStore.fromPixelData(this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect), strokeRect.width, strokeRect.height);
+    const before = PixelStore.fromPixelData(
+      this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect),
+      strokeRect.width,
+      strokeRect.height,
+    );
     this.commitDisplacementToSource(strokeRect);
-    const after = PixelStore.fromPixelData(this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect), strokeRect.width, strokeRect.height);
+    const after = PixelStore.fromPixelData(
+      this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect),
+      strokeRect.width,
+      strokeRect.height,
+    );
 
     this.strokeHistory = this.strokeHistory.slice(0, this.historyIndex + 1);
     this.strokeHistory.push({ rect: strokeRect, before, after });
@@ -245,7 +301,8 @@ export class LiquifyManager implements LiquifyManagerInterface {
     if (!this.displacement) return;
 
     const strokeRect = this.displacement.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0)
+      return;
 
     this.revertDisplacementFromSource(strokeRect);
     this.pendingRect = strokeRect;
@@ -258,8 +315,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const entry = this.strokeHistory[this.historyIndex];
     this.historyIndex--;
 
-    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.before.getPixelData());
-    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.before.getPixelData());
+    this.writeDisplacementPixels(
+      this.sourceDisplacementTexture!,
+      entry.rect,
+      entry.before.getPixelData(),
+    );
+    this.writeDisplacementPixels(
+      this.displacementTexture!,
+      entry.rect,
+      entry.before.getPixelData(),
+    );
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();
@@ -271,8 +336,16 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.historyIndex++;
     const entry = this.strokeHistory[this.historyIndex];
 
-    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.after.getPixelData());
-    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.after.getPixelData());
+    this.writeDisplacementPixels(
+      this.sourceDisplacementTexture!,
+      entry.rect,
+      entry.after.getPixelData(),
+    );
+    this.writeDisplacementPixels(
+      this.displacementTexture!,
+      entry.rect,
+      entry.after.getPixelData(),
+    );
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();
@@ -357,9 +430,11 @@ export class LiquifyManager implements LiquifyManagerInterface {
 
   private destroyDisplacementTextures() {
     const gl = this.gl;
-    if (this.sourceDisplacementFBO) gl.deleteFramebuffer(this.sourceDisplacementFBO);
+    if (this.sourceDisplacementFBO)
+      gl.deleteFramebuffer(this.sourceDisplacementFBO);
     if (this.displacementFBO) gl.deleteFramebuffer(this.displacementFBO);
-    if (this.sourceDisplacementTexture) gl.deleteTexture(this.sourceDisplacementTexture);
+    if (this.sourceDisplacementTexture)
+      gl.deleteTexture(this.sourceDisplacementTexture);
     if (this.displacementTexture) gl.deleteTexture(this.displacementTexture);
     this.sourceDisplacementFBO = null;
     this.displacementFBO = null;
@@ -375,7 +450,17 @@ function createDisplacementTexture(
 ) {
   const texture = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, width, height, 0, gl.RG, gl.FLOAT, null);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RG32F,
+    width,
+    height,
+    0,
+    gl.RG,
+    gl.FLOAT,
+    null,
+  );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -387,7 +472,11 @@ function createFramebuffer(gl: WebGL2RenderingContext, texture: WebGLTexture) {
   const framebuffer = gl.createFramebuffer()!;
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
   gl.framebufferTexture2D(
-    gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0,
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    texture,
+    0,
   );
   return framebuffer;
 }

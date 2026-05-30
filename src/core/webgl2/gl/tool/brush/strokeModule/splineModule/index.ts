@@ -20,7 +20,7 @@ export interface CreateSplineOptions {
   height: number;
 }
 
-export function createSpline(
+export function SplineModule(
   gl: WebGL2RenderingContext,
   options: CreateSplineOptions,
 ) {

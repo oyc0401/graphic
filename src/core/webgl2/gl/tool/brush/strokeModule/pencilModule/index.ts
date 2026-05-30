@@ -25,7 +25,7 @@ interface MaskPoint {
 
 const pencilMaskCache = new Map<number, MaskPoint[]>();
 
-export function createPencil(
+export function PencilModule(
   gl: WebGL2RenderingContext,
   options: CreatePencilOptions,
 ) {
