@@ -5,9 +5,9 @@ import { PixelStore } from "../../../../history/PixelStore";
 import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
-import { createMosaicMask } from "./mosaicModule/maskModule";
+import { mosaicMaskModule } from "./mosaicModule/maskModule";
 import type { MosaicRect } from "./mosaicModule/maskModule";
-import { createMosaicRender } from "./mosaicModule/renderModule";
+import { mosaicRenderModule } from "./mosaicModule/renderModule";
 
 interface MosaicManagerInterface {
   enter(): void;
@@ -40,8 +40,8 @@ export class MosaicManager implements MosaicManagerInterface {
   private layerManager: any;
   private renderingManager: any;
 
-  private mask: ReturnType<typeof createMosaicMask> | null = null;
-  private renderModule: ReturnType<typeof createMosaicRender> | null = null;
+  private mask: ReturnType<typeof mosaicMaskModule> | null = null;
+  private renderModule: ReturnType<typeof mosaicRenderModule> | null = null;
 
   private sourceMaskTexture: WebGLTexture | null = null;
   private maskTexture: WebGLTexture | null = null;
@@ -94,14 +94,14 @@ export class MosaicManager implements MosaicManagerInterface {
     this.sourceMaskFBO = createFramebuffer(this.gl, sourceMaskTexture);
     this.maskFBO = createFramebuffer(this.gl, maskTexture);
 
-    this.mask = createMosaicMask(this.gl, {
+    this.mask = mosaicMaskModule(this.gl, {
       sourceMaskTexture,
       maskTexture,
       width,
       height,
     });
 
-    this.renderModule = createMosaicRender(this.gl, {
+    this.renderModule = mosaicRenderModule(this.gl, {
       imageTexture: this.sourceTextureManager.texture,
       maskTexture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
@@ -215,8 +215,9 @@ export class MosaicManager implements MosaicManagerInterface {
   render() {
     if (!this.renderModule) return;
 
-    const rect = this.renderModule.render(this.pendingRect);
+    const rect = this.pendingRect;
     this.pendingRect = null;
+    if (rect) this.renderModule.render(rect);
     this.renderingManager.render(this.toAppRect(rect));
   }
 

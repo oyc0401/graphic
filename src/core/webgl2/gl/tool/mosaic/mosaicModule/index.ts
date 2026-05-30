@@ -1,6 +1,6 @@
-import { createMosaicMask } from "./maskModule";
+import { mosaicMaskModule } from "./maskModule";
 import type { MosaicPoint, MosaicRect } from "./maskModule";
-import { createMosaicRender } from "./renderModule";
+import { mosaicRenderModule } from "./renderModule";
 
 export type { MosaicPoint, MosaicRect } from "./maskModule";
 
@@ -36,8 +36,8 @@ export function createMosaic(
 }
 
 class Mosaic {
-  private readonly mask: ReturnType<typeof createMosaicMask>;
-  private readonly renderer: ReturnType<typeof createMosaicRender>;
+  private readonly mask: ReturnType<typeof mosaicMaskModule>;
+  private readonly renderer: ReturnType<typeof mosaicRenderModule>;
   private mode: MosaicEffectMode = "pixel";
   private committedMode: MosaicEffectMode = "pixel";
   private isRestoring = false;
@@ -50,13 +50,13 @@ class Mosaic {
     gl: WebGL2RenderingContext,
     options: CreateMosaicOptions,
   ) {
-    this.mask = createMosaicMask(gl, {
+    this.mask = mosaicMaskModule(gl, {
       sourceMaskTexture: options.sourceMaskTexture,
       maskTexture: options.maskTexture,
       width: options.width,
       height: options.height,
     });
-    this.renderer = createMosaicRender(gl, {
+    this.renderer = mosaicRenderModule(gl, {
       imageTexture: options.imageTexture,
       maskTexture: options.maskTexture,
       resultTexture: options.resultTexture,
@@ -141,8 +141,9 @@ class Mosaic {
   }
 
   render(): MosaicRect | null {
-    const rect = this.renderer.render(this.dirtyRect);
+    const rect = this.dirtyRect;
     this.dirtyRect = null;
+    if (rect) this.renderer.render(rect);
     return rect;
   }
 

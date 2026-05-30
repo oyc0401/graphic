@@ -6,7 +6,10 @@ describe("mosaicRenderModule", () => {
     const _: () => void = () => {
       const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
       const gl = canvas.getContext("webgl2")!;
-      const width = 0, height = 0, x = 0, y = 0;
+      const width = 0,
+        height = 0,
+        x = 0,
+        y = 0;
 
       // 원본이미지가 담긴 텍스쳐
       const texture = gl.createTexture()!;
@@ -20,7 +23,7 @@ describe("mosaicRenderModule", () => {
       interface MosaicRenderInterface {
         setStrength(strength: number): void;
         setMode(mode: "blur" | "pixel"): void;
-        render(rect: { x: number; y: number; width: number; height: number } | null): void;
+        render(rect: { x: number; y: number; width: number; height: number }): void;
       }
 
       const mosaicRender: MosaicRenderInterface = mosaicRenderModule(gl, {

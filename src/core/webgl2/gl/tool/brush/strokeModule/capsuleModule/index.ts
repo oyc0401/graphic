@@ -33,7 +33,7 @@ export function CapsuleModule(
   gl: WebGL2RenderingContext,
   options: CreateCapsuleOptions,
 ) {
-  return new Dist(gl, options);
+  return new Capsule(gl, options);
 }
 
 class Capsule {

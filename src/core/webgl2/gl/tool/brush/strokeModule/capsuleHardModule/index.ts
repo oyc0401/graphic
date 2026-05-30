@@ -33,7 +33,7 @@ export function CapsuleHardModule(
   gl: WebGL2RenderingContext,
   options: CreateCapsuleHardOptions,
 ) {
-  return new DistPixel(gl, options);
+  return new CapsuleHard(gl, options);
 }
 
 class CapsuleHard {

@@ -5,7 +5,7 @@ import { PixelStore } from "../../../../history/PixelStore";
 import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
-import { createLiquifyDisplacement } from "./liquifyModule/displacementModule";
+import { DisplacementModule } from "./liquifyModule/displacementModule";
 import type { LiquifyRect } from "./liquifyModule/displacementModule";
 import { LiquifyRenderModule } from "./liquifyModule/renderModule";
 
@@ -40,7 +40,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
   private layerManager: any;
   private renderingManager: any;
 
-  private displacement: ReturnType<typeof createLiquifyDisplacement> | null =
+  private displacement: ReturnType<typeof DisplacementModule> | null =
     null;
   private renderModule: ReturnType<typeof LiquifyRenderModule> | null = null;
 
@@ -102,7 +102,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     );
     this.displacementFBO = createFramebuffer(this.gl, displacementTexture);
 
-    this.displacement = createLiquifyDisplacement(this.gl, {
+    this.displacement = DisplacementModule(this.gl, {
       sourceDisplacementTexture,
       displacementTexture,
       width,

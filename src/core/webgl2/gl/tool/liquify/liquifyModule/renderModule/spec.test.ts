@@ -21,7 +21,7 @@ describe("liquifyRenderModule", () => {
       const displacementTexture = gl.createTexture()!;
 
       interface LiquifyRenderInterface {
-        render(rect: { x: number; y: number; width: number; height: number } | null): void;
+        render(rect: { x: number; y: number; width: number; height: number }): void;
       }
 
       const liquify: LiquifyRenderInterface = LiquifyRenderModule(gl, {

@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { createLiquifyDisplacement } from "./index";
+import { DisplacementModule } from "./index";
 
 describe("displacementModule", () => {
   it("스펙을 만족해야 한다", () => {
@@ -31,7 +31,7 @@ describe("displacementModule", () => {
         restoreMove(point: { x: number; y: number }): Rect | null;
       }
 
-      const displacement: DisplacementInterface = createLiquifyDisplacement(gl, {
+      const displacement: DisplacementInterface = DisplacementModule(gl, {
         sourceDisplacementTexture,
         displacementTexture,
         width,

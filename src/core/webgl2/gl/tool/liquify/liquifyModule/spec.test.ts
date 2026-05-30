@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
-import { createLiquifyDisplacement } from "./displacementModule";
-import { liquifyRenderModule } from "./renderModule";
+import { DisplacementModule } from "./displacementModule";
+import { LiquifyRenderModule } from "./renderModule";
 
 describe("liquifyModule", () => {
   it("스펙을 만족해야 한다", () => {
@@ -43,14 +43,14 @@ describe("liquifyModule", () => {
         render(rect: Rect | null): void;
       }
 
-      const displacement: DisplacementInterface = createLiquifyDisplacement(gl, {
+      const displacement: DisplacementInterface = DisplacementModule(gl, {
         sourceDisplacementTexture,
         displacementTexture,
         width,
         height,
       });
 
-      const render: LiquifyRenderInterface = liquifyRenderModule(gl, {
+      const render: LiquifyRenderInterface = LiquifyRenderModule(gl, {
         imageTexture,
         resultTexture,
         displacementTexture,

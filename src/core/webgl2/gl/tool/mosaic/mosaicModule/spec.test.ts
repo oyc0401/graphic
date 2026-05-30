@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { createMosaicMask } from "./maskModule";
+import { mosaicMaskModule } from "./maskModule";
 import { mosaicRenderModule } from "./renderModule";
 
 describe("mosaicModule", () => {
@@ -42,7 +42,7 @@ describe("mosaicModule", () => {
         render(rect: Rect | null): void;
       }
 
-      const mask: MosaicMaskInterface = createMosaicMask(gl, {
+      const mask: MosaicMaskInterface = mosaicMaskModule(gl, {
         sourceMaskTexture,
         maskTexture,
         width,

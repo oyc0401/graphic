@@ -34,7 +34,7 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-export function createMosaicRender(
+export function mosaicRenderModule(
   gl: WebGL2RenderingContext,
   options: CreateMosaicRenderOptions,
 ) {
@@ -82,14 +82,10 @@ class MosaicRender {
     this.mode = mode;
   }
 
-  render(rect: MosaicRect | null): MosaicRect | null {
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      return null;
-    }
-
+  render(rect: MosaicRect): void {
     if (this.mode === "blur") {
       this.renderGaussian(rect);
-      return rect;
+      return;
     }
 
     const gl = this.gl;
@@ -109,7 +105,6 @@ class MosaicRender {
     gl.viewport(0, 0, this.width, this.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.disable(gl.SCISSOR_TEST);
-    return rect;
   }
 
   destroy() {

@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { createMosaicMask } from "./index";
+import { mosaicMaskModule } from "./index";
 
 describe("mosaicMaskModule", () => {
   it("스펙을 만족해야 한다", () => {
@@ -26,7 +26,7 @@ describe("mosaicMaskModule", () => {
         restoreMove(point: { x: number; y: number }): Rect | null;
       }
 
-      const mask: MosaicMaskInterface = createMosaicMask(gl, {
+      const mask: MosaicMaskInterface = mosaicMaskModule(gl, {
         sourceMaskTexture,
         maskTexture,
         width,
