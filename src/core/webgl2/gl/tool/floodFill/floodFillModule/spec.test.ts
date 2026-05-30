@@ -22,7 +22,7 @@ describe("floodFillModule", () => {
         setTolerance(tolerance: number): void;
         setAlpha(alpha: number): void;
         setColor(color: [number, number, number]): void;
-        fill(point: { x: number; y: number }): Rect;
+        fill(point: { x: number; y: number }): Rect | null;
       }
 
       const floodFill: FloodFillInterface = createFloodFill(gl, {

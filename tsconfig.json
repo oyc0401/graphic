@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "moduleResolution": "node",
     "strictNullChecks": true,
+    "strictFunctionTypes": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {

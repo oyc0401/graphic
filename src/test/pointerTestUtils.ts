@@ -24,7 +24,7 @@ function createFakeEvent(x: number, y: number): PointerEvent {
 
 function pointerDown(x: number, y: number) {
   console.log(`🖱️ pointerDown(${x}, ${y})`);
-  paintState.pointerdown = true;
+  paintState.setPointerdown(true);
   dispatchPointer(createFakeEvent(x, y), "down");
 }
 
@@ -35,7 +35,7 @@ function pointerMove(x: number, y: number) {
 
 function pointerUp(x: number, y: number) {
   console.log(`🖱️ pointerUp(${x}, ${y})`);
-  paintState.pointerdown = false;
+  paintState.setPointerdown(false);
   dispatchPointer(createFakeEvent(x, y), "up");
 }
 
