@@ -1,6 +1,7 @@
 import type { LiquifyTool, Pointer } from "@/core/types";
 import { Rect } from "@/core/utils/rect";
 import { HistoryObject, getHistoryManager } from "../../../../history/history";
+import { PixelStore } from "../../../../history/PixelStore";
 import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
@@ -28,8 +29,8 @@ interface LiquifyManagerInterface {
 
 interface StrokeHistory {
   rect: LiquifyRect;
-  before: Float32Array;
-  after: Float32Array;
+  before: PixelStore<Float32Array>;
+  after: PixelStore<Float32Array>;
 }
 
 export class LiquifyManager implements LiquifyManagerInterface {
@@ -229,9 +230,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const strokeRect = this.displacement.end();
     if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
 
-    const before = this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect);
+    const before = PixelStore.fromPixelData(this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect), strokeRect.width, strokeRect.height);
     this.commitDisplacementToSource(strokeRect);
-    const after = this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect);
+    const after = PixelStore.fromPixelData(this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect), strokeRect.width, strokeRect.height);
 
     this.strokeHistory = this.strokeHistory.slice(0, this.historyIndex + 1);
     this.strokeHistory.push({ rect: strokeRect, before, after });
@@ -257,8 +258,8 @@ export class LiquifyManager implements LiquifyManagerInterface {
     const entry = this.strokeHistory[this.historyIndex];
     this.historyIndex--;
 
-    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.before);
-    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.before);
+    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.before.getPixelData());
+    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.before.getPixelData());
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();
@@ -270,8 +271,8 @@ export class LiquifyManager implements LiquifyManagerInterface {
     this.historyIndex++;
     const entry = this.strokeHistory[this.historyIndex];
 
-    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.after);
-    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.after);
+    this.writeDisplacementPixels(this.sourceDisplacementTexture!, entry.rect, entry.after.getPixelData());
+    this.writeDisplacementPixels(this.displacementTexture!, entry.rect, entry.after.getPixelData());
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();

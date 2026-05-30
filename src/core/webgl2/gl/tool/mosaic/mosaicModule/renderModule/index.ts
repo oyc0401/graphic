@@ -69,7 +69,6 @@ class MosaicRender {
   ) {
     this.width = options.width;
     this.height = options.height;
-    this.checkExtensions();
     this.createTextures();
     this.createPrograms();
     this.setTextureSize(options.width, options.height);
@@ -169,21 +168,6 @@ class MosaicRender {
     gl.uniform2f(this.uBlurHorizontalResolution, width, height);
     gl.useProgram(this.blurVerticalProgram);
     gl.uniform2f(this.uBlurVerticalResolution, width, height);
-  }
-
-  private checkExtensions() {
-    const gl = this.gl;
-
-    if (!gl.getExtension("EXT_color_buffer_float")) {
-      throw new Error("EXT_color_buffer_float is required for mosaic.");
-    }
-
-    if (
-      !gl.getExtension("OES_texture_float_linear") &&
-      !gl.getExtension("EXT_texture_filter_float")
-    ) {
-      throw new Error("Float texture linear filtering is required for mosaic.");
-    }
   }
 
   private createTextures() {

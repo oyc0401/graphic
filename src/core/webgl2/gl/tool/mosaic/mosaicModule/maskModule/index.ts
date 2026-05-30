@@ -119,7 +119,6 @@ class MosaicMask {
   ) {
     this.width = options.width;
     this.height = options.height;
-    this.checkExtensions();
     this.createTextures();
     this.createPrograms();
     this.setTextureSize(options.width, options.height);
@@ -197,12 +196,12 @@ class MosaicMask {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.R32F,
+      gl.R8,
       width,
       height,
       0,
       gl.RED,
-      gl.FLOAT,
+      gl.UNSIGNED_BYTE,
       null,
     );
 
@@ -223,25 +222,10 @@ class MosaicMask {
     );
   }
 
-  private checkExtensions() {
-    const gl = this.gl;
-
-    if (!gl.getExtension("EXT_color_buffer_float")) {
-      throw new Error("EXT_color_buffer_float is required for mosaic.");
-    }
-
-    if (
-      !gl.getExtension("OES_texture_float_linear") &&
-      !gl.getExtension("EXT_texture_filter_float")
-    ) {
-      throw new Error("Float texture linear filtering is required for mosaic.");
-    }
-  }
-
   private createTextures() {
     const gl = this.gl;
 
-    this.tempMaskTexture = createFloatTexture(gl);
+    this.tempMaskTexture = createR8Texture(gl);
     this.sourceMaskFBO = createFramebuffer(gl, this.options.sourceMaskTexture);
     this.maskFBO = createFramebuffer(gl, this.options.maskTexture);
     this.tempMaskFBO = createFramebuffer(gl, this.tempMaskTexture);
@@ -392,7 +376,7 @@ class MosaicMask {
   }
 }
 
-function createFloatTexture(gl: WebGL2RenderingContext) {
+function createR8Texture(gl: WebGL2RenderingContext) {
   const texture = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);

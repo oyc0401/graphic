@@ -1,6 +1,7 @@
 import type { MosaicMode, Pointer } from "@/core/types";
 import { Rect } from "@/core/utils/rect";
 import { HistoryObject, getHistoryManager } from "../../../../history/history";
+import { PixelStore } from "../../../../history/PixelStore";
 import { getLayerManager } from "../../layer";
 import { getRenderingManager } from "../../render/render";
 import { getSourceTextureManager, paintOptions } from "../../texture";
@@ -28,8 +29,8 @@ interface MosaicManagerInterface {
 
 interface StrokeHistory {
   rect: MosaicRect;
-  before: Float32Array;
-  after: Float32Array;
+  before: PixelStore<Uint8Array>;
+  after: PixelStore<Uint8Array>;
 }
 
 export class MosaicManager implements MosaicManagerInterface {
@@ -143,22 +144,22 @@ export class MosaicManager implements MosaicManagerInterface {
     return { x: left, y: top, width: right - left, height: bottom - top };
   }
 
-  private readMaskPixels(fbo: WebGLFramebuffer, rect: MosaicRect): Float32Array {
+  private readMaskPixels(fbo: WebGLFramebuffer, rect: MosaicRect): Uint8Array {
     const gl = this.gl;
-    const pixels = new Float32Array(rect.width * rect.height);
+    const pixels = new Uint8Array(rect.width * rect.height);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
-    gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RED, gl.FLOAT, pixels);
+    gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RED, gl.UNSIGNED_BYTE, pixels);
     return pixels;
   }
 
-  private writeMaskPixels(texture: WebGLTexture, rect: MosaicRect, pixels: Float32Array) {
+  private writeMaskPixels(texture: WebGLTexture, rect: MosaicRect, pixels: Uint8Array) {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0,
       rect.x, rect.y, rect.width, rect.height,
-      gl.RED, gl.FLOAT, pixels,
+      gl.RED, gl.UNSIGNED_BYTE, pixels,
     );
   }
 
@@ -225,9 +226,9 @@ export class MosaicManager implements MosaicManagerInterface {
     const strokeRect = this.mask.end();
     if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
 
-    const before = this.readMaskPixels(this.sourceMaskFBO!, strokeRect);
+    const before = PixelStore.fromPixelData(this.readMaskPixels(this.sourceMaskFBO!, strokeRect), strokeRect.width, strokeRect.height);
     this.commitMaskToSource(strokeRect);
-    const after = this.readMaskPixels(this.sourceMaskFBO!, strokeRect);
+    const after = PixelStore.fromPixelData(this.readMaskPixels(this.sourceMaskFBO!, strokeRect), strokeRect.width, strokeRect.height);
 
     this.strokeHistory = this.strokeHistory.slice(0, this.historyIndex + 1);
     this.strokeHistory.push({ rect: strokeRect, before, after });
@@ -254,8 +255,8 @@ export class MosaicManager implements MosaicManagerInterface {
     const entry = this.strokeHistory[this.historyIndex];
     this.historyIndex--;
 
-    this.writeMaskPixels(this.sourceMaskTexture!, entry.rect, entry.before);
-    this.writeMaskPixels(this.maskTexture!, entry.rect, entry.before);
+    this.writeMaskPixels(this.sourceMaskTexture!, entry.rect, entry.before.getPixelData());
+    this.writeMaskPixels(this.maskTexture!, entry.rect, entry.before.getPixelData());
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();
@@ -267,8 +268,8 @@ export class MosaicManager implements MosaicManagerInterface {
     this.historyIndex++;
     const entry = this.strokeHistory[this.historyIndex];
 
-    this.writeMaskPixels(this.sourceMaskTexture!, entry.rect, entry.after);
-    this.writeMaskPixels(this.maskTexture!, entry.rect, entry.after);
+    this.writeMaskPixels(this.sourceMaskTexture!, entry.rect, entry.after.getPixelData());
+    this.writeMaskPixels(this.maskTexture!, entry.rect, entry.after.getPixelData());
     this.pendingRect = entry.rect;
     this.render();
     return this.getHistoryCount();
@@ -392,7 +393,7 @@ function createMaskTexture(
 ) {
   const texture = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, width, height, 0, gl.RED, gl.UNSIGNED_BYTE, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
