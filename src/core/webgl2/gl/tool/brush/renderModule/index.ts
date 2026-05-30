@@ -94,8 +94,8 @@ class BrushRender {
    * @param rect
    * @returns
    */
-  render(rect: BrushRenderRect | null) {
-    if (!rect || rect.width === 0 || rect.height === 0) return;
+  render(rect: BrushRenderRect) {
+    if (rect.width === 0 || rect.height === 0) return;
 
     const gl = this.gl;
     const program =

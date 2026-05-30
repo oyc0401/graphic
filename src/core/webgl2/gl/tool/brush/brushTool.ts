@@ -28,9 +28,9 @@ export function getBrushManager(
 interface StrokeModule {
   setAlpha(alpha: number): void;
   setDiameter(diameter: number): void;
-  start(point: { x: number; y: number }): BrushRenderRect | null;
-  move(point: { x: number; y: number }): BrushRenderRect | null;
-  end(): BrushRenderRect | null;
+  start(point: { x: number; y: number }): BrushRenderRect;
+  move(point: { x: number; y: number }): BrushRenderRect;
+  end(): BrushRenderRect;
 }
 
 class BrushManager {
@@ -96,17 +96,13 @@ class BrushManager {
     this.dirtyRect = null;
 
     const rect = this.currentStrokeModule.start(pointer);
-    if (rect) {
-      this.dirtyRect = unionRect(this.dirtyRect, rect);
-      this.renderModule.render(rect);
-    }
+    this.dirtyRect = unionRect(this.dirtyRect, rect);
+    this.renderModule.render(rect);
     this.renderingManager.render();
   }
 
   stroke(_start: Pointer, end: Pointer) {
     const rect = this.currentStrokeModule.move(end);
-    if (!rect) return;
-
     this.dirtyRect = unionRect(this.dirtyRect, rect);
     this.renderModule.render(rect);
     this.renderingManager.render();
@@ -124,7 +120,7 @@ class BrushManager {
     const rect = unionRect(this.dirtyRect, strokeRect);
     this.dirtyRect = null;
 
-    if (!rect || rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return;
 
     this.renderModule.render(rect);
     this.blitRect(this.resultFBO, this.imageFBO, rect);
@@ -138,7 +134,7 @@ class BrushManager {
     const rect = unionRect(this.dirtyRect, strokeRect);
     this.dirtyRect = null;
 
-    if (!rect || rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return;
 
     this.blitRect(this.imageFBO, this.resultFBO, rect);
     this.clearAlphaMap(rect);
@@ -254,10 +250,9 @@ class BrushManager {
 
 function unionRect(
   a: BrushRenderRect | null,
-  b: BrushRenderRect | null,
-): BrushRenderRect | null {
+  b: BrushRenderRect,
+): BrushRenderRect {
   if (!a) return b;
-  if (!b) return a;
   const left = Math.min(a.x, b.x);
   const top = Math.min(a.y, b.y);
   const right = Math.max(a.x + a.width, b.x + b.width);

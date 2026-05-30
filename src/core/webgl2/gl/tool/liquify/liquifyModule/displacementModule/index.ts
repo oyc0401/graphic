@@ -101,14 +101,14 @@ class LiquifyDisplacement {
     this.strength = strength;
   }
 
-  start(point: LiquifyPoint): LiquifyRect | null {
+  start(point: LiquifyPoint): LiquifyRect {
     this.lastPoint = point;
     const rect = this.push(point, point);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  move(point: LiquifyPoint): LiquifyRect | null {
+  move(point: LiquifyPoint): LiquifyRect {
     if (!this.lastPoint) {
       return this.start(point);
     }
@@ -119,14 +119,14 @@ class LiquifyDisplacement {
     return rect;
   }
 
-  restoreStart(point: LiquifyPoint): LiquifyRect | null {
+  restoreStart(point: LiquifyPoint): LiquifyRect {
     this.lastPoint = point;
     const rect = this.restore(point, point);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  restoreMove(point: LiquifyPoint): LiquifyRect | null {
+  restoreMove(point: LiquifyPoint): LiquifyRect {
     if (!this.lastPoint) {
       return this.restoreStart(point);
     }
@@ -137,35 +137,35 @@ class LiquifyDisplacement {
     return rect;
   }
 
-  spin(point: LiquifyPoint): LiquifyRect | null {
+  spin(point: LiquifyPoint): LiquifyRect {
     const rect = this.twirl(point, 1);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  rightSpin(point: LiquifyPoint): LiquifyRect | null {
+  rightSpin(point: LiquifyPoint): LiquifyRect {
     const rect = this.twirl(point, -1);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  bloat(point: LiquifyPoint): LiquifyRect | null {
+  bloat(point: LiquifyPoint): LiquifyRect {
     const rect = this.scale(point, 1);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  pucker(point: LiquifyPoint): LiquifyRect | null {
+  pucker(point: LiquifyPoint): LiquifyRect {
     const rect = this.scale(point, -1);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  end(): LiquifyRect | null {
+  end(): LiquifyRect {
     const rect = this.strokeRect;
     this.strokeRect = null;
     this.lastPoint = null;
-    return rect;
+    return rect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
   destroy() {
@@ -493,11 +493,11 @@ class LiquifyDisplacement {
   }
 
   private copyDisplacementRect(
-    rect: LiquifyRect | null,
+    rect: LiquifyRect,
     readFramebuffer: WebGLFramebuffer,
     drawFramebuffer: WebGLFramebuffer,
   ) {
-    if (!rect || rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return;
 
     const gl = this.gl;
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFramebuffer);

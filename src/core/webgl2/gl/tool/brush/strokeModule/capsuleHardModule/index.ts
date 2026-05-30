@@ -86,13 +86,13 @@ class CapsuleHard {
     this.diameter = Math.max(1, diameter);
   }
 
-  start(point: CapsuleHardPoint): CapsuleHardRect | null {
+  start(point: CapsuleHardPoint): CapsuleHardRect {
     this.lastPoint = toPixelPoint(point);
     this.strokeRect = null;
     return this.drawLine(this.lastPoint, this.lastPoint);
   }
 
-  move(point: CapsuleHardPoint): CapsuleHardRect | null {
+  move(point: CapsuleHardPoint): CapsuleHardRect {
     const end = toPixelPoint(point);
     if (!this.lastPoint) {
       return this.start(end);
@@ -103,14 +103,14 @@ class CapsuleHard {
     return rect;
   }
 
-  end(): CapsuleHardRect | null {
+  end(): CapsuleHardRect {
     const rect = this.strokeRect;
     this.lastPoint = null;
     this.strokeRect = null;
-    return rect;
+    return rect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
-  private drawLine(start: CapsuleHardPoint, end: CapsuleHardPoint): CapsuleHardRect | null {
+  private drawLine(start: CapsuleHardPoint, end: CapsuleHardPoint): CapsuleHardRect {
     const rect = strokeRect(
       start,
       end,
@@ -118,7 +118,7 @@ class CapsuleHard {
       this.width,
       this.height,
     );
-    if (rect.width === 0 || rect.height === 0) return null;
+    if (rect.width === 0 || rect.height === 0) return rect;
 
     const gl = this.gl;
     gl.useProgram(this.program);

@@ -266,8 +266,9 @@ export class LiquifyManager implements LiquifyManagerInterface {
   render() {
     if (!this.renderModule) return;
 
-    const rect = this.renderModule.render(this.pendingRect);
+    const rect = this.pendingRect;
     this.pendingRect = null;
+    if (rect) this.renderModule.render(rect);
     this.renderingManager.render(this.toAppRect(rect));
   }
 
@@ -275,8 +276,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     if (!this.displacement) return;
 
     const strokeRect = this.displacement.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0)
-      return;
+    if (strokeRect.width === 0 || strokeRect.height === 0) return;
 
     const before = PixelStore.fromPixelData(
       this.readDisplacementPixels(this.sourceDisplacementFBO!, strokeRect),
@@ -301,8 +301,7 @@ export class LiquifyManager implements LiquifyManagerInterface {
     if (!this.displacement) return;
 
     const strokeRect = this.displacement.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0)
-      return;
+    if (strokeRect.width === 0 || strokeRect.height === 0) return;
 
     this.revertDisplacementFromSource(strokeRect);
     this.pendingRect = strokeRect;

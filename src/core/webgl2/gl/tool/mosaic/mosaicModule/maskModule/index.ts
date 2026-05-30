@@ -128,14 +128,14 @@ class MosaicMask {
     this.radius = Math.max(0, radius);
   }
 
-  start(point: MosaicPoint): MosaicRect | null {
+  start(point: MosaicPoint): MosaicRect {
     this.lastPoint = point;
     const rect = this.paint(point, point);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  move(point: MosaicPoint): MosaicRect | null {
+  move(point: MosaicPoint): MosaicRect {
     if (!this.lastPoint) {
       return this.start(point);
     }
@@ -146,14 +146,14 @@ class MosaicMask {
     return rect;
   }
 
-  restoreStart(point: MosaicPoint): MosaicRect | null {
+  restoreStart(point: MosaicPoint): MosaicRect {
     this.lastPoint = point;
     const rect = this.restore(point, point);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  restoreMove(point: MosaicPoint): MosaicRect | null {
+  restoreMove(point: MosaicPoint): MosaicRect {
     if (!this.lastPoint) {
       return this.restoreStart(point);
     }
@@ -164,11 +164,11 @@ class MosaicMask {
     return rect;
   }
 
-  end(): MosaicRect | null {
+  end(): MosaicRect {
     const rect = this.strokeRect;
     this.strokeRect = null;
     this.lastPoint = null;
-    return rect;
+    return rect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
   destroy() {
@@ -352,11 +352,11 @@ class MosaicMask {
   }
 
   private copyMaskRect(
-    rect: MosaicRect | null,
+    rect: MosaicRect,
     readFramebuffer: WebGLFramebuffer,
     drawFramebuffer: WebGLFramebuffer,
   ) {
-    if (!rect || rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return;
 
     const gl = this.gl;
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFramebuffer);

@@ -57,35 +57,35 @@ class Spline {
     this.diameter = Math.max(1, diameter);
   }
 
-  start(point: SplinePoint): SplineRect | null {
+  start(point: SplinePoint): SplineRect {
     this.points = [point];
     this.strokeRect = null;
     this.alphaCPU.fill(0);
     const rect = this.drawSplineToTemp(this.points, "final");
-    if (!rect) return null;
+    if (!rect) return { x: 0, y: 0, width: 0, height: 0 };
 
     this.mergeAlphaFromTempAndUpload(rect);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  move(point: SplinePoint): SplineRect | null {
+  move(point: SplinePoint): SplineRect {
     if (this.points.length === 0) {
       return this.start(point);
     }
 
     this.points.push(point);
     const rect = this.drawSplineToTemp(this.points, "incremental");
-    if (!rect) return null;
+    if (!rect) return { x: 0, y: 0, width: 0, height: 0 };
 
     this.mergeAlphaFromTempAndUpload(rect);
     this.strokeRect = unionRect(this.strokeRect, rect);
     return rect;
   }
 
-  end(): SplineRect | null {
+  end(): SplineRect {
     if (this.points.length === 0) {
-      return null;
+      return { x: 0, y: 0, width: 0, height: 0 };
     }
 
     const rect = this.drawSplineToTemp(this.points, "final");
@@ -97,7 +97,7 @@ class Spline {
     const strokeRect = this.strokeRect;
     this.points = [];
     this.strokeRect = null;
-    return strokeRect;
+    return strokeRect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
   private ensureAlphaMapTextureSize() {

@@ -86,13 +86,13 @@ class Capsule {
     this.diameter = Math.max(1, diameter);
   }
 
-  start(point: CapsulePoint): CapsuleRect | null {
+  start(point: CapsulePoint): CapsuleRect {
     this.lastPoint = point;
     this.strokeRect = null;
     return this.drawLine(point, point);
   }
 
-  move(point: CapsulePoint): CapsuleRect | null {
+  move(point: CapsulePoint): CapsuleRect {
     if (!this.lastPoint) {
       return this.start(point);
     }
@@ -102,14 +102,14 @@ class Capsule {
     return rect;
   }
 
-  end(): CapsuleRect | null {
+  end(): CapsuleRect {
     const rect = this.strokeRect;
     this.lastPoint = null;
     this.strokeRect = null;
-    return rect;
+    return rect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
-  private drawLine(start: CapsulePoint, end: CapsulePoint): CapsuleRect | null {
+  private drawLine(start: CapsulePoint, end: CapsulePoint): CapsuleRect {
     const rect = strokeRect(
       start,
       end,
@@ -117,7 +117,7 @@ class Capsule {
       this.width,
       this.height,
     );
-    if (rect.width === 0 || rect.height === 0) return null;
+    if (rect.width === 0 || rect.height === 0) return rect;
 
     const gl = this.gl;
     gl.useProgram(this.program);

@@ -50,9 +50,9 @@ class LiquifyRender {
     this.setSize(options.width, options.height);
   }
 
-  render(rect: LiquifyRect | null): LiquifyRect | null {
-    if (!rect || rect.width === 0 || rect.height === 0) {
-      return null;
+  render(rect: LiquifyRect): void {
+    if (rect.width === 0 || rect.height === 0) {
+      return;
     }
 
     const gl = this.gl;
@@ -71,7 +71,6 @@ class LiquifyRender {
     gl.viewport(0, 0, this.width, this.height);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.disable(gl.SCISSOR_TEST);
-    return rect;
   }
 
   destroy() {

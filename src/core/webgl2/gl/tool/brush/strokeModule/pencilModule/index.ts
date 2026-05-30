@@ -123,7 +123,7 @@ class Pencil {
     this.mask = createPencilMask(nextDiameter);
   }
 
-  start(point: PencilPoint): PencilRect | null {
+  start(point: PencilPoint): PencilRect {
     this.clearAlphaCache();
     this.lastPoint = toPixelPoint(point);
     this.strokeRect = null;
@@ -131,14 +131,14 @@ class Pencil {
     if (dirtyRect) {
       this.uploadAlphaMap(dirtyRect);
     }
-    return dirtyRect;
+    return dirtyRect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
-  move(point: PencilPoint): PencilRect | null {
+  move(point: PencilPoint): PencilRect {
     const end = toPixelPoint(point);
     if (!this.lastPoint) {
       this.start(end);
-      return this.strokeRect;
+      return this.strokeRect ?? { x: 0, y: 0, width: 0, height: 0 };
     }
 
     const points = bresenhamLine(this.lastPoint, end);
@@ -151,15 +151,15 @@ class Pencil {
       this.uploadAlphaMap(dirtyRect);
     }
     this.lastPoint = end;
-    return dirtyRect;
+    return dirtyRect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
-  end(): PencilRect | null {
+  end(): PencilRect {
     const rect = this.strokeRect;
     this.lastPoint = null;
     this.strokeRect = null;
     this.clearAlphaCache();
-    return rect;
+    return rect ?? { x: 0, y: 0, width: 0, height: 0 };
   }
 
   private ensureAlphaMapTextureSize() {

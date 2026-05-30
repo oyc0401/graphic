@@ -225,7 +225,7 @@ export class MosaicManager implements MosaicManagerInterface {
     if (!this.mask) return;
 
     const strokeRect = this.mask.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+    if (strokeRect.width === 0 || strokeRect.height === 0) return;
 
     const before = PixelStore.fromPixelData(this.readMaskPixels(this.sourceMaskFBO!, strokeRect), strokeRect.width, strokeRect.height);
     this.commitMaskToSource(strokeRect);
@@ -243,7 +243,7 @@ export class MosaicManager implements MosaicManagerInterface {
     if (!this.mask) return;
 
     const strokeRect = this.mask.end();
-    if (!strokeRect || strokeRect.width === 0 || strokeRect.height === 0) return;
+    if (strokeRect.width === 0 || strokeRect.height === 0) return;
 
     this.revertMaskFromSource(strokeRect);
     this.pendingRect = strokeRect;
