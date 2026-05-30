@@ -19,11 +19,11 @@ describe("mosaicMaskModule", () => {
 
       interface MosaicMaskInterface {
         setRadius(radius: number): void;
-        start(point: { x: number; y: number }): Rect | null;
-        move(point: { x: number; y: number }): Rect | null;
-        end(): Rect | null;
-        restoreStart(point: { x: number; y: number }): Rect | null;
-        restoreMove(point: { x: number; y: number }): Rect | null;
+        start(point: { x: number; y: number }): Rect;
+        move(point: { x: number; y: number }): Rect;
+        end(): Rect;
+        restoreStart(point: { x: number; y: number }): Rect;
+        restoreMove(point: { x: number; y: number }): Rect;
       }
 
       const mask: MosaicMaskInterface = mosaicMaskModule(gl, {

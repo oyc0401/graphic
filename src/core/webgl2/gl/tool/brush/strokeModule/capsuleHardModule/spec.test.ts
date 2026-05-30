@@ -17,9 +17,9 @@ describe("capsuleHardModule", () => {
       interface CapsuleHardModuleInterface {
         setAlpha(alpha: number): void;
         setDiameter(diameter: number): void;
-        start(point: { x: number; y: number }): Rect | null;
-        move(point: { x: number; y: number }): Rect | null;
-        end(): Rect | null;
+        start(point: { x: number; y: number }): Rect;
+        move(point: { x: number; y: number }): Rect;
+        end(): Rect;
       }
 
       const module: CapsuleHardModuleInterface = CapsuleHardModule(gl, {

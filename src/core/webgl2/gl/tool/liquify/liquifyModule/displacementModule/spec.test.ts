@@ -20,15 +20,15 @@ describe("displacementModule", () => {
       interface DisplacementInterface {
         setRadius(radius: number): void;
         setStrength(strength: number): void;
-        start(point: { x: number; y: number }): Rect | null;
-        move(point: { x: number; y: number }): Rect | null;
-        end(): Rect | null;
-        spin(point: { x: number; y: number }): Rect | null;
-        rightSpin(point: { x: number; y: number }): Rect | null;
-        bloat(point: { x: number; y: number }): Rect | null;
-        pucker(point: { x: number; y: number }): Rect | null;
-        restoreStart(point: { x: number; y: number }): Rect | null;
-        restoreMove(point: { x: number; y: number }): Rect | null;
+        start(point: { x: number; y: number }): Rect;
+        move(point: { x: number; y: number }): Rect;
+        end(): Rect;
+        spin(point: { x: number; y: number }): Rect;
+        rightSpin(point: { x: number; y: number }): Rect;
+        bloat(point: { x: number; y: number }): Rect;
+        pucker(point: { x: number; y: number }): Rect;
+        restoreStart(point: { x: number; y: number }): Rect;
+        restoreMove(point: { x: number; y: number }): Rect;
       }
 
       const displacement: DisplacementInterface = DisplacementModule(gl, {
