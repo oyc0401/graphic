@@ -25,31 +25,14 @@ describe("mosaicModule 사용법", () => {
 
       const allStrokesRect = { x: 0, y: 0, width: 0, height: 0 };
 
-      type Rect = { x: number; y: number; width: number; height: number };
-
-      interface MosaicMaskInterface {
-        setRadius(radius: number): void;
-        start(point: { x: number; y: number }): Rect | null;
-        move(point: { x: number; y: number }): Rect | null;
-        end(): Rect | null;
-        restoreStart(point: { x: number; y: number }): Rect | null;
-        restoreMove(point: { x: number; y: number }): Rect | null;
-      }
-
-      interface MosaicRenderInterface {
-        setStrength(strength: number): void;
-        setMode(mode: "blur" | "pixel"): void;
-        render(rect: Rect | null): void;
-      }
-
-      const mask: MosaicMaskInterface = mosaicMaskModule(gl, {
+      const mask = mosaicMaskModule(gl, {
         sourceMaskTexture,
         maskTexture,
         width,
         height,
       });
 
-      const render: MosaicRenderInterface = mosaicRenderModule(gl, {
+      const render = mosaicRenderModule(gl, {
         imageTexture,
         resultTexture,
         maskTexture,

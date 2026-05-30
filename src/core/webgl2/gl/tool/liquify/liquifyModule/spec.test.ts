@@ -23,34 +23,14 @@ describe("liquifyModule 사용법", () => {
       const sourceDisplacementTexture = gl.createTexture()!;
       const displacementTexture = gl.createTexture()!;
 
-      type Rect = { x: number; y: number; width: number; height: number };
-
-      interface DisplacementInterface {
-        setRadius(radius: number): void;
-        setStrength(strength: number): void;
-        start(point: { x: number; y: number }): Rect | null;
-        move(point: { x: number; y: number }): Rect | null;
-        end(): Rect | null;
-        spin(point: { x: number; y: number }): Rect | null;
-        rightSpin(point: { x: number; y: number }): Rect | null;
-        bloat(point: { x: number; y: number }): Rect | null;
-        pucker(point: { x: number; y: number }): Rect | null;
-        restoreStart(point: { x: number; y: number }): Rect | null;
-        restoreMove(point: { x: number; y: number }): Rect | null;
-      }
-
-      interface LiquifyRenderInterface {
-        render(rect: Rect | null): void;
-      }
-
-      const displacement: DisplacementInterface = DisplacementModule(gl, {
+      const displacement = DisplacementModule(gl, {
         sourceDisplacementTexture,
         displacementTexture,
         width,
         height,
       });
 
-      const render: LiquifyRenderInterface = LiquifyRenderModule(gl, {
+      const render = LiquifyRenderModule(gl, {
         imageTexture,
         resultTexture,
         displacementTexture,

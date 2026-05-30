@@ -61,8 +61,16 @@ class BrushRender {
     this.height = options.height;
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-    this.brushProgram = createProgram(gl, vertexShader, createShader(gl, gl.FRAGMENT_SHADER, brushFrag));
-    this.eraserProgram = createProgram(gl, vertexShader, createShader(gl, gl.FRAGMENT_SHADER, eraserFrag));
+    this.brushProgram = createProgram(
+      gl,
+      vertexShader,
+      createShader(gl, gl.FRAGMENT_SHADER, brushFrag),
+    );
+    this.eraserProgram = createProgram(
+      gl,
+      vertexShader,
+      createShader(gl, gl.FRAGMENT_SHADER, eraserFrag),
+    );
 
     this.brushVAO = createFullQuadVAO(gl, this.brushProgram);
     this.eraserVAO = createFullQuadVAO(gl, this.eraserProgram);
@@ -81,11 +89,17 @@ class BrushRender {
     this.color = color;
   }
 
+  /**
+   * 해당 범위의 resultTexture를 수정한다.
+   * @param rect
+   * @returns
+   */
   render(rect: BrushRenderRect | null) {
     if (!rect || rect.width === 0 || rect.height === 0) return;
 
     const gl = this.gl;
-    const program = this.mode === "eraser" ? this.eraserProgram : this.brushProgram;
+    const program =
+      this.mode === "eraser" ? this.eraserProgram : this.brushProgram;
     const vao = this.mode === "eraser" ? this.eraserVAO : this.brushVAO;
 
     gl.useProgram(program);
@@ -116,13 +130,27 @@ class BrushRender {
   private setupRenderUniforms(program: WebGLProgram) {
     const gl = this.gl;
     gl.useProgram(program);
-    gl.uniform1i(gl.getUniformLocation(program, "u_pathMap"), TEXTURE_UNIT.PATHMAP);
-    gl.uniform1i(gl.getUniformLocation(program, "u_source"), TEXTURE_UNIT.SOURCE);
-    gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), this.width, this.height);
+    gl.uniform1i(
+      gl.getUniformLocation(program, "u_pathMap"),
+      TEXTURE_UNIT.PATHMAP,
+    );
+    gl.uniform1i(
+      gl.getUniformLocation(program, "u_source"),
+      TEXTURE_UNIT.SOURCE,
+    );
+    gl.uniform2f(
+      gl.getUniformLocation(program, "u_resolution"),
+      this.width,
+      this.height,
+    );
   }
 }
 
-function createShader(gl: WebGL2RenderingContext, type: GLenum, source: string) {
+function createShader(
+  gl: WebGL2RenderingContext,
+  type: GLenum,
+  source: string,
+) {
   const shader = gl.createShader(type);
   if (!shader) throw new Error("Failed to create shader.");
   gl.shaderSource(shader, source);
@@ -133,7 +161,11 @@ function createShader(gl: WebGL2RenderingContext, type: GLenum, source: string) 
   return shader;
 }
 
-function createProgram(gl: WebGL2RenderingContext, vs: WebGLShader, fs: WebGLShader) {
+function createProgram(
+  gl: WebGL2RenderingContext,
+  vs: WebGLShader,
+  fs: WebGLShader,
+) {
   const program = gl.createProgram();
   if (!program) throw new Error("Failed to create program.");
   gl.attachShader(program, vs);
@@ -150,7 +182,11 @@ function createFullQuadVAO(gl: WebGL2RenderingContext, program: WebGLProgram) {
   const vao = gl.createVertexArray()!;
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+    gl.STATIC_DRAW,
+  );
   const pos = gl.getAttribLocation(program, "a_position");
   gl.enableVertexAttribArray(pos);
   gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
@@ -160,6 +196,12 @@ function createFullQuadVAO(gl: WebGL2RenderingContext, program: WebGLProgram) {
 function createFramebuffer(gl: WebGL2RenderingContext, texture: WebGLTexture) {
   const fbo = gl.createFramebuffer()!;
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    texture,
+    0,
+  );
   return fbo;
 }
