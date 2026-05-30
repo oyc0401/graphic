@@ -262,7 +262,7 @@ function createResizeManager(canvas, gl) {
         );
 
         bitmapManager.applyResizeDirtyRect(
-          await beforePixel.getPixelData(true),
+          await beforePixel.getPixelData(),
           renderRect.width,
           renderRect.height,
         );
@@ -391,7 +391,7 @@ function createResizeManager(canvas, gl) {
         );
 
         bitmapManager.applyResizeDirtyRect(
-          afterPixelReader.getPixelData(true),
+          afterPixelReader.getPixelData(),
           newWidth,
           newHeight,
         );

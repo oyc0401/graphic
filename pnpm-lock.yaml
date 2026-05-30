@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@types/lz4js':
+        specifier: ^0.2.2
+        version: 0.2.2
       callink:
         specifier: ^1.0.1
         version: 1.0.1
@@ -20,6 +23,9 @@ importers:
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.5)
+      lz4js:
+        specifier: ^0.2.0
+        version: 0.2.0
       mobx:
         specifier: ^6.13.7
         version: 6.15.0
@@ -1027,6 +1033,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/lz4js@0.2.2':
+    resolution: {integrity: sha512-pqXfoJ2AwllcLTf1Nia0+HT1KHj8z4wWo3bBP6vn7Aen5ySywBqrh/u1TyBwWxuKDS+mPzVHkPbHivqZEfk6pA==}
+
   '@types/node@22.19.17':
     resolution: {integrity: sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q==}
 
@@ -1424,6 +1433,9 @@ packages:
     resolution: {integrity: sha512-+1mdWcfSJVUsaTIjN9zoezmUhfXo5l0vP7ekBMPo3jcS/aIkxHnXqAPsByszMZx/Y8oQBRJxJx5xg+RH3urzxA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lz4js@0.2.0:
+    resolution: {integrity: sha512-gY2Ia9Lm7Ep8qMiuGRhvUq0Q7qUereeldZPP1PMEJxPtEWHJLqw9pgX68oHajBH0nzJK4MaZEA/YNV3jT8u8Bg==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2451,6 +2463,8 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/lz4js@0.2.2': {}
+
   '@types/node@22.19.17':
     dependencies:
       undici-types: 6.21.0
@@ -2841,6 +2855,8 @@ snapshots:
   lucide-react@1.14.0(react@19.2.5):
     dependencies:
       react: 19.2.5
+
+  lz4js@0.2.0: {}
 
   magic-string@0.30.21:
     dependencies:

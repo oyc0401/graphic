@@ -180,7 +180,7 @@ function makeSourceTextureManager(canvas, gl) {
     const bitmapManager = getBitmapManager();
 
     //pushLowQueue(gl, async () => {
-    bitmapManager.applyDirtyRect(await pixelReader.getPixelData(true), rect);
+    bitmapManager.applyDirtyRect(await pixelReader.getPixelData(), rect);
     //});
   }
 
