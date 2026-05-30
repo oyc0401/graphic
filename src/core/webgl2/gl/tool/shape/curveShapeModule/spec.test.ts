@@ -1,0 +1,68 @@
+import { describe, it } from "vitest";
+import { createCurveShape } from ".";
+
+describe("curveShapeModule", () => {
+  it("스펙을 만족해야 한다", () => {
+    const _: () => void = () => {
+      const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
+      const gl = canvas.getContext("webgl2")!;
+
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // 곡선이 담긴 텍스처
+      const shapeTexture = gl.createTexture()!;
+
+      // 원본 이미지가 담긴 텍스처
+      const imageTexture = gl.createTexture()!;
+
+      // 실제 화면에 보여지는 텍스쳐
+      const resultTexture = gl.createTexture()!;
+
+      type Rect = { x: number; y: number; width: number; height: number };
+      type Point = { x: number; y: number };
+
+      interface CurveShapeInterface {
+        setColor(color: [number, number, number, number]): void;
+        setWidth(width: number): void;
+        create(p1: Point, p2: Point, p3: Point, p4: Point | null): Rect;
+        apply(rect: Rect): Rect;
+      }
+
+      const curveShape: CurveShapeInterface = createCurveShape(gl, {
+        shapeTexture, // 이건 내부에서 막 지워도 되는 텍스쳐.
+        imageTexture,
+        resultTexture,
+        width,
+        height,
+      });
+
+      curveShape.setColor([1, 0, 0, 0.8]);
+      curveShape.setWidth(12);
+
+      // 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
+      const rect1 = curveShape.create({ x: 260, y: 160 }, { x: 520, y: 160 }, { x: 320, y: 40 }, null);
+
+      // 외부에서는 이 rect를 가지고 shapeTexture를 화면에 렌더링 시킬거고
+      render(); // 매 프레임마다 자동 수행되는 렌더함수
+
+      // apply하면 shapeTexture의 일부분을 imageTexture를 보고 resultTexture에 반영시키고, rect2는 실제 반영된 visibleRect임.
+      const rect2 = curveShape.apply(rect1);
+
+      // 반영시킨 이후에 외부에서 rect2부분을 가지고 스냅샷을 만들고 히스토리를 만든다.
+
+      // 대충 resultTexture를 화면 어딘가에 렌더링한다는 함수
+      function render() {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        gl.bindTexture(gl.TEXTURE_2D, resultTexture);
+
+        // resultTexture를 읽는 셰이더와 fullscreen quad는 있다고 치자.
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      console.log(rect1, rect2);
+    };
+  });
+});
