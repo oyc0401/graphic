@@ -35,16 +35,18 @@ class ShapeManager {
   private readonly layerManager;
   private readonly renderingManager;
   private readonly shapeTexture: WebGLTexture;
-  private readonly rectangleModule;
-  private readonly ellipseModule;
-  private readonly lineModule;
-  private readonly curveModule;
+  private rectangleModule;
+  private ellipseModule;
+  private lineModule;
+  private curveModule;
   private activeKind: ShapeKind | null = null;
   private shapeRect: ShapeRect | null = null;
   private beforeShapeRect: ShapeRect | null = null;
   private shapePos: ShapeRect = { ...EMPTY_RECT };
   private hasInitialHistory: boolean = false;
   private linePoints: LinePoints | null = null;
+  private resourceWidth = 0;
+  private resourceHeight = 0;
 
   constructor(
     private canvas: OffscreenCanvas,
@@ -55,6 +57,16 @@ class ShapeManager {
     this.renderingManager = getRenderingManager(canvas, gl);
 
     this.shapeTexture = gl.createTexture()!;
+    const modules = this.createModules();
+    this.rectangleModule = modules.rectangleModule;
+    this.ellipseModule = modules.ellipseModule;
+    this.lineModule = modules.lineModule;
+    this.curveModule = modules.curveModule;
+    this.resourceWidth = paintOptions.width;
+    this.resourceHeight = paintOptions.height;
+  }
+
+  private createModules() {
     const shapeOptions = {
       imageTexture: this.sourceTextureManager.texture,
       resultTexture: this.layerManager.getLayerTex(paintOptions.layerId),
@@ -62,13 +74,16 @@ class ShapeManager {
       width: paintOptions.width,
       height: paintOptions.height,
     };
-    this.rectangleModule = createRectangle(gl, shapeOptions);
-    this.ellipseModule = createEllipse(gl, shapeOptions);
-    this.lineModule = createLineShape(gl, shapeOptions);
-    this.curveModule = createCurveShape(gl, shapeOptions);
+    return {
+      rectangleModule: createRectangle(this.gl, shapeOptions),
+      ellipseModule: createEllipse(this.gl, shapeOptions),
+      lineModule: createLineShape(this.gl, shapeOptions),
+      curveModule: createCurveShape(this.gl, shapeOptions),
+    };
   }
 
   start(kind: ShapeKind) {
+    this.ensureSize();
     const previousRect = this.hideShapePreview();
     this.activeKind = kind;
     this.shapeRect = null;
@@ -81,6 +96,7 @@ class ShapeManager {
   }
 
   setRect(x: number, y: number, width: number, height: number) {
+    this.ensureSize();
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
 
     const rect = { x, y, width, height };
@@ -125,6 +141,7 @@ class ShapeManager {
   }
 
   setLine(p1: Pointer, p2: Pointer, c1?: Pointer | null, c2?: Pointer | null) {
+    this.ensureSize();
     if (this.activeKind !== "line" && this.activeKind !== "curve") return;
 
     // Always track latest endpoints so undo/redo can re-create the texture
@@ -176,6 +193,7 @@ class ShapeManager {
   }
 
   updateOptions() {
+    this.ensureSize();
     if (!paintOptions.showShape) return;
 
     if (this.activeKind === "rect" || this.activeKind === "ellipse") {
@@ -196,6 +214,7 @@ class ShapeManager {
   }
 
   transformRect(x: number, y: number, width: number, height: number) {
+    this.ensureSize();
     if (this.activeKind !== "rect" && this.activeKind !== "ellipse") return;
     this.drawRectDraft({ x, y, width, height });
   }
@@ -229,6 +248,7 @@ class ShapeManager {
   }
 
   apply() {
+    this.ensureSize();
     if (!paintOptions.showShape || isEmptyRect(this.shapePos)) {
       this.clearDraft();
       return;
@@ -303,6 +323,7 @@ class ShapeManager {
   }
 
   getPosition() {
+    this.ensureSize();
     return {
       x: this.shapePos.x,
       y: this.shapePos.y,
@@ -312,7 +333,47 @@ class ShapeManager {
   }
 
   getTexture() {
+    this.ensureSize();
     return this.shapeTexture;
+  }
+
+  private ensureSize() {
+    if (
+      this.resourceWidth === paintOptions.width &&
+      this.resourceHeight === paintOptions.height
+    ) {
+      return;
+    }
+
+    this.rectangleModule.destroy();
+    this.ellipseModule.destroy();
+    this.lineModule.destroy();
+    this.curveModule.destroy();
+
+    const modules = this.createModules();
+    this.rectangleModule = modules.rectangleModule;
+    this.ellipseModule = modules.ellipseModule;
+    this.lineModule = modules.lineModule;
+    this.curveModule = modules.curveModule;
+    this.resourceWidth = paintOptions.width;
+    this.resourceHeight = paintOptions.height;
+
+    if (!paintOptions.showShape) return;
+
+    this.applyOptions();
+    if ((this.activeKind === "rect" || this.activeKind === "ellipse") && this.shapeRect) {
+      this.shapePos =
+        this.activeKind === "ellipse"
+          ? this.ellipseModule.create(this.shapeRect)
+          : this.rectangleModule.create(this.shapeRect);
+    } else if ((this.activeKind === "line" || this.activeKind === "curve") && this.linePoints) {
+      const { p1, p2, c1, c2 } = this.linePoints;
+      this.shapePos =
+        this.activeKind === "curve"
+          ? this.curveModule.create(p1, p2, c1, c2)
+          : this.lineModule.create(p1, p2);
+    }
+    paintOptions.showShape = !isEmptyRect(this.shapePos);
   }
 
   private applyOptions() {

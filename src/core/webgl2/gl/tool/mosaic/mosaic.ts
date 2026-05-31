@@ -22,7 +22,6 @@ interface mosaicManager {
   setMode(mode: MosaicMode): void;
   setStrength(strength: number): void;
 
-  setSize: () => void;
 }
 
 const mosaicManagerStore = new Map<any, mosaicManager>();

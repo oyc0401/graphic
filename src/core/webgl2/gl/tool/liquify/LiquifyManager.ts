@@ -24,7 +24,6 @@ interface LiquifyManagerInterface {
   applySession(): void;
   discardSession(): void;
   setTool(toolId: LiquifyTool): void;
-  setSize: () => void;
 }
 
 interface StrokeHistory {
@@ -414,8 +413,6 @@ export class LiquifyManager implements LiquifyManagerInterface {
   setTool(toolId: LiquifyTool) {
     this.toolId = toolId;
   }
-
-  setSize: () => void = () => {};
 
   private destroyModules() {
     this.displacement?.destroy();

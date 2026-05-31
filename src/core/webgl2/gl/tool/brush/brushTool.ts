@@ -52,6 +52,8 @@ class BrushManager {
   private strokeType = StrokeType.Spline;
   private mode: BrushRenderMode = "brush";
   private dirtyRect: BrushRenderRect | null = null;
+  private resourceWidth = 0;
+  private resourceHeight = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -72,6 +74,8 @@ class BrushManager {
     this.imageFBO = modules.imageFBO;
     this.resultFBO = modules.resultFBO;
     this.currentStrokeModule = this.splinePath;
+    this.resourceWidth = paintOptions.width;
+    this.resourceHeight = paintOptions.height;
   }
 
   setMode(nextMode: BrushRenderMode) {
@@ -83,6 +87,7 @@ class BrushManager {
   }
 
   start(pointer: Pointer) {
+    this.ensureSize();
     this.currentStrokeModule = this.selectStrokeModule();
     this.currentStrokeModule.setAlpha(paintOptions.alpha);
     this.currentStrokeModule.setDiameter(paintOptions.radius * 2);
@@ -141,7 +146,14 @@ class BrushManager {
     this.renderingManager.render();
   }
 
-  setSize() {
+  private ensureSize() {
+    if (
+      this.resourceWidth === paintOptions.width &&
+      this.resourceHeight === paintOptions.height
+    ) {
+      return;
+    }
+
     const modules = this.createModules();
     this.alphaMapTexture = modules.alphaMapTexture;
     this.renderModule = modules.renderModule;
@@ -152,6 +164,8 @@ class BrushManager {
     this.imageFBO = modules.imageFBO;
     this.resultFBO = modules.resultFBO;
     this.currentStrokeModule = this.selectStrokeModule();
+    this.resourceWidth = paintOptions.width;
+    this.resourceHeight = paintOptions.height;
   }
 
   private createModules() {

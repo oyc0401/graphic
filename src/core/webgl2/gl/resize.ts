@@ -1,7 +1,5 @@
 import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
 import { getLayerManager } from "./layer";
-import { getLiquifyManager } from "./tool/liquify/liquify";
-import { getBrushManager } from "./tool/brush/brushTool";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render/render";
 import {
@@ -19,8 +17,6 @@ import { Rect } from "@/core/utils/rect";
 export function resizeLayer(canvas, gl, x, y, width, height) {
   const resizeTexManager = getResizeLayerTexManager(canvas, gl);
   const sourceTextureManager = getSourceTextureManager(canvas, gl);
-  const drawManager = getBrushManager(canvas, gl);
-  const liquifyManager = getLiquifyManager(canvas, gl);
   console.log("resizeLayer");
 
   let oldWidth = paintOptions.width;
@@ -43,17 +39,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
   paintOptions.width = width;
   paintOptions.height = height;
 
-  function setToolSize() {
-    sourceTextureManager.setSize();
-    if (!drawManager || !liquifyManager) {
-      console.error("지금 도구가 다운되기 전에 사이즈 변경이 일어남!");
-    } else {
-      drawManager.setSize();
-      liquifyManager.setSize();
-    }
-  }
-
-  setToolSize();
+  sourceTextureManager.setSize();
   const renderingManager = getRenderingManager(canvas, gl);
 
   sourceTextureManager.uploadFromLayer(paintOptions.layerId);
@@ -72,7 +58,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       paintOptions.width = oldWidth;
       paintOptions.height = oldHeight;
 
-      setToolSize();
+      sourceTextureManager.setSize();
 
       for (let snapshot of snapshots) {
         await snapshot.before.apply();
@@ -101,7 +87,7 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
       paintOptions.width = newWidth;
       paintOptions.height = newHeight;
 
-      setToolSize();
+      sourceTextureManager.setSize();
 
       for (let snapshot of snapshots) {
         await snapshot.after.apply();

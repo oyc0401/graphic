@@ -22,7 +22,6 @@ interface liquifyManager {
   discardSession(): void;
   setTool(toolId: LiquifyTool): void;
 
-  setSize: () => void;
 }
 
 const liquifyManagerStore = new Map<any, liquifyManager>();

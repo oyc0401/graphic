@@ -24,7 +24,6 @@ interface MosaicManagerInterface {
   discardSession(): void;
   setMode(mode: MosaicMode): void;
   setStrength(strength: number): void;
-  setSize: () => void;
 }
 
 interface StrokeHistory {
@@ -360,8 +359,6 @@ export class MosaicManager implements MosaicManagerInterface {
     this.pendingRect = this.allStrokesRect;
     this.render();
   }
-
-  setSize: () => void = () => {};
 
   private destroyModules() {
     this.mask?.destroy();
