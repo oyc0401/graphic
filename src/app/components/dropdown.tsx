@@ -23,12 +23,25 @@ import {
 } from "./menu-hooks";
 import { colorState, HsvToCss, rgbToCss } from "../colorState";
 import { getLetter } from "../i18n/language";
+import { historyState } from "../history";
 
 const BUG_REPORT_FORM_URL = "https://forms.gle/P93ZSJqSUBEWEpB79";
 
 const openBugReportForm = () => {
   window.open(BUG_REPORT_FORM_URL, "_blank", "noopener,noreferrer");
   menuState.setShowMenu(false);
+};
+
+const resetImageAndCloseMenu = () => {
+  if (
+    historyState.getUndoCount() + historyState.getRedoCount() > 0 &&
+    !window.confirm(getLetter("new_file_confirm"))
+  ) {
+    return;
+  }
+
+  menuState.setShowMenu(false);
+  resetImage();
 };
 
 export const MainMenuToggleButton = observer(() => {
@@ -78,7 +91,7 @@ export const MainMenuToggleButton = observer(() => {
 
       {menuState.showMenu && (
         <div id="main-menu" ref={menuRef}>
-          <button id="new-button" onClick={resetImage}>
+          <button id="new-button" onClick={resetImageAndCloseMenu}>
             <div className="menu-button-content">
               <NewIcon /> <p>{getLetter("new")}</p>
             </div>
