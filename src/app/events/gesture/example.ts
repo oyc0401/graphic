@@ -3,6 +3,22 @@ import { GestureModule } from "./index";
 const viewport = document.querySelector<HTMLElement>("#viewport")!;
 const scene = document.querySelector<HTMLElement>("#scene")!;
 
+interface GestureModule {
+  element: Element;
+
+  onPointerdown: (event) => void;
+  onPointermove: (event) => void;
+  onPointerup: (event) => void;
+  onPointercancel: (event) => void;
+
+  sceneChanged: (x, y, scale) => void;
+  onPinchStart: () => void;
+  onPinchEnd: () => void;
+
+  onTwoFingerDoubleTap: () => void;
+  onThreeFingerDoubleTap: () => void;
+}
+
 const gesture = new GestureModule({
   element: viewport,
   position: {

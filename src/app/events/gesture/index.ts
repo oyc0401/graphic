@@ -26,10 +26,8 @@ type GestureState =
   | "Ready"
   | "Draw"
   | "Pinch"
-  | "PinchOver"
-  | "PinchFinish"
-  | "PinchFinish2"
-  | "PinchFinish3";
+  | "ThreeFinger"
+  | "CanceledThreeFinger";
 
 type TrackedPointer = {
   pointerId: number;
@@ -43,12 +41,7 @@ type TrackedPointer = {
 const PINCH_START_MS = 150;
 const UNDO_TAP_MS = 150;
 const REDO_TAP_MS = 200;
-const MULTI_TAP_SEQUENCE_MS = 280;
-
-type PendingTap = {
-  kind: "two" | "three";
-  timer: number;
-};
+const DOUBLE_TAP_MS = 200;
 
 export class GestureModule {
   private readonly element: HTMLElement;
@@ -61,7 +54,8 @@ export class GestureModule {
   private pointerdownTime = 0;
   private lastPinchDistance = 0;
   private lastPinchCenter = { x: 0, y: 0 };
-  private pendingTap: PendingTap | null = null;
+  private lastTwoFingerTapTime: number | null = null;
+  private lastThreeFingerTapTime: number | null = null;
   private readonly pointers = new Map<number, TrackedPointer>();
   private readonly blockedPointerIds = new Set<number>();
 
@@ -104,7 +98,6 @@ export class GestureModule {
     window.removeEventListener("pointercancel", this.handleBubblePointercancel);
     this.pointers.clear();
     this.blockedPointerIds.clear();
-    this.clearPendingTap();
   }
 
   private handlePointerdown = (event: PointerEvent) => {
@@ -152,23 +145,25 @@ export class GestureModule {
       case "Pinch": {
         event.preventDefault();
         const elapsed = now - this.pointerdownTime;
-        if (elapsed > PINCH_START_MS) {
-          this.blockPointerEvent(event);
-          return;
-        }
 
         this.blockPointerEvent(event);
         this.addPointer(event);
         this.pointerdownTime = now;
-        this.state = "PinchOver";
+        this.state = elapsed <= PINCH_START_MS
+          ? "ThreeFinger"
+          : "CanceledThreeFinger";
         return;
       }
 
-      case "PinchOver":
-      case "PinchFinish":
-      case "PinchFinish2":
-      case "PinchFinish3":
+      case "ThreeFinger":
         this.blockPointerEvent(event);
+        this.addPointer(event);
+        this.pointerdownTime = now;
+        return;
+
+      case "CanceledThreeFinger":
+        this.blockPointerEvent(event);
+        this.addPointer(event);
         return;
     }
   };
@@ -210,7 +205,11 @@ export class GestureModule {
 
     if (this.state === "Draw") return;
 
-    if (this.state === "Pinch" || this.state === "PinchOver") {
+    if (
+      this.state === "Pinch" ||
+      this.state === "ThreeFinger" ||
+      this.state === "CanceledThreeFinger"
+    ) {
       const pointers = this.getPointers();
       if (pointers.length < 2) return;
       this.updatePinch(pointers[0], pointers[1]);
@@ -252,17 +251,19 @@ export class GestureModule {
       case "Ready":
         return;
       case "Pinch":
-        this.state = "PinchFinish";
-        return;
-      case "PinchOver":
-        this.state = "PinchFinish2";
-        return;
-      case "PinchFinish2":
-        this.state = "PinchFinish3";
-        return;
-      case "PinchFinish":
-      case "PinchFinish3":
         this.finishGesture();
+        return;
+      case "ThreeFinger":
+        if (this.pointers.size === 0) {
+          this.finishGesture();
+        } else {
+          this.state = "CanceledThreeFinger";
+        }
+        return;
+      case "CanceledThreeFinger":
+        if (this.pointers.size === 0) {
+          this.finishGesture();
+        }
         return;
     }
   };
@@ -398,44 +399,41 @@ export class GestureModule {
     switch (this.state) {
       case "Ready":
         return;
-      case "Pinch":
-        this.state = "PinchFinish";
-        return;
-      case "PinchFinish": {
+      case "Pinch": {
+        if (this.pointers.size > 0) return;
+
         const shouldResolveTap = now - this.pointerdownTime <= UNDO_TAP_MS;
         this.finishGesture();
         if (shouldResolveTap) {
-          this.resolveTwoFingerTap();
+          this.resolveTwoFingerTap(now);
         }
         return;
       }
-      case "PinchOver":
-        this.state = "PinchFinish2";
-        return;
-      case "PinchFinish2":
-        this.state = "PinchFinish3";
-        return;
-      case "PinchFinish3": {
+      case "ThreeFinger": {
+        if (this.pointers.size > 0) return;
+
         const shouldResolveTap = now - this.pointerdownTime <= REDO_TAP_MS;
         this.finishGesture();
         if (shouldResolveTap) {
-          this.resolveThreeFingerTap();
+          this.resolveThreeFingerTap(now);
         }
         return;
       }
+      case "CanceledThreeFinger":
+        if (this.pointers.size === 0) {
+          this.finishGesture();
+        }
+        return;
       case "Draw":
         return;
     }
   }
 
   private finishGesture() {
-    if (this.state === "Pinch" || this.state === "PinchFinish") {
-      this.options.onPinchEnd();
-    }
     if (
-      this.state === "PinchOver" ||
-      this.state === "PinchFinish2" ||
-      this.state === "PinchFinish3"
+      this.state === "Pinch" ||
+      this.state === "ThreeFinger" ||
+      this.state === "CanceledThreeFinger"
     ) {
       this.options.onPinchEnd();
     }
@@ -481,43 +479,32 @@ export class GestureModule {
     return Math.min(this.maxScale, Math.max(this.minScale, scale));
   }
 
-  private resolveTwoFingerTap() {
-    if (this.pendingTap?.kind === "two") {
-      this.clearPendingTap();
+  private resolveTwoFingerTap(now: number) {
+    if (
+      this.lastTwoFingerTapTime !== null &&
+      now - this.lastTwoFingerTapTime <= DOUBLE_TAP_MS
+    ) {
+      this.lastTwoFingerTapTime = null;
       this.options.onTwoFingerDoubleTap();
       return;
     }
 
-    this.clearPendingTap();
+    this.lastTwoFingerTapTime = now;
     this.options.onTwoFingerTap();
-    this.setPendingTap("two");
   }
 
-  private resolveThreeFingerTap() {
-    if (this.pendingTap?.kind === "three") {
-      this.clearPendingTap();
+  private resolveThreeFingerTap(now: number) {
+    if (
+      this.lastThreeFingerTapTime !== null &&
+      now - this.lastThreeFingerTapTime <= DOUBLE_TAP_MS
+    ) {
+      this.lastThreeFingerTapTime = null;
       this.options.onThreeFingerDoubleTap();
       return;
     }
 
-    this.clearPendingTap();
+    this.lastThreeFingerTapTime = now;
     this.options.onThreeFingerTap();
-    this.setPendingTap("three");
-  }
-
-  private setPendingTap(kind: PendingTap["kind"]) {
-    this.pendingTap = {
-      kind,
-      timer: window.setTimeout(() => {
-        this.pendingTap = null;
-      }, MULTI_TAP_SEQUENCE_MS),
-    };
-  }
-
-  private clearPendingTap() {
-    if (!this.pendingTap) return;
-    window.clearTimeout(this.pendingTap.timer);
-    this.pendingTap = null;
   }
 
   private createSyntheticPointerEvent(

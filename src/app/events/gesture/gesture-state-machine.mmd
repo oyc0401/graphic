@@ -1,36 +1,46 @@
+
 flowchart TD
-    %% 사각형 = 상태
-    %% 육각형 이벤트 = 화살표 라벨로 표현
-    %% 마름모 = 분기
 
     Start((●)) --> Ready[Ready]
 
     Ready -- down --> Draw[Draw]
-    Draw -- up --> Ready
-    Draw -- cancel --> Ready
+
+    Draw -- up/cancel --> Ready
     Draw -- down --> CheckDraw{"d ≤ 150"}
 
-   
+    CheckDraw -- YES --> DispatchCancel["cancel()"]
+    CheckDraw -- NO --> DispatchUp["up()"]
 
-    CheckDraw -- Y --> Cancel((Cancel))
-    Cancel --> Pinch[Pinch]
-    CheckDraw -- N --> EndDraw((Dispatch Up))
-    EndDraw --> Pinch
+    DispatchUp --> Pinch[Pinch]
+    DispatchCancel --> Pinch
 
-    Pinch -- cancel --> PinchFinish
-    Pinch -- up --> PinchFinish[PinchFinish]
-    PinchFinish -- cancel --> EndUndo
-    PinchFinish -- up --> CheckUndo{"d ≤ 150"}
-    CheckUndo -- Y --> Undo((Undo))
-    CheckUndo --> EndUndo(((●)))
+    Pinch -- cancel --> EndUndo(((●)))
 
-    Pinch -- down --> CheckPinchOver{"d ≤ 150"}
-    CheckPinchOver -- Y --> PinchOver[PinchOver]
-    PinchOver -- cancel --> PinchFinish2
-    PinchOver -- up --> PinchFinish2[PinchFinish2]
-    PinchFinish2 -- cancel --> PinchFinish3
-    PinchFinish2 -- up --> PinchFinish3[PinchFinish3]
-    PinchFinish3 -- cancel --> EndRedo
-    PinchFinish3 -- up --> CheckRedo{"d ≤ 200"}
-    CheckRedo -- Y --> Redo((Redo))
-    CheckRedo --> EndRedo(((●)))
+    Pinch -- up --> CheckPointerCount{"pointerCount == 0"}
+    CheckPointerCount -- NO --> Pinch
+    CheckPointerCount -- YES --> CheckUndoTime{"d ≤ 150"}
+
+    CheckUndoTime -- NO --> EndUndo
+    CheckUndoTime -- YES --> CheckTwoFingerDouble{"d2 ≤ 200"}
+
+    CheckTwoFingerDouble -- YES --> TwoFingerDoubleTap((twoFingerDoubleTap))
+    CheckTwoFingerDouble -- NO --> TwoFingerTap((twoFingerTap))
+
+    Pinch -- down --> CheckThreeFinger{"d ≤ 150"}
+
+    CheckThreeFinger -- YES --> ThreeFinger[ThreeFinger]
+    CheckThreeFinger -- NO --> CanceledThreeFinger[CanceledThreeFinger]
+
+    ThreeFinger -- cancel --> CanceledThreeFinger
+
+    ThreeFinger -- up --> CheckThreePointerCount{"pointerCount == 0"}
+    CheckThreePointerCount -- NO --> ThreeFinger
+    CheckThreePointerCount -- YES --> CheckRedoTime{"d ≤ 200"}
+
+    CheckRedoTime -- NO --> EndRedo(((●)))
+    CheckRedoTime -- YES --> CheckThreeFingerDouble{"d3 ≤ 200"}
+
+    CheckThreeFingerDouble -- YES --> ThreeFingerDoubleTap((threeFingerDoubleTap))
+    CheckThreeFingerDouble -- NO --> ThreeFingerTap((threeFingerTap))
+
+    CanceledThreeFinger -- up/cancel --> EndRedo
