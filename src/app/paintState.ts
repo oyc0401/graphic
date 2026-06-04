@@ -63,7 +63,9 @@ type LiquifyBrushSettingsId =
   | typeof LIQUIFY_SCALE_SETTINGS_ID
   | LiquifyToolId.Restore;
 
-type BrushSettingsId =
+type BrushSizeSettingsId = BrushId | SessionId | ToolId.FloodFill;
+
+type BrushAlphaSettingsId =
   | BrushId
   | SessionId.Mosaic
   | ToolId.FloodFill
@@ -95,10 +97,7 @@ class PaintState {
     [BrushId.Eraser]: 10,
     [ToolId.FloodFill]: 0,
     [SessionId.Mosaic]: 100,
-    [LiquifyToolId.Push]: 100,
-    [LIQUIFY_TWIRL_SETTINGS_ID]: 100,
-    [LIQUIFY_SCALE_SETTINGS_ID]: 100,
-    [LiquifyToolId.Restore]: 100,
+    [SessionId.Liquify]: 100,
   };
   // 도구별 브러시 불투명도/강도 설정.
   private _brushAlpha = {
@@ -168,7 +167,7 @@ class PaintState {
     this._cursorY = y;
   }
   setBrushSize(size: number) {
-    const settingsId = this.getBrushSettingsId();
+    const settingsId = this.getBrushSizeSettingsId();
     const nextSize =
       settingsId === ToolId.FloodFill
         ? Math.max(0, Math.min(100, Math.round(size)))
@@ -180,7 +179,7 @@ class PaintState {
     worker?.setStrokeSize(nextSize);
   }
   setBrushAlpha(alpha: number) {
-    this._brushAlpha[this.getBrushSettingsId()] = alpha;
+    this._brushAlpha[this.getBrushAlphaSettingsId()] = alpha;
     if (this._sessionId === SessionId.Mosaic) {
       getLayerWorker()?.setMosaicStrength(alpha);
     }
@@ -196,10 +195,10 @@ class PaintState {
   /** Getter functions */
 
   getBrushSize() {
-    return this._brushSize[this.getBrushSettingsId()];
+    return this._brushSize[this.getBrushSizeSettingsId()];
   }
   getBrushAlpha() {
-    return this._brushAlpha[this.getBrushSettingsId()];
+    return this._brushAlpha[this.getBrushAlphaSettingsId()];
   }
   getSessionId() {
     return this._sessionId;
@@ -249,7 +248,16 @@ class PaintState {
 
   /** .etc */
 
-  private getBrushSettingsId(): BrushSettingsId {
+  private getBrushSizeSettingsId(): BrushSizeSettingsId {
+    if (this._sessionId) {
+      return this._sessionId;
+    }
+    return this._selectedToolId === ToolId.FloodFill
+      ? ToolId.FloodFill
+      : this._brushId;
+  }
+
+  private getBrushAlphaSettingsId(): BrushAlphaSettingsId {
     if (!this._sessionId) {
       return this._selectedToolId === ToolId.FloodFill
         ? ToolId.FloodFill
