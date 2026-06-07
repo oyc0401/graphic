@@ -1,0 +1,61 @@
+flowchart TD
+    PaintState[PaintState]
+
+    PaintState --> Session["_sessionId"]
+    PaintState --> InputMode["_inputMode"]
+    PaintState --> TemporaryTool["_temporaryToolId"]
+    PaintState --> SelectedTool["_selectedToolId"]
+
+    Session --> SessionNull["null: normal edit"]
+    Session --> LiquifySession["SessionId.Liquify"]
+    Session --> MosaicSession["SessionId.Mosaic"]
+
+    InputMode --> DefaultInput["InputMode.DEFAULT"]
+    InputMode --> PanInput["InputMode.Pan"]
+    InputMode --> PinchInput["InputMode.Pinch"]
+    InputMode --> ZoomInput["InputMode.Zoom"]
+
+    TemporaryTool --> NoTemporary["null"]
+    TemporaryTool --> ColorPickerTemporary["TemporaryToolId.ColorPicker"]
+    TemporaryTool --> ResizeTemporary["TemporaryToolId.Resize"]
+
+    SelectedTool --> BrushTool["ToolId.Brush"]
+    SelectedTool --> SelectTool["ToolId.Select"]
+    SelectedTool --> FreeformSelectTool["ToolId.FreeformSelect"]
+    SelectedTool --> ShapeTool["ToolId.Shape"]
+    SelectedTool --> FloodFillTool["ToolId.FloodFill"]
+    SelectedTool --> ZoomTool["ToolId.Zoom"]
+    SelectedTool --> ColorPickerTool["ToolId.ColorPicker"]
+
+    BrushTool --> BrushId["_brushId"]
+    BrushId --> Brush["BrushId.Brush"]
+    BrushId --> Pencil["BrushId.Pencil"]
+    BrushId --> Eraser["BrushId.Eraser"]
+
+    ShapeTool --> ShapeId["_shapeId"]
+    ShapeId --> Rect["ShapeId.Rect"]
+    ShapeId --> Ellipse["ShapeId.Ellipse"]
+
+    LiquifySession --> LiquifyToolId["_liquifyToolId"]
+    LiquifyToolId --> Push["LiquifyToolId.Push"]
+    LiquifyToolId --> TwirlClockwise["LiquifyToolId.TwirlClockwise"]
+    LiquifyToolId --> TwirlCounterClockwise["LiquifyToolId.TwirlCounterClockwise"]
+    LiquifyToolId --> Bloat["LiquifyToolId.Bloat"]
+    LiquifyToolId --> Pucker["LiquifyToolId.Pucker"]
+    LiquifyToolId --> LiquifyRestore["LiquifyToolId.Restore"]
+
+    MosaicSession --> MosaicToolId["_mosaicToolId"]
+    MosaicToolId --> Pixel["MosaicToolId.Pixel"]
+    MosaicToolId --> Blur["MosaicToolId.Blur"]
+    MosaicToolId --> MosaicRestore["MosaicToolId.Restore"]
+
+    subgraph ActiveToolResolution["active tool resolution priority"]
+        ResolveInput["_inputMode"]
+        ResolveSession["_sessionId"]
+        ResolveTemporary["_temporaryToolId"]
+        ResolveSelected["_selectedToolId"]
+
+        ResolveInput --> ResolveSession
+        ResolveSession --> ResolveTemporary
+        ResolveTemporary --> ResolveSelected
+    end
