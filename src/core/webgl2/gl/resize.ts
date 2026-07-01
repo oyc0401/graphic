@@ -64,8 +64,6 @@ export function resizeLayer(canvas, gl, x, y, width, height) {
         await snapshot.before.apply();
       }
 
-      const sourceTextureManager = getSourceTextureManager(canvas, gl);
-
       //await lowQueue.finish();
 
       sourceTextureManager.uploadFromLayer(paintOptions.layerId);
