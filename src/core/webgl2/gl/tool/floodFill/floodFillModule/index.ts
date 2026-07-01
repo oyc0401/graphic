@@ -56,7 +56,6 @@ class FloodFill {
     if (this.alpha === 0) return null;
 
     const pixels = this.readResult();
-    const beforePixels = new Uint8Array(pixels);
     const seedIndex = this.pixelIndex(seedPoint.x, seedPoint.y);
     const seed = this.readSeed(pixels, seedIndex);
     const fillColor = this.getFillColor();
@@ -67,7 +66,6 @@ class FloodFill {
     this.dirtyRect = null;
     this.enqueue(queue, queued, seedPoint.x, seedPoint.y);
 
-    const oklabStart = performance.now();
     while (queue.length > 0) {
       const current = queue.pop()!;
       if (!this.canFill(pixels, visited, current.x, current.y, seed)) {
@@ -94,10 +92,6 @@ class FloodFill {
         this.enqueueIfFillable(queue, queued, pixels, visited, x, current.y + 1, seed);
       }
     }
-    const oklabMs = performance.now() - oklabStart;
-    const rgbaMs = this.measureRgbaDistanceFill(beforePixels, seedPoint, seed);
-    console.log(`[FloodFill] OKLab ${oklabMs.toFixed(2)}ms, RGBA distance estimate ${rgbaMs.toFixed(2)}ms`);
-
     const rect = this.dirtyRect;
     if (!rect || rect.width === 0 || rect.height === 0) {
       this.dirtyRect = null;

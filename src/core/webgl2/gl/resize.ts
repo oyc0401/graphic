@@ -1,12 +1,13 @@
-import { TEXTURE_UNIT, getSourceTextureManager, paintOptions } from "./texture";
+import {
+  TEXTURE_UNIT,
+  getSourceTextureManager,
+  paintOptions,
+  Snapshot,
+} from "./texture";
 import { getLayerManager } from "./layer";
 import { getManager } from "../../utils/cachedManager";
 import { getOffscreenManager, getRenderingManager } from "./render/render";
-import {
-  getHistoryManager,
-  HistoryObject,
-  Snapshot,
-} from "../../history/history";
+import { getHistoryManager, HistoryObject } from "../../history/history";
 import { PixelStore } from "../../history/PixelStore";
 import { getBitmapManager } from "../../canvas/bitmap";
 import { Rect } from "@/core/utils/rect";
@@ -349,7 +350,7 @@ function createResizeManager(canvas, gl) {
     let newRect = Rect.fromWidth(0, 0, newWidth, newHeight);
 
     bitmapManager.applyResizeDirtyRect(
-      afterPixelReader.getPixelData(true),
+      afterPixelReader.getPixelData(),
       newWidth,
       newHeight,
     );

@@ -88,6 +88,11 @@ export function addClipboardEvent() {
     const items = event.clipboardData?.items;
     if (!items) return;
 
+    // getAsFile()/preventDefault는 이벤트 디스패치 중 동기적으로 호출해야 한다.
+    // await 이후엔 DataTransfer가 비활성화돼 두 번째 이미지의 getAsFile()이 null이 되고,
+    // preventDefault()도 이미 늦어 기본 붙여넣기를 못 막는다. 먼저 동기로 파일을 모은다.
+    const imageFiles: File[] = [];
+
     for (const item of Array.from(items)) {
       console.log(item);
 
@@ -111,27 +116,27 @@ export function addClipboardEvent() {
           console.log(str);
         });
       }
-      if (item.kind === "file") {
-        let file = item.getAsFile();
-        console.log(file);
-      }
 
       if (item.type.startsWith("image/")) {
         const blob = item.getAsFile();
-        if (!blob) continue;
+        if (blob) imageFiles.push(blob);
+      }
+    }
 
-        const bitmap = await createImageBitmap(blob, {
-          imageOrientation: "flipY",
-          premultiplyAlpha: "premultiply",
-        });
+    if (imageFiles.length === 0) return;
+    event.preventDefault(); // 기본 붙여넣기 막기 (await 전에 동기 호출)
 
-        event.preventDefault(); // 기본 동작 막기
-        console.log("onpaste 이미지 붙여넣기 실행!");
-        if (historyState.getUndoCount() + historyState.getRedoCount() > 0) {
-          makeSelectionFromBitmap(bitmap);
-        } else {
-          uploadImage(bitmap);
-        }
+    for (const blob of imageFiles) {
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: "flipY",
+        premultiplyAlpha: "premultiply",
+      });
+
+      console.log("onpaste 이미지 붙여넣기 실행!");
+      if (historyState.getUndoCount() + historyState.getRedoCount() > 0) {
+        makeSelectionFromBitmap(bitmap);
+      } else {
+        uploadImage(bitmap);
       }
     }
   });
@@ -210,7 +215,7 @@ export async function copyPixelsToClipboard(
   const pngData = encode({ width, height, data: pixels });
 
   // 2. Blob 생성
-  const blob = new Blob([pngData], { type: "image/png" });
+  const blob = new Blob([pngData as BlobPart], { type: "image/png" });
   const item = new ClipboardItem({ "image/png": blob });
   await navigator.clipboard.write([item]);
 
@@ -295,7 +300,7 @@ export async function downloadPixels(
   const pngData = encode({ width, height, data: pixels });
 
   // 2. Blob 생성
-  const blob = new Blob([pngData], { type: "image/png" });
+  const blob = new Blob([pngData as BlobPart], { type: "image/png" });
 
   // 3. 다운로드 링크 생성
   const url = URL.createObjectURL(blob);

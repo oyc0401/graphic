@@ -147,6 +147,9 @@ export class MosaicManager implements MosaicManagerInterface {
     const gl = this.gl;
     const pixels = new Uint8Array(rect.width * rect.height);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+    // R8(1byte/px) 마스크는 기본 정렬(4)이면 폭이 4의 배수가 아닐 때
+    // readPixels가 INVALID_OPERATION을 던지므로 정렬을 1로 맞춘다.
+    gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
     gl.readPixels(rect.x, rect.y, rect.width, rect.height, gl.RED, gl.UNSIGNED_BYTE, pixels);
     return pixels;
   }
@@ -155,6 +158,7 @@ export class MosaicManager implements MosaicManagerInterface {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.texSubImage2D(
       gl.TEXTURE_2D, 0,
       rect.x, rect.y, rect.width, rect.height,

@@ -269,8 +269,6 @@ export function selectionCancel() {
         selection.flipH,
         selection.flipV,
       );
-
-      activeHandle = null;
     }
     selection.active = false;
   } else {

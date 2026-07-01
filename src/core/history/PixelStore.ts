@@ -43,7 +43,7 @@ export class PixelStore<T extends PixelTypedArray = any> {
 
   getPixelData(): T {
     const decompressed = lz4.decompress(this.compressed) as Uint8Array;
-    return new this.TypedArrayConstructor(decompressed.buffer);
+    return new this.TypedArrayConstructor(decompressed.buffer as ArrayBuffer);
   }
 }
 

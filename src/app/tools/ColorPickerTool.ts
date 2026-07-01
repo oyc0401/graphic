@@ -54,8 +54,11 @@ export class ColorPickerTool implements Tool {
   }
 
   up() {
-    if (!this.pointerStarted || !this.canUse()) return;
+    if (!this.pointerStarted) return;
+    // 진행 중이던 상호작용은 canUse 여부와 무관하게 항상 종료 처리해야
+    // pointerStarted가 true로 고착돼 이후 hover만으로 샘플링되는 걸 막는다.
     this.pointerStarted = false;
+    if (!this.canUse()) return;
     paintState.setTemporaryToolId(null);
   }
 

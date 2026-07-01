@@ -69,8 +69,11 @@ export class ZoomTool implements Tool {
     if (zoomW < 10 || zoomH < 10) {
       let newMag = position.scale;
       newMag *= e.button === 2 ? 1 / 1.5 : 1.5;
+      // 드래그(고무줄) 분기는 max_scale로 클램프하는데 클릭 분기만 여기에 dpr을
+      // 한 번 더 곱해(=MAX_SCALE*dpr²) 레티나에서 탭 줌이 드래그보다 dpr배 더
+      // 확대됐다. 두 분기의 최대 배율을 max_scale로 일치시킨다.
       const clamped = Math.min(
-        max_scale * getPixelRatio(),
+        max_scale,
         Math.max(MIN_SCALE, newMag),
       );
       setMagification(clamped, to_screen_coord(e.clientX, e.clientY));

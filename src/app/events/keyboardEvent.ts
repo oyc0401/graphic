@@ -50,6 +50,7 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   KeyE: "e",
   KeyF: "f",
   KeyL: "l",
+  KeyM: "m",
   KeyP: "p",
   KeyR: "r",
   KeyS: "s",
@@ -57,18 +58,33 @@ const eventCodeToShortcutKey: Partial<Record<string, KeyboardShortcutKey>> = {
   Delete: "delete",
 };
 
-const commonCommandShortcuts =
-  keyboardShortcuts.commonShortcuts.filter(isCommandShortcut);
-const mainCommandShortcuts =
-  keyboardShortcuts.mainShortcuts.filter(isCommandShortcut);
-const liquifyCommandShortcuts =
-  keyboardShortcuts.liquifyShortcuts.filter(isCommandShortcut);
-const mosaicCommandShortcuts =
-  keyboardShortcuts.mosaicShortcuts.filter(isCommandShortcut);
-const temporaryShortcuts =
-  keyboardShortcuts.commonShortcuts.filter(isTemporaryShortcut);
-const mainTemporaryShortcuts =
-  keyboardShortcuts.mainShortcuts.filter(isTemporaryShortcut);
+// `as const` 튜플에 타입가드 filter를 걸면 요소 리터럴 타입이 좁혀지지 않으므로
+// (KeyboardShortcut을 거쳐) 명시적으로 결과 타입을 지정한다.
+const filterCommandShortcuts = (
+  shortcuts: readonly KeyboardShortcut[],
+): CommandShortcut[] => shortcuts.filter(isCommandShortcut);
+const filterTemporaryShortcuts = (
+  shortcuts: readonly KeyboardShortcut[],
+): TemporaryShortcut[] => shortcuts.filter(isTemporaryShortcut);
+
+const commonCommandShortcuts = filterCommandShortcuts(
+  keyboardShortcuts.commonShortcuts,
+);
+const mainCommandShortcuts = filterCommandShortcuts(
+  keyboardShortcuts.mainShortcuts,
+);
+const liquifyCommandShortcuts = filterCommandShortcuts(
+  keyboardShortcuts.liquifyShortcuts,
+);
+const mosaicCommandShortcuts = filterCommandShortcuts(
+  keyboardShortcuts.mosaicShortcuts,
+);
+const temporaryShortcuts = filterTemporaryShortcuts(
+  keyboardShortcuts.commonShortcuts,
+);
+const mainTemporaryShortcuts = filterTemporaryShortcuts(
+  keyboardShortcuts.mainShortcuts,
+);
 
 const commandHandlers = {
   undo,
@@ -333,7 +349,11 @@ function pressTemporaryShortcut(
 }
 
 function releaseTemporaryShortcut(key: KeyboardShortcutKey) {
-  const shortcut = findTemporaryShortcutByKey(key);
+  // 누른 뒤 세션이 바뀌면 active set에서 빠져 findTemporaryShortcutByKey가 못 찾고
+  // 상태가 true로 고착된다. 해제는 컨텍스트와 무관하게 전체 임시 단축키에서 찾는다.
+  const shortcut = [...temporaryShortcuts, ...mainTemporaryShortcuts].find(
+    (s) => s.keys.length === 1 && s.keys[0] === key,
+  );
   if (!shortcut) return;
 
   setTemporaryAction(shortcut.action, false);

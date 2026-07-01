@@ -1,7 +1,7 @@
 import { paintState } from "@/app/paintState";
 import { dispatchPointer } from "@/app/events/dispatchPointer";
 import { toolManager } from "@/app/tools/toolManager";
-import { uploadImage } from "@/app/file";
+import { uploadImage } from "@/app/file/file";
 
 function createFakeEvent(x: number, y: number): PointerEvent {
   const event = new CustomEvent("pointer") as any;

@@ -527,6 +527,7 @@ export class SelectionManager {
     this.beforePos = structuredClone(this.selectionPos);
 
     gl.activeTexture(gl.TEXTURE0 + TEXTURE_UNIT.SOURCE_SELECTION);
+    gl.bindTexture(gl.TEXTURE_2D, this.selectionTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
 
     this.uploadRenderedTex();
@@ -715,13 +716,14 @@ export class SelectionManager {
 
     const sizeChanged = this.selectionPos.width != newWidth || this.selectionPos.height != newHeight;
 
-    if (sizeChanged) {
-      console.log("selection change:", newWidth, newHeight);
+    // flip은 렌더 유니폼이라 크기 변화와 무관하게 항상 반영해야 한다.
+    // (순수 flip은 width/height가 동일해 sizeChanged가 false다.)
+    this.selectionPos.flipH = flipH;
+    this.selectionPos.flipV = flipV;
 
+    if (sizeChanged) {
       this.selectionPos.width = newWidth;
       this.selectionPos.height = newHeight;
-      this.selectionPos.flipH = flipH;
-      this.selectionPos.flipV = flipV;
 
       this.uploadRenderedTex();
     }

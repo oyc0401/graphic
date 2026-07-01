@@ -4,7 +4,7 @@ import CursorSvg from "../assets/cursor.svg?raw";
 function $id<T extends Element = HTMLElement>(elementId: string): T {
   const element = document.getElementById(elementId);
   if (element) {
-    return element as T;
+    return element as unknown as T;
   }
   throw new Error(`No element found with id "${elementId}"`);
 }

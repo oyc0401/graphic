@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { getLayerWorker } from "./worker/workerPool";
 import { paintState } from "./paintState";
-import { selection } from "./selection";
+import { selection, setBefore } from "./selection";
 import { beforeShapePos, shape } from "./shape";
 import { position } from "./position";
 import { MosaicToolId, ShapeId } from "./paintState";
@@ -30,6 +30,10 @@ class HistoryState {
 
 export const historyState = new HistoryState();
 
+// undo/redo는 실제로 비동기(리사이즈 undo 등)라, 연타 시 겹쳐 실행되면
+// paintOptions/텍스처를 동시 변경해 캔버스가 손상된다. 재진입을 막는다.
+let isHistoryBusy = false;
+
 export function syncCoreState() {
   const { undoCount, redoCount } = getLayerWorker().getHistoryCount();
   historyState.setUndoCount(undoCount);
@@ -47,7 +51,16 @@ function applyHistoryPosition({ x, y, width, height }: { x: number; y: number; w
 
 export async function undo() {
   if (paintState.getPointerdown()) return;
+  if (isHistoryBusy) return;
+  isHistoryBusy = true;
+  try {
+    await runUndo();
+  } finally {
+    isHistoryBusy = false;
+  }
+}
 
+async function runUndo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.undo();
   if (!historyResponse) return;
@@ -78,6 +91,9 @@ export async function undo() {
     selection.setVisible(show);
     selection.setFlip(flipH, flipV);
 
+    // shape 분기의 beforeShapePos와 동일하게, 취소(selectionCancel) 복원용
+    // 기준 위치도 갱신해야 stale 사각형으로 튀지 않는다.
+    setBefore({ x, y: realY, width, height });
   }
 
   if (historyResponse.shape) {
@@ -101,6 +117,16 @@ export async function undo() {
 
 export async function redo() {
   if (paintState.getPointerdown()) return;
+  if (isHistoryBusy) return;
+  isHistoryBusy = true;
+  try {
+    await runRedo();
+  } finally {
+    isHistoryBusy = false;
+  }
+}
+
+async function runRedo() {
   let worker = getLayerWorker();
   let historyResponse = await worker.redo();
   if (!historyResponse) return;
@@ -131,6 +157,9 @@ export async function redo() {
     selection.setVisible(show);
     selection.setFlip(flipH, flipV);
 
+    // shape 분기의 beforeShapePos와 동일하게, 취소(selectionCancel) 복원용
+    // 기준 위치도 갱신해야 stale 사각형으로 튀지 않는다.
+    setBefore({ x, y: realY, width, height });
   }
 
   if (historyResponse.shape) {
