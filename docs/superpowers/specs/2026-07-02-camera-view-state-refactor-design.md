@@ -37,7 +37,9 @@
 
 ## 컴포넌트 설계
 
-### 1. `src/app/camera/cameraMath.ts` (신규, 순수·DOM 없음)
+### 1. `src/app/utils/cameraMath.ts` (신규, 순수·DOM 없음)
+
+> v2 수정: 경로를 `camera/` → `utils/`로 변경 (기존 순수 기하 유틸 컨벤션과 일치). CSS델타→scene 변환 `cssDeltaToScene`도 포함 (PanTool/wheelEvent/ZoomTool/main.tsx 4곳 반복 확인됨).
 
 ```ts
 type Rect     = { x: number; y: number; width: number; height: number };
@@ -64,13 +66,13 @@ fitDocument(doc, vp): Camera                             // setDefaultPosition �
 - **외부 API 100% 유지**: `position.x/y/scale/width/height`, 모든 세터, `to_screen_coord`, `to_pixel_canvas_coord`, `setMagification`, `setCameraPosition`, `setDefaultPosition`, `changeCanvasSize` 등 시그니처 그대로.
 - 내부 계산만 `cameraMath`에 위임: `to_screen_coord`→`screenToScene`, `setMagification`→`zoomAround`, `setCameraPosition` 클램프→`clampOffset`, `setDefaultPosition`→`fitDocument`.
 - `getPixelRatio()`(window)·`updateBouncingRect()`(DOM)는 "환경값을 상태로 주입"하는 어댑터로 유지. 순수 수식은 이들을 통해 받은 `dpr`/`rect`만 사용.
-- 현재 관측가능 필드에 대한 비-액션 직접대입(`position.dpr = dpr`)은 세터로 정리(선언 추가는 상태 스토어 변경이므로 구현 계획 단계에서 사용자 확인).
+- ~~비-액션 직접대입(`position.dpr = dpr`)은 세터로 정리~~ → v2 수정: `position.dpr`은 쓰기 1곳·읽기 0곳인 **죽은 관측 필드**로 확인 — 세터 추가 대신 **필드 삭제** (상태 스토어 선언 변경, 계획 승인으로 고지 처리).
 
 ### 3. 변환 중복 제거
 
 `view.ts` / `utils/resizeGeometry.ts` / `utils/selectionHitTest.ts` / `utils/shapeHitTest.ts`의 인라인 `(coord+x)*scale/dpr+rect`를 `cameraMath.sceneToScreen`/`screenToScene` 호출로 교체. hit-test 기하는 카메라/뷰포트를 **인자로 받는** 순수 함수로 유지.
 
-### 4. 핀치 해결 — `GestureModule` 단일 진실원천 종속
+### 4. 핀치 해결 — `GestureModule` 단일 진실원천 종속 ✅ 완료 (커밋 309df9c)
 
 - `GestureModuleOptions`에 `getCamera: () => Camera` 추가.
 - `GestureModule`이 카메라를 **소유하지 않게** 함: 지속 `this.position` SoT 제거. `startPinch`/팬 시작 시 `getCamera()`로 **그 순간의 live 카메라**를 base로 캡처. 제스처 진행 중엔 `base + 포인터 델타`로 계산해 `sceneChanged`로만 내보냄.

@@ -1,24 +1,33 @@
-# 카메라/뷰 상태 리팩토링 구현 계획
+# 카메라/뷰 상태 리팩토링 구현 계획 (v2 — 코드 재검증 후 재설계)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 뷰/카메라 변환·줌·클램프 로직을 순수 모듈(`cameraMath`)로 추출해 단일화하고, GestureModule의 stale 카메라 사본을 `getPosition` DI로 대체해 핀치 튐 버그를 해결한다.
+**Goal:** 뷰/카메라 변환·줌·클램프 로직을 순수 모듈(`cameraMath`)로 추출해 단일화하고, 앱 전역에 흩어진 변환 수식 중복을 통합한다.
 
-**Architecture:** 접근법 A — 순수 코어 + 얇은 observable 래퍼. `position.ts`의 외부 API는 유지하고 내부 계산만 `cameraMath`에 위임. 변환 공식 중복(view.ts/selectionHitTest/shapeHitTest/resizeGeometry)을 `cameraMath` 호출로 통합. GestureModule은 카메라를 소유하지 않고 핀치 시작 시 `getPosition()`으로 live 값을 재조회(양방향 sync 없음).
+**Architecture:** 접근법 A — 순수 코어 + 얇은 observable 래퍼. `position.ts`의 외부 API는 유지하고 내부 계산만 `cameraMath`에 위임. 변환 공식 중복(view.ts / selectionHitTest / shapeHitTest / resizeGeometry의 scene→screen 4곳 + PanTool / wheelEvent / ZoomTool / main.tsx의 CSS델타→scene 4곳)을 `cameraMath` 호출로 통합.
 
-**Tech Stack:** TypeScript, MobX 6, Vitest 4, Vite 6. 테스트는 node 환경에서 `window`/worker를 스텁.
+**Tech Stack:** TypeScript, MobX 6, Vitest 4(node 환경, `vi.mock` 필수 — 아래 참고), Vite 6.
 
 **Spec:** `docs/superpowers/specs/2026-07-02-camera-view-state-refactor-design.md`
+
+## v1 → v2 변경 근거 (전부 직접 코드로 재검증함)
+
+1. **구 Task 5(핀치 튐)는 이미 완료** — 커밋 `309df9c` (`getPosition` DI + `setPosition` 제거 + `pinchStale.test.ts`). 이 계획에서 제외.
+2. **경로 변경**: `src/app/camera/cameraMath.ts` → `src/app/utils/cameraMath.ts`. 기존 컨벤션(순수 기하 유틸 `selectionResize`/`shapeResize`/`canvasResize` + 테스트가 전부 `utils/`)과 일치시킴.
+3. **신규 함수 `cssDeltaToScene` 추가**: `delta * dpr / scale` 패턴이 4곳에 반복됨을 스윕으로 확인 — `PanTool.ts:36-40`, `wheelEvent.ts:50-54`, `ZoomTool.ts:92-93`(`(x/dpr - dx/scale)*dpr` = 동일식), `main.tsx:121-122`.
+4. **`setDpr` 세터 계획 폐기 → `dpr` 필드 삭제 제안**: `position.dpr`은 쓰기 1곳(`position.ts:136`), **읽기 0곳**인 죽은 관측 필드로 확인됨 (`screenWidth/Height` getter는 `getPixelRatio()` 모듈 캐시를 사용). ⚠️ **state 스토어 선언 삭제 — 이 계획 승인으로 사용자 고지·승인 처리.**
+5. **골든 테스트의 `vi.mock`은 필수임을 확인**: `elements.ts:14`이 `export let els = elements()`로 **모듈 로드 즉시** `document.getElementById` ~30회 실행 + 실패 시 throw. node 환경에서 mock 없이는 import 자체가 불가.
+6. **오보 정리**: `PanTool.ts:39`의 dpr 누락 의심은 오판(36-37행에서 이미 `* getPixelRatio()` 적용, 휠팬과 일관됨). `to_world_coord`/`canvas_coord_to_css_coord`는 호출 0건 재확인(삭제 유지). `changeCanvasTransform`(main.tsx:158)은 카메라 수식이 아닌 단일 CSS 스케일 — 비대상.
+7. **비범위 메모**: `view.ts`의 `positionHandles`(207-232 ≡ 298-323 바이트 동일 중복)는 오버레이 구조 리팩토링(별도 작업) 몫 — 이번엔 변환식만 교체. `history.ts:44`의 `screenHeight/scale - height - y`는 코어 GL Y-flip(`toWebglCoord3`)의 역변환으로 코어 좌표 규약과 엮여 있어 이번 범위에서 제외.
 
 ## Global Constraints
 
 - `spec.test.ts` 파일은 절대 수정 금지 (이 계획은 어떤 spec.test.ts도 건드리지 않는다).
-- 기존 외부 API 시그니처 유지: `position.x/y/scale/width/height/dpr/bouncingRect`, 모든 세터, `to_screen_coord`, `to_canvas_coord`, `to_pixel_canvas_coord(_round)`, `setMagification`, `setCameraPosition`, `setDefaultPosition`, `changeCanvasSize`, `getPixelRatio`, `MIN_SCALE`, `MAX_SCALE`.
-- **사전 고지된 인터페이스 변경(사용자 승인 완료 — 스펙 리뷰에서 "ㄱㄱㄱ")**:
-  1. `position.ts`에 추가 export: `setDpr` 세터(직접 대입 `position.dpr = dpr` 대체), `getCamera()`, `getViewport()`.
-  2. `position.ts`에서 **미사용 죽은 export 삭제**: `canvas_coord_to_css_coord` (내부 `to_world_coord`, `canvas_coord_to_screen_coord` 포함 — 전체 코드베이스에서 호출 0건, `/dpr` 누락으로 to_screen_coord와 역함수도 아님).
-  3. `GestureModuleOptions.position: GesturePosition` → `getPosition: () => GesturePosition`, `GestureModule.setPosition` 메서드 삭제(되먹임 위험 제거).
-  4. `src/app/events/gesture/example.ts`(사용자 데모 파일)는 3번 때문에 참조가 깨지는 **두 지점만 최소 수정** (기존 TS2440 에러는 건드리지 않음).
+- 기존 외부 API 시그니처 유지: `position.x/y/scale/width/height/bouncingRect`, 모든 세터, `to_screen_coord`, `to_canvas_coord`, `to_pixel_canvas_coord(_round)`, `setMagification`, `setCameraPosition`, `setDefaultPosition`, `changeCanvasSize`, `getPixelRatio`, `MIN_SCALE`, `MAX_SCALE`.
+- **사전 고지된 인터페이스 변경 (이 계획 승인 = 사용자 승인)**:
+  1. `position.ts` 신규 export: `getCamera()`, `getViewport()`.
+  2. `position.ts` 죽은 export 삭제: `canvas_coord_to_css_coord` (+ 내부 `to_world_coord`, `canvas_coord_to_screen_coord`) — 호출 0건, `/dpr` 누락으로 역함수도 아님.
+  3. `PositionState.dpr` 필드 삭제 — 죽은 상태(쓰기 1·읽기 0).
 - 각 태스크 종료 시 `pnpm test` 전체 green + 커밋. tsc 에러는 기존 `example.ts` TS2440 1건 외 0 유지.
 - 순수 모듈(`cameraMath.ts`)은 window/document/싱글톤/부수효과 접근 금지 — 모든 입력은 인자.
 - 좌표 용어: **scene** = 캔버스 픽셀 공간(`position.x/y` 단위), **container** = 컨테이너 로컬 CSS px, **client** = 뷰포트 CSS px(`clientX/Y`).
@@ -37,6 +46,8 @@
 - Produces: 없음 (테스트 전용). 이후 모든 태스크가 이 테스트의 green을 전제로 한다.
 
 - [ ] **Step 1: 골든 테스트 작성**
+
+주의: `vi.mock("./ui/elements", ...)`는 필수다 — 실제 elements.ts는 import 즉시 `document.getElementById`를 실행해 node 환경에서 throw한다.
 
 ```ts
 // src/app/position.golden.test.ts
@@ -123,7 +134,6 @@ describe("position.ts 골든 (dpr=2)", () => {
     expect(position.height).toBe(1050);
     expect(position.x).toBe(57); // (1600-1484.924…)/2 = 57.537… → floor
     expect(position.y).toBe(75); // (1200-1050)/2
-    expect(position.dpr).toBe(2);
   });
 });
 ```
@@ -136,7 +146,7 @@ Expected: PASS 5/5 (특성화 테스트이므로 현재 코드에서 바로 통�
 - [ ] **Step 3: 전체 테스트 확인 후 커밋**
 
 Run: `pnpm test`
-Expected: 기존 58 + 신규 5 전부 PASS
+Expected: 기존 전부(59) + 신규 5 PASS
 
 ```bash
 git add src/app/position.golden.test.ts
@@ -148,12 +158,12 @@ git commit -m "test: position.ts 카메라 공식 골든(특성화) 테스트 �
 ### Task 2: cameraMath 순수 모듈 (TDD)
 
 **Files:**
-- Create: `src/app/camera/cameraMath.ts`
-- Test(Create): `src/app/camera/cameraMath.test.ts`
+- Create: `src/app/utils/cameraMath.ts`
+- Test(Create): `src/app/utils/cameraMath.test.ts`
 
 **Interfaces:**
 - Consumes: 없음 (순수, 의존성 0)
-- Produces (이후 태스크가 사용하는 정확한 시그니처):
+- Produces (이후 태스크가 사용하는 정확한 시그니처 — 길이/델타 함수는 ISP에 따라 `scale`만 받는다):
 
 ```ts
 export type Camera = { x: number; y: number; scale: number };
@@ -164,7 +174,8 @@ export type DocSize = { width: number; height: number };
 export function clientToScene(clientX: number, clientY: number, cam: Camera, vp: Viewport): { x: number; y: number };
 export function sceneToClient(sceneX: number, sceneY: number, cam: Camera, vp: Viewport): { x: number; y: number };
 export function sceneToContainer(sceneX: number, sceneY: number, cam: Camera, dpr: number): { x: number; y: number };
-export function sceneLengthToCss(length: number, cam: Camera, dpr: number): number;
+export function sceneLengthToCss(length: number, scale: number, dpr: number): number;
+export function cssDeltaToScene(delta: number, scale: number, dpr: number): number;
 export function sceneRectToContainer(rect: Rect, cam: Camera, dpr: number): Rect;
 export function zoomAround(cam: Camera, anchorScene: { x: number; y: number }, nextScale: number): Camera;
 export function clampOffset(cam: Camera, doc: DocSize, vp: Viewport): Camera;
@@ -174,13 +185,14 @@ export function fitDocument(vp: Viewport, percent?: number, ratio?: number): { d
 - [ ] **Step 1: 실패하는 테스트 작성**
 
 ```ts
-// src/app/camera/cameraMath.test.ts
+// src/app/utils/cameraMath.test.ts
 import { describe, expect, it } from "vitest";
 import {
   clientToScene,
   sceneToClient,
   sceneToContainer,
   sceneLengthToCss,
+  cssDeltaToScene,
   sceneRectToContainer,
   zoomAround,
   clampOffset,
@@ -210,7 +222,14 @@ describe("cameraMath", () => {
   });
 
   it("sceneLengthToCss: 길이 변환", () => {
-    expect(sceneLengthToCss(40, cam, vp.dpr)).toBe(40); // 40*2/2
+    expect(sceneLengthToCss(40, 2, 2)).toBe(40); // 40*2/2
+    expect(sceneLengthToCss(40, 4, 2)).toBe(80);
+  });
+
+  it("cssDeltaToScene: CSS 델타 → scene 델타 (sceneLengthToCss의 역)", () => {
+    expect(cssDeltaToScene(40, 2, 2)).toBe(40); // 40*2/2
+    expect(cssDeltaToScene(80, 4, 2)).toBe(40);
+    expect(sceneLengthToCss(cssDeltaToScene(123.4, 3, 2), 3, 2)).toBeCloseTo(123.4, 10);
   });
 
   it("sceneRectToContainer: rect 일괄 변환", () => {
@@ -254,13 +273,13 @@ describe("cameraMath", () => {
 
 - [ ] **Step 2: 실행 — 실패 확인**
 
-Run: `pnpm vitest run src/app/camera/cameraMath.test.ts`
+Run: `pnpm vitest run src/app/utils/cameraMath.test.ts`
 Expected: FAIL — "Cannot find module './cameraMath'"
 
 - [ ] **Step 3: 구현**
 
 ```ts
-// src/app/camera/cameraMath.ts
+// src/app/utils/cameraMath.ts
 // 뷰/카메라 좌표 변환·줌·클램프의 단일 원천.
 // 순수 모듈: DOM/싱글톤/부수효과 없음 — 모든 입력은 인자로 받는다.
 //
@@ -310,8 +329,13 @@ export function sceneToContainer(
   };
 }
 
-export function sceneLengthToCss(length: number, cam: Camera, dpr: number): number {
-  return (length * cam.scale) / dpr;
+export function sceneLengthToCss(length: number, scale: number, dpr: number): number {
+  return (length * scale) / dpr;
+}
+
+// CSS px 델타(휠/드래그 이동량) → scene 델타. sceneLengthToCss의 역변환.
+export function cssDeltaToScene(delta: number, scale: number, dpr: number): number {
+  return (delta / scale) * dpr;
 }
 
 export function sceneRectToContainer(rect: Rect, cam: Camera, dpr: number): Rect {
@@ -319,8 +343,8 @@ export function sceneRectToContainer(rect: Rect, cam: Camera, dpr: number): Rect
   return {
     x: p.x,
     y: p.y,
-    width: sceneLengthToCss(rect.width, cam, dpr),
-    height: sceneLengthToCss(rect.height, cam, dpr),
+    width: sceneLengthToCss(rect.width, cam.scale, dpr),
+    height: sceneLengthToCss(rect.height, cam.scale, dpr),
   };
 }
 
@@ -389,19 +413,19 @@ export function fitDocument(
 
 - [ ] **Step 4: 실행 — 통과 확인**
 
-Run: `pnpm vitest run src/app/camera/cameraMath.test.ts`
-Expected: PASS 10/10
+Run: `pnpm vitest run src/app/utils/cameraMath.test.ts`
+Expected: PASS 11/11
 
 - [ ] **Step 5: 커밋**
 
 ```bash
-git add src/app/camera/cameraMath.ts src/app/camera/cameraMath.test.ts
+git add src/app/utils/cameraMath.ts src/app/utils/cameraMath.test.ts
 git commit -m "feat: cameraMath 순수 모듈 추가 (변환·줌·클램프 단일 원천)"
 ```
 
 ---
 
-### Task 3: position.ts를 cameraMath에 위임
+### Task 3: position.ts를 cameraMath에 위임 + 죽은 상태/코드 삭제
 
 외부 API는 그대로, 내부 계산만 위임. 골든 테스트가 계속 green이어야 한다.
 
@@ -410,11 +434,12 @@ git commit -m "feat: cameraMath 순수 모듈 추가 (변환·줌·클램프 단
 
 **Interfaces:**
 - Consumes: Task 2의 `cameraMath` 전체
-- Produces (신규 export — Task 4·5가 사용):
+- Produces (신규 export — Task 4가 사용):
   - `getCamera(): Camera` — `{ x: position.x, y: position.y, scale: position.scale }`
   - `getViewport(): Viewport` — `{ dpr: getPixelRatio(), rect: position.bouncingRect }`
-  - `PositionState.setDpr(dpr: number): void`
-- 삭제: `canvas_coord_to_css_coord` export (+ 내부 `to_world_coord`, `canvas_coord_to_screen_coord`) — 전 코드베이스 호출 0건 확인됨
+- 삭제 (사전 고지 완료):
+  - `canvas_coord_to_css_coord` export (+ 내부 `to_world_coord`, `canvas_coord_to_screen_coord`) — 호출 0건
+  - `PositionState.dpr` 필드 (15행 `dpr = 3;`) 및 유일한 쓰기(136행 `position.dpr = dpr;`) — 읽기 0건인 죽은 상태
 
 - [ ] **Step 1: import 추가 및 신규 export 작성**
 
@@ -428,16 +453,10 @@ import {
   zoomAround,
   type Camera,
   type Viewport,
-} from "./camera/cameraMath";
+} from "./utils/cameraMath";
 ```
 
-`PositionState` 클래스에 세터 추가 (`setScale` 아래):
-
-```ts
-  setDpr(dpr: number) {
-    this.dpr = dpr;
-  }
-```
+`PositionState` 클래스에서 `dpr = 3;` 필드(15행) 삭제.
 
 `export const position = new PositionState();` 아래에 추가:
 
@@ -471,15 +490,13 @@ export async function setCameraPosition() {
 }
 ```
 
-`setDefaultPosition` (기존 104-155행) — 맞춤 계산을 `fitDocument`로:
+`setDefaultPosition` (기존 104-155행) — 맞춤 계산을 `fitDocument`로 (`position.dpr` 쓰기 제거):
 
 ```ts
 export function setDefaultPosition() {
   updateBouncingRect();
 
-  const dpr = getPixelRatio();
-  position.setDpr(dpr);
-  MAX_SCALE = 120 * dpr;
+  MAX_SCALE = 120 * getPixelRatio();
 
   const { doc, camera } = fitDocument(getViewport());
   position.setScale(camera.scale);
@@ -520,21 +537,21 @@ Expected: 골든 5개 포함 전체 PASS. tsc는 기존 example.ts TS2440 1건�
 
 ```bash
 git add src/app/position.ts
-git commit -m "refactor: position.ts 카메라 계산을 cameraMath로 위임 (외부 API 유지)"
+git commit -m "refactor: position.ts 카메라 계산을 cameraMath로 위임, 죽은 dpr 필드/변환함수 삭제"
 ```
 
 ---
 
-### Task 4: 변환 공식 중복 제거 (view.ts / hit-test / resizeGeometry)
+### Task 4: 변환 공식 중복 제거 (8곳)
 
-hit-test는 리팩토링 **전에** 특성화 테스트부터 작성한다.
+scene→screen 4곳(view.ts / selectionHitTest / shapeHitTest / resizeGeometry) + CSS델타→scene 4곳(PanTool / wheelEvent / ZoomTool / main.tsx). hit-test는 리팩토링 **전에** 특성화 테스트부터 작성한다.
 
 **Files:**
 - Test(Create): `src/app/utils/hitTest.test.ts`
-- Modify: `src/app/utils/selectionHitTest.ts`, `src/app/utils/shapeHitTest.ts`, `src/app/utils/resizeGeometry.ts`, `src/app/ui/view.ts`
+- Modify: `src/app/utils/selectionHitTest.ts`, `src/app/utils/shapeHitTest.ts`, `src/app/utils/resizeGeometry.ts`, `src/app/ui/view.ts`, `src/app/tools/PanTool.ts`, `src/app/events/wheelEvent.ts`, `src/app/tools/ZoomTool.ts`, `src/app/main.tsx`
 
 **Interfaces:**
-- Consumes: `cameraMath.sceneToContainer/sceneLengthToCss/sceneRectToContainer`, `position.getCamera/getViewport/getPixelRatio`
+- Consumes: `cameraMath.sceneToContainer/sceneLengthToCss/cssDeltaToScene/sceneRectToContainer`, `position.getCamera/getViewport/getPixelRatio`
 - Produces: 없음 (기존 함수 시그니처 전부 유지: `getSelectionHandleAtPoint`, `getShapeHandleAtPoint`, `hitTestOutsideCanvasResizeCorner`, `toContainerRect` 등)
 
 - [ ] **Step 1: hit-test 특성화 테스트 작성**
@@ -611,7 +628,7 @@ import 교체 및 `toScreen`/`w`/`h` 계산부(기존 29-43행)를:
 
 ```ts
 import { getCamera, getPixelRatio, position } from "../position";
-import { sceneLengthToCss, sceneToContainer } from "../camera/cameraMath";
+import { sceneLengthToCss, sceneToContainer } from "./cameraMath";
 ```
 
 ```ts
@@ -630,8 +647,8 @@ import { sceneLengthToCss, sceneToContainer } from "../camera/cameraMath";
 
   const { x: cX, y: cY, width: cW, height: cH } = selRect;
   const p = toScreen(cX, cY);
-  const w = sceneLengthToCss(cW, cam, dpr);
-  const h = sceneLengthToCss(cH, cam, dpr);
+  const w = sceneLengthToCss(cW, cam.scale, dpr);
+  const h = sceneLengthToCss(cH, cam.scale, dpr);
 ```
 
 나머지(핸들 사각형 계산 이하)는 무변경.
@@ -642,7 +659,7 @@ import 교체:
 
 ```ts
 import { getCamera, getPixelRatio, position } from "../position";
-import { sceneLengthToCss, sceneToContainer } from "../camera/cameraMath";
+import { sceneLengthToCss, sceneToContainer } from "./cameraMath";
 ```
 
 `toScreen`/`w`/`h` 계산부(기존 21-33행)를:
@@ -661,8 +678,8 @@ import { sceneLengthToCss, sceneToContainer } from "../camera/cameraMath";
   };
 
   const p = toScreen(rect.x, rect.y);
-  const w = sceneLengthToCss(rect.width, cam, dpr);
-  const h = sceneLengthToCss(rect.height, cam, dpr);
+  const w = sceneLengthToCss(rect.width, cam.scale, dpr);
+  const h = sceneLengthToCss(rect.height, cam.scale, dpr);
 ```
 
 나머지(핸들 사각형 계산 이하)는 무변경.
@@ -673,20 +690,19 @@ import 추가:
 
 ```ts
 import { getCamera, getPixelRatio, position, to_canvas_coord } from "../position";
-import { sceneRectToContainer, sceneToContainer } from "../camera/cameraMath";
+import { sceneRectToContainer } from "./cameraMath";
 ```
 
 `hitTestOutsideCanvasResizeCorner`의 left/top/width/height 계산(기존 35-44행):
 
 ```ts
-  const origin = sceneToContainer(0, 0, getCamera(), getPixelRatio());
   const size = sceneRectToContainer(
     { x: 0, y: 0, width: position.width, height: position.height },
     getCamera(),
     getPixelRatio(),
   );
-  const left = origin.x;
-  const top = origin.y + position.bouncingRect.y - position.bottomNavHeight;
+  const left = size.x;
+  const top = size.y + position.bouncingRect.y - position.bottomNavHeight;
   const width = size.width;
   const height = size.height;
   const right = left + width;
@@ -707,292 +723,103 @@ import 추가:
 
 ```ts
 import { getCamera, getPixelRatio, position, to_canvas_coord } from "../position";
-import { sceneLengthToCss, sceneRectToContainer, sceneToContainer } from "../camera/cameraMath";
+import { sceneLengthToCss, sceneRectToContainer, sceneToContainer } from "../utils/cameraMath";
 ```
 
-교체 지점 (전부 동일 패턴 — 대표 예시):
+교체 지점 6곳 (전부 검증된 현재 행번호):
 
-- 131행 `const scaled = (brushSize * position.scale) / dpr;`
-  → `const scaled = sceneLengthToCss(brushSize, getCamera(), dpr);`
-- 155행 동일 패턴 (`sceneLengthToCss(paintState.getBrushSize(), getCamera(), getPixelRatio())`)
-- 196-197행 점 변환:
+- 131행: `const scaled = (brushSize * position.scale) / dpr;`
+  → `const scaled = sceneLengthToCss(brushSize, position.scale, dpr);`
+- 155행: `(paintState.getBrushSize() * position.scale) / getPixelRatio() > 16`
+  → `sceneLengthToCss(paintState.getBrushSize(), position.scale, getPixelRatio()) > 16`
+- 196-197행 (freeform 프리뷰 점 변환):
   ```ts
   const p = sceneToContainer(point.x, point.y, getCamera(), dpr);
-  const x = p.x;
-  const y = p.y;
+  return `${p.x},${p.y}`;
   ```
-- 217-220행 / 253-256행 / 308-311행 / 343-346행 rect 변환 4곳:
+- 217-220행 (`bindSelectionUI`의 `positionHandles`):
   ```ts
   const s = sceneRectToContainer(rect, getCamera(), dpr);
   // 이후 sLeft→s.x, sTop→s.y, sWidth→s.width, sHeight→s.height 로 치환
   ```
+- 253-256행 (selectionArea): 동일 패턴 (`scaledLeft→s.x` 등으로 치환)
+- 308-311행 (`bindShapeUI`의 `positionHandles`) / 343-346행 (shapeArea): 동일 패턴
 
-- [ ] **Step 8: 실행 — 전체 green 확인**
+참고(비범위): `positionHandles`가 selection/shape에 바이트 동일 중복돼 있으나 오버레이 구조 정리는 별도 작업 — 이번엔 변환식만 교체.
+
+- [ ] **Step 8: CSS델타→scene 4곳 교체 (cssDeltaToScene)**
+
+`PanTool.ts` 36-40행:
+
+```ts
+    const dpr = getPixelRatio();
+    const newX = position.x - cssDeltaToScene(this.lastClientX - e.clientX, position.scale, dpr);
+    const newY = position.y - cssDeltaToScene(this.lastClientY - e.clientY, position.scale, dpr);
+```
+
+`wheelEvent.ts` 48-55행:
+
+```ts
+        const dpr = getPixelRatio();
+        if (event.shiftKey && event.deltaX === 0) {
+          position.setX(position.x - cssDeltaToScene(event.deltaY, position.scale, dpr));
+          position.setY(position.y - cssDeltaToScene(event.deltaX, position.scale, dpr));
+        } else {
+          position.setX(position.x - cssDeltaToScene(event.deltaX, position.scale, dpr));
+          position.setY(position.y - cssDeltaToScene(event.deltaY, position.scale, dpr));
+        }
+```
+
+`ZoomTool.ts` 92-93행 (`(x/dpr - d/scale)*dpr` = `x - d*dpr/scale` 동일식):
+
+```ts
+      position.setX(position.x - cssDeltaToScene(dx, position.scale, dpr));
+      position.setY(position.y - cssDeltaToScene(dy, position.scale, dpr));
+```
+
+`main.tsx` 121-122행 (리사이즈 시 AppBar 높이 변화 보정):
+
+```ts
+      let diffY = cssDeltaToScene(lastY - position.bouncingRect.y, position.scale, getPixelRatio());
+```
+
+각 파일에 `import { cssDeltaToScene } from "…/utils/cameraMath";` 추가 (경로는 파일 위치 기준).
+
+- [ ] **Step 9: 실행 — 전체 green 확인**
 
 Run: `pnpm test && npx tsc --noEmit`
 Expected: 특성화 13개 + 골든 5개 포함 전체 PASS. tsc 기존 1건만.
 
-- [ ] **Step 9: 커밋**
+- [ ] **Step 10: 커밋**
 
 ```bash
-git add src/app/utils/selectionHitTest.ts src/app/utils/shapeHitTest.ts src/app/utils/resizeGeometry.ts src/app/ui/view.ts
-git commit -m "refactor: scene→screen 변환 중복 4곳을 cameraMath로 통합"
+git add src/app/utils/selectionHitTest.ts src/app/utils/shapeHitTest.ts src/app/utils/resizeGeometry.ts src/app/ui/view.ts src/app/tools/PanTool.ts src/app/events/wheelEvent.ts src/app/tools/ZoomTool.ts src/app/main.tsx
+git commit -m "refactor: scene↔screen/델타 변환 중복 8곳을 cameraMath로 통합"
 ```
 
 ---
 
-### Task 5: 핀치 튐 수정 — GestureModule getPosition DI (TDD)
-
-**Files:**
-- Test(Create): `src/app/events/gesture/pinchStale.test.ts`
-- Modify: `src/app/events/gesture/index.ts`, `src/app/events/gestureAdapter.ts`, `src/app/events/gesture/example.ts`(최소 2지점)
-
-**Interfaces:**
-- Consumes: 없음 (gesture는 자족 모듈; adapter가 `position` 싱글톤과 연결)
-- Produces:
-  - `GestureModuleOptions`: `position: GesturePosition` 필드 **제거**, `getPosition: () => GesturePosition` **추가**
-  - `GestureModule.setPosition` 메서드 **제거**
-  - `installGestureAdapter(element)` 시그니처 유지
-
-- [ ] **Step 1: 실패하는 회귀 테스트 작성**
-
-핀치 시나리오: 외부 줌으로 카메라가 바뀐 뒤 핀치 시작 → 첫 핀치 이동의 `sceneChanged`가 **바뀐 카메라를 기준**으로 계산돼야 한다(수치는 손계산 — 스텝 주석 참고).
-
-```ts
-// src/app/events/gesture/pinchStale.test.ts
-// 회귀 테스트: 외부(휠/돋보기) 줌 이후 핀치 시작 시 stale 카메라로 계산돼
-// 화면이 튀던 버그. 핀치는 시작 시점에 getPosition()으로 live 값을 읽어야 한다.
-import { describe, expect, it } from "vitest";
-
-// ─── node 환경용 최소 스텁 ───
-(globalThis as any).window ??= globalThis;
-(globalThis as any).window.addEventListener ??= () => {};
-(globalThis as any).window.removeEventListener ??= () => {};
-class FakeNode {}
-(globalThis as any).Node = FakeNode;
-(globalThis as any).PointerEvent = class FakePointerEvent {
-  type: string;
-  constructor(type: string, init: Record<string, unknown> = {}) {
-    this.type = type;
-    Object.assign(this, init);
-  }
-};
-
-const { GestureModule } = await import("./index");
-
-const elementStub = {
-  addEventListener: () => {},
-  removeEventListener: () => {},
-  getBoundingClientRect: () => ({ left: 0, top: 0 }),
-  contains: () => true,
-} as unknown as HTMLElement;
-
-function fakePointer(pointerId: number, clientX: number, clientY: number) {
-  return {
-    pointerId,
-    clientX,
-    clientY,
-    pointerType: "touch",
-    isPrimary: pointerId === 1,
-    target: new FakeNode(),
-    bubbles: true,
-    cancelable: true,
-    composed: true,
-    button: 0,
-    buttons: 1,
-    pressure: 0.5,
-    altKey: false,
-    ctrlKey: false,
-    metaKey: false,
-    shiftKey: false,
-    preventDefault: () => {},
-    stopImmediatePropagation: () => {},
-  } as unknown as PointerEvent;
-}
-
-describe("핀치 stale 카메라 회귀", () => {
-  it("외부 줌 이후 핀치 첫 이동이 live 카메라 기준으로 계산된다", () => {
-    // 설치 시점 카메라: {0,0,1} → 이후 외부 줌으로 {-100,-50,3}로 변경됨
-    let live = { x: 0, y: 0, scale: 1 };
-    const sceneChangedCalls: Array<{ x: number; y: number; scale: number }> = [];
-
-    const gesture = new GestureModule({
-      element: elementStub,
-      getPosition: () => ({ ...live }),
-      minScale: 0.1,
-      maxScale: 10,
-      onPointerdown: () => {},
-      onPointermove: () => {},
-      onPointerup: () => {},
-      onPointercancel: () => {},
-      sceneChanged: (x, y, scale) => sceneChangedCalls.push({ x, y, scale }),
-      onPinchStart: () => {},
-      onPinchEnd: () => {},
-      onTwoFingerTap: () => {},
-      onThreeFingerTap: () => {},
-      onTwoFingerDoubleTap: () => {},
-      onThreeFingerDoubleTap: () => {},
-    });
-
-    // 외부 줌 발생 (휠/돋보기 상당) — gesture 모듈엔 아무 통지 없음
-    live = { x: -100, y: -50, scale: 3 };
-
-    const g = gesture as any;
-    // 두 손가락 다운 (150ms 이내 → 핀치 진입)
-    g.handlePointerdown(fakePointer(1, 0, 0));
-    g.handlePointerdown(fakePointer(2, 0, 100));
-    // 핀치 이동: p2 (0,100) → (0,120)
-    //   center (0,50)→(0,60): dy=+10 / distance 100→120: scaleFactor 1.2
-    //   live 기준: nextScale=3.6, y=-50+10=-40
-    //   zoomAt(0,60): sceneY=(60+40)/3=100/3 → y'=60-(100/3)*3.6=-60, x'=-120
-    //   → sceneChanged(-120, -60, 3.6)
-    //   (stale {0,0,1} 기준이었다면 (0, 0, 1.2)로 전혀 다른 값)
-    g.handlePointermove(fakePointer(2, 0, 120));
-
-    expect(sceneChangedCalls.length).toBe(1);
-    expect(sceneChangedCalls[0].x).toBeCloseTo(-120, 8);
-    expect(sceneChangedCalls[0].y).toBeCloseTo(-60, 8);
-    expect(sceneChangedCalls[0].scale).toBeCloseTo(3.6, 8);
-  });
-});
-```
-
-- [ ] **Step 2: 실행 — 실패 확인**
-
-Run: `pnpm vitest run src/app/events/gesture/pinchStale.test.ts`
-Expected: FAIL — 옵션에 `getPosition` 없음(타입/런타임) 또는 stale 값 `(0, 0, 1.2)` 계산으로 assertion 실패
-
-- [ ] **Step 3: GestureModule 수정**
-
-`src/app/events/gesture/index.ts`:
-
-1. `GestureModuleOptions`(7-23행): `position: GesturePosition;` → `getPosition: () => GesturePosition;`
-2. 생성자(67행): `this.position = { ...options.position };` → `this.position = { ...options.getPosition() };`
-3. `setPosition` 메서드(80-87행) **전체 삭제**.
-4. `startPinch`(364-370행) 첫 줄에 live 재조회 추가:
-
-```ts
-  private startPinch(firstPointer: TrackedPointer, secondPointer: TrackedPointer) {
-    // 핀치 세션의 기준 카메라는 시작 시점의 live 값이다.
-    // (휠/돋보기 등 외부 변경 후에도 stale 사본으로 튀지 않도록)
-    this.position = { ...this.options.getPosition() };
-    this.blockedPointerIds.add(firstPointer.pointerId);
-    this.blockedPointerIds.add(secondPointer.pointerId);
-    this.lastPinchCenter = this.averagePointers(firstPointer, secondPointer);
-    this.lastPinchDistance = this.getDistance(firstPointer, secondPointer);
-    this.options.onPinchStart();
-  }
-```
-
-- [ ] **Step 4: gestureAdapter.ts 수정**
-
-기존 14-27행(mutable 지역 `gestureX/Y/Scale` + `position:` 옵션)을 `getPosition` 콜백으로 교체. `sceneChanged`의 지역변수 갱신(44-46행)도 삭제:
-
-```ts
-export function installGestureAdapter(element: HTMLElement) {
-  const pixelRatio = getPixelRatio();
-
-  // app 카메라(scene px, dpr 배율) → gesture 좌표계(컨테이너 CSS px) 변환.
-  // gesture 공간: local = scene * gScale + gXY, gScale = scale/dpr
-  const toGesturePosition = () => {
-    const gestureScale = position.scale / pixelRatio;
-    return {
-      x: position.x * gestureScale,
-      y: position.y * gestureScale,
-      scale: gestureScale,
-    };
-  };
-
-  return new GestureModule({
-    element,
-    getPosition: toGesturePosition,
-    minScale: MIN_SCALE / pixelRatio,
-    maxScale: MAX_SCALE / pixelRatio,
-    onPointerdown: (event) => {
-      paintState.setPointerdown(true);
-      dispatchPointer(event, "down");
-    },
-    onPointermove: (event) => {
-      dispatchPointer(event, "move");
-    },
-    onPointerup: (event) => {
-      paintState.setPointerdown(false);
-      dispatchPointer(event, "up");
-    },
-    onPointercancel: (event) => {
-      paintState.setPointerdown(false);
-      dispatchPointer(event, "cancel");
-    },
-    sceneChanged: (x, y, scale) => {
-      position.setX(x / scale);
-      position.setY(y / scale);
-      position.setScale(scale * pixelRatio);
-      renderChangedPosition();
-    },
-    onPinchStart: () => {
-      paintState.setPointerdown(false);
-      paintState.setShowBrushCursor(false);
-      paintState.setInputMode(InputMode.Pinch);
-    },
-    onPinchEnd: () => {
-      if (paintState.getInputMode() === InputMode.Pinch) {
-        paintState.setInputMode(InputMode.DEFAULT);
-      }
-    },
-    onTwoFingerTap: () => {
-      undo();
-    },
-    onThreeFingerTap: () => {
-      redo();
-    },
-    onTwoFingerDoubleTap: () => {},
-    onThreeFingerDoubleTap: () => {},
-  });
-}
-```
-
-- [ ] **Step 5: example.ts 데모 최소 수정 (사용자 파일 — 사전 고지된 2지점만)**
-
-`src/app/events/gesture/example.ts`에서 깨지는 참조만:
-1. `new GestureModule({ ... position: {...} ... })` → `getPosition: () => ({...})` (기존 객체 리터럴을 화살표 함수로 감싸기)
-2. `.setPosition(` 호출 줄 → 삭제 (해당 데모 기능은 제거된 API)
-
-그 외(기존 TS2440 import 충돌 포함) 일절 무변경.
-
-- [ ] **Step 6: 실행 — 회귀 테스트 통과 + 전체 green**
-
-Run: `pnpm vitest run src/app/events/gesture/pinchStale.test.ts && pnpm test && npx tsc --noEmit`
-Expected: 회귀 테스트 PASS, 전체 PASS, tsc 기존 example.ts TS2440 1건만
-
-- [ ] **Step 7: 커밋**
-
-```bash
-git add src/app/events/gesture/index.ts src/app/events/gestureAdapter.ts src/app/events/gesture/example.ts src/app/events/gesture/pinchStale.test.ts
-git commit -m "fix: 핀치 시작 시 live 카메라 재조회(getPosition DI)로 핀치 튐 해결"
-```
-
----
-
-### Task 6: 최종 검증
+### Task 5: 최종 검증
 
 **Files:** 없음 (검증 전용)
 
 - [ ] **Step 1: 전체 테스트 + 타입체크**
 
 Run: `pnpm test && npx tsc --noEmit`
-Expected: 테스트 전부 PASS (기존 58 + 신규 약 29). tsc는 example.ts TS2440 1건만.
+Expected: 테스트 전부 PASS (기존 59 + 신규 약 29). tsc는 example.ts TS2440 1건만.
 
 - [ ] **Step 2: 수동 검증 (dev 서버)**
 
 Run: `pnpm dev` 후 브라우저에서:
-1. 휠(ctrl+휠)로 확대 → **두 손가락 핀치 시작 → 첫 움직임에 화면이 튀지 않음** (버그 재현 시나리오)
-2. 돋보기 탭줌 → 핀치 → 튐 없음
-3. 팬 → 핀치 → 튐 없음, 캔버스 리사이즈 핸들 드래그 후 핀치 → 튐 없음
-4. 선택 영역 생성·이동·리사이즈 핸들 히트가 이전과 동일
-5. 도형 생성·핸들 조작 동일, 브러시 커서 크기 표시 동일
-6. undo/redo 후 화면 위치 복원 동일
+1. 휠(ctrl+휠) 줌·휠 팬·스페이스 드래그 팬이 이전과 동일한 속도/방향
+2. 돋보기 탭줌·박스줌 동일 (레티나 포함)
+3. 선택 영역 생성·이동·리사이즈 핸들 히트/표시 동일, 도형도 동일
+4. 캔버스 리사이즈 핸들 표시·드래그 동일
+5. 브러시 커서 크기 표시 동일, 커서 좌표 박스 동일
+6. 창 리사이즈 시 캔버스 위치 보정 동일 (main.tsx 리사이즈 핸들러)
+7. 핀치(이미 수정됨): 휠줌 후 핀치 시작 시 튐 없음 유지
 
-- [ ] **Step 3: 스펙 대비 완료 확인 후 필요 시 잔여 정리 커밋**
+- [ ] **Step 3: 잔여 변경 없는지 확인**
 
 ```bash
 git status  # 잔여 변경 없어야 함
