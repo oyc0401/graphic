@@ -154,6 +154,13 @@ class BrushManager {
       return;
     }
 
+    // 리사이즈마다 재생성하므로 이전 세대 GL 리소스를 먼저 해제한다.
+    // (alphaMapTexture는 캔버스 크기의 R8 텍스처라 누수 시 비용이 큼)
+    const gl = this.gl;
+    gl.deleteTexture(this.alphaMapTexture);
+    gl.deleteFramebuffer(this.imageFBO);
+    gl.deleteFramebuffer(this.resultFBO);
+
     const modules = this.createModules();
     this.alphaMapTexture = modules.alphaMapTexture;
     this.renderModule = modules.renderModule;
