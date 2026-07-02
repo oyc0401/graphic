@@ -2,6 +2,14 @@
 import { els } from "./ui/elements";
 import { getLayerWorker } from "./worker/workerPool";
 import { makeAutoObservable } from "mobx";
+import {
+  clampOffset,
+  clientToScene,
+  fitDocument,
+  zoomAround,
+  type Camera,
+  type Viewport,
+} from "./utils/cameraMath";
 
 export const MIN_SCALE = 0.125;
 export let MAX_SCALE = 0;
@@ -12,7 +20,6 @@ export class PositionState {
   width = 10;
   height = 10;
   scale = 1;
-  dpr = 3;
   bouncingRect = { x: 0, y: 0, width: 0, height: 0 };
 
   bottomNavHeight = 0;
@@ -66,21 +73,27 @@ export class PositionState {
 
 export const position = new PositionState();
 
+// cameraMath에 넘길 현재 카메라/뷰포트 스냅샷 (DI 경계)
+export function getCamera(): Camera {
+  return { x: position.x, y: position.y, scale: position.scale };
+}
+
+export function getViewport(): Viewport {
+  return { dpr: getPixelRatio(), rect: position.bouncingRect };
+}
+
 export function updateBouncingRect() {
   console.log("updateBouncingRect");
   position.setBouncingRect(els.container.getBoundingClientRect());
 }
 export async function setCameraPosition() {
-  const minW = -position.width;
-  const maxW = position.screenWidth / position.scale;
-  const clampX = Math.min(maxW, Math.max(minW, position.x));
-
-  const minH = -position.height;
-  const maxH = position.screenHeight / position.scale;
-  const clampY = Math.min(maxH, Math.max(minH, position.y));
-
-  position.setX(clampX);
-  position.setY(clampY);
+  const clamped = clampOffset(
+    getCamera(),
+    { width: position.width, height: position.height },
+    getViewport(),
+  );
+  position.setX(clamped.x);
+  position.setY(clamped.y);
 
   const worker = getLayerWorker();
   await worker.setCameraPosition(position.x, position.y, position.scale);
@@ -104,78 +117,21 @@ export async function renderChangedPosition() {
 export function setDefaultPosition() {
   updateBouncingRect();
 
-  // 초기 위치 설정
-  let percent = 7 / 8;
-  let dpr = getPixelRatio();
-  let width, height;
-  let scale = 1;
+  MAX_SCALE = 120 * getPixelRatio();
 
-  const RATIO = Math.SQRT2; // 1.414213562 …
-  const { screenWidth: W, screenHeight: H } = position;
-
-  if (W >= H) {
-    // ① 가로가 더 길거나 같을 때
-    height = H * percent; //   세로를 기준으로 먼저 잡고
-    width = height * RATIO; //   가로 길이를 계산
-    if (width > W) {
-      //   ➜ 가로가 화면을 넘치면?
-      width = W * percent; //   가로를 다시 기준으로
-      height = width / RATIO; //   세로를 재계산
-    }
-  } else {
-    // ② 세로가 더 길 때
-    width = W * percent; //   가로를 기준으로 먼저 잡고
-    height = width * RATIO; //   세로 길이를 계산
-    if (height > H) {
-      //   ➜ 세로가 화면을 넘치면?
-      height = H * percent; //   세로를 다시 기준으로
-      width = height / RATIO; //   가로를 재계산
-    }
-  }
-
-  position.dpr = dpr;
-  MAX_SCALE = 120 * dpr;
-
-  // 초기 위치 설정
-  let x = (position.screenWidth - width) / 2;
-  let y = (position.screenHeight - height) / 2;
-
-  // //디버깅용!
-  // width = 20;
-  // height = 20;
-  // scale = 60;
-  // x = 10;
-  // y = 10;
-
-  position.setScale(scale);
-  position.setWidth(Math.floor(width));
-  position.setHeight(Math.floor(height));
-  position.setX(Math.floor(x));
-  position.setY(Math.floor(y));
+  const { doc, camera } = fitDocument(getViewport());
+  position.setScale(camera.scale);
+  position.setWidth(doc.width);
+  position.setHeight(doc.height);
+  position.setX(camera.x);
+  position.setY(camera.y);
 }
 
 export function setMagification(new_scale, anchor_point) {
-  // 확대 전 값을 따로 보관
-  const old_scale = position.scale;
-  const old_x = position.x;
-  const old_y = position.y;
-
-  // 배율만 미리 바꿔놓든, 나중에 바꾸든 상관없지만
-  // old_scale를 반드시 먼저 따로 보관하고 써야 함
-  position.setScale(new_scale);
-
-  // 화면에서 anchor_point가 고정되려면,
-  // (anchor + position)의 스크린 좌표가
-  // old_scale 시절과 new_scale 시절이 같아야 함
-  //
-  // 즉,
-  //   (anchor + oldPos) * old_scale  ==  (anchor + newPos) * new_scale
-  //
-  // 풀어서 새 newPos를 구하면 아래와 같은 공식이 됩니다.
-  let newX = ((anchor_point.x + old_x) * old_scale) / new_scale - anchor_point.x;
-  let newY = ((anchor_point.y + old_y) * old_scale) / new_scale - anchor_point.y;
-  position.setX(newX);
-  position.setY(newY);
+  const next = zoomAround(getCamera(), anchor_point, new_scale);
+  position.setScale(next.scale);
+  position.setX(next.x);
+  position.setY(next.y);
 }
 
 // 캔버스 상의 좌표로 변환.
@@ -187,29 +143,9 @@ export function to_canvas_coord(x, y) {
   return { x: px, y: py };
 }
 
-function to_world_coord(screenX, screenY) {
-  let worldX = (screenX + position.x) * position.scale + position.bouncingRect.x;
-  let worldY = (screenY + position.y) * position.scale + position.bouncingRect.y;
-  return { x: worldX, y: worldY };
-}
-// 캔버스 픽셀 좌표 → 스크린 좌표로 역변환 함수
-function canvas_coord_to_screen_coord(canvasX, canvasY) {
-  let px = canvasX;
-  let py = canvasY;
-  return { x: px, y: py };
-}
-
-export function canvas_coord_to_css_coord({ x, y }) {
-  const screen = canvas_coord_to_screen_coord(x, y);
-  const world = to_world_coord(screen.x, screen.y);
-  return world;
-}
-
 // 스크롤시의 좌표로 변환.
 export function to_screen_coord(x, y) {
-  let px = ((x - position.bouncingRect.x) / position.scale) * getPixelRatio() - position.x;
-  let py = ((y - position.bouncingRect.y) / position.scale) * getPixelRatio() - position.y;
-  return { x: px, y: py };
+  return clientToScene(x, y, getCamera(), getViewport());
 }
 
 export function to_pixel_canvas_coord(x, y) {
