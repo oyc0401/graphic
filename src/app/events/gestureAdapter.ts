@@ -12,17 +12,21 @@ import {
 
 export function installGestureAdapter(element: HTMLElement) {
   const pixelRatio = getPixelRatio();
-  let gestureScale = position.scale / pixelRatio;
-  let gestureX = position.x * gestureScale;
-  let gestureY = position.y * gestureScale;
+
+  // app 카메라(scene px, dpr 배율) → gesture 좌표계(컨테이너 CSS px) 변환.
+  // gesture 공간: local = scene * gScale + gXY, gScale = scale/dpr
+  const toGesturePosition = () => {
+    const gestureScale = position.scale / pixelRatio;
+    return {
+      x: position.x * gestureScale,
+      y: position.y * gestureScale,
+      scale: gestureScale,
+    };
+  };
 
   return new GestureModule({
     element,
-    position: {
-      x: gestureX,
-      y: gestureY,
-      scale: gestureScale,
-    },
+    getPosition: toGesturePosition,
     minScale: MIN_SCALE / pixelRatio,
     maxScale: MAX_SCALE / pixelRatio,
     onPointerdown: (event) => {
@@ -41,10 +45,6 @@ export function installGestureAdapter(element: HTMLElement) {
       dispatchPointer(event, "cancel");
     },
     sceneChanged: (x, y, scale) => {
-      gestureX = x;
-      gestureY = y;
-      gestureScale = scale;
-
       position.setX(x / scale);
       position.setY(y / scale);
       position.setScale(scale * pixelRatio);

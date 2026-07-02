@@ -6,7 +6,9 @@ export type GesturePosition = {
 
 export type GestureModuleOptions = {
   element: HTMLElement;
-  position: GesturePosition;
+  // 카메라의 단일 진실원천은 외부(app position)다.
+  // 제스처 시작 시점마다 live 값을 읽어오는 DI 콜백.
+  getPosition: () => GesturePosition;
   minScale: number;
   maxScale: number;
   onPointerdown: (event: PointerEvent) => void;
@@ -64,7 +66,7 @@ export class GestureModule {
     this.options = options;
     this.minScale = options.minScale;
     this.maxScale = options.maxScale;
-    this.position = { ...options.position };
+    this.position = { ...options.getPosition() };
 
     window.addEventListener("pointerdown", this.handlePointerdown, true);
     window.addEventListener("pointermove", this.handlePointermove, true);
@@ -75,15 +77,6 @@ export class GestureModule {
     window.addEventListener("pointermove", this.handleBubblePointermove);
     window.addEventListener("pointerup", this.handleBubblePointerup);
     window.addEventListener("pointercancel", this.handleBubblePointercancel);
-  }
-
-  setPosition(position: GesturePosition) {
-    this.position = { ...position };
-    this.options.sceneChanged(
-      this.position.x,
-      this.position.y,
-      this.position.scale,
-    );
   }
 
   destroy() {
@@ -362,6 +355,9 @@ export class GestureModule {
   }
 
   private startPinch(firstPointer: TrackedPointer, secondPointer: TrackedPointer) {
+    // 핀치 세션의 기준 카메라는 시작 시점의 live 값이다.
+    // (휠/돋보기 등 외부 변경 후에도 stale 사본으로 튀지 않도록)
+    this.position = { ...this.options.getPosition() };
     this.blockedPointerIds.add(firstPointer.pointerId);
     this.blockedPointerIds.add(secondPointer.pointerId);
     this.lastPinchCenter = this.averagePointers(firstPointer, secondPointer);

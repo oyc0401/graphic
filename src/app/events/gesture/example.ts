@@ -21,11 +21,11 @@ interface GestureModule {
 
 const gesture = new GestureModule({
   element: viewport,
-  position: {
+  getPosition: () => ({
     x: 80,
     y: 70,
     scale: 1,
-  },
+  }),
   minScale: 0.25,
   maxScale: 5,
 
@@ -74,8 +74,5 @@ const gesture = new GestureModule({
   },
 });
 
-gesture.setPosition({
-  x: 80,
-  y: 70,
-  scale: 1,
-});
+// 초기 배치 반영 (구 setPosition API는 제거됨 — 카메라 원천은 getPosition)
+scene.style.transform = "translate(80px, 70px) scale(1)";
