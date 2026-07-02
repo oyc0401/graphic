@@ -8,6 +8,7 @@ import {
   setMagification,
   to_screen_coord,
 } from "../position";
+import { cssDeltaToScene } from "../utils/cameraMath";
 import { clamp } from "../utils/math";
 
 export function addWheelListener() {
@@ -47,11 +48,11 @@ export function addWheelListener() {
       } else {
         const dpr = getPixelRatio();
         if (event.shiftKey && event.deltaX === 0) {
-          position.setX(position.x - (event.deltaY / position.scale) * dpr);
-          position.setY(position.y - (event.deltaX / position.scale) * dpr);
+          position.setX(position.x - cssDeltaToScene(event.deltaY, position.scale, dpr));
+          position.setY(position.y - cssDeltaToScene(event.deltaX, position.scale, dpr));
         } else {
-          position.setX(position.x - (event.deltaX / position.scale) * dpr);
-          position.setY(position.y - (event.deltaY / position.scale) * dpr);
+          position.setX(position.x - cssDeltaToScene(event.deltaX, position.scale, dpr));
+          position.setY(position.y - cssDeltaToScene(event.deltaY, position.scale, dpr));
         }
       }
 

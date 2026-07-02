@@ -4,7 +4,12 @@ import { autorun } from "mobx";
 import { els } from "./elements";
 import { selection } from "../selection";
 import { shape } from "../shape";
-import { getPixelRatio, position, to_canvas_coord } from "../position";
+import { getCamera, getPixelRatio, position, to_canvas_coord } from "../position";
+import {
+  sceneLengthToCss,
+  sceneRectToContainer,
+  sceneToContainer,
+} from "../utils/cameraMath";
 import { zoomRect } from "./zoomState";
 import { resizeTool } from "../tools/resizeTool";
 import { selectionTool } from "../tools/SelectionTool";
@@ -128,7 +133,7 @@ function bindCursorUI() {
     const brushSize = paintState.getBrushSize();
     const dpr = getPixelRatio();
 
-    const scaled = (brushSize * position.scale) / dpr;
+    const scaled = sceneLengthToCss(brushSize, position.scale, dpr);
     const isBigSize = scaled > 50;
     const showBrushCursorPreview = paintState.getShowBrushCursorPreview();
 
@@ -152,7 +157,11 @@ function bindCursorUI() {
       }
       if (!isDesktop && paintState.getPointerdown() && paintState.getMoved()) {
         cursor.style.visibility =
-          (paintState.getBrushSize() * position.scale) / getPixelRatio() > 16
+          sceneLengthToCss(
+            paintState.getBrushSize(),
+            position.scale,
+            getPixelRatio(),
+          ) > 16
             ? "visible"
             : "hidden";
       }
@@ -193,9 +202,8 @@ function bindFreeformSelectPreviewUI() {
 
     const polylinePoints = points
       .map((point) => {
-        const x = ((point.x + position.x) * position.scale) / dpr;
-        const y = ((point.y + position.y) * position.scale) / dpr;
-        return `${x},${y}`;
+        const p = sceneToContainer(point.x, point.y, getCamera(), dpr);
+        return `${p.x},${p.y}`;
       })
       .join(" ");
 
@@ -214,10 +222,11 @@ function bindSelectionUI() {
     rect: { x: number; y: number; width: number; height: number },
   ) => {
     const dpr = getPixelRatio();
-    const sLeft = ((rect.x + position.x) * position.scale) / dpr;
-    const sTop = ((rect.y + position.y) * position.scale) / dpr;
-    const sWidth = (rect.width * position.scale) / dpr;
-    const sHeight = (rect.height * position.scale) / dpr;
+    const s = sceneRectToContainer(rect, getCamera(), dpr);
+    const sLeft = s.x;
+    const sTop = s.y;
+    const sWidth = s.width;
+    const sHeight = s.height;
 
     const offset = 3;
     const setPos = (handle: HTMLElement, left: number, top: number) => {
@@ -250,10 +259,11 @@ function bindSelectionUI() {
       : { x: 0, y: 0, width: position.width, height: position.height };
 
     const dpr = getPixelRatio();
-    const scaledLeft = ((rect.x + position.x) * position.scale) / dpr;
-    const scaledTop = ((rect.y + position.y) * position.scale) / dpr;
-    const scaledWidth = (rect.width * position.scale) / dpr;
-    const scaledHeight = (rect.height * position.scale) / dpr;
+    const scaled = sceneRectToContainer(rect, getCamera(), dpr);
+    const scaledLeft = scaled.x;
+    const scaledTop = scaled.y;
+    const scaledWidth = scaled.width;
+    const scaledHeight = scaled.height;
 
     if (visible) {
       els.selectionArea.style.left = `${scaledLeft}px`;
@@ -305,10 +315,11 @@ function bindShapeUI() {
     rect: { x: number; y: number; width: number; height: number },
   ) => {
     const dpr = getPixelRatio();
-    const sLeft = ((rect.x + position.x) * position.scale) / dpr;
-    const sTop = ((rect.y + position.y) * position.scale) / dpr;
-    const sWidth = (rect.width * position.scale) / dpr;
-    const sHeight = (rect.height * position.scale) / dpr;
+    const s = sceneRectToContainer(rect, getCamera(), dpr);
+    const sLeft = s.x;
+    const sTop = s.y;
+    const sWidth = s.width;
+    const sHeight = s.height;
 
     const offset = 3;
     const setPos = (handle: HTMLElement, left: number, top: number) => {
@@ -340,10 +351,11 @@ function bindShapeUI() {
       : { x: 0, y: 0, width: position.width, height: position.height };
 
     const dpr = getPixelRatio();
-    const scaledLeft = ((rect.x + position.x) * position.scale) / dpr;
-    const scaledTop = ((rect.y + position.y) * position.scale) / dpr;
-    const scaledWidth = (rect.width * position.scale) / dpr;
-    const scaledHeight = (rect.height * position.scale) / dpr;
+    const scaled = sceneRectToContainer(rect, getCamera(), dpr);
+    const scaledLeft = scaled.x;
+    const scaledTop = scaled.y;
+    const scaledWidth = scaled.width;
+    const scaledHeight = scaled.height;
 
     if (visible) {
       els.shapeArea.style.left = `${scaledLeft}px`;

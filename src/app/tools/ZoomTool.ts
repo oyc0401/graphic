@@ -8,6 +8,7 @@ import {
   getPixelRatio,
 } from "../position";
 import { zoomRect } from "../ui/zoomState";
+import { cssDeltaToScene } from "../utils/cameraMath";
 import type { Tool, ToolConfig } from "./Tool";
 
 const MIN_SCALE = 0.125;
@@ -89,8 +90,8 @@ export class ZoomTool implements Tool {
       const dx = cx - centerX;
       const dy = cy - centerY;
 
-      position.setX((position.x / dpr - dx / position.scale) * dpr);
-      position.setY((position.y / dpr - dy / position.scale) * dpr);
+      position.setX(position.x - cssDeltaToScene(dx, position.scale, dpr));
+      position.setY(position.y - cssDeltaToScene(dy, position.scale, dpr));
 
       const newMag = position.scale * zoomFactor;
       const clamped = Math.min(max_scale, Math.max(MIN_SCALE, newMag));

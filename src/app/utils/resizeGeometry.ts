@@ -1,4 +1,5 @@
-import { getPixelRatio, position, to_canvas_coord } from "../position";
+import { getCamera, getPixelRatio, position, to_canvas_coord } from "../position";
+import { sceneRectToContainer } from "./cameraMath";
 
 export const RESIZE_HANDLE_SIZE_PX = 7;
 export const RESIZE_HANDLE_STROKE_WIDTH_PX = 3;
@@ -32,14 +33,15 @@ export function hitTestOutsideCanvasResizeCorner(
     throw new Error("Canvas resize handle hit size must be odd.");
   }
 
-  const dpr = getPixelRatio();
-  const left = (position.x * position.scale) / dpr;
-  const top =
-    (position.y * position.scale) / dpr +
-    position.bouncingRect.y -
-    position.bottomNavHeight;
-  const width = (position.width * position.scale) / dpr;
-  const height = (position.height * position.scale) / dpr;
+  const size = sceneRectToContainer(
+    { x: 0, y: 0, width: position.width, height: position.height },
+    getCamera(),
+    getPixelRatio(),
+  );
+  const left = size.x;
+  const top = size.y + position.bouncingRect.y - position.bottomNavHeight;
+  const width = size.width;
+  const height = size.height;
   const right = left + width;
   const bottom = top + height;
 
@@ -104,12 +106,5 @@ export function toResizeEdgePoint(
 }
 
 export function toContainerRect(rect: CanvasRect): CanvasRect {
-  const dpr = getPixelRatio();
-
-  return {
-    x: ((rect.x + position.x) * position.scale) / dpr,
-    y: ((rect.y + position.y) * position.scale) / dpr,
-    width: (rect.width * position.scale) / dpr,
-    height: (rect.height * position.scale) / dpr,
-  };
+  return sceneRectToContainer(rect, getCamera(), getPixelRatio());
 }

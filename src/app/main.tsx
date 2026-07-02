@@ -27,6 +27,7 @@ import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./file/initialImage";
 import { getInitialRouteSession } from "./file/initialRouteSession";
 import { installGestureAdapter } from "./events/gestureAdapter";
+import { cssDeltaToScene } from "./utils/cameraMath";
 
 const initialRouteSession = getInitialRouteSession();
 if (initialRouteSession !== null) {
@@ -118,8 +119,11 @@ function debugSetting() {
       // }
       // position.bouncingRect.width = window.innerWidth;
 
-      let diffY =
-        ((lastY - position.bouncingRect.y) / position.scale) * getPixelRatio();
+      let diffY = cssDeltaToScene(
+        lastY - position.bouncingRect.y,
+        position.scale,
+        getPixelRatio(),
+      );
 
       position.setY(position.y + diffY);
 

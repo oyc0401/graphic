@@ -1,5 +1,6 @@
 // utils/selectionHitTest.ts
-import { getPixelRatio, position } from "../position";
+import { getCamera, getPixelRatio, position } from "../position";
+import { sceneLengthToCss, sceneToContainer } from "./cameraMath";
 
 export type HandleType =
   | "LT"
@@ -26,21 +27,23 @@ export function getSelectionHandleAtPoint(
   selRect: { x: number; y: number; width: number; height: number },
   margin = 22,
 ): HandleType {
+  const cam = getCamera();
   const dpr = getPixelRatio();
 
-  /** ───── ① canvas 좌표 → 화면 좌표 변환 */
-  const toScreen = (canvasX: number, canvasY: number) => ({
-    x: ((canvasX + position.x) * position.scale) / dpr,
-    y:
-      ((canvasY + position.y) * position.scale) / dpr +
-      position.bouncingRect.y - // 상단 AppBar
-      position.bottomNavHeight, // 하단 NavBar
-  });
+  /** ───── ① canvas 좌표 → 화면 좌표 변환 */
+  // X는 컨테이너 로컬 그대로, Y만 컨테이너 상단(AppBar) 오프셋 보정 — 기존 동작 유지
+  const toScreen = (canvasX: number, canvasY: number) => {
+    const p = sceneToContainer(canvasX, canvasY, cam, dpr);
+    return {
+      x: p.x,
+      y: p.y + position.bouncingRect.y - position.bottomNavHeight,
+    };
+  };
 
   const { x: cX, y: cY, width: cW, height: cH } = selRect;
   const p = toScreen(cX, cY);
-  const w = (cW * position.scale) / dpr;
-  const h = (cH * position.scale) / dpr;
+  const w = sceneLengthToCss(cW, cam.scale, dpr);
+  const h = sceneLengthToCss(cH, cam.scale, dpr);
 
   const left = p.x;
   const right = p.x + w;

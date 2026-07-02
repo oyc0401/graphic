@@ -1,6 +1,7 @@
 // tools/PanTool.ts
 import { InputMode, paintState } from "../paintState";
 import { getPixelRatio, position, renderChangedPosition } from "../position";
+import { cssDeltaToScene } from "../utils/cameraMath";
 import type { Tool, ToolConfig } from "./Tool";
 
 export class PanTool implements Tool {
@@ -33,11 +34,9 @@ export class PanTool implements Tool {
   move(e: PointerEvent) {
     if (!this.canUse() || !paintState.getPointerdown() || !this.active) return;
 
-    const dx = (this.lastClientX - e.clientX) * getPixelRatio();
-    const dy = (this.lastClientY - e.clientY) * getPixelRatio();
-
-    const newX = position.x - dx / position.scale;
-    const newY = position.y - dy / position.scale;
+    const dpr = getPixelRatio();
+    const newX = position.x - cssDeltaToScene(this.lastClientX - e.clientX, position.scale, dpr);
+    const newY = position.y - cssDeltaToScene(this.lastClientY - e.clientY, position.scale, dpr);
 
     position.setX(newX);
     position.setY(newY);

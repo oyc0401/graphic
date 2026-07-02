@@ -1,4 +1,5 @@
-import { getPixelRatio, position } from "../position";
+import { getCamera, getPixelRatio, position } from "../position";
+import { sceneLengthToCss, sceneToContainer } from "./cameraMath";
 
 export type ShapeHandleType =
   | "LT"
@@ -18,19 +19,21 @@ export function getShapeHandleAtPoint(
   rect: { x: number; y: number; width: number; height: number },
   margin = 22,
 ): ShapeHandleType {
+  const cam = getCamera();
   const dpr = getPixelRatio();
 
-  const toScreen = (canvasX: number, canvasY: number) => ({
-    x: ((canvasX + position.x) * position.scale) / dpr,
-    y:
-      ((canvasY + position.y) * position.scale) / dpr +
-      position.bouncingRect.y -
-      position.bottomNavHeight,
-  });
+  // X는 컨테이너 로컬 그대로, Y만 컨테이너 상단(AppBar) 오프셋 보정 — 기존 동작 유지
+  const toScreen = (canvasX: number, canvasY: number) => {
+    const p = sceneToContainer(canvasX, canvasY, cam, dpr);
+    return {
+      x: p.x,
+      y: p.y + position.bouncingRect.y - position.bottomNavHeight,
+    };
+  };
 
   const p = toScreen(rect.x, rect.y);
-  const w = (rect.width * position.scale) / dpr;
-  const h = (rect.height * position.scale) / dpr;
+  const w = sceneLengthToCss(rect.width, cam.scale, dpr);
+  const h = sceneLengthToCss(rect.height, cam.scale, dpr);
 
   const left = p.x;
   const right = p.x + w;
