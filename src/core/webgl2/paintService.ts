@@ -134,6 +134,10 @@ export class PaintService {
     paintOptions.setAlpha(alpha);
     getShapeManager(this.canvas, this.gl).updateOptions();
   }
+  setColorReplace(enabled: boolean) {
+    paintOptions.colorReplace = enabled;
+    getShapeManager(this.canvas, this.gl).updateOptions();
+  }
   sampleColor(x: number, y: number) {
     const layerManager = getLayerManager(this.canvas, this.gl);
     const gl = this.gl;

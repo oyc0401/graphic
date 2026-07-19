@@ -66,6 +66,8 @@ export let paintOptions = {
   radius: 10,
   color: [0, 0, 0],
   alpha: 0.5,
+  // 색 교체 모드: 그리기 결과가 기존 픽셀과 합성되지 않고 (color, alpha)로 대체된다.
+  colorReplace: false,
   x: 0,
   y: 0,
   magnification: 1,

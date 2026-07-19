@@ -6,6 +6,8 @@ import { getLayerWorker } from "../worker/workerPool";
 import { syncCoreState } from "../history";
 
 const SLIDER_MIN = 1;
+// 알파는 0 허용 — 색 교체 모드에서 0%는 "투명으로 교체"(영역 지우기)로 쓰인다.
+const ALPHA_SLIDER_MIN = 0;
 const SIZE_SLIDER_MAX = 1000;
 const ALPHA_SLIDER_MAX = 100;
 const THUMB_SIZE = 16;
@@ -257,7 +259,7 @@ export const BrushAlphaSlider = observer(
         <div className="slider-area">
           <CustomSlider
             id="opacity-slider"
-            min={SLIDER_MIN}
+            min={ALPHA_SLIDER_MIN}
             max={ALPHA_SLIDER_MAX}
             value={paintState.getBrushAlpha()}
             onChange={(nextValue) => paintState.setBrushAlpha(nextValue)}

@@ -387,12 +387,16 @@ class ShapeManager {
 
     this.rectangleModule.setColor(color);
     this.rectangleModule.setWidth(width);
+    this.rectangleModule.setReplace(paintOptions.colorReplace);
     this.ellipseModule.setColor(color);
     this.ellipseModule.setWidth(width);
+    this.ellipseModule.setReplace(paintOptions.colorReplace);
     this.lineModule.setColor(color);
     this.lineModule.setWidth(width);
+    this.lineModule.setReplace(paintOptions.colorReplace);
     this.curveModule.setColor(color);
     this.curveModule.setWidth(width);
+    this.curveModule.setReplace(paintOptions.colorReplace);
   }
 
   private drawRectDraft(rect: ShapeRect) {

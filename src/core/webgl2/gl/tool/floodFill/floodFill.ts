@@ -25,6 +25,7 @@ export function floodFill(
   floodFill.setTolerance(tolerance);
   floodFill.setAlpha(paintOptions.alpha);
   floodFill.setColor(paintOptions.color as FloodFillColor);
+  floodFill.setReplace(paintOptions.colorReplace);
 
   const fillRect = floodFill.fill(point);
   floodFill.destroy();

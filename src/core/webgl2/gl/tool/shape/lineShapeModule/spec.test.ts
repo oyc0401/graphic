@@ -25,6 +25,8 @@ describe("lineShapeModule", () => {
       interface LineShapeInterface {
         setColor(color: [number, number, number, number]): void;
         setWidth(width: number): void;
+        // replace: apply 시 source-over 합성 대신 도형이 덮는 픽셀을 (color, alpha)로 교체한다.
+        setReplace(replace: boolean): void;
         create(p1: Point, p2: Point): Rect;
         apply(rect: Rect): Rect;
       }
@@ -39,6 +41,7 @@ describe("lineShapeModule", () => {
 
       lineShape.setColor([0, 0, 0, 1]);
       lineShape.setWidth(8);
+      lineShape.setReplace(false);
 
       // 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
       const rect1 = lineShape.create({ x: 10, y: 10 }, { x: 220, y: 120 });

@@ -25,6 +25,8 @@ describe("curveShapeModule", () => {
       interface CurveShapeInterface {
         setColor(color: [number, number, number, number]): void;
         setWidth(width: number): void;
+        // replace: apply 시 source-over 합성 대신 도형이 덮는 픽셀을 (color, alpha)로 교체한다.
+        setReplace(replace: boolean): void;
         create(p1: Point, p2: Point, p3: Point, p4: Point | null): Rect;
         apply(rect: Rect): Rect;
       }
@@ -39,6 +41,7 @@ describe("curveShapeModule", () => {
 
       curveShape.setColor([1, 0, 0, 0.8]);
       curveShape.setWidth(12);
+      curveShape.setReplace(false);
 
       // 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
       const rect1 = curveShape.create({ x: 260, y: 160 }, { x: 520, y: 160 }, { x: 320, y: 40 }, null);

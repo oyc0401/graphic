@@ -1,7 +1,8 @@
 import brushFrag from "./brush.frag?raw";
 import eraserFrag from "./eraser.frag?raw";
+import replaceFrag from "./replace.frag?raw";
 
-export type BrushRenderMode = "brush" | "eraser";
+export type BrushRenderMode = "brush" | "eraser" | "replace";
 export type BrushRenderColor = [number, number, number, number];
 
 export interface BrushRenderRect {
@@ -48,8 +49,10 @@ class BrushRender {
   private readonly resultFBO: WebGLFramebuffer;
   private readonly brushProgram: WebGLProgram;
   private readonly eraserProgram: WebGLProgram;
+  private readonly replaceProgram: WebGLProgram;
   private readonly brushVAO: WebGLVertexArrayObject;
   private readonly eraserVAO: WebGLVertexArrayObject;
+  private readonly replaceVAO: WebGLVertexArrayObject;
   private mode: BrushRenderMode = "brush";
   private color: BrushRenderColor = [0, 0, 0, 1];
 
@@ -71,14 +74,21 @@ class BrushRender {
       vertexShader,
       createShader(gl, gl.FRAGMENT_SHADER, eraserFrag),
     );
+    this.replaceProgram = createProgram(
+      gl,
+      vertexShader,
+      createShader(gl, gl.FRAGMENT_SHADER, replaceFrag),
+    );
 
     this.brushVAO = createFullQuadVAO(gl, this.brushProgram);
     this.eraserVAO = createFullQuadVAO(gl, this.eraserProgram);
+    this.replaceVAO = createFullQuadVAO(gl, this.replaceProgram);
 
     this.resultFBO = createFramebuffer(gl, options.resultTexture);
 
     this.setupRenderUniforms(this.brushProgram);
     this.setupRenderUniforms(this.eraserProgram);
+    this.setupRenderUniforms(this.replaceProgram);
   }
 
   setMode(mode: BrushRenderMode) {
@@ -99,8 +109,17 @@ class BrushRender {
 
     const gl = this.gl;
     const program =
-      this.mode === "eraser" ? this.eraserProgram : this.brushProgram;
-    const vao = this.mode === "eraser" ? this.eraserVAO : this.brushVAO;
+      this.mode === "eraser"
+        ? this.eraserProgram
+        : this.mode === "replace"
+          ? this.replaceProgram
+          : this.brushProgram;
+    const vao =
+      this.mode === "eraser"
+        ? this.eraserVAO
+        : this.mode === "replace"
+          ? this.replaceVAO
+          : this.brushVAO;
 
     gl.useProgram(program);
     gl.bindVertexArray(vao);
@@ -111,6 +130,14 @@ class BrushRender {
         this.color[0],
         this.color[1],
         this.color[2],
+      );
+    } else if (this.mode === "replace") {
+      gl.uniform4f(
+        gl.getUniformLocation(program, "u_color"),
+        this.color[0],
+        this.color[1],
+        this.color[2],
+        this.color[3],
       );
     }
 

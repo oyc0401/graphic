@@ -118,6 +118,11 @@ export class WebGL2Controller {
   setAlpha(alpha: number): void {
     paint.setAlpha(alpha / 100);
   }
+
+  // 색 교체 모드를 설정한다. 켜면 브러시/도형/채우기가 기존 픽셀과 합성되지 않고 덮어쓴다.
+  setColorReplace(enabled: boolean): void {
+    paint.setColorReplace(enabled);
+  }
   // 이미지에서 지정한 위치의 색상을 가져온다.
   sampleColor(px: number, py: number): { r: number; g: number; b: number } {
     const x = Math.floor(px);

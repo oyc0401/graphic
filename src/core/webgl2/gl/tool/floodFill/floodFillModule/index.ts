@@ -22,6 +22,7 @@ class FloodFill {
   private tolerance = 0;
   private toleranceSq = 0;
   private alpha = 1;
+  private replace = false;
   private color: FloodFillColor = [1, 0, 0];
   private dirtyRect: FloodFillRect | null = null;
 
@@ -50,10 +51,15 @@ class FloodFill {
     this.color = color;
   }
 
+  setReplace(replace: boolean) {
+    this.replace = replace;
+  }
+
   fill(point: FloodFillPoint): FloodFillRect | null {
     const seedPoint = pointRect(point, this.width, this.height);
     if (seedPoint.width === 0 || seedPoint.height === 0) return null;
-    if (this.alpha === 0) return null;
+    // replace 모드의 alpha 0은 "투명으로 교체"(영역 지우기)라 유효한 동작이다.
+    if (this.alpha === 0 && !this.replace) return null;
 
     const pixels = this.readResult();
     const seedIndex = this.pixelIndex(seedPoint.x, seedPoint.y);
@@ -161,11 +167,20 @@ class FloodFill {
     const index = this.pixelIndex(x, y);
     visited[visitIndex] = 1;
 
-    const inverseAlpha = 1 - this.alpha;
-    const r = Math.round(fillColor.r * this.alpha + pixels[index] * inverseAlpha);
-    const g = Math.round(fillColor.g * this.alpha + pixels[index + 1] * inverseAlpha);
-    const b = Math.round(fillColor.b * this.alpha + pixels[index + 2] * inverseAlpha);
-    const a = Math.round((this.alpha + (pixels[index + 3] / 255) * inverseAlpha) * 255);
+    let r: number, g: number, b: number, a: number;
+    if (this.replace) {
+      // 색 교체 모드: 기존 픽셀과 합성하지 않고 (color, alpha)를 premultiplied로 그대로 기록한다.
+      r = Math.round(fillColor.r * this.alpha);
+      g = Math.round(fillColor.g * this.alpha);
+      b = Math.round(fillColor.b * this.alpha);
+      a = Math.round(this.alpha * 255);
+    } else {
+      const inverseAlpha = 1 - this.alpha;
+      r = Math.round(fillColor.r * this.alpha + pixels[index] * inverseAlpha);
+      g = Math.round(fillColor.g * this.alpha + pixels[index + 1] * inverseAlpha);
+      b = Math.round(fillColor.b * this.alpha + pixels[index + 2] * inverseAlpha);
+      a = Math.round((this.alpha + (pixels[index + 3] / 255) * inverseAlpha) * 255);
+    }
 
     if (pixels[index] === r && pixels[index + 1] === g && pixels[index + 2] === b && pixels[index + 3] === a) {
       return false;

@@ -293,6 +293,26 @@ function isLanguageRouteTool(segment: string) {
   return segment === "liquify" || segment === "mosaic";
 }
 
+// 색 교체 모드 스위치. 켜면 브러시/도형/채우기가 기존 픽셀과 합성되지 않고 덮어쓴다.
+const ColorReplaceSwitch = observer(() => {
+  const on = paintState.getColorReplace();
+  return (
+    <div id="color-replace-area">
+      <p id="color-replace-label">{getLetter("color_replace")}</p>
+      <button
+        id="color-replace-switch"
+        role="switch"
+        aria-checked={on}
+        aria-label={getLetter("color_replace")}
+        className={on ? "on" : ""}
+        onClick={() => paintState.setColorReplace(!on)}
+      >
+        <span className="switch-knob" />
+      </button>
+    </div>
+  );
+});
+
 export const ColorIndicatorButton = observer(() => {
   const colorHex = rgbToHex(colorState.getRGB());
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -476,6 +496,8 @@ export const ColorIndicatorButton = observer(() => {
             }}
           ></input>
         </div>
+
+        <ColorReplaceSwitch />
       </div>
     </>
   );
@@ -659,6 +681,8 @@ export const MobileColorIndicatorButton = observer(() => {
             }}
           ></input>
         </div>
+
+        <ColorReplaceSwitch />
       </div>
     </>
   );

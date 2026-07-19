@@ -86,17 +86,27 @@ class BrushManager {
     this.strokeType = type;
   }
 
+  // 색 교체 모드는 brush에만 적용된다. eraser는 교체 개념이 없다.
+  private effectiveMode(): BrushRenderMode {
+    if (this.mode === "brush" && paintOptions.colorReplace) return "replace";
+    return this.mode;
+  }
+
   start(pointer: Pointer) {
     this.ensureSize();
     this.currentStrokeModule = this.selectStrokeModule();
-    this.currentStrokeModule.setAlpha(paintOptions.alpha);
+    // replace 모드는 pathMap에 알파를 굽지 않고 순수 coverage를 쓴다.
+    // (알파를 구우면 alpha=0일 때 coverage 정보가 사라져 투명 교체가 불가능해진다)
+    this.currentStrokeModule.setAlpha(
+      this.effectiveMode() === "replace" ? 1 : paintOptions.alpha,
+    );
     this.currentStrokeModule.setDiameter(paintOptions.radius * 2);
-    this.renderModule.setMode(this.mode);
+    this.renderModule.setMode(this.effectiveMode());
     this.renderModule.setColor([
       paintOptions.color[0],
       paintOptions.color[1],
       paintOptions.color[2],
-      1,
+      paintOptions.alpha,
     ]);
     this.dirtyRect = null;
 
@@ -119,7 +129,7 @@ class BrushManager {
 
   end(toolId: "brush" | "eraser") {
     this.mode = toolId === "eraser" ? "eraser" : "brush";
-    this.renderModule.setMode(this.mode);
+    this.renderModule.setMode(this.effectiveMode());
 
     const strokeRect = this.currentStrokeModule.end();
     const rect = unionRect(this.dirtyRect, strokeRect);

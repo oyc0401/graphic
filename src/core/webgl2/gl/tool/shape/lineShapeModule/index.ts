@@ -60,6 +60,7 @@ class LineShape {
   private readonly vao: WebGLVertexArrayObject;
   private color: LineShapeColor = [0, 0, 0, 1];
   private strokeWidth = 1;
+  private replace = false;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -88,6 +89,10 @@ class LineShape {
 
   setWidth(width: number) {
     this.strokeWidth = Math.max(1, width);
+  }
+
+  setReplace(replace: boolean) {
+    this.replace = replace;
   }
 
   create(p1: LineShapePoint, p2: LineShapePoint): LineShapeRect {
@@ -125,6 +130,8 @@ class LineShape {
       targetRect.width,
       targetRect.height,
     );
+    gl.uniform1f(gl.getUniformLocation(this.applyProgram, "u_alpha"), this.color[3]);
+    gl.uniform1i(gl.getUniformLocation(this.applyProgram, "u_replace"), this.replace ? 1 : 0);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.resultFramebuffer);
     gl.enable(gl.SCISSOR_TEST);

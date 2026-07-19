@@ -22,6 +22,8 @@ describe("floodFillModule", () => {
         setTolerance(tolerance: number): void;
         setAlpha(alpha: number): void;
         setColor(color: [number, number, number]): void;
+        // replace: 기존 색과 합성하지 않고 채운 영역을 (color, alpha)로 교체한다.
+        setReplace(replace: boolean): void;
         fill(point: { x: number; y: number }): Rect | null;
       }
 
@@ -35,6 +37,8 @@ describe("floodFillModule", () => {
       floodFill.setTolerance(0.12); // 이걸 하면, 클릭한 픽셀과 어느 정도 비슷한 색까지 채울지 정해짐
       floodFill.setAlpha(0.1); // 이걸 하면, 채우는 색이 기존 색에 어느 정도 덮어질지 정해짐
       floodFill.setColor([1, 0, 0]);
+      floodFill.setReplace(false); // 이걸 켜면 alpha 합성 대신 (color, alpha)로 교체됌
+
 
       // 이걸 하면 resultTexture가 수정됌
       const rect = floodFill.fill({ x: 10, y: 10 });

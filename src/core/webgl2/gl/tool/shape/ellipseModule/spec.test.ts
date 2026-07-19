@@ -24,6 +24,8 @@ describe("ellipseModule", () => {
       interface EllipseInterface {
         setColor(color: [number, number, number, number]): void;
         setWidth(width: number): void;
+        // replace: apply 시 source-over 합성 대신 도형이 덮는 픽셀을 (color, alpha)로 교체한다.
+        setReplace(replace: boolean): void;
         create(rect: Rect): Rect;
         apply(rect: Rect): Rect;
       }
@@ -38,6 +40,7 @@ describe("ellipseModule", () => {
 
       ellipse.setColor([0, 0, 0, 1]);
       ellipse.setWidth(1);
+      ellipse.setReplace(false);
 
       // 이걸 하면 shapeTexture가 수정되고, rect1은 shapeTexture를 배치할 targetRect임
       // rect를 받으면 지금 그린 shapeTexture의 0,0,w,h의 부분을 캔버스의 x,y,w,h부분에 렌더링 해주세요.

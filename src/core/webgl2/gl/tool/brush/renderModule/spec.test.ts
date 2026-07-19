@@ -21,8 +21,10 @@ describe("BrushRenderModule", () => {
       const maskTexture = gl.createTexture()!;
 
       interface BrushRenderInterface {
+        // color의 4번째 성분은 전역 알파. replace 모드에서 교체될 픽셀의 알파로 사용된다.
         setColor(color: [number, number, number, number]): void;
-        setMode(mode: "brush" | "eraser"): void;
+        // replace: source-over 합성 대신 스트로크가 덮는 픽셀을 (color, alpha)로 교체한다.
+        setMode(mode: "brush" | "eraser" | "replace"): void;
         render(rect: { x: number; y: number; width: number; height: number }): void;
       }
 
@@ -36,6 +38,7 @@ describe("BrushRenderModule", () => {
 
       brushRender.setColor([1, 1, 1, 1]);
       brushRender.setMode("eraser");
+      brushRender.setMode("replace");
 
       // 이걸 하면 렌더링됌.
       brushRender.render({ x, y, width, height });

@@ -133,6 +133,9 @@ class PaintState {
   // 캔버스 배경을 투명(체커보드)으로 표시/저장할지.
   private _transparentBackground = false;
 
+  // 색 교체 모드. 켜면 브러시/도형/채우기가 기존 픽셀과 합성되지 않고 (색, 알파)로 덮어쓴다.
+  private _colorReplace = false;
+
   constructor() {
     makeAutoObservable(this);
   }
@@ -204,6 +207,10 @@ class PaintState {
     this._transparentBackground = value;
     getLayerWorker()?.setTransparentBackground(value);
   }
+  setColorReplace(value: boolean) {
+    this._colorReplace = value;
+    getLayerWorker()?.setColorReplace(value);
+  }
 
   /** Getter functions */
 
@@ -260,6 +267,9 @@ class PaintState {
   }
   getTransparentBackground() {
     return this._transparentBackground;
+  }
+  getColorReplace() {
+    return this._colorReplace;
   }
   getToolId(): ToolId {
     return this._selectedToolId;
