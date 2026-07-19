@@ -1,3 +1,4 @@
+import { colorState } from "../colorState";
 import { InputMode, paintState, ToolId } from "../paintState";
 import { position, to_pixel_canvas_coord } from "../position";
 import { createShape, discardShape, shape, toCoreShapeKind } from "../shape";
@@ -42,7 +43,13 @@ export class ShapeCreateTool implements Tool {
     shape.setVisible(false);
     shape.setShowHint(true);
     shape.setShowHandle(false);
-    getLayerWorker().startShape(toCoreShapeKind(shapeId));
+
+    const worker = getLayerWorker();
+    worker.setStrokeSize(paintState.getBrushSize());
+    worker.setAlpha(paintState.getBrushAlpha());
+    const { r, g, b } = colorState.getRGB();
+    worker.setStrokeColor(r, g, b);
+    worker.startShape(toCoreShapeKind(shapeId));
   }
 
   move(e: PointerEvent) {
