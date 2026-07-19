@@ -195,6 +195,14 @@ function canvasPixelManager(canvas, gl) {
       0,
     );
 
+    // 투명 배경이면 알파 0으로, 아니면 흰색으로 배경을 채운다.
+    if (paintOptions.transparentBackground) {
+      gl.clearColor(0, 0, 0, 0);
+    } else {
+      gl.clearColor(1, 1, 1, 1);
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
 

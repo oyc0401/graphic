@@ -62,6 +62,7 @@ function makeRenderingManager(canvas, gl) {
       u_pos: [paintOptions.x, paintOptions.y],
       u_screenSize: [paintOptions.screenWidth, paintOptions.screenHeight],
       u_magnification: paintOptions.magnification,
+      u_transparent: paintOptions.transparentBackground ? 1 : 0,
     });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, offscreenManager.offscreenFBO);

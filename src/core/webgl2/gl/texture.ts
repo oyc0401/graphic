@@ -76,6 +76,7 @@ export let paintOptions = {
   showSelection: false,
   showShape: false,
   selectionAntialias: true,
+  transparentBackground: false,
   layerId: 0,
   selectionLayerId: 0,
 

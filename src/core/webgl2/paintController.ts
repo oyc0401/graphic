@@ -98,6 +98,12 @@ export class WebGL2Controller {
     paint.render();
   }
 
+  // 캔버스 배경을 투명(체커보드)으로 표시할지 설정한다.
+  setTransparentBackground(enabled: boolean): void {
+    paintOptions.transparentBackground = enabled;
+    paint.render();
+  }
+
   // 브러시의 색상을 설정한다.
   setStrokeColor(r: number, g: number, b: number): void {
     paint.setStrokeColor(r, g, b);

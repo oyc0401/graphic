@@ -9,6 +9,7 @@ uniform vec2 u_resolution; // 캔버스(원본 텍스처) 해상도 (px)
 uniform vec2 u_pos; // 캔버스의 왼쪽 상단 위치 (2D UI 좌표, px)
 uniform vec2 u_screenSize; // 전체 스크린 크기 (px)
 uniform float u_magnification; // 확대 배율 (값이 클수록 크게 보임)
+uniform float u_transparent; // 1.0이면 배경을 반투명 회색(투명 표시)으로 그림
 
 void main() {
   // 1. magnification을 반영한 "스케일된 스크린" 크기 계산
@@ -34,9 +35,12 @@ void main() {
   }
 
   // 5. 캔버스 영역 내부라면, 지정한 배경색을 출력
-  vec3 rgb = vec3(0.0, 0.0, 0.0);
-  float alpha = 0.04;
-  //outColor = vec4(rgb * alpha, alpha);
-
-  outColor = vec4(1.0, 1.0, 1.0, 1.0);
+  if (u_transparent > 0.5) {
+    // 반투명 회색 — 뒤의 그리드가 비쳐 투명처럼 보임 (premultiplied)
+    vec3 rgb = vec3(0.0, 0.0, 0.0);
+    float alpha = 0.04;
+    outColor = vec4(rgb * alpha, alpha);
+  } else {
+    outColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
 }

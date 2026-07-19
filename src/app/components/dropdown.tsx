@@ -11,7 +11,7 @@ import NewIcon from "../assets/new.svg?react";
 import OpenIcon from "../assets/open.svg?react";
 import SaveIcon from "../assets/save.svg?react";
 import TranslateIcon from "../assets/translate.svg?react";
-import { Bug } from "lucide-react";
+import { Bug, SquareCheck, SquareDashed } from "lucide-react";
 
 import { useRef, useEffect } from "react";
 import "./color-box.css";
@@ -117,6 +117,23 @@ export const MainMenuToggleButton = observer(() => {
             <div className="menu-button-content">
               <SaveIcon />
               <p>{getLetter("save")}</p>
+            </div>
+          </button>
+          <button
+            id="transparent-background-button"
+            onClick={() => {
+              paintState.setTransparentBackground(
+                !paintState.getTransparentBackground(),
+              );
+            }}
+          >
+            <div className="menu-button-content">
+              {paintState.getTransparentBackground() ? (
+                <SquareCheck />
+              ) : (
+                <SquareDashed />
+              )}
+              <p>{getLetter("transparent_background")}</p>
             </div>
           </button>
           <button id="bug-report-button" onClick={openBugReportForm}>

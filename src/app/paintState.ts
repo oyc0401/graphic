@@ -130,6 +130,9 @@ class PaintState {
   // 현재 브러시 stroke가 이동했는지.
   private _moved = true;
 
+  // 캔버스 배경을 투명(체커보드)으로 표시/저장할지.
+  private _transparentBackground = false;
+
   constructor() {
     makeAutoObservable(this);
   }
@@ -197,6 +200,10 @@ class PaintState {
   setMoved(value) {
     this._moved = value;
   }
+  setTransparentBackground(value: boolean) {
+    this._transparentBackground = value;
+    getLayerWorker()?.setTransparentBackground(value);
+  }
 
   /** Getter functions */
 
@@ -250,6 +257,9 @@ class PaintState {
   }
   getMoved() {
     return this._moved;
+  }
+  getTransparentBackground() {
+    return this._transparentBackground;
   }
   getToolId(): ToolId {
     return this._selectedToolId;
