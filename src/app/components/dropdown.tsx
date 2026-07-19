@@ -96,12 +96,24 @@ export const MainMenuToggleButton = observer(() => {
               <NewIcon /> <p>{getLetter("new")}</p>
             </div>
           </button>
-          <button id="open-button" onClick={openFile}>
+          <button
+            id="open-button"
+            onClick={() => {
+              menuState.setShowMenu(false);
+              openFile();
+            }}
+          >
             <div className="menu-button-content">
               <OpenIcon /> <p>{getLetter("open")}</p>
             </div>
           </button>
-          <button id="save-button" onClick={downloadImage}>
+          <button
+            id="save-button"
+            onClick={() => {
+              menuState.setShowMenu(false);
+              downloadImage();
+            }}
+          >
             <div className="menu-button-content">
               <SaveIcon />
               <p>{getLetter("save")}</p>
