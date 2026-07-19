@@ -35,9 +35,13 @@ type SeoConfig = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const seoConfigPath = path.join(rootDir, "src/app/i18n/seoPages.json");
+const landingCopyPath = path.join(rootDir, "src/app/i18n/landingCopy.json");
 const templatePath = path.join(rootDir, "index.html");
+const landingTemplatePath = path.join(rootDir, "landing.html");
+const landingRootOutputPath = path.join(rootDir, "landing-root.html");
 
 let seoConfig: SeoConfig;
+let landingCopy: Record<Locale, Record<string, string>>;
 
 function escapeHtml(value: string): string {
   return value
@@ -128,6 +132,69 @@ function softwareApplicationJsonLd(
       priceCurrency: "USD",
     },
   };
+}
+
+function faqPageJsonLd(copy: Record<string, string>): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [1, 2, 3, 4].map((i) => ({
+      "@type": "Question",
+      name: copy[`q${i}`],
+      acceptedAnswer: { "@type": "Answer", text: copy[`a${i}`] },
+    })),
+  };
+}
+
+// 랜딩 템플릿(landing.html)의 {{token}}을 채운다. isRoot면 "/" 캐노니컬과
+// 브라우저 언어 감지 스크립트가 들어간다.
+function renderLanding(
+  template: string,
+  locale: Locale,
+  canonical: string,
+  isRoot: boolean,
+): string {
+  const copy = landingCopy[locale];
+  const meta = isRoot ? seoConfig.root.meta : seoConfig.pages.home.meta[locale];
+  if (!copy) throw new Error(`Missing landing copy for ${locale}.`);
+  if (!meta) throw new Error(`Missing home meta for ${locale}.`);
+
+  const tokens: Record<string, string> = {};
+  for (const [key, value] of Object.entries(copy)) {
+    tokens[key] = escapeHtml(value);
+  }
+  tokens.lang = escapeHtml(locale);
+  tokens.title = escapeHtml(meta.title);
+  tokens.description = escapeHtml(meta.description);
+  tokens.canonical = escapeHtml(canonical);
+  tokens.alternates = rootAlternateLinks();
+  tokens.app_home = pagePath(locale, "paint");
+  tokens.app_liquify = pagePath(locale, "liquify");
+  tokens.app_mosaic = pagePath(locale, "mosaic");
+  tokens.jsonld_app = jsonLdScript(
+    softwareApplicationJsonLd(meta.title, meta.description, canonical),
+  );
+  tokens.jsonld_faq = jsonLdScript(faqPageJsonLd(copy));
+  tokens.root_script = isRoot
+    ? `    <script>
+      // Point app links at the visitor's language when we ship that locale.
+      const locales = ${JSON.stringify(seoConfig.locales)};
+      const lang = (navigator.language || "en").slice(0, 2);
+      if (locales.includes(lang) && lang !== "en") {
+        for (const a of document.querySelectorAll("[data-app-link]")) {
+          a.href = a.href.replace("/en/", "/" + lang + "/");
+        }
+      }
+    </script>`
+    : "";
+
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+    const value = tokens[key];
+    if (value === undefined) {
+      throw new Error(`Missing landing token "${key}" for ${locale}.`);
+    }
+    return value;
+  });
 }
 
 function insertJsonLd(html: string, data: Record<string, unknown>): string {
@@ -269,81 +336,6 @@ function renderHtml(template: string, locale: Locale, page: PageId): string {
   );
 }
 
-function renderRootHtml(template: string): string {
-  const { root } = seoConfig;
-  let html = template;
-  html = replaceRequired(
-    html,
-    /<html lang="[^"]*">/,
-    `<html lang="${escapeHtml(root.locale)}">`,
-    "html lang",
-  );
-  html = replaceRequired(
-    html,
-    /    <title>.*<\/title>/,
-    `    <title>${escapeHtml(root.meta.title)}</title>`,
-    "title",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta name="description" content="[^"]*" \/>/,
-    `    <meta name="description" content="${escapeHtml(root.meta.description)}" />`,
-    "description",
-  );
-  html = replaceRequired(
-    html,
-    /    <link rel="canonical" href="[^"]*" \/>/,
-    `    <link rel="canonical" href="${escapeHtml(rootUrl())}" />`,
-    "canonical",
-  );
-  html = replaceRequired(
-    html,
-    /(?:    <link rel="alternate" hreflang="[^"]*" href="[^"]*" \/>\n)+/,
-    `${rootAlternateLinks()}\n`,
-    "alternate links",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta property="og:title" content="[^"]*" \/>/,
-    `    <meta property="og:title" content="${escapeHtml(root.meta.title)}" />`,
-    "og:title",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta property="og:description" content="[^"]*" \/>/,
-    `    <meta property="og:description" content="${escapeHtml(root.meta.description)}" />`,
-    "og:description",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta property="og:url" content="[^"]*" \/>/,
-    `    <meta property="og:url" content="${escapeHtml(rootUrl())}" />`,
-    "og:url",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta property="og:locale" content="[^"]*" \/>/,
-    `    <meta property="og:locale" content="${escapeHtml(root.locale)}" />`,
-    "og:locale",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta name="twitter:title" content="[^"]*" \/>/,
-    `    <meta name="twitter:title" content="${escapeHtml(root.meta.title)}" />`,
-    "twitter:title",
-  );
-  html = replaceRequired(
-    html,
-    /    <meta name="twitter:description" content="[^"]*" \/>/,
-    `    <meta name="twitter:description" content="${escapeHtml(root.meta.description)}" />`,
-    "twitter:description",
-  );
-  return insertJsonLd(
-    html,
-    softwareApplicationJsonLd(root.meta.title, root.meta.description, rootUrl()),
-  );
-}
-
 function renderSitemapUrl(
   loc: string,
   alternates: { hreflang: string; href: string }[],
@@ -377,21 +369,31 @@ function renderRobotsTxt(): string {
 
 async function main(): Promise<void> {
   seoConfig = JSON.parse(await readFile(seoConfigPath, "utf8")) as SeoConfig;
+  landingCopy = JSON.parse(await readFile(landingCopyPath, "utf8")) as Record<
+    Locale,
+    Record<string, string>
+  >;
   const template = normalizeTemplate(await readFile(templatePath, "utf8"));
-  const { defaultLocale, locales, pages } = seoConfig;
+  const landingTemplate = await readFile(landingTemplatePath, "utf8");
+  const { locales, pages } = seoConfig;
   const pageIds = Object.keys(pages);
 
   for (const locale of locales) {
     for (const page of pageIds) {
       const htmlPath = outputPath(locale, page);
       await mkdir(path.dirname(htmlPath), { recursive: true });
-      await writeFile(htmlPath, renderHtml(template, locale, page), "utf8");
+      const html =
+        page === "home"
+          ? renderLanding(landingTemplate, locale, pageUrl(locale, page), false)
+          : renderHtml(template, locale, page);
+      await writeFile(htmlPath, html, "utf8");
     }
   }
 
+  // "/"용 랜딩. vite 빌드 후 dist/index.html로 복사된다(package.json build).
   await writeFile(
-    path.join(rootDir, "index.html"),
-    renderRootHtml(template),
+    landingRootOutputPath,
+    renderLanding(landingTemplate, seoConfig.root.locale, rootUrl(), true),
     "utf8",
   );
 

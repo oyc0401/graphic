@@ -6,7 +6,8 @@ PaintOn runs in the browser and provides image editing tools without requiring u
 
 ## Core Pages
 
-- [PaintOn](https://painton.app/): Main browser-based image editor.
+- [PaintOn](https://painton.app/): Landing page with product overview and FAQ (localized at /en, /ko, /ja, /es, /fr, /de, /zh, /ru).
+- [PaintOn Editor](https://painton.app/en/paint): Main browser-based paint editor.
 - [Liquify Image Online](https://painton.app/en/liquify): Tool page for pushing, twirling, bloating, puckering, and restoring image details.
 - [Mosaic Image Online](https://painton.app/en/mosaic): Tool page for applying pixel mosaic and blur mosaic effects, with restore support for masked areas.
 

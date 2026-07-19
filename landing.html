@@ -1,40 +1,32 @@
 <!doctype html>
-<html lang="de">
+<html lang="{{lang}}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>PaintOn — Kostenloses Online-Malprogramm &amp; Bildeditor</title>
-    <meta name="description" content="PaintOn ist eine kostenlose Mal-App direkt im Browser. Zeichnen, Verflüssigen und Mosaik ohne Installation und ohne Anmeldung — Ihre Bilder verlassen nie Ihr Gerät." />
-    <link rel="canonical" href="https://painton.app/de" />
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}" />
+    <link rel="canonical" href="{{canonical}}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/icon-32.png" sizes="32x32" />
     <link rel="icon" type="image/png" href="/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#f4f7fa" />
-    <link rel="alternate" hreflang="en" href="https://painton.app/en" />
-    <link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
-    <link rel="alternate" hreflang="ja" href="https://painton.app/ja" />
-    <link rel="alternate" hreflang="es" href="https://painton.app/es" />
-    <link rel="alternate" hreflang="fr" href="https://painton.app/fr" />
-    <link rel="alternate" hreflang="de" href="https://painton.app/de" />
-    <link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
-    <link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
-    <link rel="alternate" hreflang="x-default" href="https://painton.app/" />
-    <meta property="og:title" content="PaintOn — Kostenloses Online-Malprogramm &amp; Bildeditor" />
-    <meta property="og:description" content="PaintOn ist eine kostenlose Mal-App direkt im Browser. Zeichnen, Verflüssigen und Mosaik ohne Installation und ohne Anmeldung — Ihre Bilder verlassen nie Ihr Gerät." />
+{{alternates}}
+    <meta property="og:title" content="{{title}}" />
+    <meta property="og:description" content="{{description}}" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://painton.app/de" />
+    <meta property="og:url" content="{{canonical}}" />
     <meta property="og:site_name" content="PaintOn" />
-    <meta property="og:locale" content="de" />
+    <meta property="og:locale" content="{{lang}}" />
     <meta property="og:image" content="https://painton.app/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="PaintOn brush icon" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PaintOn — Kostenloses Online-Malprogramm &amp; Bildeditor" />
-    <meta name="twitter:description" content="PaintOn ist eine kostenlose Mal-App direkt im Browser. Zeichnen, Verflüssigen und Mosaik ohne Installation und ohne Anmeldung — Ihre Bilder verlassen nie Ihr Gerät." />
+    <meta name="twitter:title" content="{{title}}" />
+    <meta name="twitter:description" content="{{description}}" />
     <meta name="twitter:image" content="https://painton.app/og-image.png" />
     <meta name="twitter:image:alt" content="PaintOn brush icon" />
 
@@ -45,8 +37,8 @@
       rel="stylesheet"
     />
 
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"PaintOn — Kostenloses Online-Malprogramm & Bildeditor","applicationCategory":"MultimediaApplication","operatingSystem":"Web","url":"https://painton.app/de","description":"PaintOn ist eine kostenlose Mal-App direkt im Browser. Zeichnen, Verflüssigen und Mosaik ohne Installation und ohne Anmeldung — Ihre Bilder verlassen nie Ihr Gerät.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Ist PaintOn kostenlos?","acceptedAnswer":{"@type":"Answer","text":"Ja. PaintOn ist komplett kostenlos. Kein Konto, keine Anmeldung, keine Installation — es öffnet sich direkt im Browser."}},{"@type":"Question","name":"Werden meine Bilder auf einen Server hochgeladen?","acceptedAnswer":{"@type":"Answer","text":"Nein. Die gesamte Bearbeitung läuft lokal im Browser mit WebGL2. Geöffnete oder eingefügte Bilder werden auf deinem Gerät verarbeitet und nie hochgeladen."}},{"@type":"Question","name":"Welche Bearbeitungswerkzeuge hat PaintOn?","acceptedAnswer":{"@type":"Answer","text":"Pinsel, Stift und Radierer; Formen und Farbfüllung; rechteckige und freie Auswahl mit Verschieben und Transformieren; Verflüssigen mit Schieben, Drehen, Aufblähen, Zusammenziehen und Wiederherstellen; Pixel- und Unschärfe-Mosaik; Rückgängig/Wiederholen; und PNG-Export inklusive transparentem Hintergrund."}},{"@type":"Question","name":"Funktioniert PaintOn auf Handy und Tablet?","acceptedAnswer":{"@type":"Answer","text":"Ja. PaintOn hat eine touchfreundliche Mobile-UI mit Pinch-Zoom und Multitouch-Gesten und läuft auch in Desktop-Browsern."}}]}</script>
+{{jsonld_app}}
+{{jsonld_faq}}
 
     <style>
       :root {
@@ -499,9 +491,9 @@
           PaintOn
         </a>
         <nav aria-label="Main">
-          <a class="hide-sm" href="#tools">Werkzeuge</a>
-          <a class="hide-sm" href="#faq">FAQ</a>
-          <a class="btn" href="/de/paint" data-app-link>App öffnen</a>
+          <a class="hide-sm" href="#tools">{{nav_tools}}</a>
+          <a class="hide-sm" href="#faq">{{nav_faq}}</a>
+          <a class="btn" href="{{app_home}}" data-app-link>{{nav_open}}</a>
         </nav>
       </div>
     </header>
@@ -511,9 +503,9 @@
         <section class="hero" aria-label="Intro">
           <div>
             <h1>
-              Eine Mal-App direkt in
+              {{hero_a}}
               <span class="stroke-word"
-                >deinem Browser<svg viewBox="0 0 200 14" aria-hidden="true" preserveAspectRatio="none">
+                >{{hero_b}}<svg viewBox="0 0 200 14" aria-hidden="true" preserveAspectRatio="none">
                   <path
                     d="M4 10 C 40 4, 90 12, 130 7 S 190 6, 196 8"
                     fill="none"
@@ -524,11 +516,11 @@
                   /></svg
               ></span>
             </h1>
-            <p class="lede">Zeichne mit Pinseln, verflüssige Fotos und verdecke mit Mosaik, was niemand sehen soll — direkt im Tab. Kostenlos, ohne Installation, ohne Anmeldung, und deine Bilder verlassen nie dein Gerät.</p>
+            <p class="lede">{{lede}}</p>
             <div class="cta-row">
-              <a class="btn big" href="/de/paint" data-app-link>Jetzt zeichnen</a>
-              <a class="btn big ghost" href="/de/liquify" data-app-link>Foto verflüssigen</a>
-              <p class="cta-note">Für Desktop und Mobile · Nichts wird hochgeladen</p>
+              <a class="btn big" href="{{app_home}}" data-app-link>{{cta_start}}</a>
+              <a class="btn big ghost" href="{{app_liquify}}" data-app-link>{{cta_liquify}}</a>
+              <p class="cta-note">{{cta_note}}</p>
             </div>
           </div>
 
@@ -568,10 +560,10 @@
 
       <section class="alt" id="tools">
         <div class="wrap">
-          <h2>Drei Werkzeuge, eine Leinwand</h2>
-          <p class="section-lede">Alles läuft auf derselben WebGL2-Leinwand: skizzieren, verformen und zensieren in einer Sitzung — dann als PNG speichern.</p>
+          <h2>{{tools_h2}}</h2>
+          <p class="section-lede">{{tools_lede}}</p>
           <div class="tool-grid">
-            <a class="tool-card" href="/de/paint" data-app-link>
+            <a class="tool-card" href="{{app_home}}" data-app-link>
               <div class="thumb">
                 <svg viewBox="0 0 320 180" aria-hidden="true">
                   <path d="M30 130 C 80 60, 140 60, 190 100" fill="none" stroke="#3587ff" stroke-width="16" stroke-linecap="round" />
@@ -579,11 +571,11 @@
                   <path d="M200 50 L 285 45" fill="none" stroke="#35c26a" stroke-width="12" stroke-linecap="round" />
                 </svg>
               </div>
-              <h3>Zeichnen</h3>
-              <p>Pinsel, Stift, Radierer, Formen und Füllung — mit verschieb- und transformierbaren Auswahlen plus vollem Rückgängig/Wiederholen.</p>
-              <span class="go">Jetzt zeichnen →</span>
+              <h3>{{draw_h3}}</h3>
+              <p>{{draw_p}}</p>
+              <span class="go">{{draw_go}}</span>
             </a>
-            <a class="tool-card" href="/de/liquify" data-app-link>
+            <a class="tool-card" href="{{app_liquify}}" data-app-link>
               <div class="thumb">
                 <svg viewBox="0 0 320 180" aria-hidden="true">
                   <g fill="none" stroke="#9b59ff" stroke-width="7" stroke-linecap="round">
@@ -594,11 +586,11 @@
                   </g>
                 </svg>
               </div>
-              <h3>Verflüssigen</h3>
-              <p>Schiebe, drehe, blähe und ziehe Pixel zusammen, um ein Foto zu formen — und stelle Bereiche wieder her.</p>
-              <span class="go">Bild verflüssigen →</span>
+              <h3>{{liq_h3}}</h3>
+              <p>{{liq_p}}</p>
+              <span class="go">{{liq_go}}</span>
             </a>
-            <a class="tool-card" href="/de/mosaic" data-app-link>
+            <a class="tool-card" href="{{app_mosaic}}" data-app-link>
               <div class="thumb">
                 <svg viewBox="0 0 320 180" aria-hidden="true">
                   <g>
@@ -614,9 +606,9 @@
                   <path d="M210 130 C 240 80, 270 70, 295 90" fill="none" stroke="#3587ff" stroke-width="12" stroke-linecap="round" />
                 </svg>
               </div>
-              <h3>Mosaik</h3>
-              <p>Verpixele oder verwische Gesichter, Kennzeichen und private Infos in Sekunden — und hole Bereiche zurück.</p>
-              <span class="go">Mosaik anwenden →</span>
+              <h3>{{mos_h3}}</h3>
+              <p>{{mos_p}}</p>
+              <span class="go">{{mos_go}}</span>
             </a>
           </div>
         </div>
@@ -624,32 +616,32 @@
 
       <section id="features">
         <div class="wrap">
-          <h2>Kleine App, echter Editor</h2>
-          <p class="section-lede">PaintOn ist wie ein nativer Editor gebaut — eine einzige GPU-Rendering-Pipeline, keine Spielzeug-Canvas-Demo.</p>
+          <h2>{{feat_h2}}</h2>
+          <p class="section-lede">{{feat_lede}}</p>
           <ul class="spec-list">
             <li>
-              <b>Transparenter PNG-Export</b>
-              <span>Auf transparentem Hintergrund bearbeiten und genau so speichern.</span>
+              <b>{{f1_t}}</b>
+              <span>{{f1_d}}</span>
             </li>
             <li>
-              <b>Auswahl &amp; Transformation</b>
-              <span>Rechteckige und freie Lasso-Auswahl mit Verschieben und Skalieren.</span>
+              <b>{{f2_t}}</b>
+              <span>{{f2_d}}</span>
             </li>
             <li>
-              <b>Rückgängig / Wiederholen</b>
-              <span>Komprimierte Pixel-Snapshots halten den Verlauf schnell und speichersicher.</span>
+              <b>{{f3_t}}</b>
+              <span>{{f3_d}}</span>
             </li>
             <li>
-              <b>Touch-orientierte Mobile-UI</b>
-              <span>Pinch-Zoom und Multitouch-Gesten auf Handys und Tablets.</span>
+              <b>{{f4_t}}</b>
+              <span>{{f4_d}}</span>
             </li>
             <li>
-              <b>GPU-beschleunigt (WebGL2)</b>
-              <span>Pinsel, Verflüssigen und Mosaik laufen auf deiner Grafikkarte.</span>
+              <b>{{f5_t}}</b>
+              <span>{{f5_d}}</span>
             </li>
             <li>
-              <b>8 Sprachen</b>
-              <span>English, 한국어, 日本語, Español, Français, Deutsch, 中文, Русский.</span>
+              <b>{{f6_t}}</b>
+              <span>{{f6_d}}</span>
             </li>
           </ul>
         </div>
@@ -657,29 +649,29 @@
 
       <section class="alt privacy" id="privacy">
         <div class="wrap">
-          <h2>Dein Bild verlässt nie dein Gerät</h2>
-          <p>PaintOn hat keinen Upload-Schritt. Geöffnete Dateien werden lokal im Browser mit WebGL2 dekodiert und bearbeitet — Fotos von Dokumenten, Gesichtern oder Privatem bleiben genau dort, wo sie sind: auf deinem Rechner.</p>
+          <h2>{{priv_h2}}</h2>
+          <p>{{priv_p}}</p>
         </div>
       </section>
 
       <section class="faq" id="faq">
         <div class="wrap">
-          <h2>Häufige Fragen</h2>
+          <h2>{{faq_h2}}</h2>
           <details>
-            <summary>Ist PaintOn kostenlos?</summary>
-            <p>Ja. PaintOn ist komplett kostenlos. Kein Konto, keine Anmeldung, keine Installation — es öffnet sich direkt im Browser.</p>
+            <summary>{{q1}}</summary>
+            <p>{{a1}}</p>
           </details>
           <details>
-            <summary>Werden meine Bilder auf einen Server hochgeladen?</summary>
-            <p>Nein. Die gesamte Bearbeitung läuft lokal im Browser mit WebGL2. Geöffnete oder eingefügte Bilder werden auf deinem Gerät verarbeitet und nie hochgeladen.</p>
+            <summary>{{q2}}</summary>
+            <p>{{a2}}</p>
           </details>
           <details>
-            <summary>Welche Bearbeitungswerkzeuge hat PaintOn?</summary>
-            <p>Pinsel, Stift und Radierer; Formen und Farbfüllung; rechteckige und freie Auswahl mit Verschieben und Transformieren; Verflüssigen mit Schieben, Drehen, Aufblähen, Zusammenziehen und Wiederherstellen; Pixel- und Unschärfe-Mosaik; Rückgängig/Wiederholen; und PNG-Export inklusive transparentem Hintergrund.</p>
+            <summary>{{q3}}</summary>
+            <p>{{a3}}</p>
           </details>
           <details>
-            <summary>Funktioniert PaintOn auf Handy und Tablet?</summary>
-            <p>Ja. PaintOn hat eine touchfreundliche Mobile-UI mit Pinch-Zoom und Multitouch-Gesten und läuft auch in Desktop-Browsern.</p>
+            <summary>{{q4}}</summary>
+            <p>{{a4}}</p>
           </details>
         </div>
       </section>
@@ -687,7 +679,7 @@
 
     <footer>
       <div class="wrap">
-        <strong style="color: var(--ink)">PaintOn</strong> — kostenloses Online-Malprogramm &amp; Bildeditor
+        <strong style="color: var(--ink)">PaintOn</strong> — {{foot_tag}}
         <nav class="lang-row" aria-label="Language">
           <a href="/en" hreflang="en"><img src="/flags/us.svg" alt="" />English</a>
           <a href="/ko" hreflang="ko"><img src="/flags/kr.svg" alt="" />한국어</a>
@@ -699,12 +691,12 @@
           <a href="/ru" hreflang="ru"><img src="/flags/ru.svg" alt="" />Русский</a>
         </nav>
         <nav class="foot-links" aria-label="Pages">
-          <a href="/de/paint" data-app-link>App öffnen</a>
-          <a href="/de/liquify" data-app-link>Verflüssigen online</a>
-          <a href="/de/mosaic" data-app-link>Mosaik online</a>
+          <a href="{{app_home}}" data-app-link>{{foot_open}}</a>
+          <a href="{{app_liquify}}" data-app-link>{{foot_liquify}}</a>
+          <a href="{{app_mosaic}}" data-app-link>{{foot_mosaic}}</a>
         </nav>
       </div>
     </footer>
-
+{{root_script}}
   </body>
 </html>

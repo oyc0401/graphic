@@ -5,8 +5,8 @@
   "root": {
     "locale": "en",
     "meta": {
-      "title": "PaintOn",
-      "description": "PaintOn is a browser-based image editor for drawing, liquify, and mosaic editing."
+      "title": "PaintOn — Free Online Paint & Image Editor",
+      "description": "PaintOn is a free paint app that runs in your browser. Draw, liquify, and mosaic images with no install and no sign-up — your images never leave your device."
     }
   },
   "pages": {
@@ -14,36 +14,73 @@
       "slug": "",
       "meta": {
         "en": {
-          "title": "PaintOn",
-          "description": "PaintOn is a simple and intuitive web-based image editor. It offers drawing tools, selection features, liquify, and mosaic editing."
+          "title": "PaintOn — Free Online Paint & Image Editor",
+          "description": "PaintOn is a free paint app that runs in your browser. Draw, liquify, and mosaic images with no install and no sign-up — your images never leave your device."
         },
         "ko": {
-          "title": "PaintOn",
-          "description": "PaintOn은 간단하고 직관적인 웹 기반 이미지 편집기입니다. 드로잉 도구, 선택 기능, 유동화, 모자이크 편집을 제공합니다."
+          "title": "PaintOn — 무료 온라인 그림판·이미지 편집기",
+          "description": "PaintOn은 브라우저에서 바로 실행되는 무료 그림판입니다. 설치·가입 없이 그리기, 유동화, 모자이크 편집을 할 수 있고 이미지는 기기 밖으로 나가지 않습니다."
         },
         "ja": {
-          "title": "PaintOn",
-          "description": "PaintOnはシンプルで直感的なウェブ画像エディタです。描画ツール、選択機能、ゆがみ、モザイク編集を利用できます。"
+          "title": "PaintOn — 無料オンラインペイント・画像エディタ",
+          "description": "PaintOnはブラウザでそのまま動く無料ペイントアプリです。インストールや登録なしで描画、ゆがみ、モザイク編集ができ、画像が端末の外に送信されることはありません。"
         },
         "es": {
-          "title": "PaintOn",
-          "description": "PaintOn es un editor de imágenes web sencillo e intuitivo con herramientas de dibujo, selección, licuar y mosaico."
+          "title": "PaintOn — Paint y Editor de Imágenes Online Gratis",
+          "description": "PaintOn es una app de dibujo gratuita que funciona en tu navegador. Dibuja, licua y aplica mosaico sin instalar nada ni registrarte: tus imágenes nunca salen de tu dispositivo."
         },
         "fr": {
-          "title": "PaintOn",
-          "description": "PaintOn est un éditeur d'images web simple et intuitif avec dessin, sélection, liquify et mosaïque."
+          "title": "PaintOn — Paint et Éditeur d'Images en Ligne Gratuit",
+          "description": "PaintOn est une application de dessin gratuite qui fonctionne dans votre navigateur. Dessinez, déformez et mosaïquez sans installation ni inscription — vos images ne quittent jamais votre appareil."
         },
         "de": {
-          "title": "PaintOn",
-          "description": "PaintOn ist ein einfacher webbasierter Bildeditor mit Zeichenwerkzeugen, Auswahlfunktionen, Verflüssigen und Mosaik."
+          "title": "PaintOn — Kostenloses Online-Malprogramm & Bildeditor",
+          "description": "PaintOn ist eine kostenlose Mal-App direkt im Browser. Zeichnen, Verflüssigen und Mosaik ohne Installation und ohne Anmeldung — Ihre Bilder verlassen nie Ihr Gerät."
         },
         "zh": {
-          "title": "PaintOn",
-          "description": "PaintOn 是一款简单直观的网页图像编辑器，提供绘图工具、选择功能、液化和马赛克编辑。"
+          "title": "PaintOn — 免费在线画图与图像编辑器",
+          "description": "PaintOn 是一款在浏览器中直接运行的免费画图应用。无需安装、无需注册，即可绘图、液化和马赛克编辑，图像永远不会离开您的设备。"
         },
         "ru": {
-          "title": "PaintOn",
-          "description": "PaintOn — простой веб-редактор изображений с инструментами рисования, выделения, пластики и мозаики."
+          "title": "PaintOn — Бесплатный Онлайн-Паинт и Редактор Изображений",
+          "description": "PaintOn — бесплатное приложение для рисования прямо в браузере. Рисуйте, деформируйте и накладывайте мозаику без установки и регистрации — изображения не покидают ваше устройство."
+        }
+      }
+    },
+    "paint": {
+      "slug": "paint",
+      "meta": {
+        "en": {
+          "title": "Online Paint Editor | PaintOn",
+          "description": "Draw with brush, pencil, shapes, and fill in your browser. Free online paint app with selection, undo/redo, and transparent PNG export."
+        },
+        "ko": {
+          "title": "온라인 그림판 | PaintOn",
+          "description": "브라우저에서 브러시, 연필, 도형, 채우기로 그림을 그리세요. 선택, 실행 취소, 투명 PNG 저장을 지원하는 무료 온라인 그림판입니다."
+        },
+        "ja": {
+          "title": "オンラインペイント | PaintOn",
+          "description": "ブラウザでブラシ、鉛筆、図形、塗りつぶしを使って描けます。選択、元に戻す、透明PNG保存に対応した無料のオンラインペイントです。"
+        },
+        "es": {
+          "title": "Editor de Pintura Online | PaintOn",
+          "description": "Dibuja con pincel, lápiz, formas y relleno en tu navegador. Paint online gratis con selección, deshacer y exportación PNG transparente."
+        },
+        "fr": {
+          "title": "Éditeur de Dessin en Ligne | PaintOn",
+          "description": "Dessinez avec pinceau, crayon, formes et remplissage dans votre navigateur. Paint en ligne gratuit avec sélection, annuler et export PNG transparent."
+        },
+        "de": {
+          "title": "Online-Malprogramm | PaintOn",
+          "description": "Zeichnen Sie mit Pinsel, Stift, Formen und Füllung im Browser. Kostenloses Online-Malprogramm mit Auswahl, Rückgängig und transparentem PNG-Export."
+        },
+        "zh": {
+          "title": "在线画图工具 | PaintOn",
+          "description": "在浏览器中使用画笔、铅笔、形状和填充绘图。支持选区、撤销和透明 PNG 导出的免费在线画图工具。"
+        },
+        "ru": {
+          "title": "Онлайн-Редактор Рисования | PaintOn",
+          "description": "Рисуйте кистью, карандашом, фигурами и заливкой в браузере. Бесплатный онлайн-паинт с выделением, отменой и экспортом прозрачного PNG."
         }
       }
     },

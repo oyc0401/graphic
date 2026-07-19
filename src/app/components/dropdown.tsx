@@ -290,7 +290,7 @@ export const LanguageMenuToggleButton = observer(() => {
 });
 
 function isLanguageRouteTool(segment: string) {
-  return segment === "liquify" || segment === "mosaic";
+  return segment === "paint" || segment === "liquify" || segment === "mosaic";
 }
 
 // 색 교체 모드 스위치. 켜면 브러시/도형/채우기가 기존 픽셀과 합성되지 않고 덮어쓴다.

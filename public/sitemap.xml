@@ -25,6 +25,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
   </url>
   <url>
+    <loc>https://painton.app/en/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
+  </url>
+  <url>
     <loc>https://painton.app/en/liquify</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
@@ -59,6 +71,18 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
+  </url>
+  <url>
+    <loc>https://painton.app/ko/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
     <loc>https://painton.app/ko/liquify</loc>
@@ -97,6 +121,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
   </url>
   <url>
+    <loc>https://painton.app/ja/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
+  </url>
+  <url>
     <loc>https://painton.app/ja/liquify</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
@@ -131,6 +167,18 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
+  </url>
+  <url>
+    <loc>https://painton.app/es/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
     <loc>https://painton.app/es/liquify</loc>
@@ -169,6 +217,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
   </url>
   <url>
+    <loc>https://painton.app/fr/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
+  </url>
+  <url>
     <loc>https://painton.app/fr/liquify</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
@@ -203,6 +263,18 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
+  </url>
+  <url>
+    <loc>https://painton.app/de/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
     <loc>https://painton.app/de/liquify</loc>
@@ -241,6 +313,18 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
   </url>
   <url>
+    <loc>https://painton.app/zh/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
+  </url>
+  <url>
     <loc>https://painton.app/zh/liquify</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
@@ -275,6 +359,18 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/" />
+  </url>
+  <url>
+    <loc>https://painton.app/ru/paint</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/paint" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/paint" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/paint" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/paint" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/paint" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/paint" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
     <loc>https://painton.app/ru/liquify</loc>

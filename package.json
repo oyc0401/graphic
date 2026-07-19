@@ -6,7 +6,7 @@
     "dev": "vite --host 0.0.0.0",
     "test": "vitest run",
     "generate:seo": "node --import tsx scripts/generateSeoHtml.ts",
-    "build": "pnpm run generate:seo && vite build",
+    "build": "pnpm run generate:seo && vite build && node -e \"require('fs').copyFileSync('landing-root.html','dist/index.html')\"",
     "preview": "vite preview"
   },
   "dependencies": {
