@@ -63,6 +63,8 @@ type CustomSliderProps = {
   max: number;
   onChange: (value: number) => void;
   onCommit?: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 };
 
 const CustomSlider = ({
@@ -72,6 +74,8 @@ const CustomSlider = ({
   max,
   onChange,
   onCommit,
+  onDragStart,
+  onDragEnd,
 }: CustomSliderProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
@@ -92,9 +96,10 @@ const CustomSlider = ({
       e.preventDefault();
       draggingRef.current = true;
       e.currentTarget.setPointerCapture(e.pointerId);
+      onDragStart?.();
       setValueFromX(e.clientX);
     },
-    [setValueFromX],
+    [setValueFromX, onDragStart],
   );
 
   const handlePointerMove = useCallback(
@@ -111,17 +116,19 @@ const CustomSlider = ({
 
       draggingRef.current = false;
       e.currentTarget.releasePointerCapture(e.pointerId);
+      onDragEnd?.();
       onCommit?.();
     },
-    [onCommit],
+    [onCommit, onDragEnd],
   );
 
   const handlePointerCancel = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       draggingRef.current = false;
       e.currentTarget.releasePointerCapture(e.pointerId);
+      onDragEnd?.();
     },
-    [],
+    [onDragEnd],
   );
 
   return (
@@ -176,6 +183,8 @@ export const BrushSizeSlider = observer(() => {
           onChange={(nextValue) => {
             paintState.setBrushSize(positionToSize(nextValue / SIZE_SLIDER_MAX));
           }}
+          onDragStart={() => paintState.setShowCenteredBrushPreview(true)}
+          onDragEnd={() => paintState.setShowCenteredBrushPreview(false)}
         />
       </div>
     </label>
@@ -227,6 +236,8 @@ const IntegerBrushSizeSlider = observer(() => {
               Math.round(positionToSize(nextValue / SIZE_SLIDER_MAX)),
             );
           }}
+          onDragStart={() => paintState.setShowCenteredBrushPreview(true)}
+          onDragEnd={() => paintState.setShowCenteredBrushPreview(false)}
         />
       </div>
     </label>

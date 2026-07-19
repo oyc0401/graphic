@@ -124,6 +124,9 @@ class PaintState {
   // Alt를 누르는 동안 브러시 커서 프리뷰를 보여줄지.
   private _showBrushCursorPreview = false;
 
+  // Size 슬라이더를 드래그하는 동안 화면 중앙에 브러시 크기 프리뷰를 강제 표시할지.
+  private _showCenteredBrushPreview = false;
+
   // 현재 브러시 stroke가 이동했는지.
   private _moved = true;
 
@@ -187,6 +190,9 @@ class PaintState {
   setShowBrushCursorPreview(value) {
     this._showBrushCursorPreview = value;
   }
+  setShowCenteredBrushPreview(value: boolean) {
+    this._showCenteredBrushPreview = value;
+  }
 
   setMoved(value) {
     this._moved = value;
@@ -238,6 +244,9 @@ class PaintState {
   }
   getShowBrushCursorPreview() {
     return this._showBrushCursorPreview;
+  }
+  getShowCenteredBrushPreview() {
+    return this._showCenteredBrushPreview;
   }
   getMoved() {
     return this._moved;

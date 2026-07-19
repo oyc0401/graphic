@@ -10,7 +10,7 @@ import {
 import { toolManager } from "../tools/toolManager";
 import { hexToRgb } from "../utils/color";
 import { observer } from "mobx-react-lite";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import UndoIcon from "../assets/undo.svg?react";
 import RedoIcon from "../assets/redo.svg?react";
@@ -26,7 +26,9 @@ import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
+import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import {
+  ChevronDown,
   CircleCheck,
   CircleX,
   Expand,
@@ -95,21 +97,19 @@ function AppBarDesktop() {
           )
         ) : (
           <div id="menu-bar">
-            <SelectionToolButton />
-            <FreeformSelectionToolButton />
-            <ShapeToolButton shapeId={ShapeId.Rect} />
-            <ShapeToolButton shapeId={ShapeId.Ellipse} />
+            <SelectionSplitButton />
+            <ShapeSplitButton />
 
             <div className="div-bar"></div>
             <div className="mini-buttons">
               <FloodFillToolButton />
               <ZoomToolButton />
               <ColorPickerToolButton />
+              <PencilToolButton />
             </div>
             <div className="div-bar"></div>
 
             <BrushToolButton />
-            <PencilToolButton />
             <EraserToolButton />
             <div className="div-bar"></div>
             <LiquifyToolButton />
@@ -351,58 +351,137 @@ const HistoryButtons = observer(() => {
   );
 });
 
-const SelectionToolButton = observer(() => {
-  const isSelected = paintState.getSelectedToolId() === ToolId.Select;
+type SplitOption = {
+  label: string;
+  icon: (size: number) => ReactNode;
+  strokeIcon?: boolean;
+  isActive: boolean;
+  activate: () => void;
+};
+
+/** 그림판식 스플릿 버튼 — 메인 버튼 + 아래 화살표 드롭다운. 마지막으로 쓴 모드를 메인 버튼이 유지한다. */
+function SplitToolButton({
+  id,
+  options,
+}: {
+  id?: string;
+  options: SplitOption[];
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [lastIdx, setLastIdx] = useState(0);
+
+  const activeIdx = options.findIndex((o) => o.isActive);
+  const mode = options[activeIdx >= 0 ? activeIdx : lastIdx];
+
+  useEffect(() => {
+    if (activeIdx >= 0) setLastIdx(activeIdx);
+  }, [activeIdx]);
+
+  useClickOutside([menuRef, wrapRef], () => setOpen(false));
+  useDropdownPosition(wrapRef, menuRef, open, { offsetY: 4 });
+
+  const pick = (option: SplitOption) => {
+    option.activate();
+    setOpen(false);
+  };
 
   return (
-    <button
+    <>
+      <div
+        className={`select-split ${activeIdx >= 0 ? "selected" : ""}`}
+        ref={wrapRef}
+      >
+        <button
+          type="button"
+          id={id}
+          className={`select-button select-split-main ${mode.strokeIcon ? "stroke-icon-button" : ""} ${activeIdx >= 0 ? "selected" : ""}`}
+          onClick={() => pick(mode)}
+        >
+          {mode.icon(32)}
+          <p>{mode.label}</p>
+        </button>
+        <button
+          type="button"
+          className="select-split-arrow"
+          aria-label={`${mode.label} ▾`}
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <ChevronDown size={14} strokeWidth={2.2} />
+        </button>
+      </div>
+
+      {open && (
+        <div className="sub-menu" ref={menuRef}>
+          {options.map((option) => (
+            <button
+              type="button"
+              key={option.label}
+              onClick={() => pick(option)}
+            >
+              <div className="menu-button-content">
+                {option.icon(20)}
+                <p>{option.label}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+const SelectionSplitButton = observer(() => {
+  const tool = paintState.getSelectedToolId();
+
+  return (
+    <SplitToolButton
       id="select-selection"
-      className={`select-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setSelectTool()}
-    >
-      <SelectionIcon width={32} height={32} />
-      <p>{getLetter("select")}</p>
-    </button>
+      options={[
+        {
+          label: getLetter("select"),
+          icon: (size) => <SelectionIcon width={size} height={size} />,
+          isActive: tool === ToolId.Select,
+          activate: () => toolManager.setSelectTool(),
+        },
+        {
+          label: getLetter("freeform_select"),
+          icon: (size) => <LassoSelect size={size} strokeWidth={2.2} />,
+          strokeIcon: true,
+          isActive: tool === ToolId.FreeformSelect,
+          activate: () => toolManager.setFreeformSelectTool(),
+        },
+      ]}
+    />
   );
 });
 
-const FreeformSelectionToolButton = observer(() => {
-  const isSelected = paintState.getSelectedToolId() === ToolId.FreeformSelect;
+const ShapeSplitButton = observer(() => {
+  const isShapeTool = paintState.getSelectedToolId() === ToolId.Shape;
+  const shapeId = paintState.getShapeId();
 
   return (
-    <button
-      id="select-freeform-selection"
-      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
-      onClick={() => toolManager.setFreeformSelectTool()}
-    >
-      <LassoSelect size={32} strokeWidth={2.2} />
-      <p>{getLetter("freeform_select")}</p>
-    </button>
-  );
-});
-
-const ShapeToolButton = observer(({ shapeId }: { shapeId: ShapeId }) => {
-  const isSelected =
-    paintState.getSelectedToolId() === ToolId.Shape &&
-    paintState.getShapeId() === shapeId;
-  const label =
-    shapeId === ShapeId.Rect ? getLetter("shape_rect") : getLetter("shape_ellipse");
-  const icon =
-    shapeId === ShapeId.Rect ? (
-      <Square size={32} strokeWidth={2.2} />
-    ) : (
-      <CircleIcon size={32} strokeWidth={2.2} />
-    );
-
-  return (
-    <button
-      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
-      aria-label={label}
-      onClick={() => toolManager.setShapeTool(shapeId)}
-    >
-      {icon}
-      <p>{label}</p>
-    </button>
+    <SplitToolButton
+      id="select-shape"
+      options={[
+        {
+          label: getLetter("shape_rect"),
+          icon: (size) => <Square size={size} strokeWidth={2.2} />,
+          strokeIcon: true,
+          isActive: isShapeTool && shapeId === ShapeId.Rect,
+          activate: () => toolManager.setShapeTool(ShapeId.Rect),
+        },
+        {
+          label: getLetter("shape_ellipse"),
+          icon: (size) => <CircleIcon size={size} strokeWidth={2.2} />,
+          strokeIcon: true,
+          isActive: isShapeTool && shapeId === ShapeId.Ellipse,
+          activate: () => toolManager.setShapeTool(ShapeId.Ellipse),
+        },
+      ]}
+    />
   );
 });
 
@@ -451,12 +530,19 @@ const PencilToolButton = observer(() => {
 
   return (
     <button
+      type="button"
       id="select-pencil"
-      className={`select-button stroke-icon-button ${isSelected ? "selected" : ""}`}
+      className="select-mini"
+      aria-label={getLetter("pencil")}
       onClick={() => toolManager.setPencilTool()}
+      style={{ background: isSelected ? "#f5f5f5" : "transparent" }}
     >
-      <PencilIcon size={32} strokeWidth={2.2} />
-      <p>{getLetter("pencil")}</p>
+      <PencilIcon
+        color={isSelected ? "#3587ff" : "#222222"}
+        size={20}
+        strokeWidth={2.2}
+        style={{ fill: "none", stroke: isSelected ? "#3587ff" : "#222222" }}
+      />
     </button>
   );
 });

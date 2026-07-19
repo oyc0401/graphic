@@ -149,7 +149,14 @@ function bindCursorUI() {
     container.classList.toggle("noCursor", isValid && showBrushCursorPreview);
 
     // ───────────── 브러시 커서 스타일
-    if ((isValid && (isBigSize || showBrushCursorPreview)) || !isDesktop) {
+    // Size 슬라이더 드래그 중에는 도구와 무관하게 뷰포트 중앙에 강제 표시
+    if (paintState.getShowCenteredBrushPreview()) {
+      cursor.style.visibility = "visible";
+      cursor.style.left = `${window.innerWidth / 2 - scaled / 2 - 1}px`;
+      cursor.style.top = `${window.innerHeight / 2 - scaled / 2 - 1}px`;
+      cursor.style.width = `${scaled}px`;
+      cursor.style.height = `${scaled}px`;
+    } else if ((isValid && (isBigSize || showBrushCursorPreview)) || !isDesktop) {
       if (isDesktop || paintState.getShowBrushCursor()) {
         cursor.style.visibility = "visible";
       } else {
