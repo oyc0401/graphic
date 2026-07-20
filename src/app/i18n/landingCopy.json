@@ -2,6 +2,7 @@
   "en": {
     "nav_tools": "Tools",
     "nav_faq": "FAQ",
+    "nav_dashboard": "My drawings",
     "nav_open": "Open app",
     "hero_a": "A paint app that lives in",
     "hero_b": "your browser",
@@ -53,6 +54,7 @@
   "ko": {
     "nav_tools": "도구",
     "nav_faq": "FAQ",
+    "nav_dashboard": "내 그림",
     "nav_open": "앱 열기",
     "hero_a": "브라우저에 사는",
     "hero_b": "그림판",
@@ -104,6 +106,7 @@
   "ja": {
     "nav_tools": "ツール",
     "nav_faq": "FAQ",
+    "nav_dashboard": "マイ作品",
     "nav_open": "アプリを開く",
     "hero_a": "ブラウザに住む",
     "hero_b": "ペイントアプリ",
@@ -155,6 +158,7 @@
   "es": {
     "nav_tools": "Herramientas",
     "nav_faq": "FAQ",
+    "nav_dashboard": "Mis dibujos",
     "nav_open": "Abrir app",
     "hero_a": "Una app de dibujo que vive en",
     "hero_b": "tu navegador",
@@ -206,6 +210,7 @@
   "fr": {
     "nav_tools": "Outils",
     "nav_faq": "FAQ",
+    "nav_dashboard": "Mes dessins",
     "nav_open": "Ouvrir l'app",
     "hero_a": "Une app de dessin qui vit dans",
     "hero_b": "votre navigateur",
@@ -257,6 +262,7 @@
   "de": {
     "nav_tools": "Werkzeuge",
     "nav_faq": "FAQ",
+    "nav_dashboard": "Meine Bilder",
     "nav_open": "App öffnen",
     "hero_a": "Eine Mal-App direkt in",
     "hero_b": "deinem Browser",
@@ -308,6 +314,7 @@
   "zh": {
     "nav_tools": "工具",
     "nav_faq": "常见问题",
+    "nav_dashboard": "我的图画",
     "nav_open": "打开应用",
     "hero_a": "住在浏览器里的",
     "hero_b": "画图工具",
@@ -359,6 +366,7 @@
   "ru": {
     "nav_tools": "Инструменты",
     "nav_faq": "FAQ",
+    "nav_dashboard": "Мои рисунки",
     "nav_open": "Открыть приложение",
     "hero_a": "Рисовалка, которая живёт",
     "hero_b": "в вашем браузере",

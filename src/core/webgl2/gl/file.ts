@@ -1,4 +1,5 @@
 import { resetHisory } from "../../history/history";
+import { getBitmapManager } from "../../canvas/bitmap";
 import { getLayerManager } from "./layer";
 import { getRenderingManager } from "./render/render";
 import { resizeLayer } from "./resize";
@@ -111,6 +112,10 @@ export function resetImage(canvas, gl, width, height) {
     gl.UNSIGNED_BYTE, // type
     null, // → allocate only
   );
+
+  // 레이어를 비웠으니 CPU 미러도 같은 크기의 빈 상태로 동기화한다.
+  // 빼먹으면 리셋 후 저장 시 이전 그림이 저장된다.
+  getBitmapManager().initState(width, height);
 
   renderingManager.render();
 }

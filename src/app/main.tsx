@@ -14,7 +14,13 @@ import { els, getElements } from "./ui/elements";
 import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
 import { applyShape, shape } from "./shape";
-import { addClipboardEvent } from "./file/file";
+import {
+  addClipboardEvent,
+  applyInitialDrawing,
+  loadSavedDrawing,
+} from "./file/file";
+import { documentState } from "./documentState";
+import { Dashboard } from "./components/Dashboard";
 
 import { bindView } from "./ui/view";
 import { getLayerWorker } from "./worker/workerPool";
@@ -25,30 +31,50 @@ import { syncCoreState } from "./history";
 import { BottomNav } from "./components/BottomNav";
 import { runPointerTests } from "@/test/pointerTestUtils";
 import { loadInitialImageFromQuery } from "./file/initialImage";
-import { getInitialRouteSession } from "./file/initialRouteSession";
+import { getInitialRoute } from "./file/initialRouteSession";
 import { installGestureAdapter } from "./events/gestureAdapter";
 import { cssDeltaToScene } from "./utils/cameraMath";
 
-const initialRouteSession = getInitialRouteSession();
+const initialRoute = getInitialRoute();
+const initialRouteSession = initialRoute.session;
 if (initialRouteSession !== null) {
   paintState.setSessionId(initialRouteSession);
 }
 
-const root = document.getElementById("appbar-root");
-if (root) {
-  createRoot(root).render(<AppBar />);
+if (initialRoute.page === "dashboard") {
+  mountDashboard();
 } else {
-  console.error("appbar-root not found!");
+  const root = document.getElementById("appbar-root");
+  if (root) {
+    createRoot(root).render(<AppBar />);
+  } else {
+    console.error("appbar-root not found!");
+  }
+
+  const navroot = document.getElementById("nav-root");
+  if (navroot) {
+    createRoot(navroot).render(<BottomNav />);
+  } else {
+    console.error("nav-root not found!");
+  }
 }
 
-const navroot = document.getElementById("nav-root");
-if (navroot) {
-  createRoot(navroot).render(<BottomNav />);
-} else {
-  console.error("nav-root not found!");
+// 대시보드는 페인트 앱 HTML을 재사용한다(vercel.json rewrite).
+// 캔버스 관련 정적 DOM을 숨기고 React 루트만 마운트한다.
+function mountDashboard() {
+  const container = document.getElementById("container");
+  if (container) container.style.display = "none";
+  document.body.style.overflow = "auto";
+
+  const dashboardRoot = document.createElement("div");
+  dashboardRoot.id = "dashboard-root";
+  document.body.appendChild(dashboardRoot);
+  createRoot(dashboardRoot).render(<Dashboard />);
 }
 
 export function runApp() {
+  if (initialRoute.page === "dashboard") return;
+
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       main();
@@ -64,7 +90,12 @@ async function main() {
   // 초기 캔버스 위치 계산
   setDefaultPosition();
 
-  const initialImage = await loadInitialImageFromQuery();
+  // 저장된 그림은 부트 전에 읽어 초기 이미지 루트로 첫 렌더에 태운다 (플리커 방지)
+  const savedDrawing = initialRoute.drawingId
+    ? await loadSavedDrawing(initialRoute.drawingId)
+    : null;
+  const initialImage =
+    savedDrawing?.bitmap ?? (await loadInitialImageFromQuery());
 
   // 캔버스 업로드
   await tranferCanvas(initialImage);
@@ -83,6 +114,14 @@ async function main() {
   addClipboardEvent();
 
   openInitialRouteSessionInCore(initialRouteSession);
+
+  applyInitialDrawing(savedDrawing, initialRoute.drawingId);
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!documentState.getDirty()) return;
+    e.preventDefault();
+    e.returnValue = ""; // 구형 Chrome 호환
+  });
 
   console.log("Complete App!");
 
@@ -136,6 +175,8 @@ function debugSetting() {
     });
     //}, 100);
   });
+
+  globalThis.layerWorker = getLayerWorker();
 
   globalThis.changeLayer = function (layerId = 1) {
     let worker = getLayerWorker();

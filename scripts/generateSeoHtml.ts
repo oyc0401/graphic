@@ -171,6 +171,7 @@ function renderLanding(
   tokens.app_home = pagePath(locale, "paint");
   tokens.app_liquify = pagePath(locale, "liquify");
   tokens.app_mosaic = pagePath(locale, "mosaic");
+  tokens.app_dashboard = `/${locale}/dashboard`;
   tokens.jsonld_app = jsonLdScript(
     softwareApplicationJsonLd(meta.title, meta.description, canonical),
   );

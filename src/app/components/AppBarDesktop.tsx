@@ -23,6 +23,8 @@ import LiquifyIcon from "../assets/liquify.svg?react";
 import SelectionIcon from "../assets/select_rectangle.svg?react";
 
 import { ColorIndicatorButton, MainMenuToggleButton } from "./dropdown";
+import { SavedAtButton } from "./SavedAtButton";
+import { DrawingNameInput } from "./DrawingNameInput";
 import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { getLetter } from "../i18n/language";
@@ -83,8 +85,10 @@ function AppBarDesktop() {
         {/* ===== 헤더 ===== */}
         <div id="header">
           <MainMenuToggleButton />
+          <DrawingNameInput />
 
           <div style={{ flex: 1 }} />
+          <SavedAtButton />
           <HistoryButtons />
         </div>
 

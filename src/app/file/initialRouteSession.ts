@@ -34,3 +34,62 @@ export function getInitialRouteSession(
 
   return null;
 }
+
+export type InitialRoute = {
+  page: "paint" | "dashboard";
+  session: SessionId | null;
+  drawingId: string | null;
+};
+
+const DRAWING_ID_PATTERN = /^[a-z0-9]{6}$/;
+
+export function getInitialRoute(
+  pathname = window.location.pathname,
+): InitialRoute {
+  const segments = pathname.split("/").filter(Boolean);
+  const rest = isLocaleSegment(segments[0] ?? "") ? segments.slice(1) : segments;
+
+  if (rest.length === 1 && rest[0] === "dashboard") {
+    return { page: "dashboard", session: null, drawingId: null };
+  }
+
+  if (
+    rest.length === 2 &&
+    rest[0] === "paint" &&
+    DRAWING_ID_PATTERN.test(rest[1])
+  ) {
+    return { page: "paint", session: null, drawingId: rest[1] };
+  }
+
+  return {
+    page: "paint",
+    session: getInitialRouteSession(pathname),
+    drawingId: null,
+  };
+}
+
+function localePrefix(pathname: string): string {
+  const [first] = pathname.split("/").filter(Boolean);
+  return isLocaleSegment(first ?? "") ? `/${first}` : "";
+}
+
+export function drawingPath(
+  drawingId: string,
+  pathname = window.location.pathname,
+): string {
+  return `${localePrefix(pathname)}/paint/${drawingId}`;
+}
+
+export function dashboardPath(pathname = window.location.pathname): string {
+  return `${localePrefix(pathname)}/dashboard`;
+}
+
+/** 새 그림 페이지 (id 없는 /paint — 진입 시 새 해시가 부여된다) */
+export function paintPath(pathname = window.location.pathname): string {
+  return `${localePrefix(pathname)}/paint`;
+}
+
+/** 랜딩 페이지 — /{locale}, 로케일이 없으면 루트 */
+export function landingPath(pathname = window.location.pathname): string {
+  return localePrefix(pathname) || "/";
+}

@@ -19,6 +19,14 @@ import {
 import { paintState } from "../paintState";
 import { toolManager } from "../tools/toolManager";
 import { historyState, syncCoreState } from "../history";
+import { documentState } from "../documentState";
+import { getLetter } from "../i18n/language";
+import {
+  createDrawingId,
+  getDrawing,
+  type DrawingRecord,
+} from "./drawingStore";
+import { drawingPath } from "./initialRouteSession";
 
 export function addClipboardEvent() {
   // 드래그가 영역 위로 올라왔을 때 기본 이벤트 방지
@@ -50,6 +58,7 @@ export function addClipboardEvent() {
             makeSelectionFromBitmap(bitmap);
           } else {
             uploadImage(bitmap);
+            startReplacedDrawing(stripExtension(file.name));
           }
         } catch (err) {
           console.error("드롭된 이미지를 처리 중 에러:", err);
@@ -137,6 +146,7 @@ export function addClipboardEvent() {
         makeSelectionFromBitmap(bitmap);
       } else {
         uploadImage(bitmap);
+        startReplacedDrawing(getLetter("untitled"));
       }
     }
   });
@@ -275,9 +285,14 @@ export async function openFile() {
       premultiplyAlpha: "premultiply",
     });
     uploadImage(bitmap);
+    startReplacedDrawing(stripExtension(file.name));
   } catch (err) {
     console.error("파일 열기 실패:", err);
   }
+}
+
+export function stripExtension(fileName: string) {
+  return fileName.replace(/\.[^.]+$/, "");
 }
 
 export function resetImage() {
@@ -289,6 +304,133 @@ export function resetImage() {
 
   syncCoreState();
   renderChangedPosition();
+
+  startNewDrawing();
+}
+
+/** 새 문서에 새 해시 id를 부여하고 URL에 반영한다. 저장 전엔 IndexedDB에 쓰지 않는다. */
+function startNewDrawing() {
+  documentState.setId(createDrawingId());
+  documentState.setName(getLetter("untitled"));
+  documentState.setLastSavedAt(null);
+  documentState.setDirty(false);
+  history.replaceState(null, "", drawingPath(documentState.getId()));
+}
+
+/** 캔버스가 다른 이미지로 통째로 교체되면(선택 붙여넣기 아님) 새 문서로 취급한다.
+ * 기존 그림의 저장본은 건드리지 않고, 새 해시로 갈아탄다. */
+function startReplacedDrawing(name: string) {
+  documentState.setId(createDrawingId());
+  documentState.setName(name.trim() || getLetter("untitled"));
+  documentState.setLastSavedAt(null);
+  history.replaceState(null, "", drawingPath(documentState.getId()));
+}
+
+export type LoadedDrawing = { record: DrawingRecord; bitmap: ImageBitmap };
+
+/** 캔버스 부트 전에 URL의 그림 id로 저장본을 읽는다.
+ * 비트맵을 초기 이미지 루트(tranferCanvas)에 태워 첫 렌더부터 그림이 보이게 한다 — 플리커 없음. */
+export async function loadSavedDrawing(
+  drawingId: string,
+): Promise<LoadedDrawing | null> {
+  try {
+    const record = await getDrawing(drawingId);
+    if (!record) return null;
+    const bitmap = await createImageBitmap(record.png, {
+      imageOrientation: "flipY",
+      premultiplyAlpha: "premultiply",
+    });
+    return { record, bitmap };
+  } catch (err) {
+    console.error("그림 복원 실패:", err);
+    return null;
+  }
+}
+
+/** 부트 후 문서 메타(id·이름·저장 시각·배경 플래그)를 저장본/URL과 동기화한다. */
+export function applyInitialDrawing(
+  loaded: LoadedDrawing | null,
+  routeDrawingId: string | null,
+) {
+  if (loaded) {
+    const { record } = loaded;
+    paintState.setTransparentBackground(record.transparentBackground);
+    documentState.setId(record.id);
+    documentState.setName(record.name);
+    documentState.setLastSavedAt(record.updatedAt);
+  } else {
+    documentState.setId(routeDrawingId ?? createDrawingId());
+    documentState.setName(getLetter("untitled"));
+  }
+  documentState.setDirty(false);
+  // ?img= 쿼리와 해시는 보존 — 저장 전에 새로고침해도 소스 이미지가 살아 있어야 한다
+  history.replaceState(
+    null,
+    "",
+    `${drawingPath(documentState.getId())}${window.location.search}${window.location.hash}`,
+  );
+}
+
+let saveWorker: Worker | null = null;
+let saveSeq = 0;
+const pendingSaves = new Map<number, (ok: boolean) => void>();
+
+function failAllPendingSaves() {
+  for (const resolve of pendingSaves.values()) resolve(false);
+  pendingSaves.clear();
+}
+
+function getSaveWorker(): Worker {
+  if (!saveWorker) {
+    saveWorker = new Worker(new URL("./saveWorker.ts", import.meta.url), {
+      type: "module",
+    });
+    saveWorker.onmessage = (e: MessageEvent<{ seq: number; ok: boolean }>) => {
+      pendingSaves.get(e.data.seq)?.(e.data.ok);
+      pendingSaves.delete(e.data.seq);
+    };
+    // 워커 로드/직렬화 실패 시 저장이 영원히 pending으로 남으면
+    // dirty가 클리어된 채 경고 없이 이탈할 수 있다 — 전부 실패 처리한다.
+    saveWorker.onerror = failAllPendingSaves;
+    saveWorker.onmessageerror = failAllPendingSaves;
+  }
+  return saveWorker;
+}
+
+/** 현재 캔버스를 PNG Blob으로 IndexedDB에 저장한다 (Ctrl+S / 저장 버튼).
+ * 픽셀은 CPU 미러 사본이라 GL readback이 없고(알파 항상 보존),
+ * 인코딩과 IndexedDB 쓰기는 전용 워커에서 처리한다. */
+export async function saveDrawing() {
+  const { pixels, width, height } = getLayerWorker().getCanvasBitmap();
+
+  const updatedAt = Date.now();
+  const seq = ++saveSeq;
+  // 스냅샷은 이미 떴으므로 바로 클리어 — 이후의 스트로크가 다시 dirty로 만든다
+  documentState.setDirty(false);
+
+  const ok = await new Promise<boolean>((resolve) => {
+    pendingSaves.set(seq, resolve);
+    getSaveWorker().postMessage(
+      {
+        seq,
+        id: documentState.getId(),
+        name: documentState.getName(),
+        pixels,
+        width,
+        height,
+        transparentBackground: paintState.getTransparentBackground(),
+        updatedAt,
+      },
+      [pixels.buffer],
+    );
+  });
+
+  if (ok) {
+    documentState.setLastSavedAt(updatedAt);
+  } else {
+    documentState.setDirty(true);
+    console.error("그림 저장 실패");
+  }
 }
 
 export async function downloadPixels(
@@ -306,7 +448,7 @@ export async function downloadPixels(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "image.png"; // 다운로드할 파일 이름 지정
+  link.download = `${documentState.getName() || "image"}.png`;
 
   // 4. 링크 클릭하여 다운로드 실행
   link.click();

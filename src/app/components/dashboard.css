@@ -1,0 +1,240 @@
+/* 대시보드 — landing.html의 디자인 토큰/스타일을 그대로 따른다 */
+#dashboard-root {
+  --paper: #f4f7fa;
+  --panel: #ffffff;
+  --ink: #191919;
+  --muted: #5b6570;
+  --line: #e3e3e3;
+  --accent: #3587ff;
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.6;
+  font-family:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#dashboard-root * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#dashboard-root a {
+  color: inherit;
+}
+
+#dashboard-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+#dashboard-root .wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---- topbar (landing과 동일) ---- */
+#dashboard-root .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(244, 247, 250, 0.88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+#dashboard-root .topbar .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+}
+
+#dashboard-root .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-decoration: none;
+}
+
+#dashboard-root .brand img {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+#dashboard-root .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  padding: 9px 18px;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+#dashboard-root .btn:hover {
+  filter: brightness(1.08);
+}
+
+/* ---- 본문 ---- */
+#dashboard-root .dashboard-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 44px 0 28px;
+}
+
+#dashboard-root h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+#dashboard-root .count {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+#dashboard-root .drawing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding-bottom: 72px;
+}
+
+/* ---- 카드 (landing의 tool-card와 동일한 어법) ---- */
+#dashboard-root .drawing-card {
+  position: relative;
+  display: block;
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+#dashboard-root .drawing-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+#dashboard-root .drawing-card .thumb {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    repeating-conic-gradient(#eef1f5 0% 25%, #ffffff 0% 50%) 0 0 / 16px 16px;
+}
+
+#dashboard-root .drawing-card .thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+#dashboard-root .drawing-card h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-top: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#dashboard-root .drawing-card time {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+#dashboard-root .delete-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+#dashboard-root .drawing-card:hover .delete-btn,
+#dashboard-root .delete-btn:focus-visible {
+  opacity: 1;
+}
+
+#dashboard-root .delete-btn:hover {
+  color: #e0442e;
+  border-color: #e0442e;
+}
+
+/* 터치 기기에선 hover가 없으니 항상 노출 */
+@media (hover: none) {
+  #dashboard-root .delete-btn {
+    opacity: 1;
+  }
+}
+
+/* ---- 빈 상태 ---- */
+#dashboard-root .empty {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 64px 24px;
+  text-align: center;
+  margin-bottom: 72px;
+}
+
+#dashboard-root .empty .board {
+  width: 120px;
+  margin: 0 auto 20px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3;
+  background:
+    repeating-conic-gradient(#eef1f5 0% 25%, #ffffff 0% 50%) 0 0 / 14px 14px;
+}
+
+#dashboard-root .empty p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}

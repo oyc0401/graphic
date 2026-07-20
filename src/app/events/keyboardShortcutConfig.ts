@@ -2,6 +2,7 @@ export type CommonKeyboardShortcutAction =
   | "undo"
   | "redo"
   | "cancel"
+  | "saveDrawing"
   | "temporaryPan"
   | "temporaryZoom";
 
@@ -84,6 +85,10 @@ export const keyboardShortcuts = {
     {
       action: "cancel",
       keys: ["escape"],
+    },
+    {
+      action: "saveDrawing",
+      keys: [systemModifierKey, "s"],
     },
     {
       action: "temporaryPan",

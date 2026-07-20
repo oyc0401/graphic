@@ -324,6 +324,11 @@ export class WebGL2Controller {
     return paint.downloadImage();
   }
 
+  // 현재 레이어의 CPU 미러 사본(프리멀티플라이드, GL 방향). GL readback 없이 저장용으로 쓴다.
+  getCanvasBitmap(): PixelData {
+    return paint.getCanvasBitmap();
+  }
+
   // 외부 이미지를 현재 작업 이미지로 불러온다.
   uploadImage(bitmap: ImageBitmap): void {
     return paint.uploadImage(bitmap);

@@ -1,5 +1,6 @@
 /** keyboard.ts */
 import { redo, undo } from "../history";
+import { saveDrawing } from "../file/file";
 import {
   InputMode,
   LiquifyToolId,
@@ -89,6 +90,7 @@ const mainTemporaryShortcuts = filterTemporaryShortcuts(
 const commandHandlers = {
   undo,
   redo,
+  saveDrawing,
   selectAll() {
     applySelection();
     canvasSelect(0, 0, position.width, position.height);

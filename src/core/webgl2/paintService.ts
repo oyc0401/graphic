@@ -310,6 +310,17 @@ export class PaintService {
     return { pixels, width, height };
   }
 
+  // 현재 레이어의 CPU 미러 사본. GL readback 없음 — 저장용 스냅샷.
+  // 픽셀은 프리멀티플라이드 + GL 방향(Y 반전) 그대로다.
+  getCanvasBitmap() {
+    const bitmapManager = getBitmapManager();
+    return {
+      pixels: bitmapManager.bitmap.slice(),
+      width: bitmapManager.width,
+      height: bitmapManager.height,
+    };
+  }
+
   undo() {
     const sessionManager = getSessionManager(this.canvas, this.gl);
     if (sessionManager.hasActiveSession()) {

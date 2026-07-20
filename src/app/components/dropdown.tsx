@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useState } from "react";
 import { paintState } from "../paintState";
 import { menuState } from "../ui/menuState";
 import { hexToRgb, rgbToHex } from "../utils/color";
-import { downloadImage, openFile, resetImage } from "../file/file";
+import { downloadImage, openFile, resetImage, saveDrawing } from "../file/file";
 import { observer } from "mobx-react-lite";
 // AppBar.jsx 상단
 import MenuIcon from "../assets/menu.svg?react";
@@ -11,7 +11,17 @@ import NewIcon from "../assets/new.svg?react";
 import OpenIcon from "../assets/open.svg?react";
 import SaveIcon from "../assets/save.svg?react";
 import TranslateIcon from "../assets/translate.svg?react";
-import { Bug, SquareCheck, SquareDashed } from "lucide-react";
+import {
+  Bug,
+  Download,
+  History,
+  LayoutGrid,
+  SquareCheck,
+  SquareDashed,
+} from "lucide-react";
+import { documentState } from "../documentState";
+import { listDrawings, type DrawingRecord } from "../file/drawingStore";
+import { dashboardPath, drawingPath } from "../file/initialRouteSession";
 
 import { useRef, useEffect } from "react";
 import "./color-box.css";
@@ -91,11 +101,23 @@ export const MainMenuToggleButton = observer(() => {
 
       {menuState.showMenu && (
         <div id="main-menu" ref={menuRef}>
+          <button
+            id="dashboard-button"
+            onClick={() => {
+              window.location.href = dashboardPath();
+            }}
+          >
+            <div className="menu-button-content">
+              <LayoutGrid />
+              <p>{getLetter("dashboard")}</p>
+            </div>
+          </button>
           <button id="new-button" onClick={resetImageAndCloseMenu}>
             <div className="menu-button-content">
               <NewIcon /> <p>{getLetter("new")}</p>
             </div>
           </button>
+          <RecentDrawingsSection />
           <button
             id="open-button"
             onClick={() => {
@@ -108,6 +130,18 @@ export const MainMenuToggleButton = observer(() => {
             </div>
           </button>
           <button
+            id="save-drawing-button"
+            onClick={() => {
+              menuState.setShowMenu(false);
+              saveDrawing();
+            }}
+          >
+            <div className="menu-button-content">
+              <SaveIcon />
+              <p>{getLetter("save")}</p>
+            </div>
+          </button>
+          <button
             id="save-button"
             onClick={() => {
               menuState.setShowMenu(false);
@@ -115,8 +149,8 @@ export const MainMenuToggleButton = observer(() => {
             }}
           >
             <div className="menu-button-content">
-              <SaveIcon />
-              <p>{getLetter("save")}</p>
+              <Download />
+              <p>{getLetter("export_png")}</p>
             </div>
           </button>
           <button
@@ -149,6 +183,53 @@ export const MainMenuToggleButton = observer(() => {
   );
 });
 
+/** 최근 열기 — 메뉴 안에서 인라인으로 펼쳐지는 최근 그림 목록 */
+const RecentDrawingsSection = () => {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<DrawingRecord[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    listDrawings()
+      .then((all) => setItems(all.slice(0, 5)))
+      .catch((err) => console.error("최근 그림 목록 로드 실패:", err));
+  }, [open]);
+
+  return (
+    <>
+      <button
+        id="recent-button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <div className="menu-button-content">
+          <History />
+          <p>{getLetter("recent_files")}</p>
+        </div>
+      </button>
+      {open &&
+        items.map((drawing) => (
+          <button
+            key={drawing.id}
+            className="recent-drawing-item"
+            onClick={() => {
+              window.location.href = drawingPath(drawing.id);
+            }}
+          >
+            <div className="menu-button-content" style={{ paddingLeft: 24 }}>
+              <p>{drawing.name}</p>
+            </div>
+          </button>
+        ))}
+      {open && items.length === 0 && (
+        <p style={{ padding: "4px 8px 4px 32px", fontSize: 12, opacity: 0.6 }}>
+          {getLetter("no_drawings")}
+        </p>
+      )}
+    </>
+  );
+};
+
 export const LanguageMenuToggleButton = observer(() => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -162,6 +243,10 @@ export const LanguageMenuToggleButton = observer(() => {
     }
     if (segments.length === 2 && isLanguageRouteTool(segments[1])) {
       return segments[1];
+    }
+    // /ko/paint/{id} — 언어를 바꿔도 같은 그림 URL을 유지한다
+    if (segments.length === 3 && segments[1] === "paint") {
+      return `paint/${segments[2]}`;
     }
     return null;
   };

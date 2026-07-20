@@ -31,6 +31,8 @@ import { colorState } from "../colorState";
 import { historyState, redo, undo } from "../history";
 import { useClickOutside, useDropdownPosition } from "./menu-hooks";
 import { menuState } from "../ui/menuState";
+import { SavedAtButton } from "./SavedAtButton";
+import { DrawingNameInput } from "./DrawingNameInput";
 import { useRef, type ReactNode } from "react";
 import { getLetter } from "../i18n/language";
 import {
@@ -95,6 +97,7 @@ function AppBarMobile() {
         ) : (
           <div className="mobile-appbar">
             <MainMenuToggleButton />
+            <DrawingNameInput />
             <ToolsToggleButton />
 
             <div style={{ flex: 1 }} />
@@ -168,6 +171,7 @@ const LiquifyMobileAppBar = observer(() => {
       />
       <SizeToggleButton />
       <div style={{ flex: 1 }} />
+      <SavedAtButton />
       <HistoryButtons />
     </div>
   );
@@ -236,6 +240,7 @@ const MosaicMobileAppBar = observer(() => {
       />
       <SizeToggleButton />
       <div style={{ flex: 1 }} />
+      <SavedAtButton />
       <HistoryButtons />
     </div>
   );
@@ -304,6 +309,7 @@ const ToolsToggleButton = observer(() => {
           <ZoomToolButton />
           <ColorPickerToolButton />
           <div style={{ flex: 1 }} />
+          <SavedAtButton />
           <HistoryButtons />
         </div>
       )}
