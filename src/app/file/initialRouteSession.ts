@@ -46,18 +46,9 @@ export function getInitialRoute(
     return { page: "dashboard", session: null, drawingId: null };
   }
 
-  // /{locale}/{id} — 현재 주소 체계
+  // /{locale}/{id}
   if (rest.length === 1 && isDrawingIdSegment(rest[0])) {
     return { page: "paint", session: querySession, drawingId: rest[0] };
-  }
-
-  // /{locale}/paint/{id} — 구 주소 체계. 부트 후 /{locale}/{id}로 normalize된다.
-  if (
-    rest.length === 2 &&
-    rest[0] === "paint" &&
-    DRAWING_ID_PATTERN.test(rest[1])
-  ) {
-    return { page: "paint", session: querySession, drawingId: rest[1] };
   }
 
   return { page: "paint", session: querySession, drawingId: null };

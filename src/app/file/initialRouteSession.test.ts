@@ -33,9 +33,9 @@ describe("getInitialRoute", () => {
     });
   });
 
-  it("parses legacy /paint/{id} routes", () => {
-    expect(getInitialRoute("/ko/paint/ds23vs").drawingId).toBe("ds23vs");
-    expect(getInitialRoute("/paint/a1b2c3").drawingId).toBe("a1b2c3");
+  it("does not parse legacy /paint/{id} routes", () => {
+    expect(getInitialRoute("/ko/paint/ds23vs").drawingId).toBeNull();
+    expect(getInitialRoute("/paint/a1b2c3").drawingId).toBeNull();
   });
 
   it("rejects malformed drawing ids", () => {

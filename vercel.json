@@ -4,96 +4,6 @@
       "source": "/paint",
       "destination": "/en/paint",
       "permanent": true
-    },
-    {
-      "source": "/liquify",
-      "destination": "/en/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/mosaic",
-      "destination": "/en/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/en/liquify",
-      "destination": "/en/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/en/mosaic",
-      "destination": "/en/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/ko/liquify",
-      "destination": "/ko/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/ko/mosaic",
-      "destination": "/ko/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/ja/liquify",
-      "destination": "/ja/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/ja/mosaic",
-      "destination": "/ja/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/es/liquify",
-      "destination": "/es/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/es/mosaic",
-      "destination": "/es/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/fr/liquify",
-      "destination": "/fr/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/fr/mosaic",
-      "destination": "/fr/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/de/liquify",
-      "destination": "/de/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/de/mosaic",
-      "destination": "/de/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/zh/liquify",
-      "destination": "/zh/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/zh/mosaic",
-      "destination": "/zh/paint?tool=mosaic",
-      "permanent": true
-    },
-    {
-      "source": "/ru/liquify",
-      "destination": "/ru/paint?tool=liquify",
-      "permanent": true
-    },
-    {
-      "source": "/ru/mosaic",
-      "destination": "/ru/paint?tool=mosaic",
-      "permanent": true
     }
   ],
   "rewrites": [
@@ -103,10 +13,6 @@
     },
     {
       "source": "/en/paint",
-      "destination": "/locales/en/paint/index.html"
-    },
-    {
-      "source": "/en/paint/:id",
       "destination": "/locales/en/paint/index.html"
     },
     {
@@ -122,10 +28,6 @@
       "destination": "/locales/ko/paint/index.html"
     },
     {
-      "source": "/ko/paint/:id",
-      "destination": "/locales/ko/paint/index.html"
-    },
-    {
       "source": "/ko/dashboard",
       "destination": "/locales/ko/paint/index.html"
     },
@@ -135,10 +37,6 @@
     },
     {
       "source": "/ja/paint",
-      "destination": "/locales/ja/paint/index.html"
-    },
-    {
-      "source": "/ja/paint/:id",
       "destination": "/locales/ja/paint/index.html"
     },
     {
@@ -154,10 +52,6 @@
       "destination": "/locales/es/paint/index.html"
     },
     {
-      "source": "/es/paint/:id",
-      "destination": "/locales/es/paint/index.html"
-    },
-    {
       "source": "/es/dashboard",
       "destination": "/locales/es/paint/index.html"
     },
@@ -167,10 +61,6 @@
     },
     {
       "source": "/fr/paint",
-      "destination": "/locales/fr/paint/index.html"
-    },
-    {
-      "source": "/fr/paint/:id",
       "destination": "/locales/fr/paint/index.html"
     },
     {
@@ -186,10 +76,6 @@
       "destination": "/locales/de/paint/index.html"
     },
     {
-      "source": "/de/paint/:id",
-      "destination": "/locales/de/paint/index.html"
-    },
-    {
       "source": "/de/dashboard",
       "destination": "/locales/de/paint/index.html"
     },
@@ -202,10 +88,6 @@
       "destination": "/locales/zh/paint/index.html"
     },
     {
-      "source": "/zh/paint/:id",
-      "destination": "/locales/zh/paint/index.html"
-    },
-    {
       "source": "/zh/dashboard",
       "destination": "/locales/zh/paint/index.html"
     },
@@ -215,10 +97,6 @@
     },
     {
       "source": "/ru/paint",
-      "destination": "/locales/ru/paint/index.html"
-    },
-    {
-      "source": "/ru/paint/:id",
       "destination": "/locales/ru/paint/index.html"
     },
     {
