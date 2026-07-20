@@ -16,7 +16,7 @@ import {
   setCameraPosition,
   setDefaultPosition,
 } from "../position";
-import { paintState } from "../paintState";
+import { paintState, SessionId } from "../paintState";
 import { toolManager } from "../tools/toolManager";
 import { historyState, syncCoreState } from "../history";
 import { documentState } from "../documentState";
@@ -363,11 +363,23 @@ export function applyInitialDrawing(
     documentState.setName(getLetter("untitled"));
   }
   documentState.setDirty(false);
-  // ?img= 쿼리와 해시는 보존 — 저장 전에 새로고침해도 소스 이미지가 살아 있어야 한다
+  syncDrawingUrl();
+}
+
+/** 현재 문서 id·세션 상태를 주소창에 반영한다.
+ * ?tool=liquify|mosaic로 세션을 표현하고, ?img= 등 다른 쿼리와 해시는 보존한다. */
+export function syncDrawingUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = paintState.getSessionId();
+  if (sessionId === SessionId.Liquify) params.set("tool", "liquify");
+  else if (sessionId === SessionId.Mosaic) params.set("tool", "mosaic");
+  else params.delete("tool");
+
+  const query = params.toString();
   history.replaceState(
     null,
     "",
-    `${drawingPath(documentState.getId())}${window.location.search}${window.location.hash}`,
+    `${drawingPath(documentState.getId())}${query ? `?${query}` : ""}${window.location.hash}`,
   );
 }
 

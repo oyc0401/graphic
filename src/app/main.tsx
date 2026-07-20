@@ -14,10 +14,12 @@ import { els, getElements } from "./ui/elements";
 import { addClickEvent } from "./ui/clickEvent";
 import { applySelection, selection } from "./selection";
 import { applyShape, shape } from "./shape";
+import { reaction } from "mobx";
 import {
   addClipboardEvent,
   applyInitialDrawing,
   loadSavedDrawing,
+  syncDrawingUrl,
 } from "./file/file";
 import { documentState } from "./documentState";
 import { Dashboard } from "./components/Dashboard";
@@ -116,6 +118,12 @@ async function main() {
   openInitialRouteSessionInCore(initialRouteSession);
 
   applyInitialDrawing(savedDrawing, initialRoute.drawingId);
+
+  // 세션 진입/종료(유동화·모자이크)를 ?tool= 쿼리로 주소창에 반영한다
+  reaction(
+    () => paintState.getSessionId(),
+    () => syncDrawingUrl(),
+  );
 
   window.addEventListener("beforeunload", (e) => {
     if (!documentState.getDirty()) return;

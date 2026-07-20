@@ -21,7 +21,11 @@ import {
 } from "lucide-react";
 import { documentState } from "../documentState";
 import { listDrawings, type DrawingRecord } from "../file/drawingStore";
-import { dashboardPath, drawingPath } from "../file/initialRouteSession";
+import {
+  dashboardPath,
+  drawingPath,
+  isDrawingIdSegment,
+} from "../file/initialRouteSession";
 
 import { useRef, useEffect } from "react";
 import "./color-box.css";
@@ -238,15 +242,18 @@ export const LanguageMenuToggleButton = observer(() => {
 
   const getRouteTool = () => {
     const segments = window.location.pathname.split("/").filter(Boolean);
-    if (segments.length === 1 && isLanguageRouteTool(segments[0])) {
+    if (
+      segments.length === 1 &&
+      (isLanguageRouteTool(segments[0]) || isDrawingIdSegment(segments[0]))
+    ) {
       return segments[0];
     }
-    if (segments.length === 2 && isLanguageRouteTool(segments[1])) {
+    // /ko/{tool} 또는 /ko/{id} — 언어를 바꿔도 같은 그림 URL을 유지한다
+    if (
+      segments.length === 2 &&
+      (isLanguageRouteTool(segments[1]) || isDrawingIdSegment(segments[1]))
+    ) {
       return segments[1];
-    }
-    // /ko/paint/{id} — 언어를 바꿔도 같은 그림 URL을 유지한다
-    if (segments.length === 3 && segments[1] === "paint") {
-      return `paint/${segments[2]}`;
     }
     return null;
   };
@@ -375,7 +382,7 @@ export const LanguageMenuToggleButton = observer(() => {
 });
 
 function isLanguageRouteTool(segment: string) {
-  return segment === "paint" || segment === "liquify" || segment === "mosaic";
+  return segment === "paint";
 }
 
 // 색 교체 모드 스위치. 켜면 브러시/도형/채우기가 기존 픽셀과 합성되지 않고 덮어쓴다.

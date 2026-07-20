@@ -169,8 +169,9 @@ function renderLanding(
   tokens.canonical = escapeHtml(canonical);
   tokens.alternates = rootAlternateLinks();
   tokens.app_home = pagePath(locale, "paint");
-  tokens.app_liquify = pagePath(locale, "liquify");
-  tokens.app_mosaic = pagePath(locale, "mosaic");
+  // 유동화/모자이크는 별도 페이지가 아니라 ?tool= 쿼리로 세션을 연다
+  tokens.app_liquify = `${pagePath(locale, "paint")}?tool=liquify`;
+  tokens.app_mosaic = `${pagePath(locale, "paint")}?tool=mosaic`;
   tokens.app_dashboard = `/${locale}/dashboard`;
   tokens.jsonld_app = jsonLdScript(
     softwareApplicationJsonLd(meta.title, meta.description, canonical),

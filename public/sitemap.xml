@@ -37,30 +37,6 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
-    <loc>https://painton.app/en/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/en/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
-  </url>
-  <url>
     <loc>https://painton.app/ko</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
@@ -83,30 +59,6 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
-  </url>
-  <url>
-    <loc>https://painton.app/ko/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/ko/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
   </url>
   <url>
     <loc>https://painton.app/ja</loc>
@@ -133,30 +85,6 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
-    <loc>https://painton.app/ja/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/ja/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
-  </url>
-  <url>
     <loc>https://painton.app/es</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
@@ -179,30 +107,6 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
-  </url>
-  <url>
-    <loc>https://painton.app/es/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/es/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
   </url>
   <url>
     <loc>https://painton.app/fr</loc>
@@ -229,30 +133,6 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
-    <loc>https://painton.app/fr/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/fr/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
-  </url>
-  <url>
     <loc>https://painton.app/de</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
@@ -275,30 +155,6 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
-  </url>
-  <url>
-    <loc>https://painton.app/de/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/de/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
   </url>
   <url>
     <loc>https://painton.app/zh</loc>
@@ -325,30 +181,6 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
   </url>
   <url>
-    <loc>https://painton.app/zh/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/zh/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
-  </url>
-  <url>
     <loc>https://painton.app/ru</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en" />
     <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko" />
@@ -371,29 +203,5 @@
     <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/paint" />
     <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/paint" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/paint" />
-  </url>
-  <url>
-    <loc>https://painton.app/ru/liquify</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/liquify" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/liquify" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/liquify" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/liquify" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/liquify" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/liquify" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/liquify" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/liquify" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/liquify" />
-  </url>
-  <url>
-    <loc>https://painton.app/ru/mosaic</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://painton.app/en/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ko" href="https://painton.app/ko/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://painton.app/ja/mosaic" />
-    <xhtml:link rel="alternate" hreflang="es" href="https://painton.app/es/mosaic" />
-    <xhtml:link rel="alternate" hreflang="fr" href="https://painton.app/fr/mosaic" />
-    <xhtml:link rel="alternate" hreflang="de" href="https://painton.app/de/mosaic" />
-    <xhtml:link rel="alternate" hreflang="zh" href="https://painton.app/zh/mosaic" />
-    <xhtml:link rel="alternate" hreflang="ru" href="https://painton.app/ru/mosaic" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://painton.app/en/mosaic" />
   </url>
 </urlset>

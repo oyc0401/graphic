@@ -59,8 +59,14 @@ export async function listDrawings(): Promise<DrawingRecord[]> {
 }
 
 const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+// 6글자 라우트 슬러그와의 충돌 방지 — /{locale}/{id} 체계에서 id로 오인되면 안 된다
+const RESERVED_IDS = new Set(["mosaic"]);
 
 export function createDrawingId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
-  return Array.from(bytes, (b) => ID_CHARS[b % ID_CHARS.length]).join("");
+  let id: string;
+  do {
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    id = Array.from(bytes, (b) => ID_CHARS[b % ID_CHARS.length]).join("");
+  } while (RESERVED_IDS.has(id));
+  return id;
 }
