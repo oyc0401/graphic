@@ -57,7 +57,9 @@ p,
 input,
 h1,
 h2,
-h3 {
+h3,
+/* iOS Safari의 UA 기본 버튼 색은 시스템 파랑 — currentColor 아이콘(lucide)이 미선택에도 파랗게 보인다 */
+button {
   color: #191919;
 }
 
